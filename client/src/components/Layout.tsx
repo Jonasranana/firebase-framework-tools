@@ -1,3 +1,4 @@
+import logoImg from "@/assets/logo.png";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -38,8 +39,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group cursor-pointer">
-            <div className="relative w-8 h-8 bg-primary rounded-lg flex items-center justify-center transform transition-transform group-hover:rotate-12">
-              <Car className="w-5 h-5 text-primary-foreground" />
+            <div className="relative w-10 h-10 transform transition-transform group-hover:scale-105">
+              <img src={logoImg} alt="KachOto" className="w-full h-full object-contain" />
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-600">
               קח-אותו
