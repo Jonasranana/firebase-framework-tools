@@ -4,7 +4,7 @@ import { CarCard } from "@/components/CarCard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
-import { Search, MapPin, Calendar as CalendarIcon, Filter, X } from "lucide-react";
+import { Search, MapPin, Calendar as CalendarIcon, Filter, X, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
