@@ -39,10 +39,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group cursor-pointer">
-            <div className="relative w-10 h-10 transform transition-transform group-hover:scale-105">
+            <div className="relative w-16 h-16 transform transition-transform group-hover:scale-105">
               <img src={logoImg} alt="KachOto" className="w-full h-full object-contain" />
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-600">
+            <span className="text-2xl font-black bg-clip-text text-transparent bg-gradient-to-r from-primary to-orange-600">
               קח-אותו
             </span>
           </Link>
