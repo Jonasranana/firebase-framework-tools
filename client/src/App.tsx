@@ -8,6 +8,7 @@ import Home from "@/pages/Home";
 import CarDetails from "@/pages/CarDetails";
 import ListCar from "@/pages/ListCar";
 import MyBookings from "@/pages/MyBookings";
+import IP5Energie from "@/pages/IP5Energie";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -26,6 +27,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/ip5-energie" component={IP5Energie} />
       <Route path="/cars/:id" component={CarDetails} />
       <Route path="/list-car" component={ListCar} />
       <Route path="/my-bookings" component={MyBookings} />
