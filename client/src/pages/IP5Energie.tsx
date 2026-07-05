@@ -21,41 +21,53 @@ import {
 
 // --- COMPONENTS ---
 
-// Composant Logo IP5 recréé en vectoriel pour une qualité parfaite
-const LogoIP5 = ({ className = "" }: { className?: string }) => (
-  <div className={`flex items-center gap-3 ${className}`}>
-    <svg
-      viewBox="0 0 100 100"
-      className="w-10 h-10 md:w-12 md:h-12"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      {/* Vague extérieure */}
-      <path
-        d="M 65 10 C 15 10, -5 45, 20 85 C 35 105, 75 95, 75 95 C 75 95, 30 90, 15 50 C 5 25, 30 15, 65 10 Z"
-        fill="#2b5a8f"
-      />
-      {/* Vague du milieu */}
-      <path
-        d="M 60 25 C 25 25, 10 50, 25 75 C 35 90, 65 85, 65 85 C 65 85, 35 75, 25 50 C 15 35, 35 30, 60 25 Z"
-        fill="#2b5a8f"
-      />
-      {/* Vague intérieure */}
-      <path
-        d="M 55 40 C 35 40, 25 55, 35 70 C 45 80, 55 75, 55 75 C 55 75, 40 70, 35 55 C 30 45, 40 45, 55 40 Z"
-        fill="#2b5a8f"
-      />
-    </svg>
-    <div className="flex flex-col justify-center translate-y-1">
-      <span className="text-[#2b5a8f] font-black text-3xl leading-[0.8] tracking-wide">
-        IP5
-      </span>
-      <span className="text-[#2b5a8f] font-bold text-[11px] leading-none tracking-[0.2em] mt-1">
-        ÉNERGIE
-      </span>
+// Composant Logo IP5 recréé en vectoriel : trois croissants imbriqués,
+// chacun obtenu par soustraction d'un cercle décalé vers la droite (masque),
+// ce qui garantit des pointes nettes fidèles au logo d'origine.
+const LogoIP5 = ({ className = "" }: { className?: string }) => {
+  // Le logo apparaît plusieurs fois sur la page : les ids de masque
+  // doivent être uniques (les ":" de useId sont invalides dans url()).
+  const id = React.useId().replace(/:/g, "");
+  return (
+    <div className={`flex items-center gap-3 ${className}`}>
+      <svg
+        viewBox="0 0 100 100"
+        className="w-10 h-10 md:w-12 md:h-12"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <defs>
+          <mask id={`${id}-w1`}>
+            <rect width="100" height="100" fill="white" />
+            <circle cx="58" cy="49" r="39" fill="black" />
+          </mask>
+          <mask id={`${id}-w2`}>
+            <rect width="100" height="100" fill="white" />
+            <circle cx="63" cy="49.5" r="28" fill="black" />
+          </mask>
+          <mask id={`${id}-w3`}>
+            <rect width="100" height="100" fill="white" />
+            <circle cx="65" cy="49.5" r="17" fill="black" />
+          </mask>
+        </defs>
+        {/* Vague extérieure */}
+        <circle cx="46" cy="50" r="44" fill="#2b5a8f" mask={`url(#${id}-w1)`} />
+        {/* Vague du milieu */}
+        <circle cx="54" cy="50" r="32" fill="#2b5a8f" mask={`url(#${id}-w2)`} />
+        {/* Vague intérieure */}
+        <circle cx="58" cy="50" r="20" fill="#2b5a8f" mask={`url(#${id}-w3)`} />
+      </svg>
+      <div className="flex flex-col justify-center translate-y-1">
+        <span className="text-[#2b5a8f] font-black text-3xl leading-[0.8] tracking-wide">
+          IP5
+        </span>
+        <span className="text-[#2b5a8f] font-bold text-[11px] leading-none tracking-[0.2em] mt-1">
+          ÉNERGIE
+        </span>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "success";
 
