@@ -151,7 +151,7 @@ const REVIEWS = [
   },
 ];
 
-const TOTAL_QUESTIONS = 5;
+const TOTAL_QUESTIONS = 6;
 
 type SimulatorData = {
   housingType: string;
@@ -159,6 +159,7 @@ type SimulatorData = {
   currentHeating: string;
   department: string;
   householdSize: string;
+  incomeBracket: string;
   name: string;
   phone: string;
   consent: boolean;
@@ -171,11 +172,51 @@ const INITIAL_DATA: SimulatorData = {
   currentHeating: "",
   department: "",
   householdSize: "",
+  incomeBracket: "",
   name: "",
   phone: "",
   consent: false,
   company: "",
 };
+
+// Barème MaPrimeRénov' (revenu fiscal de référence, avis d'imposition N-1).
+// Plafonds "très modeste" / "modeste" / "intermédiaire" par taille de foyer
+// (1 à 5+ personnes) ; au-delà du dernier plafond : profil supérieur (rose).
+// Montants indicatifs — le barème officiel est confirmé lors de l'appel.
+const MPR_PLAFONDS = {
+  idf: [
+    [23768, 28933, 40404],
+    [34884, 42463, 59394],
+    [41893, 51000, 71060],
+    [48914, 59549, 83637],
+    [55961, 68123, 95758],
+  ],
+  province: [
+    [17173, 22015, 30844],
+    [25115, 32197, 45340],
+    [30206, 38719, 54592],
+    [35285, 45234, 63844],
+    [40388, 51775, 73098],
+  ],
+};
+
+const IDF_PREFIXES = ["75", "77", "78", "91", "92", "93", "94", "95"];
+
+const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
+
+// Les 4 profils MaPrimeRénov', avec les tranches adaptées au département
+// (Île-de-France ou province) et à la taille du foyer déjà renseignés.
+function getIncomeBrackets(department: string, householdSize: string) {
+  const isIdf = IDF_PREFIXES.includes(department.slice(0, 2));
+  const sizeIndex = Math.min(parseInt(householdSize, 10) || 1, 5) - 1;
+  const [t1, t2, t3] = MPR_PLAFONDS[isIdf ? "idf" : "province"][sizeIndex];
+  return [
+    { value: "Très modeste (bleu)", profile: "Bleu", dot: "bg-blue-600", label: "Revenus très modestes", range: `Moins de ${euros(t1)}` },
+    { value: "Modeste (jaune)", profile: "Jaune", dot: "bg-yellow-400", label: "Revenus modestes", range: `De ${euros(t1)} à ${euros(t2)}` },
+    { value: "Intermédiaire (violet)", profile: "Violet", dot: "bg-violet-500", label: "Revenus intermédiaires", range: `De ${euros(t2)} à ${euros(t3)}` },
+    { value: "Supérieur (rose)", profile: "Rose", dot: "bg-pink-500", label: "Revenus supérieurs", range: `Plus de ${euros(t3)}` },
+  ];
+}
 
 // Numéros FR : 0X XX XX XX XX ou +33 X XX XX XX XX, séparateurs tolérés
 const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
@@ -198,7 +239,7 @@ const Simulator = () => {
     setIsCalculating(true);
     setTimeout(() => {
       setIsCalculating(false);
-      setStep(6);
+      setStep(TOTAL_QUESTIONS + 1);
     }, 1800); // Simule le temps de calcul
   };
 
@@ -240,7 +281,7 @@ const Simulator = () => {
     setIsSubmitting(true);
     try {
       await submitLead(formData);
-      setStep(7);
+      setStep(TOTAL_QUESTIONS + 2);
     } finally {
       setIsSubmitting(false);
     }
@@ -432,7 +473,56 @@ const Simulator = () => {
           </div>
         );
       case 6: {
+        const brackets = getIncomeBrackets(
+          formData.department,
+          formData.householdSize,
+        );
+        return (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
+              <PiggyBank className="text-[#2b5a8f]" size={32} />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2">
+              Quel est le revenu fiscal de votre foyer ?
+            </h3>
+            <p className="text-gray-500 text-sm mb-6">
+              Il figure sur votre <b>avis d'imposition de l'année dernière</b>{" "}
+              (« revenu fiscal de référence »). C'est lui qui détermine votre
+              profil MaPrimeRénov'.
+            </p>
+
+            <div className="space-y-3 mb-2">
+              {brackets.map((b) => (
+                <button
+                  key={b.value}
+                  onClick={() => choose("incomeBracket", b.value)}
+                  className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all text-left"
+                >
+                  <span
+                    className={`w-3.5 h-3.5 rounded-full flex-shrink-0 ${b.dot}`}
+                    aria-hidden="true"
+                  ></span>
+                  <span className="flex-1">
+                    <span className="block font-semibold text-gray-800">
+                      {b.range}
+                    </span>
+                    <span className="block text-xs text-gray-500">
+                      {b.label} — profil {b.profile}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-400">
+              Barème indicatif pour un foyer de {formData.householdSize}{" "}
+              personne(s) dans votre département.
+            </p>
+          </div>
+        );
+      }
+      case 7: {
         const savings = savingsEstimate();
+        const isRose = formData.incomeBracket.includes("rose");
 
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -450,7 +540,10 @@ const Simulator = () => {
                 {savings} € / an
               </p>
               <div className="inline-flex items-center justify-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
-                <CheckCircle2 size={14} /> Éligible MaPrimeRénov' & CEE
+                <CheckCircle2 size={14} />{" "}
+                {isRose
+                  ? "Éligible aux primes CEE"
+                  : "Éligible MaPrimeRénov' & CEE"}
               </div>
               <p className="text-[11px] text-gray-500 mt-3">
                 Estimation indicative, non contractuelle, basée sur vos
@@ -557,7 +650,7 @@ const Simulator = () => {
           </div>
         );
       }
-      case 7:
+      case 8:
         return (
           <div className="text-center py-8 animate-in zoom-in duration-500">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -582,7 +675,7 @@ const Simulator = () => {
   };
 
   const progressPercentage = Math.min((step / (TOTAL_QUESTIONS + 1)) * 100, 100);
-  const showProgress = step < 7 && !isCalculating;
+  const showProgress = step <= TOTAL_QUESTIONS + 1 && !isCalculating;
 
   return (
     <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-md w-full mx-auto relative overflow-hidden border border-gray-100">
