@@ -18,56 +18,24 @@ import {
   Users,
   Star,
 } from "lucide-react";
+import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
 
 // --- COMPONENTS ---
 
-// Composant Logo IP5 recréé en vectoriel : trois croissants imbriqués,
-// chacun obtenu par soustraction d'un cercle décalé vers la droite (masque),
-// ce qui garantit des pointes nettes fidèles au logo d'origine.
-const LogoIP5 = ({ className = "" }: { className?: string }) => {
-  // Le logo apparaît plusieurs fois sur la page : les ids de masque
-  // doivent être uniques (les ":" de useId sont invalides dans url()).
-  const id = React.useId().replace(/:/g, "");
-  return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <svg
-        viewBox="0 0 100 100"
-        className="w-10 h-10 md:w-12 md:h-12"
-        xmlns="http://www.w3.org/2000/svg"
-        aria-hidden="true"
-      >
-        <defs>
-          <mask id={`${id}-w1`}>
-            <rect width="100" height="100" fill="white" />
-            <circle cx="58" cy="49" r="39" fill="black" />
-          </mask>
-          <mask id={`${id}-w2`}>
-            <rect width="100" height="100" fill="white" />
-            <circle cx="63" cy="49.5" r="28" fill="black" />
-          </mask>
-          <mask id={`${id}-w3`}>
-            <rect width="100" height="100" fill="white" />
-            <circle cx="65" cy="49.5" r="17" fill="black" />
-          </mask>
-        </defs>
-        {/* Vague extérieure */}
-        <circle cx="46" cy="50" r="44" fill="#2b5a8f" mask={`url(#${id}-w1)`} />
-        {/* Vague du milieu */}
-        <circle cx="54" cy="50" r="32" fill="#2b5a8f" mask={`url(#${id}-w2)`} />
-        {/* Vague intérieure */}
-        <circle cx="58" cy="50" r="20" fill="#2b5a8f" mask={`url(#${id}-w3)`} />
-      </svg>
-      <div className="flex flex-col justify-center translate-y-1">
-        <span className="text-[#2b5a8f] font-black text-3xl leading-[0.8] tracking-wide">
-          IP5
-        </span>
-        <span className="text-[#2b5a8f] font-bold text-[11px] leading-none tracking-[0.2em] mt-1">
-          ÉNERGIE
-        </span>
-      </div>
-    </div>
-  );
-};
+// Logo IP5 Énergie : tracé vectoriel exact du logo officiel (voir ip5-logo.ts).
+// La couleur suit currentColor : bleu marque dans le header, blanchi par le
+// filtre du footer.
+const LogoIP5 = ({ className = "" }: { className?: string }) => (
+  <svg
+    viewBox={LOGO_FULL_VIEWBOX}
+    className={`h-12 md:h-14 w-auto text-[#2b5a8f] ${className}`}
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label="IP5 Énergie"
+  >
+    <path d={LOGO_FULL_D} fill="currentColor" fillRule="evenodd" />
+  </svg>
+);
 
 type ButtonVariant = "primary" | "secondary" | "outline" | "success";
 
