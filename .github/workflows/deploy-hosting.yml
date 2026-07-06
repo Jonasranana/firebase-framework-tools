@@ -15,9 +15,21 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npx vite build
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-          channelId: live
-          projectId: kachoto-7554c
+
+      # Le secret a été copié depuis un éditeur de texte qui peut injecter
+      # des caractères parasites (ex. « å ») : on ne garde que l'ASCII
+      # imprimable, ce qui suffit pour un JSON de compte de service Google,
+      # puis on valide le JSON avant de déployer.
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+          python3 -m json.tool "$RUNNER_TEMP/sa.json" > /dev/null \
+            && echo "Service account JSON is valid." \
+            || { echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not valid JSON even after sanitizing"; exit 1; }
+
+      - name: Deploy to Firebase Hosting
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx firebase-tools@latest deploy --only hosting --project kachoto-7554c --non-interactive
