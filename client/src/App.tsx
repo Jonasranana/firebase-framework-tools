@@ -26,8 +26,11 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      {/* La landing IP5 Énergie est la page d'accueil ; /ip5-energie reste
+          en alias pour les liens déjà partagés. L'app voitures vit sur /autos. */}
+      <Route path="/" component={IP5Energie} />
       <Route path="/ip5-energie" component={IP5Energie} />
+      <Route path="/autos" component={Home} />
       <Route path="/cars/:id" component={CarDetails} />
       <Route path="/list-car" component={ListCar} />
       <Route path="/my-bookings" component={MyBookings} />
