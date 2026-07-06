@@ -287,7 +287,7 @@ const Simulator = () => {
       console.error("Échec de l'enregistrement du lead:", err);
       setErrors({
         submit:
-          "Une erreur est survenue lors de l'envoi. Réessayez, ou appelez-nous directement au 01 23 45 67 89.",
+          "Une erreur est survenue lors de l'envoi. Réessayez, ou appelez-nous directement au 07 49 52 52 67.",
       });
     } finally {
       setIsSubmitting(false);
@@ -746,8 +746,26 @@ const Simulator = () => {
 };
 
 const IP5Energie = () => {
+  // Le reste de l'app est en RTL (index.css force direction:rtl sur html) :
+  // cette page est en français, on impose le sens gauche→droite pendant
+  // qu'elle est affichée, puis on restaure en quittant.
+  React.useEffect(() => {
+    const html = document.documentElement;
+    const prevDir = html.style.direction;
+    const prevLang = html.lang;
+    const prevTitle = document.title;
+    html.style.direction = "ltr";
+    html.lang = "fr";
+    document.title = "IP5 Énergie — Pompes à chaleur, jusqu'à 80% d'aides";
+    return () => {
+      html.style.direction = prevDir;
+      html.lang = prevLang;
+      document.title = prevTitle;
+    };
+  }, []);
+
   return (
-    <div className="font-sans text-gray-900 bg-gray-50 min-h-screen">
+    <div dir="ltr" className="font-sans text-gray-900 bg-gray-50 min-h-screen">
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-md fixed w-full z-50 top-0 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -778,12 +796,12 @@ const IP5Energie = () => {
             </div>
             <div className="flex items-center gap-4">
               <a
-                href="tel:+33123456789"
+                href="tel:+33749525267"
                 className="flex items-center gap-2 text-[#2b5a8f] font-bold hover:text-blue-800 transition-colors"
-                aria-label="Appeler IP5 Énergie au 01 23 45 67 89"
+                aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
               >
                 <Phone size={18} />
-                <span className="hidden md:inline">01 23 45 67 89</span>
+                <span className="hidden md:inline">07 49 52 52 67</span>
               </a>
             </div>
           </div>
@@ -1082,20 +1100,20 @@ const IP5Energie = () => {
               <ul className="space-y-4">
                 <li>
                   <a
-                    href="tel:+33123456789"
+                    href="tel:+33749525267"
                     className="flex items-center gap-3 hover:text-blue-400 transition-colors"
                   >
                     <Phone size={18} />{" "}
-                    <span className="font-medium">01 23 45 67 89</span>
+                    <span className="font-medium">07 49 52 52 67</span>
                   </a>
                 </li>
                 <li>
                   <a
-                    href="mailto:contact@ip5-energie.fr"
+                    href="mailto:info@ip5energie.com"
                     className="flex items-center gap-3 hover:text-blue-400 transition-colors"
                   >
                     <MessageCircle size={18} />{" "}
-                    <span>contact@ip5-energie.fr</span>
+                    <span>info@ip5energie.com</span>
                   </a>
                 </li>
               </ul>
@@ -1137,7 +1155,7 @@ const IP5Energie = () => {
 
       {/* Floating WhatsApp Button */}
       <a
-        href="https://wa.me/33600000000"
+        href="https://wa.me/33749525267"
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center group"
