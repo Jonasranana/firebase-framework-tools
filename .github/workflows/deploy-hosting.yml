@@ -49,6 +49,24 @@ jobs:
           print("client_email se termine par gserviceaccount.com:", email.endswith("gserviceaccount.com"))
           EOF
 
+      # Teste l'échange de jeton OAuth directement auprès de Google pour
+      # obtenir l'erreur réelle (invalid_grant, clé désactivée, etc.) si
+      # l'authentification échoue. Aucun jeton n'est affiché.
+      - name: Test OAuth token exchange
+        run: |
+          pip install --quiet google-auth requests
+          python3 - <<'EOF'
+          import os
+          from google.oauth2 import service_account
+          import google.auth.transport.requests
+          creds = service_account.Credentials.from_service_account_file(
+              os.environ["RUNNER_TEMP"] + "/sa.json",
+              scopes=["https://www.googleapis.com/auth/cloud-platform"],
+          )
+          creds.refresh(google.auth.transport.requests.Request())
+          print("Echange de jeton OAuth reussi. Expiration:", creds.expiry)
+          EOF
+
       - name: Deploy to Firebase Hosting
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
