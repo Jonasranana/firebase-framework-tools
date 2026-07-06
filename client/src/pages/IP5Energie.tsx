@@ -189,18 +189,54 @@ function getIncomeBrackets(department: string, householdSize: string) {
 // Numéros FR : 0X XX XX XX XX ou +33 X XX XX XX XX, séparateurs tolérés
 const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
 
-// Point d'intégration CRM : brancher ici l'appel vers Monday.com (webhook /
-// API) ou votre backend. Le honeypot est vérifié avant l'appel.
+// Enregistre le lead dans Firestore (projet Firebase du site, collection
+// "ip5_leads"). Le SDK est chargé à la volée depuis le CDN pour ne pas
+// alourdir le bundle. Le honeypot est vérifié avant l'appel.
+// Les règles Firestore doivent autoriser la création sur ip5_leads :
+//   match /ip5_leads/{doc} { allow create: if true; allow read: if false; }
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAllJSME9X_ECgmnUudhdapDhOfBsUYbz0",
+  authDomain: "kachoto-7554c.firebaseapp.com",
+  projectId: "kachoto-7554c",
+  storageBucket: "kachoto-7554c.firebasestorage.app",
+  messagingSenderId: "930806777855",
+  appId: "1:930806777855:web:c73960da99f3853d3e49ca",
+};
+
 async function submitLead(data: SimulatorData): Promise<void> {
   if (data.company) return; // bot détecté, on ignore silencieusement
-  console.log("Données pour Monday.com:", data);
+  const [appMod, fsMod]: any[] = await Promise.all([
+    // @ts-ignore -- import CDN à l'exécution, pas de types disponibles
+    import(
+      /* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"
+    ),
+    // @ts-ignore -- import CDN à l'exécution, pas de types disponibles
+    import(
+      /* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
+    ),
+  ]);
+  const app = appMod.getApps().length
+    ? appMod.getApp()
+    : appMod.initializeApp(FIREBASE_CONFIG);
+  const db = fsMod.getFirestore(app);
+  const { company, ...lead } = data;
+  await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
+    ...lead,
+    source: "simulateur-landing",
+    createdAt: fsMod.serverTimestamp(),
+  });
 }
 
 const Simulator = () => {
   const [step, setStep] = useState(1);
   const [isCalculating, setIsCalculating] = useState(false);
   const [formData, setFormData] = useState<SimulatorData>(INITIAL_DATA);
-  const [errors, setErrors] = useState<{ name?: string; phone?: string; consent?: string }>({});
+  const [errors, setErrors] = useState<{
+    name?: string;
+    phone?: string;
+    consent?: string;
+    submit?: string;
+  }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const goToResults = () => {
@@ -250,6 +286,12 @@ const Simulator = () => {
     try {
       await submitLead(formData);
       setStep(TOTAL_QUESTIONS + 2);
+    } catch (err) {
+      console.error("Échec de l'enregistrement du lead:", err);
+      setErrors({
+        submit:
+          "Une erreur est survenue lors de l'envoi. Réessayez, ou appelez-nous directement au 01 23 45 67 89.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -606,6 +648,11 @@ const Simulator = () => {
                 )}
               </div>
 
+              {errors.submit && (
+                <p className="text-red-600 text-sm text-center bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                  {errors.submit}
+                </p>
+              )}
               <Button
                 type="submit"
                 variant="success"
