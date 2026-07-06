@@ -29,6 +29,26 @@ jobs:
             && echo "Service account JSON is valid." \
             || { echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not valid JSON even after sanitizing"; exit 1; }
 
+      # Diagnostic sans fuite : uniquement des booléens et des longueurs,
+      # jamais le contenu de la clé (les logs de ce dépôt sont publics).
+      - name: Check credentials shape
+        run: |
+          python3 - <<'EOF'
+          import json, os
+          d = json.load(open(os.environ["RUNNER_TEMP"] + "/sa.json"))
+          attendu = ["type","project_id","private_key_id","private_key","client_email","client_id","auth_uri","token_uri"]
+          print("champs presents:", {k: (k in d) for k in attendu})
+          print("type ==", repr(d.get("type")))
+          print("project_id ==", repr(d.get("project_id")))
+          pk = d.get("private_key", "")
+          print("private_key commence par BEGIN:", pk.startswith("-----BEGIN PRIVATE KEY-----"))
+          print("private_key contient END:", "-----END PRIVATE KEY-----" in pk)
+          print("private_key longueur:", len(pk))
+          print("private_key nb retours ligne:", pk.count("\n"))
+          email = d.get("client_email", "")
+          print("client_email se termine par gserviceaccount.com:", email.endswith("gserviceaccount.com"))
+          EOF
+
       - name: Deploy to Firebase Hosting
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
