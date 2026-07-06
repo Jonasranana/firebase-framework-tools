@@ -206,14 +206,11 @@ const FIREBASE_CONFIG = {
 async function submitLead(data: SimulatorData): Promise<void> {
   if (data.company) return; // bot détecté, on ignore silencieusement
   const [appMod, fsMod]: any[] = await Promise.all([
-    // @ts-ignore -- import CDN à l'exécution, pas de types disponibles
-    import(
-      /* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"
-    ),
-    // @ts-ignore -- import CDN à l'exécution, pas de types disponibles
-    import(
-      /* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"
-    ),
+    // Imports CDN à l'exécution (hors bundle), pas de types disponibles.
+    // @ts-ignore
+    import(/* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"),
+    // @ts-ignore
+    import(/* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"),
   ]);
   const app = appMod.getApps().length
     ? appMod.getApp()
