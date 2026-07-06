@@ -16,10 +16,10 @@ jobs:
       - run: npm ci
       - run: npx vite build
 
-      # Le secret a été copié depuis un éditeur de texte qui peut injecter
-      # des caractères parasites (ex. « å ») : on ne garde que l'ASCII
-      # imprimable, ce qui suffit pour un JSON de compte de service Google,
-      # puis on valide le JSON avant de déployer.
+      # Copier-coller depuis un éditeur de texte peut injecter des
+      # caractères parasites dans le secret ; on ne garde que l'ASCII
+      # imprimable (suffisant pour un JSON de compte de service Google)
+      # avant de le valider.
       - name: Prepare service account credentials
         env:
           FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -28,44 +28,6 @@ jobs:
           python3 -m json.tool "$RUNNER_TEMP/sa.json" > /dev/null \
             && echo "Service account JSON is valid." \
             || { echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not valid JSON even after sanitizing"; exit 1; }
-
-      # Diagnostic sans fuite : uniquement des booléens et des longueurs,
-      # jamais le contenu de la clé (les logs de ce dépôt sont publics).
-      - name: Check credentials shape
-        run: |
-          python3 - <<'EOF'
-          import json, os
-          d = json.load(open(os.environ["RUNNER_TEMP"] + "/sa.json"))
-          attendu = ["type","project_id","private_key_id","private_key","client_email","client_id","auth_uri","token_uri"]
-          print("champs presents:", {k: (k in d) for k in attendu})
-          print("type ==", repr(d.get("type")))
-          print("project_id ==", repr(d.get("project_id")))
-          pk = d.get("private_key", "")
-          print("private_key commence par BEGIN:", pk.startswith("-----BEGIN PRIVATE KEY-----"))
-          print("private_key contient END:", "-----END PRIVATE KEY-----" in pk)
-          print("private_key longueur:", len(pk))
-          print("private_key nb retours ligne:", pk.count("\n"))
-          email = d.get("client_email", "")
-          print("client_email se termine par gserviceaccount.com:", email.endswith("gserviceaccount.com"))
-          EOF
-
-      # Teste l'échange de jeton OAuth directement auprès de Google pour
-      # obtenir l'erreur réelle (invalid_grant, clé désactivée, etc.) si
-      # l'authentification échoue. Aucun jeton n'est affiché.
-      - name: Test OAuth token exchange
-        run: |
-          pip install --quiet google-auth requests
-          python3 - <<'EOF'
-          import os
-          from google.oauth2 import service_account
-          import google.auth.transport.requests
-          creds = service_account.Credentials.from_service_account_file(
-              os.environ["RUNNER_TEMP"] + "/sa.json",
-              scopes=["https://www.googleapis.com/auth/cloud-platform"],
-          )
-          creds.refresh(google.auth.transport.requests.Request())
-          print("Echange de jeton OAuth reussi. Expiration:", creds.expiry)
-          EOF
 
       - name: Deploy to Firebase Hosting
         env:
