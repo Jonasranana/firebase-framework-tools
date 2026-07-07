@@ -202,6 +202,9 @@ async function submitLead(data: SimulatorData): Promise<void> {
     ...lead,
     source: "simulateur-landing",
     createdAt: fsMod.serverTimestamp(),
+    // Passe à true quand le robot de synchronisation a copié le lead dans
+    // Monday (voir scripts/sync-leads-to-monday.mjs).
+    mondaySynced: false,
   });
 }
 

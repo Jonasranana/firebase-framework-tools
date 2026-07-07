@@ -1,0 +1,53 @@
+name: Sync leads to Monday
+
+on:
+  schedule:
+    # Toutes les 15 minutes : copie les nouveaux leads Firestore vers Monday.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: sync-leads-monday
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Tant que le secret MONDAY_API_TOKEN n'est pas configuré, on sort
+      # proprement au lieu de faire échouer chaque exécution planifiée.
+      - name: Check Monday token
+        id: token
+        env:
+          MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+        run: |
+          if [ -z "$MONDAY_API_TOKEN" ]; then
+            echo "::warning::Secret MONDAY_API_TOKEN absent — synchronisation ignorée."
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Même nettoyage du secret que pour le déploiement (voir
+      # deploy-hosting.yml) : on ne garde que l'ASCII imprimable.
+      - name: Prepare service account credentials
+        if: steps.token.outputs.present == 'true'
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+          python3 -m json.tool "$RUNNER_TEMP/sa.json" > /dev/null \
+            && echo "Service account JSON is valid." \
+            || { echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not valid JSON even after sanitizing"; exit 1; }
+
+      - name: Sync leads
+        if: steps.token.outputs.present == 'true'
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+        run: node scripts/sync-leads-to-monday.mjs
