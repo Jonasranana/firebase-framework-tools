@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Leaf,
   PiggyBank,
@@ -17,6 +17,10 @@ import {
   Map,
   Users,
   Star,
+  Bot,
+  Send,
+  X,
+  Loader2,
 } from "lucide-react";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
 
@@ -745,6 +749,170 @@ const Simulator = () => {
   );
 };
 
+// Consignes données à Gemini : cadrent les réponses sur le métier d'IP5
+// Énergie et évitent de promettre des montants d'aide fermes (chaque dossier
+// est différent, seul un appel avec un expert les confirme).
+const AI_SYSTEM_INSTRUCTION = `Tu es l'assistant virtuel du site d'IP5 Énergie, entreprise française certifiée RGE QualiPAC, spécialisée dans l'installation de pompes à chaleur air/eau.
+
+Ton rôle : répondre en français, en 2 à 5 phrases maximum, aux questions des visiteurs sur :
+- Le fonctionnement des pompes à chaleur (COP, économies d'énergie, aspect écologique)
+- Les aides de l'État : MaPrimeRénov' (profils Bleu/Jaune/Violet/Rose selon le revenu fiscal de référence), les Certificats d'Économie d'Énergie (CEE), l'éco-PTZ
+- Le déroulement d'une installation et la certification RGE
+- Les services d'IP5 Énergie : étude gratuite, prise en charge des démarches administratives, installation par des techniciens certifiés
+
+Règles strictes :
+- Ne donne jamais de montant d'aide exact et garanti pour la situation personnelle d'un visiteur : ce sont des estimations qui dépendent d'un dossier réel. Invite-le à utiliser le simulateur en haut de la page ou à appeler IP5 Énergie au 07 49 52 52 67 pour un calcul précis.
+- Si la question sort du sujet chauffage/énergie/rénovation ou de l'entreprise IP5 Énergie, réponds poliment que tu es spécialisé sur ces sujets et invite à contacter IP5 Énergie pour le reste.
+- Ne donne pas de conseil juridique ou fiscal définitif, seulement des informations générales publiques.
+- Reste chaleureux et professionnel.
+- Si le visiteur semble prêt à passer à l'action, encourage-le à remplir le simulateur ou à appeler / écrire sur WhatsApp au 07 49 52 52 67.`;
+
+type ChatMessage = { role: "user" | "model"; text: string };
+
+const AI_WELCOME_MESSAGE: ChatMessage = {
+  role: "model",
+  text: "👋 Bonjour ! Une question sur les aides (MaPrimeRénov', CEE) ou sur l'installation d'une pompe à chaleur ? Je suis là pour vous répondre.",
+};
+
+// Assistant IA flottant, propulsé par Gemini via Firebase AI Logic. Le SDK
+// est importé dynamiquement (npm, code-splitté par Vite) pour ne pas
+// alourdir le chargement initial de la page.
+const AIChatWidget = () => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<ChatMessage[]>([AI_WELCOME_MESSAGE]);
+  const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const chatRef = useRef<any>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [messages, isOpen]);
+
+  const getChatSession = async () => {
+    if (chatRef.current) return chatRef.current;
+    const [{ initializeApp, getApps, getApp }, { getAI, getGenerativeModel, GoogleAIBackend }] =
+      await Promise.all([import("firebase/app"), import("firebase/ai")]);
+    const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+    const ai = getAI(app, { backend: new GoogleAIBackend() });
+    const model = getGenerativeModel(ai, {
+      model: "gemini-2.5-flash",
+      systemInstruction: AI_SYSTEM_INSTRUCTION,
+    });
+    chatRef.current = model.startChat();
+    return chatRef.current;
+  };
+
+  const send = async () => {
+    const question = input.trim();
+    if (!question || isLoading) return;
+    setInput("");
+    setError(null);
+    setMessages((prev) => [...prev, { role: "user", text: question }]);
+    setIsLoading(true);
+    try {
+      const chat = await getChatSession();
+      const result = await chat.sendMessage(question);
+      const text = result.response.text();
+      setMessages((prev) => [...prev, { role: "model", text }]);
+    } catch (err) {
+      console.error("Erreur assistant IA:", err);
+      setError(
+        "Désolé, l'assistant est momentanément indisponible. Appelez-nous au 07 49 52 52 67 ou écrivez sur WhatsApp.",
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      {isOpen && (
+        <div className="fixed inset-x-4 bottom-40 sm:inset-x-auto sm:right-6 sm:bottom-40 sm:w-96 h-[28rem] max-h-[70vh] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="bg-[#2b5a8f] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
+            <div className="flex items-center gap-2 font-bold">
+              <Bot size={20} /> Assistant IP5 Énergie
+            </div>
+            <button
+              onClick={() => setIsOpen(false)}
+              aria-label="Fermer l'assistant"
+              className="hover:opacity-70 transition-opacity"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50">
+            {messages.map((m, i) => (
+              <div
+                key={i}
+                className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
+                  m.role === "user"
+                    ? "bg-[#2b5a8f] text-white ml-auto rounded-br-sm"
+                    : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm"
+                }`}
+              >
+                {m.text}
+              </div>
+            ))}
+            {isLoading && (
+              <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-2 w-fit">
+                <Loader2 size={16} className="animate-spin text-[#2b5a8f]" />
+                <span className="text-sm text-gray-500">En train d'écrire...</span>
+              </div>
+            )}
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 rounded-2xl px-4 py-2.5 text-sm">
+                {error}
+              </div>
+            )}
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              send();
+            }}
+            className="flex items-center gap-2 p-3 border-t border-gray-100 flex-shrink-0"
+          >
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Posez votre question..."
+              aria-label="Votre question à l'assistant"
+              disabled={isLoading}
+              className="flex-1 px-4 py-2.5 rounded-full border border-gray-200 focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none text-sm bg-gray-50 disabled:opacity-60"
+            />
+            <button
+              type="submit"
+              disabled={isLoading || !input.trim()}
+              aria-label="Envoyer"
+              className="bg-[#2b5a8f] text-white rounded-full p-2.5 hover:bg-blue-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+            >
+              <Send size={18} />
+            </button>
+          </form>
+        </div>
+      )}
+
+      <button
+        onClick={() => setIsOpen((v) => !v)}
+        aria-label={isOpen ? "Fermer l'assistant IA" : "Ouvrir l'assistant IA"}
+        className="fixed bottom-24 right-6 bg-[#2b5a8f] text-white p-4 rounded-full shadow-2xl hover:bg-blue-800 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center group"
+      >
+        {isOpen ? <X size={28} /> : <Bot size={28} />}
+        {!isOpen && (
+          <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+            Une question ? Notre IA vous répond !
+          </span>
+        )}
+      </button>
+    </>
+  );
+};
+
 const IP5Energie = () => {
   // Le reste de l'app est en RTL (index.css force direction:rtl sur html) :
   // cette page est en français, on impose le sens gauche→droite pendant
@@ -1152,6 +1320,8 @@ const IP5Energie = () => {
           </div>
         </div>
       </footer>
+
+      <AIChatWidget />
 
       {/* Floating WhatsApp Button */}
       <a
