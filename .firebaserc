@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "kachoto-7554c"
+  },
+  "targets": {
+    "kachoto-7554c": {
+      "hosting": {
+        "ip5": ["ip5-energie"],
+        "legacy": ["kachoto-7554c"]
+      }
+    }
   }
 }
