@@ -22,6 +22,7 @@ import {
   X,
   Loader2,
   Sparkles,
+  Menu,
 } from "lucide-react";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
 
@@ -938,7 +939,16 @@ const AIChatWidget = () => {
   );
 };
 
+const NAV_LINKS = [
+  { href: "#avantages", label: "Avantages" },
+  { href: "#subventions", label: "Aides de l'État" },
+  { href: "#realisations", label: "Réalisations" },
+  { href: "#avis", label: "Avis clients" },
+];
+
 const IP5Energie = () => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   // Le reste de l'app est en RTL (index.css force direction:rtl sur html) :
   // cette page est en français, on impose le sens gauche→droite pendant
   // qu'elle est affichée, puis on restaure en quittant.
@@ -963,35 +973,28 @@ const IP5Energie = () => {
       <nav className="bg-white/80 backdrop-blur-md fixed w-full z-50 top-0 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-20">
-            <div className="flex items-center">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsMobileMenuOpen((v) => !v)}
+                aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+                aria-expanded={isMobileMenuOpen}
+                className="md:hidden text-gray-700 hover:text-[#2b5a8f] transition-colors p-1 -ml-1"
+              >
+                {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
+              </button>
               {/* Le Logo Vectoriel est appelé ici */}
               <LogoIP5 />
             </div>
             <div className="hidden md:flex space-x-8 items-center">
-              <a
-                href="#avantages"
-                className="text-gray-600 hover:text-[#2b5a8f] font-medium transition-colors"
-              >
-                Avantages
-              </a>
-              <a
-                href="#subventions"
-                className="text-gray-600 hover:text-[#2b5a8f] font-medium transition-colors"
-              >
-                Aides de l'État
-              </a>
-              <a
-                href="#realisations"
-                className="text-gray-600 hover:text-[#2b5a8f] font-medium transition-colors"
-              >
-                Réalisations
-              </a>
-              <a
-                href="#avis"
-                className="text-gray-600 hover:text-[#2b5a8f] font-medium transition-colors"
-              >
-                Avis clients
-              </a>
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  className="text-gray-600 hover:text-[#2b5a8f] font-medium transition-colors"
+                >
+                  {link.label}
+                </a>
+              ))}
             </div>
             <div className="flex items-center gap-4">
               <a
@@ -1005,6 +1008,31 @@ const IP5Energie = () => {
             </div>
           </div>
         </div>
+
+        {/* Menu déroulant mobile */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="px-4 py-3 flex flex-col">
+              {NAV_LINKS.map((link) => (
+                <a
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="py-3 text-gray-700 hover:text-[#2b5a8f] font-medium border-b border-gray-50 last:border-0 transition-colors"
+                >
+                  {link.label}
+                </a>
+              ))}
+              <a
+                href="tel:+33749525267"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 py-3 text-[#2b5a8f] font-bold"
+              >
+                <Phone size={18} /> 07 49 52 52 67
+              </a>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero Section */}
