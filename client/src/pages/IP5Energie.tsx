@@ -1319,10 +1319,6 @@ const IP5Energie = () => {
               </figure>
             ))}
           </div>
-
-          <p className="text-center text-sm text-gray-400 mt-10">
-            Photos prises sur un chantier réel d'IP5 Énergie.
-          </p>
         </div>
       </section>
 
