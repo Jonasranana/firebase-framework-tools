@@ -29,6 +29,14 @@ jobs:
             && echo "Service account JSON is valid." \
             || { echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not valid JSON even after sanitizing"; exit 1; }
 
+      # Le site "ip5-energie" (URL de marque ip5-energie.web.app) est créé à
+      # la volée s'il n'existe pas encore ; la commande échoue sans gravité
+      # s'il existe déjà, d'où le `|| true`.
+      - name: Ensure ip5-energie hosting site exists
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx firebase-tools@latest hosting:sites:create ip5-energie --project kachoto-7554c --non-interactive || true
+
       - name: Deploy to Firebase Hosting
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
