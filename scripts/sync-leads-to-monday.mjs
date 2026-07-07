@@ -146,6 +146,16 @@ async function markSynced(token, docName, mondayItemId) {
 }
 
 // --- Côté Monday.
+// La colonne "phone" de Monday refuse les espaces et séparateurs : on ne
+// garde que les chiffres, et on ramène les +33 au format 0X XX XX XX XX.
+const normalizePhone = (raw) => {
+  let digits = String(raw ?? "").replace(/\D/g, "");
+  if (digits.startsWith("33") && digits.length === 11) {
+    digits = "0" + digits.slice(2);
+  }
+  return digits;
+};
+
 const parisDate = (iso) =>
   new Intl.DateTimeFormat("fr-CA", {
     timeZone: "Europe/Paris",
@@ -158,7 +168,7 @@ async function createMondayItem(lead) {
   const f = lead.fields;
   const columnValues = {
     [COL.statut]: { label: "Nouveau" },
-    [COL.telephone]: String(f.phone ?? ""),
+    [COL.telephone]: { phone: normalizePhone(f.phone), countryShortName: "FR" },
     [COL.recuLe]: { date: parisDate(f.createdAt) },
     [COL.typeLogement]: String(f.housingType ?? ""),
     [COL.proprietaire]: String(f.ownerStatus ?? ""),
