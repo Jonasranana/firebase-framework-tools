@@ -19,12 +19,13 @@
 // - `date` au format ISO (YYYY-MM-DD), `readMinutes` une estimation honnête.
 // - Avant d'ajouter un article, vérifier qu'aucun `slug`/sujet existant ne
 //   fait déjà doublon.
-// - `image` (optionnel) : utiliser de préférence une VRAIE photo de
-//   chantier déjà présente dans client/public/images/realisations/ (choisir
-//   la plus proche du sujet ; une même photo peut illustrer plusieurs
-//   articles). Ne jamais générer d'illustration abstraite ni utiliser une
-//   image trouvée sur internet. Si aucune photo ne convient, omettre
-//   `image` : la page affiche un bandeau sobre à partir de la catégorie.
+// - `image` (optionnel) : uniquement si le propriétaire du site a fourni
+//   une photo d'illustration sous licence libre, déposée dans
+//   client/public/images/articles/. Ne JAMAIS : réutiliser les photos de
+//   chantier de /images/realisations (réservées à la galerie "Nos
+//   réalisations"), générer une illustration abstraite, ou prendre une
+//   image sur internet. Sans image fournie, omettre le champ : l'article
+//   s'affiche proprement sans bandeau.
 
 export type ContentBlock =
   | { type: "p"; text: string }
@@ -45,7 +46,6 @@ export type Article = {
 export const ARTICLES: Article[] = [
   {
     slug: "maprimerenov-2026-quatre-profils",
-    image: "/images/realisations/interieur-pac-ballon.jpg",
     title: "MaPrimeRénov' : comprendre les 4 profils et vos aides",
     excerpt:
       "Bleu, Jaune, Violet, Rose : comment l'État classe les foyers pour calculer le montant de vos aides à la rénovation énergétique.",
@@ -98,7 +98,6 @@ export const ARTICLES: Article[] = [
   },
   {
     slug: "certificats-economie-energie-cee-fonctionnement",
-    image: "/images/realisations/ballon-eau-chaude.jpg",
     title: "Certificats d'Économie d'Énergie (CEE) : comment ça marche ?",
     excerpt:
       "Une prime financée par les fournisseurs d'énergie, cumulable avec MaPrimeRénov', pour financer votre pompe à chaleur.",
@@ -143,7 +142,6 @@ export const ARTICLES: Article[] = [
   },
   {
     slug: "pompe-a-chaleur-air-eau-fonctionnement",
-    image: "/images/realisations/unite-exterieure.jpg",
     title: "Pompe à chaleur air/eau : fonctionnement, avantages et prix",
     excerpt:
       "Comment une pompe à chaleur capte les calories de l'air extérieur pour chauffer votre logement, et pourquoi son rendement change tout.",
@@ -200,7 +198,6 @@ export const ARTICLES: Article[] = [
   },
   {
     slug: "fioul-gaz-ou-pompe-a-chaleur-comparatif",
-    image: "/images/realisations/avant-ancienne-chaudiere.jpg",
     title: "Fioul, gaz ou pompe à chaleur : quel chauffage choisir en 2026 ?",
     excerpt:
       "Comparatif honnête des systèmes de chauffage les plus courants en maison individuelle : coût, écologie, confort, aides disponibles.",
@@ -253,7 +250,6 @@ export const ARTICLES: Article[] = [
   },
   {
     slug: "rge-qualipac-pourquoi-choisir-installateur-certifie",
-    image: "/images/realisations/tableau-electrique-etiquete.jpg",
     title: "RGE QualiPAC : pourquoi choisir un installateur certifié ?",
     excerpt:
       "La certification RGE n'est pas qu'un label : c'est la condition obligatoire pour toucher les aides de l'État sur votre pompe à chaleur.",
@@ -297,7 +293,6 @@ export const ARTICLES: Article[] = [
   },
   {
     slug: "aides-cumulables-renovation-energetique-france",
-    image: "/images/realisations/detail-module-hydraulique.jpg",
     title: "Rénovation énergétique : quelles aides sont cumulables en France ?",
     excerpt:
       "MaPrimeRénov', CEE, éco-PTZ, TVA réduite... le point sur les dispositifs qui peuvent se combiner pour financer votre pompe à chaleur.",
