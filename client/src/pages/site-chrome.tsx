@@ -224,18 +224,19 @@ export const SiteFooter = () => (
           <h4 className="text-white font-bold mb-6 text-lg">Légal</h4>
           <ul className="space-y-3 text-sm">
             <li>
-              <a href="#" className="hover:text-blue-400 transition-colors">
+              <a
+                href="/mentions-legales"
+                className="hover:text-blue-400 transition-colors"
+              >
                 Mentions légales
               </a>
             </li>
             <li>
-              <a href="#" className="hover:text-blue-400 transition-colors">
+              <a
+                href="/confidentialite"
+                className="hover:text-blue-400 transition-colors"
+              >
                 Politique de confidentialité
-              </a>
-            </li>
-            <li>
-              <a href="#" className="hover:text-blue-400 transition-colors">
-                Conditions générales de vente
               </a>
             </li>
           </ul>
