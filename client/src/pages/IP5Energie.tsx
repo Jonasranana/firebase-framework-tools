@@ -980,19 +980,37 @@ const IP5Energie = () => {
                 pour financer jusqu'à 80% de votre installation.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                <div className="flex items-center gap-3 text-gray-700 font-semibold bg-white px-5 py-3 rounded-xl shadow-md border border-gray-100">
-                  <CheckCircle2 className="text-green-500" size={22} /> Étude
-                  gratuite
-                </div>
-                <div className="flex items-center gap-3 text-gray-700 font-semibold bg-white px-5 py-3 rounded-xl shadow-md border border-gray-100">
-                  <CheckCircle2 className="text-green-500" size={22} />{" "}
-                  Démarches incluses
-                </div>
+              <div className="flex justify-center lg:justify-start">
+                <a
+                  href="#simulateur"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document
+                      .getElementById("simulateur")
+                      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }}
+                  className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#2b5a8f] to-cyan-500 text-white px-9 py-4 rounded-full font-bold text-lg shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 hover:scale-[1.03] transition-all duration-300"
+                >
+                  <Zap size={22} fill="currentColor" /> Je calcule mes
+                  économies
+                </a>
               </div>
+              <p className="mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-gray-500 font-medium">
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="text-green-500" size={16} /> Gratuit
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="text-green-500" size={16} /> 30
+                  secondes
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <CheckCircle2 className="text-green-500" size={16} /> Sans
+                  engagement
+                </span>
+              </p>
             </div>
 
-            <div className="lg:col-span-6 relative">
+            <div id="simulateur" className="lg:col-span-6 relative">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-green-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
               <div className="relative">
                 <Simulator />
@@ -1401,10 +1419,12 @@ const IP5Energie = () => {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a
-                  href="#"
+                  href="#simulateur"
                   onClick={(e) => {
                     e.preventDefault();
-                    window.scrollTo({ top: 0, behavior: "smooth" });
+                    document
+                      .getElementById("simulateur")
+                      ?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }}
                   className="inline-flex items-center justify-center gap-2 bg-white text-[#2b5a8f] px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
                 >
