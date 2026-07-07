@@ -9,6 +9,7 @@ import CarDetails from "@/pages/CarDetails";
 import ListCar from "@/pages/ListCar";
 import MyBookings from "@/pages/MyBookings";
 import IP5Energie from "@/pages/IP5Energie";
+import { ArticlesList, ArticleDetail } from "@/pages/Articles";
 import { useAuth } from "@/hooks/use-auth";
 import { Loader2 } from "lucide-react";
 
@@ -30,6 +31,8 @@ function Router() {
           en alias pour les liens déjà partagés. L'app voitures vit sur /autos. */}
       <Route path="/" component={IP5Energie} />
       <Route path="/ip5-energie" component={IP5Energie} />
+      <Route path="/articles" component={ArticlesList} />
+      <Route path="/articles/:slug" component={ArticleDetail} />
       <Route path="/autos" component={Home} />
       <Route path="/cars/:id" component={CarDetails} />
       <Route path="/list-car" component={ListCar} />
