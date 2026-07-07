@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Leaf,
   PiggyBank,
@@ -15,6 +15,11 @@ import {
   Map,
   Users,
   Star,
+  KeyRound,
+  CalendarClock,
+  Clock,
+  Search,
+  PartyPopper,
 } from "lucide-react";
 import {
   FIREBASE_CONFIG,
@@ -109,32 +114,93 @@ const REVIEWS = [
   },
 ];
 
-const TOTAL_QUESTIONS = 6;
+const TOTAL_QUESTIONS = 8;
 
 type SimulatorData = {
   housingType: string;
+  ownerStatus: string;
   surface: number;
   currentHeating: string;
   department: string;
   householdSize: string;
   incomeBracket: string;
+  projectTiming: string;
   name: string;
   phone: string;
+  email: string; // optionnel
   consent: boolean;
   company: string; // honeypot anti-spam : doit rester vide
 };
 
 const INITIAL_DATA: SimulatorData = {
   housingType: "",
+  ownerStatus: "",
   surface: 100,
   currentHeating: "",
   department: "",
   householdSize: "",
   incomeBracket: "",
+  projectTiming: "",
   name: "",
   phone: "",
+  email: "",
   consent: false,
   company: "",
+};
+
+// Petit message de "récompense" affiché en haut de l'étape suivante après
+// chaque réponse : entretient la motivation sans rien promettre de ferme
+// (les montants exacts dépendent toujours de l'éligibilité).
+function rewardFor(key: keyof SimulatorData, value: string): string | null {
+  switch (key) {
+    case "housingType":
+      return value === "Maison"
+        ? "Parfait ! Les maisons sont idéales pour une pompe à chaleur air/eau."
+        : "C'est noté ! Des solutions existent aussi en appartement.";
+    case "ownerStatus":
+      if (value === "Propriétaire")
+        return "Top ! Les propriétaires peuvent cumuler l'ensemble des aides.";
+      if (value === "Bientôt propriétaire")
+        return "Bien vu d'anticiper : les aides se préparent dès l'achat.";
+      return "C'est noté — nous vous expliquerons les options possibles avec votre propriétaire.";
+    case "currentHeating":
+      if (value === "Fioul")
+        return "Bonne nouvelle : remplacer une chaudière fioul est souvent le cas le mieux subventionné !";
+      if (value === "Gaz")
+        return "Bonne nouvelle : le remplacement du gaz ouvre droit à de belles aides, selon éligibilité.";
+      if (value === "Electrique")
+        return "Une pompe à chaleur consomme jusqu'à 3 fois moins qu'un chauffage électrique classique.";
+      return "C'est noté, nos experts sauront s'adapter à votre installation.";
+    case "department":
+      return "C'est noté ! Nous appliquons le barème d'aides de votre département.";
+    case "householdSize":
+      return "Merci ! Plus que 2 petites questions.";
+    case "incomeBracket":
+      return value.includes("rose")
+        ? "C'est noté : les primes CEE restent accessibles à tous les profils."
+        : "Bonne nouvelle : votre profil correspond aux aides MaPrimeRénov', selon éligibilité.";
+    default:
+      return null;
+  }
+}
+
+// Compteur animé (0 -> value) pour révéler l'estimation d'économies.
+const AnimatedEuros = ({ value }: { value: number }) => {
+  const [shown, setShown] = useState(0);
+  useEffect(() => {
+    const start = performance.now();
+    const duration = 1200;
+    let raf = 0;
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      // easeOutCubic : démarre vite, ralentit à la fin
+      setShown(Math.round(value * (1 - Math.pow(1 - t, 3))));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{shown.toLocaleString("fr-FR")} € / an</>;
 };
 
 // Barème MaPrimeRénov' (revenu fiscal de référence, avis d'imposition N-1).
@@ -212,15 +278,18 @@ const Simulator = () => {
   const [step, setStep] = useState(1);
   const [isCalculating, setIsCalculating] = useState(false);
   const [formData, setFormData] = useState<SimulatorData>(INITIAL_DATA);
+  const [reward, setReward] = useState<string | null>(null);
   const [errors, setErrors] = useState<{
     name?: string;
     phone?: string;
+    email?: string;
     consent?: string;
     submit?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const goToResults = () => {
+    setReward(null);
     setIsCalculating(true);
     setTimeout(() => {
       setIsCalculating(false);
@@ -228,23 +297,27 @@ const Simulator = () => {
     }, 1800); // Simule le temps de calcul
   };
 
-  const nextStep = () => {
+  // Avance d'une étape en affichant le message d'encouragement lié à la
+  // réponse qui vient d'être donnée.
+  const advance = (rewardMsg: string | null) => {
     if (step === TOTAL_QUESTIONS) {
       goToResults();
     } else {
+      setReward(rewardMsg);
       setStep(step + 1);
     }
   };
 
   const prevStep = () => {
     if (step > 1 && !isCalculating) {
+      setReward(null);
       setStep(step - 1);
     }
   };
 
   const choose = (key: keyof SimulatorData, value: string) => {
     setFormData({ ...formData, [key]: value });
-    nextStep();
+    advance(rewardFor(key, value));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -256,6 +329,10 @@ const Simulator = () => {
     }
     if (!FRENCH_PHONE_REGEX.test(formData.phone.trim())) {
       newErrors.phone = "Merci d'indiquer un numéro de téléphone français valide (ex : 06 12 34 56 78).";
+    }
+    const email = formData.email.trim();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      newErrors.email = "Cette adresse e-mail ne semble pas valide (vous pouvez aussi laisser vide).";
     }
     if (!formData.consent) {
       newErrors.consent = "Vous devez accepter d'être recontacté pour recevoir votre devis.";
@@ -322,6 +399,38 @@ const Simulator = () => {
         );
       case 2:
         return (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
+              Vous êtes… ?
+            </h3>
+            <p className="text-gray-500 text-sm mb-6 text-center">
+              Les aides diffèrent selon votre situation.
+            </p>
+            <div className="space-y-3">
+              {[
+                { value: "Propriétaire", hint: "Vous habitez votre logement" },
+                { value: "Bientôt propriétaire", hint: "Achat en cours ou prévu" },
+                { value: "Locataire", hint: "Votre propriétaire décide des travaux" },
+              ].map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => choose("ownerStatus", o.value)}
+                  className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all text-left"
+                >
+                  <KeyRound size={24} className="text-[#2b5a8f] flex-shrink-0" />
+                  <span className="flex-1">
+                    <span className="block font-semibold text-gray-800">
+                      {o.value}
+                    </span>
+                    <span className="block text-xs text-gray-500">{o.hint}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      case 3:
+        return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             <h3 className="text-2xl font-bold text-gray-800 mb-6">
               Quelle est la surface à chauffer ?
@@ -343,12 +452,15 @@ const Simulator = () => {
               }
               className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2b5a8f] mb-8"
             />
-            <Button onClick={nextStep} className="w-full">
+            <Button
+              onClick={() => advance(`${formData.surface} m², c'est noté !`)}
+              className="w-full"
+            >
               Continuer <ArrowRight size={18} />
             </Button>
           </div>
         );
-      case 3:
+      case 4:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
@@ -386,7 +498,7 @@ const Simulator = () => {
             </div>
           </div>
         );
-      case 4:
+      case 5:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
@@ -428,7 +540,7 @@ const Simulator = () => {
             </div>
 
             <Button
-              onClick={nextStep}
+              onClick={() => advance(rewardFor("department", formData.department))}
               className="w-full"
               disabled={!formData.department}
             >
@@ -436,7 +548,7 @@ const Simulator = () => {
             </Button>
           </div>
         );
-      case 5:
+      case 6:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
@@ -463,7 +575,7 @@ const Simulator = () => {
             </div>
           </div>
         );
-      case 6: {
+      case 7: {
         const brackets = getIncomeBrackets(
           formData.department,
           formData.householdSize,
@@ -511,7 +623,42 @@ const Simulator = () => {
           </div>
         );
       }
-      case 7: {
+      case 8:
+        return (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
+              <CalendarClock className="text-[#2b5a8f]" size={32} />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
+              Dernière question : c'est pour quand ?
+            </h3>
+            <p className="text-gray-500 text-sm mb-6 text-center">
+              Votre estimation est prête juste après 🎁
+            </p>
+            <div className="space-y-3">
+              {[
+                { value: "Dès que possible", hint: "Je veux avancer rapidement", icon: Zap },
+                { value: "Dans les 6 mois", hint: "Je prépare mon projet", icon: CalendarClock },
+                { value: "Je me renseigne", hint: "Je compare et je réfléchis", icon: Search },
+              ].map((o) => (
+                <button
+                  key={o.value}
+                  onClick={() => choose("projectTiming", o.value)}
+                  className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all text-left"
+                >
+                  <o.icon size={24} className="text-[#2b5a8f] flex-shrink-0" />
+                  <span className="flex-1">
+                    <span className="block font-semibold text-gray-800">
+                      {o.value}
+                    </span>
+                    <span className="block text-xs text-gray-500">{o.hint}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      case 9: {
         const savings = savingsEstimate();
         const isRose = formData.incomeBracket.includes("rose");
 
@@ -521,14 +668,14 @@ const Simulator = () => {
               <div className="absolute top-0 right-0 p-2 opacity-10">
                 <PiggyBank size={80} />
               </div>
-              <p className="text-green-800 font-semibold mb-2">
-                Excellente nouvelle !
+              <p className="text-green-800 font-semibold mb-2 flex items-center justify-center gap-2">
+                <PartyPopper size={18} /> Excellente nouvelle !
               </p>
               <p className="text-gray-700 text-sm mb-2">
                 Vous pourriez économiser jusqu'à
               </p>
               <p className="text-4xl font-extrabold text-green-600 mb-3">
-                {savings} € / an
+                <AnimatedEuros value={savings} />
               </p>
               <div className="inline-flex items-center justify-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
                 <CheckCircle2 size={14} />{" "}
@@ -590,6 +737,27 @@ const Simulator = () => {
                   <p className="text-red-600 text-xs mt-1">{errors.phone}</p>
                 )}
               </div>
+              <div>
+                <label htmlFor="lead-email" className="sr-only">
+                  Adresse e-mail (facultatif)
+                </label>
+                <input
+                  id="lead-email"
+                  type="email"
+                  autoComplete="email"
+                  inputMode="email"
+                  placeholder="Votre e-mail (facultatif, pour le devis écrit)"
+                  value={formData.email}
+                  aria-invalid={!!errors.email}
+                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 ${errors.email ? "border-red-400" : "border-gray-300"}`}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+                {errors.email && (
+                  <p className="text-red-600 text-xs mt-1">{errors.email}</p>
+                )}
+              </div>
 
               {/* Honeypot anti-spam : caché aux humains, rempli par les bots */}
               <div className="hidden" aria-hidden="true">
@@ -646,7 +814,7 @@ const Simulator = () => {
           </div>
         );
       }
-      case 8:
+      case 10:
         return (
           <div className="text-center py-8 animate-in zoom-in duration-500">
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -672,6 +840,9 @@ const Simulator = () => {
 
   const progressPercentage = Math.min((step / (TOTAL_QUESTIONS + 1)) * 100, 100);
   const showProgress = step <= TOTAL_QUESTIONS + 1 && !isCalculating;
+  // Petit jalon d'encouragement affiché à côté du numéro d'étape.
+  const milestone =
+    step <= 2 ? "🚀 C'est parti" : step <= 5 ? "💪 À mi-chemin" : "🏁 Dernière ligne droite";
 
   return (
     <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-md w-full mx-auto relative overflow-hidden border border-gray-100">
@@ -685,7 +856,7 @@ const Simulator = () => {
           aria-label="Progression de la simulation"
         >
           <div
-            className="h-full bg-[#2b5a8f] transition-all duration-500 ease-out"
+            className="h-full bg-gradient-to-r from-[#2b5a8f] to-cyan-400 transition-all duration-500 ease-out"
             style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
@@ -704,10 +875,32 @@ const Simulator = () => {
             <span />
           )}
           <p className="text-sm text-gray-400 font-medium">
-            {step <= TOTAL_QUESTIONS
-              ? `Étape ${step} sur ${TOTAL_QUESTIONS}`
-              : "Votre résultat"}
+            {step <= TOTAL_QUESTIONS ? (
+              <>
+                <span className="mr-2">{milestone}</span>
+                {step} / {TOTAL_QUESTIONS}
+              </>
+            ) : (
+              "Votre résultat"
+            )}
           </p>
+        </div>
+      )}
+
+      {step === 1 && !isCalculating && (
+        <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 -mt-3 mb-4">
+          <Clock size={13} /> 30 secondes, sans engagement
+        </p>
+      )}
+
+      {reward && showProgress && step <= TOTAL_QUESTIONS && (
+        <div
+          key={step}
+          className="flex items-start gap-2 bg-green-50 border border-green-200 text-green-800 text-sm font-medium rounded-xl px-4 py-3 mb-5 animate-in fade-in slide-in-from-top-2 duration-500"
+          role="status"
+        >
+          <CheckCircle2 size={17} className="flex-shrink-0 mt-0.5 text-green-600" />
+          <span>{reward}</span>
         </div>
       )}
 
