@@ -33,10 +33,9 @@ const CategoryBadge = ({ category }: { category: string }) => {
   );
 };
 
-// Illustration de couverture. Si l'article n'a pas d'image (par ex. un
-// article ajouté automatiquement sans avoir pu en générer une), on affiche
-// un bandeau de secours aux couleurs du site avec l'icône de la catégorie,
-// plutôt qu'une image cassée.
+// Illustration de couverture, affichée uniquement si l'article a une image
+// (photo libre de droits fournie par le propriétaire du site). Sans image,
+// l'article s'affiche en carte texte, sans bandeau.
 const CoverImage = ({
   article,
   className = "",
@@ -44,23 +43,14 @@ const CoverImage = ({
   article: Article;
   className?: string;
 }) => {
-  if (article.image) {
-    return (
-      <img
-        src={article.image}
-        alt=""
-        className={`object-cover ${className}`}
-        loading="lazy"
-      />
-    );
-  }
-  const Icon = CATEGORY_ICONS[article.category] ?? PiggyBank;
+  if (!article.image) return null;
   return (
-    <div
-      className={`bg-gradient-to-br from-[#16304f] via-[#1e3f66] to-[#2b5a8f] flex items-center justify-center ${className}`}
-    >
-      <Icon size={44} className="text-white/70" />
-    </div>
+    <img
+      src={article.image}
+      alt=""
+      className={`object-cover ${className}`}
+      loading="lazy"
+    />
   );
 };
 
