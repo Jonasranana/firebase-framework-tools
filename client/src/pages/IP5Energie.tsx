@@ -23,6 +23,7 @@ import {
   Loader2,
   Sparkles,
   Menu,
+  Facebook,
 } from "lucide-react";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
 
@@ -939,6 +940,8 @@ const AIChatWidget = () => {
   );
 };
 
+const FACEBOOK_URL = "https://www.facebook.com/share/1DnkfumaaV/";
+
 const NAV_LINKS = [
   { href: "#avantages", label: "Avantages" },
   { href: "#subventions", label: "Aides de l'État" },
@@ -998,6 +1001,15 @@ const IP5Energie = () => {
             </div>
             <div className="flex items-center gap-4">
               <a
+                href={FACEBOOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="La page Facebook d'IP5 Énergie"
+                className="hidden md:flex text-gray-400 hover:text-[#2b5a8f] transition-colors"
+              >
+                <Facebook size={20} />
+              </a>
+              <a
                 href="tel:+33749525267"
                 className="flex items-center gap-2 text-[#2b5a8f] font-bold hover:text-blue-800 transition-colors"
                 aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
@@ -1026,9 +1038,18 @@ const IP5Energie = () => {
               <a
                 href="tel:+33749525267"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="flex items-center gap-2 py-3 text-[#2b5a8f] font-bold"
+                className="flex items-center gap-2 py-3 text-[#2b5a8f] font-bold border-b border-gray-50"
               >
                 <Phone size={18} /> 07 49 52 52 67
+              </a>
+              <a
+                href={FACEBOOK_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="flex items-center gap-2 py-3 text-gray-600 font-medium"
+              >
+                <Facebook size={18} /> Suivez-nous sur Facebook
               </a>
             </div>
           </div>
@@ -1431,6 +1452,16 @@ const IP5Energie = () => {
                   >
                     <MessageCircle size={18} />{" "}
                     <span>info@ip5energie.com</span>
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href={FACEBOOK_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-3 hover:text-blue-400 transition-colors"
+                  >
+                    <Facebook size={18} /> <span>Facebook</span>
                   </a>
                 </li>
               </ul>
