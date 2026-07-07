@@ -21,6 +21,7 @@ import {
   Send,
   X,
   Loader2,
+  Sparkles,
 } from "lucide-react";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
 
@@ -771,8 +772,16 @@ type ChatMessage = { role: "user" | "model"; text: string };
 
 const AI_WELCOME_MESSAGE: ChatMessage = {
   role: "model",
-  text: "👋 Bonjour ! Une question sur les aides (MaPrimeRénov', CEE) ou sur l'installation d'une pompe à chaleur ? Je suis là pour vous répondre.",
+  text: "👋 Bonjour ! Je suis l'assistant d'IP5 Énergie, propulsé par Gemini. Une question sur les aides (MaPrimeRénov', CEE) ou sur l'installation d'une pompe à chaleur ? Je suis là pour vous répondre.",
 };
+
+// Badge de marque Gemini : dégradé aux couleurs de l'icône Google Gemini,
+// réutilisé sur le bouton flottant et dans l'en-tête du chat.
+const GeminiBadge = ({ size = 12 }: { size?: number }) => (
+  <span className="bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 rounded-full p-1 flex items-center justify-center flex-shrink-0">
+    <Sparkles size={size} className="text-white" />
+  </span>
+);
 
 // Assistant IA flottant, propulsé par Gemini via Firebase AI Logic. Le SDK
 // est importé dynamiquement (npm, code-splitté par Vite) pour ne pas
@@ -831,8 +840,19 @@ const AIChatWidget = () => {
       {isOpen && (
         <div className="fixed inset-x-4 bottom-40 sm:inset-x-auto sm:right-6 sm:bottom-40 sm:w-96 h-[28rem] max-h-[70vh] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-[#2b5a8f] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-2 font-bold">
-              <Bot size={20} /> Assistant IP5 Énergie
+            <div>
+              <div className="flex items-center gap-2 font-bold">
+                <Bot size={20} /> Assistant IP5 Énergie
+              </div>
+              <div className="flex items-center gap-1.5 mt-1">
+                <GeminiBadge size={10} />
+                <span className="text-[11px] font-semibold text-blue-100">
+                  Propulsé par{" "}
+                  <span className="bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
+                    Google Gemini
+                  </span>
+                </span>
+              </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
@@ -899,14 +919,19 @@ const AIChatWidget = () => {
 
       <button
         onClick={() => setIsOpen((v) => !v)}
-        aria-label={isOpen ? "Fermer l'assistant IA" : "Ouvrir l'assistant IA"}
+        aria-label={isOpen ? "Fermer l'assistant Gemini" : "Ouvrir l'assistant Gemini"}
         className="fixed bottom-24 right-6 bg-[#2b5a8f] text-white p-4 rounded-full shadow-2xl hover:bg-blue-800 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center group"
       >
         {isOpen ? <X size={28} /> : <Bot size={28} />}
         {!isOpen && (
-          <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
-            Une question ? Notre IA vous répond !
-          </span>
+          <>
+            <span className="absolute -top-1 -right-1 shadow-md">
+              <GeminiBadge size={12} />
+            </span>
+            <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+              Posez vos questions à notre IA Gemini !
+            </span>
+          </>
         )}
       </button>
     </>
