@@ -981,6 +981,12 @@ const IP5Energie = () => {
                 Aides de l'État
               </a>
               <a
+                href="#realisations"
+                className="text-gray-600 hover:text-[#2b5a8f] font-medium transition-colors"
+              >
+                Réalisations
+              </a>
+              <a
                 href="#avis"
                 className="text-gray-600 hover:text-[#2b5a8f] font-medium transition-colors"
               >
@@ -1223,6 +1229,100 @@ const IP5Energie = () => {
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* Réalisations : vraies photos de chantier, sans localisation précise
+          pour préserver la vie privée des clients. */}
+      <section id="realisations" className="py-24 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+              Nos réalisations
+            </h2>
+            <p className="text-xl text-gray-600">
+              Un chantier récent réalisé par notre équipe : remplacement d'une
+              ancienne chaudière par une pompe à chaleur air/eau.
+            </p>
+          </div>
+
+          {/* Avant / Après */}
+          <div className="grid md:grid-cols-2 gap-8 mb-8">
+            <figure className="relative rounded-3xl overflow-hidden shadow-lg border border-gray-100 group">
+              <img
+                src="/images/realisations/avant-ancienne-chaudiere.jpg"
+                alt="Ancienne chaudière avant remplacement"
+                className="w-full h-80 object-cover"
+                loading="lazy"
+              />
+              <span className="absolute top-4 left-4 bg-gray-900/80 text-white text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
+                Avant
+              </span>
+              <figcaption className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm font-medium px-5 py-4">
+                L'ancienne chaudière, avant intervention
+              </figcaption>
+            </figure>
+            <figure className="relative rounded-3xl overflow-hidden shadow-lg border border-gray-100 group">
+              <img
+                src="/images/realisations/interieur-pac-ballon.jpg"
+                alt="Pompe à chaleur et ballon d'eau chaude installés"
+                className="w-full h-80 object-cover"
+                loading="lazy"
+              />
+              <span className="absolute top-4 left-4 bg-green-600 text-white text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
+                Après
+              </span>
+              <figcaption className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent text-white text-sm font-medium px-5 py-4">
+                Le module intérieur de la pompe à chaleur et le ballon d'eau
+                chaude
+              </figcaption>
+            </figure>
+          </div>
+
+          {/* Détails du chantier */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[
+              {
+                src: "unite-exterieure.jpg",
+                alt: "Unité extérieure de la pompe à chaleur installée contre le mur",
+                caption: "Unité extérieure, posée sur plot béton",
+              },
+              {
+                src: "detail-module-hydraulique.jpg",
+                alt: "Détail du module hydraulique de la pompe à chaleur",
+                caption: "Finitions soignées du module intérieur",
+              },
+              {
+                src: "tableau-electrique-etiquete.jpg",
+                alt: "Tableau électrique dédié, clairement étiqueté",
+                caption: "Tableau électrique dédié, étiqueté pour l'entretien",
+              },
+              {
+                src: "coffret-securite-exterieur.jpg",
+                alt: "Coffret de sécurité électrique extérieur aux normes",
+                caption: "Coffret de coupure extérieur aux normes",
+              },
+            ].map((photo) => (
+              <figure
+                key={photo.src}
+                className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white"
+              >
+                <img
+                  src={`/images/realisations/${photo.src}`}
+                  alt={photo.alt}
+                  className="w-full h-48 object-cover"
+                  loading="lazy"
+                />
+                <figcaption className="text-sm text-gray-600 px-4 py-3">
+                  {photo.caption}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+
+          <p className="text-center text-sm text-gray-400 mt-10">
+            Photos prises sur un chantier réel d'IP5 Énergie.
+          </p>
         </div>
       </section>
 
