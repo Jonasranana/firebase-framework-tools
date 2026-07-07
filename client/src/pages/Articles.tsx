@@ -33,6 +33,37 @@ const CategoryBadge = ({ category }: { category: string }) => {
   );
 };
 
+// Illustration de couverture. Si l'article n'a pas d'image (par ex. un
+// article ajouté automatiquement sans avoir pu en générer une), on affiche
+// un bandeau de secours aux couleurs du site avec l'icône de la catégorie,
+// plutôt qu'une image cassée.
+const CoverImage = ({
+  article,
+  className = "",
+}: {
+  article: Article;
+  className?: string;
+}) => {
+  if (article.image) {
+    return (
+      <img
+        src={article.image}
+        alt=""
+        className={`object-cover ${className}`}
+        loading="lazy"
+      />
+    );
+  }
+  const Icon = CATEGORY_ICONS[article.category] ?? PiggyBank;
+  return (
+    <div
+      className={`bg-gradient-to-br from-[#16304f] via-[#1e3f66] to-[#2b5a8f] flex items-center justify-center ${className}`}
+    >
+      <Icon size={44} className="text-white/70" />
+    </div>
+  );
+};
+
 const formatDate = (iso: string) =>
   new Date(iso + "T00:00:00").toLocaleDateString("fr-FR", {
     day: "numeric",
@@ -70,27 +101,30 @@ export const ArticlesList = () => {
               <a
                 key={article.slug}
                 href={`/articles/${article.slug}`}
-                className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow p-6 flex flex-col"
+                className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow overflow-hidden flex flex-col"
               >
-                <CategoryBadge category={article.category} />
-                <h2 className="text-xl font-bold text-gray-900 mt-4 mb-2 leading-snug">
-                  {article.title}
-                </h2>
-                <p className="text-gray-600 text-sm leading-relaxed flex-1">
-                  {article.excerpt}
-                </p>
-                <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-50">
-                  <div className="flex items-center gap-3 text-xs text-gray-400">
-                    <span className="flex items-center gap-1">
-                      <Calendar size={13} /> {formatDate(article.date)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Clock size={13} /> {article.readMinutes} min
+                <CoverImage article={article} className="w-full h-44" />
+                <div className="p-6 flex flex-col flex-1">
+                  <CategoryBadge category={article.category} />
+                  <h2 className="text-xl font-bold text-gray-900 mt-4 mb-2 leading-snug">
+                    {article.title}
+                  </h2>
+                  <p className="text-gray-600 text-sm leading-relaxed flex-1">
+                    {article.excerpt}
+                  </p>
+                  <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-50">
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={13} /> {formatDate(article.date)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Clock size={13} /> {article.readMinutes} min
+                      </span>
+                    </div>
+                    <span className="text-[#2b5a8f] font-semibold text-sm flex items-center gap-1">
+                      Lire <ArrowRight size={14} />
                     </span>
                   </div>
-                  <span className="text-[#2b5a8f] font-semibold text-sm flex items-center gap-1">
-                    Lire <ArrowRight size={14} />
-                  </span>
                 </div>
               </a>
             ))}
@@ -181,6 +215,11 @@ export const ArticleDetail = () => {
           >
             <ArrowLeft size={16} /> Tous les articles
           </a>
+
+          <CoverImage
+            article={article}
+            className="w-full h-56 md:h-72 rounded-3xl mb-6"
+          />
 
           <CategoryBadge category={article.category} />
 
