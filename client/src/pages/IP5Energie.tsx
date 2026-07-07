@@ -20,6 +20,12 @@ import {
   Clock,
   Search,
   PartyPopper,
+  Quote,
+  Award,
+  FileCheck2,
+  HandCoins,
+  BadgeCheck,
+  Sparkles,
 } from "lucide-react";
 import {
   FIREBASE_CONFIG,
@@ -72,6 +78,27 @@ const Button = ({
     </button>
   );
 };
+
+// Étiquette décorative affichée au-dessus des titres de section.
+const Kicker = ({
+  icon: Icon,
+  children,
+  onDark = false,
+}: {
+  icon: React.ElementType;
+  children: React.ReactNode;
+  onDark?: boolean;
+}) => (
+  <span
+    className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border ${
+      onDark
+        ? "bg-white/10 text-blue-100 border-white/20"
+        : "bg-blue-50 text-[#2b5a8f] border-blue-100"
+    }`}
+  >
+    <Icon size={14} /> {children}
+  </span>
+);
 
 const DEPARTMENTS = [
   "01 - Ain", "02 - Aisne", "03 - Allier", "04 - Alpes-de-Haute-Provence", "05 - Hautes-Alpes",
@@ -976,11 +1003,40 @@ const IP5Energie = () => {
       </section>
 
       {/* Benefits Section */}
-      <section id="avantages" className="py-24 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* Bande de confiance */}
+      <div className="bg-white border-y border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { icon: BadgeCheck, title: "Certifié RGE", sub: "QualiPAC" },
+            { icon: FileCheck2, title: "Démarches gérées", sub: "de A à Z" },
+            { icon: HandCoins, title: "Aides déduites", sub: "du devis final" },
+            { icon: Users, title: "Entreprise familiale", sub: "un seul interlocuteur" },
+          ].map((item) => (
+            <div key={item.title} className="flex items-center gap-3 justify-center lg:justify-start">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100 text-[#2b5a8f] flex items-center justify-center flex-shrink-0">
+                <item.icon size={22} />
+              </div>
+              <div className="leading-tight">
+                <p className="font-bold text-gray-900 text-sm">{item.title}</p>
+                <p className="text-gray-500 text-xs">{item.sub}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <section id="avantages" className="py-24 bg-gray-50 relative overflow-hidden">
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100/40 blur-3xl"></div>
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-green-100/40 blur-3xl"></div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="text-center max-w-3xl mx-auto mb-16">
+            <Kicker icon={Sparkles}>Les avantages</Kicker>
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
-              Pourquoi choisir la pompe à chaleur ?
+              Pourquoi choisir la{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500">
+                pompe à chaleur
+              </span>{" "}
+              ?
             </h2>
             <p className="text-xl text-gray-600">
               Le système de chauffage le plus performant et économique en
@@ -989,47 +1045,65 @@ const IP5Energie = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="w-16 h-16 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center mb-6">
-                <PiggyBank size={32} />
+            {[
+              {
+                icon: PiggyBank,
+                gradient: "from-emerald-400 to-green-600",
+                shadow: "shadow-green-500/30",
+                bar: "from-emerald-400 to-green-500",
+                chip: "1 kWh consommé → jusqu'à 4 kWh de chaleur",
+                chipStyle: "bg-green-50 text-green-700 border-green-100",
+                title: "Jusqu'à 70% d'économies",
+                text: "Pour 1 kWh d'électricité consommé, la pompe à chaleur restitue jusqu'à 4 kWh d'énergie thermique. Votre facture fond instantanément.",
+              },
+              {
+                icon: Leaf,
+                gradient: "from-sky-400 to-[#2b5a8f]",
+                shadow: "shadow-blue-500/30",
+                bar: "from-sky-400 to-[#2b5a8f]",
+                chip: "0 fioul · 0 gaz · énergie de l'air",
+                chipStyle: "bg-blue-50 text-[#2b5a8f] border-blue-100",
+                title: "Écologique & propre",
+                text: "Fini les énergies fossiles comme le fioul ou le gaz. Vous utilisez les calories naturellement présentes dans l'air, réduisant votre empreinte carbone.",
+              },
+              {
+                icon: ShieldCheck,
+                gradient: "from-violet-400 to-purple-600",
+                shadow: "shadow-purple-500/30",
+                bar: "from-violet-400 to-purple-500",
+                chip: "Un meilleur DPE à la revente",
+                chipStyle: "bg-purple-50 text-purple-700 border-purple-100",
+                title: "Valorisation du bien",
+                text: "Améliorez le DPE (Diagnostic de Performance Énergétique) de votre maison. Un atout majeur pour la valeur de votre patrimoine immobilier.",
+              },
+            ].map((card) => (
+              <div
+                key={card.title}
+                className="group relative bg-white p-8 pt-10 rounded-3xl border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
+              >
+                <div
+                  className={`absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r ${card.bar}`}
+                ></div>
+                <card.icon
+                  size={140}
+                  className="absolute -bottom-8 -right-8 text-gray-900 opacity-[0.04] group-hover:opacity-[0.07] group-hover:scale-110 transition-all duration-500 pointer-events-none"
+                />
+                <div
+                  className={`w-16 h-16 bg-gradient-to-br ${card.gradient} text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg ${card.shadow} group-hover:scale-110 transition-transform duration-300`}
+                >
+                  <card.icon size={30} />
+                </div>
+                <h3 className="text-xl font-bold mb-3 text-gray-900">
+                  {card.title}
+                </h3>
+                <p className="text-gray-600 leading-relaxed mb-5">{card.text}</p>
+                <span
+                  className={`inline-block text-xs font-bold px-3 py-1.5 rounded-full border ${card.chipStyle}`}
+                >
+                  {card.chip}
+                </span>
               </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">
-                Jusqu'à 70% d'économies
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Pour 1 kWh d'électricité consommé, la pompe à chaleur restitue
-                jusqu'à 4 kWh d'énergie thermique. Votre facture fond
-                instantanément.
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="w-16 h-16 bg-blue-50 text-[#2b5a8f] rounded-2xl flex items-center justify-center mb-6">
-                <Leaf size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">
-                Écologique & Propre
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Fini les énergies fossiles comme le fioul ou le gaz. Vous
-                utilisez les calories naturellement présentes dans l'air,
-                réduisant votre empreinte carbone.
-              </p>
-            </div>
-
-            <div className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-              <div className="w-16 h-16 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
-                <ShieldCheck size={32} />
-              </div>
-              <h3 className="text-xl font-bold mb-3 text-gray-900">
-                Valorisation du bien
-              </h3>
-              <p className="text-gray-600 leading-relaxed">
-                Améliorez le DPE (Diagnostic de Performance Énergétique) de
-                votre maison. Un atout majeur pour la valeur de votre
-                patrimoine immobilier.
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -1037,7 +1111,7 @@ const IP5Energie = () => {
       {/* Subsidies Section */}
       <section
         id="subventions"
-        className="py-24 bg-[#2b5a8f] text-white relative overflow-hidden"
+        className="py-24 bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] text-white relative overflow-hidden"
       >
         <div
           className="absolute inset-0 opacity-10"
@@ -1047,13 +1121,15 @@ const IP5Energie = () => {
             backgroundSize: "32px 32px",
           }}
         ></div>
+        <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-cyan-400/20 blur-3xl"></div>
+        <div className="absolute -bottom-32 -left-24 w-96 h-96 rounded-full bg-blue-300/10 blur-3xl"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             <div>
-              <div className="inline-block bg-white/10 px-4 py-1.5 rounded-full text-blue-100 font-semibold text-sm mb-6 border border-white/20">
+              <Kicker icon={HandCoins} onDark>
                 Aides de l'État {new Date().getFullYear()}
-              </div>
+              </Kicker>
               <h2 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">
                 Financer votre projet n'a jamais été aussi simple.
               </h2>
@@ -1159,6 +1235,7 @@ const IP5Energie = () => {
       <section id="realisations" className="py-24 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
+            <Kicker icon={Award}>Notre savoir-faire</Kicker>
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
               Nos réalisations
             </h2>
@@ -1174,7 +1251,7 @@ const IP5Energie = () => {
               <img
                 src="/images/realisations/avant-ancienne-chaudiere.jpg"
                 alt="Ancienne chaudière avant remplacement"
-                className="w-full h-80 object-cover"
+                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"
               />
               <span className="absolute top-4 left-4 bg-gray-900/80 text-white text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
@@ -1188,7 +1265,7 @@ const IP5Energie = () => {
               <img
                 src="/images/realisations/interieur-pac-ballon.jpg"
                 alt="Pompe à chaleur et ballon d'eau chaude installés"
-                className="w-full h-80 object-cover"
+                className="w-full h-80 object-cover group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"
               />
               <span className="absolute top-4 left-4 bg-green-600 text-white text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
@@ -1227,14 +1304,16 @@ const IP5Energie = () => {
             ].map((photo) => (
               <figure
                 key={photo.src}
-                className="rounded-2xl overflow-hidden shadow-sm border border-gray-100 bg-white"
+                className="group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-1"
               >
-                <img
-                  src={`/images/realisations/${photo.src}`}
-                  alt={photo.alt}
-                  className="w-full h-48 object-cover"
-                  loading="lazy"
-                />
+                <div className="overflow-hidden">
+                  <img
+                    src={`/images/realisations/${photo.src}`}
+                    alt={photo.alt}
+                    className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
+                    loading="lazy"
+                  />
+                </div>
                 <figcaption className="text-sm text-gray-600 px-4 py-3">
                   {photo.caption}
                 </figcaption>
@@ -1248,6 +1327,7 @@ const IP5Energie = () => {
       <section id="avis" className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
+            <Kicker icon={Star}>Avis clients</Kicker>
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
               Ils ont sauté le pas
             </h2>
@@ -1261,8 +1341,13 @@ const IP5Energie = () => {
             {REVIEWS.map((review) => (
               <figure
                 key={review.name}
-                className="bg-gray-50 p-8 rounded-3xl border border-gray-100 flex flex-col"
+                className="relative bg-gray-50 p-8 rounded-3xl border border-gray-100 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:bg-white transition-all duration-300 overflow-hidden"
               >
+                <Quote
+                  size={72}
+                  className="absolute -top-2 -right-2 text-[#2b5a8f] opacity-[0.06] pointer-events-none"
+                  fill="currentColor"
+                />
                 <div
                   className="flex gap-1 mb-4 text-yellow-400"
                   aria-label="Note de 5 étoiles sur 5"
@@ -1274,14 +1359,65 @@ const IP5Energie = () => {
                 <blockquote className="text-gray-700 leading-relaxed mb-6 flex-1">
                   « {review.text} »
                 </blockquote>
-                <figcaption>
-                  <p className="font-bold text-gray-900">{review.name}</p>
-                  <p className="text-sm text-gray-500 flex items-center gap-1">
-                    <MapPin size={14} /> {review.location}
-                  </p>
+                <figcaption className="flex items-center gap-3 pt-4 border-t border-gray-100">
+                  <span
+                    className="w-11 h-11 rounded-full bg-gradient-to-br from-[#2b5a8f] to-cyan-500 text-white font-bold text-sm flex items-center justify-center flex-shrink-0"
+                    aria-hidden="true"
+                  >
+                    {review.name
+                      .split(/[\s&]+/)
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((w) => w[0])
+                      .join("")
+                      .toUpperCase()}
+                  </span>
+                  <span>
+                    <p className="font-bold text-gray-900">{review.name}</p>
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <MapPin size={14} /> {review.location}
+                    </p>
+                  </span>
                 </figcaption>
               </figure>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Bandeau d'appel à l'action final */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="relative bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] rounded-[2.5rem] px-8 py-14 md:p-16 text-center text-white overflow-hidden shadow-2xl">
+            <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-cyan-400/20 blur-3xl"></div>
+            <div className="absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-green-400/15 blur-3xl"></div>
+            <div className="relative">
+              <h2 className="text-3xl md:text-4xl font-extrabold mb-4 leading-tight">
+                Prêt à réduire vos factures de chauffage ?
+              </h2>
+              <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
+                Estimation gratuite en 30 secondes, sans engagement. Un expert
+                IP5 Énergie vous rappelle pour valider vos aides.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="inline-flex items-center justify-center gap-2 bg-white text-[#2b5a8f] px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
+                >
+                  <Sparkles size={20} /> Simuler mes économies
+                </a>
+                <a
+                  href="tel:+33749525267"
+                  className="inline-flex items-center justify-center gap-2 bg-white/10 border-2 border-white/40 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition-colors"
+                >
+                  07 49 52 52 67
+                </a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
