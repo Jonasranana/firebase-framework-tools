@@ -23,12 +23,14 @@ const COL = {
   telephone: "phone_mm51zq5n",
   recuLe: "date_mm51nnzy",
   typeLogement: "text_mm51p4ha",
+  proprietaire: "text_mm51r815",
   surface: "numeric_mm515v32",
   chauffage: "text_mm51r1ad",
   departement: "text_mm51x68t",
   foyer: "text_mm51n2s9",
   revenus: "text_mm51r5ff",
-  economies: "numeric_mm51qp8w",
+  echeance: "text_mm51k07s",
+  email: "email_mm5178r7",
   source: "text_mm51e0cv",
 };
 
@@ -144,12 +146,6 @@ async function markSynced(token, docName, mondayItemId) {
 }
 
 // --- Côté Monday.
-// Même barème indicatif que le simulateur du site (IP5Energie.tsx).
-const savingsEstimate = (surface, heating) => {
-  const perM2 = heating === "Fioul" ? 22 : heating === "Gaz" ? 15 : 18;
-  return Math.round((Number(surface) || 0) * perM2);
-};
-
 const parisDate = (iso) =>
   new Intl.DateTimeFormat("fr-CA", {
     timeZone: "Europe/Paris",
@@ -165,14 +161,19 @@ async function createMondayItem(lead) {
     [COL.telephone]: String(f.phone ?? ""),
     [COL.recuLe]: { date: parisDate(f.createdAt) },
     [COL.typeLogement]: String(f.housingType ?? ""),
+    [COL.proprietaire]: String(f.ownerStatus ?? ""),
     [COL.surface]: String(f.surface ?? ""),
     [COL.chauffage]: String(f.currentHeating ?? ""),
     [COL.departement]: String(f.department ?? ""),
     [COL.foyer]: String(f.householdSize ?? ""),
     [COL.revenus]: String(f.incomeBracket ?? ""),
-    [COL.economies]: String(savingsEstimate(f.surface, f.currentHeating)),
+    [COL.echeance]: String(f.projectTiming ?? ""),
     [COL.source]: String(f.source ?? "site-internet"),
   };
+  const email = String(f.email ?? "").trim();
+  if (email) {
+    columnValues[COL.email] = { email, text: email };
+  }
   const query = `mutation ($board: ID!, $group: String!, $name: String!, $values: JSON!) {
     create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id }
   }`;
