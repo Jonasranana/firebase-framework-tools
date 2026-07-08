@@ -3,7 +3,6 @@ import {
   Phone,
   MessageCircle,
   ShieldCheck,
-  Bot,
   Send,
   X,
   Loader2,
@@ -304,6 +303,21 @@ const GeminiBadge = ({ size = 12 }: { size?: number }) => (
   </span>
 );
 
+// Étoile IA à quatre branches (le symbole des assistants IA modernes),
+// utilisée à la place de l'ancienne icône robot.
+const AIStar = ({ size = 24, className = "" }: { size?: number; className?: string }) => (
+  <svg
+    viewBox="0 0 24 24"
+    width={size}
+    height={size}
+    className={className}
+    fill="currentColor"
+    aria-hidden="true"
+  >
+    <path d="M12 1 C13.2 7.2 16.8 10.8 23 12 C16.8 13.2 13.2 16.8 12 23 C10.8 16.8 7.2 13.2 1 12 C7.2 10.8 10.8 7.2 12 1 Z" />
+  </svg>
+);
+
 // Assistant IA flottant, propulsé par Gemini via Firebase AI Logic. Le SDK
 // est importé dynamiquement (npm, code-splitté par Vite) pour ne pas
 // alourdir le chargement initial de la page.
@@ -360,10 +374,10 @@ export const AIChatWidget = () => {
     <>
       {isOpen && (
         <div className="fixed inset-x-4 bottom-40 sm:inset-x-auto sm:right-6 sm:bottom-40 sm:w-96 h-[28rem] max-h-[70vh] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
-          <div className="bg-[#2b5a8f] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
+          <div className="bg-gradient-to-r from-[#2b5a8f] via-[#41519e] to-[#6b4a9e] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
             <div>
               <div className="flex items-center gap-2 font-bold">
-                <Bot size={20} /> Assistant IP5 Énergie
+                <AIStar size={18} /> Assistant IP5 Énergie
               </div>
               <div className="flex items-center gap-1.5 mt-1">
                 <GeminiBadge size={10} />
@@ -441,18 +455,23 @@ export const AIChatWidget = () => {
       <button
         onClick={() => setIsOpen((v) => !v)}
         aria-label={isOpen ? "Fermer l'assistant Gemini" : "Ouvrir l'assistant Gemini"}
-        className="fixed bottom-24 right-6 bg-[#2b5a8f] text-white p-4 rounded-full shadow-2xl hover:bg-blue-800 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center group"
+        className="fixed bottom-24 right-6 bg-gradient-to-br from-[#4285f4] via-[#8b5cf6] to-[#ec4899] text-white p-4 rounded-full shadow-2xl shadow-purple-500/40 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center group"
       >
-        {isOpen ? <X size={28} /> : <Bot size={28} />}
         {!isOpen && (
-          <>
-            <span className="absolute -top-1 -right-1 shadow-md">
-              <GeminiBadge size={12} />
-            </span>
-            <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
-              Posez vos questions à notre IA Gemini !
-            </span>
-          </>
+          <span
+            className="absolute inset-0 rounded-full bg-gradient-to-br from-[#4285f4] via-[#8b5cf6] to-[#ec4899] animate-ping opacity-25"
+            aria-hidden="true"
+          ></span>
+        )}
+        {isOpen ? (
+          <X size={28} className="relative" />
+        ) : (
+          <AIStar size={28} className="relative drop-shadow" />
+        )}
+        {!isOpen && (
+          <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+            Posez vos questions à notre IA Gemini !
+          </span>
         )}
       </button>
     </>
