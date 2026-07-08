@@ -235,24 +235,27 @@ const AnimatedEuros = ({ value }: { value: number }) => {
   return <>{shown.toLocaleString("fr-FR")} € / an</>;
 };
 
-// Barème MaPrimeRénov' (revenu fiscal de référence, avis d'imposition N-1).
-// Plafonds "très modeste" / "modeste" / "intermédiaire" par taille de foyer
-// (1 à 5+ personnes) ; au-delà du dernier plafond : profil supérieur (rose).
-// Montants indicatifs — le barème officiel est confirmé lors de l'appel.
+// Barème MaPrimeRénov' — plafonds de ressources 2026 (revenu fiscal de
+// référence, avis d'imposition). Plafonds "très modeste (bleu)" /
+// "modeste (jaune)" / "intermédiaire (violet)" par taille de foyer (1 à 5
+// personnes) ; au-delà du dernier plafond : profil aisé (rose).
+// Pour "5+" on applique la ligne 5 (prudent : le barème officiel ajoute
+// +7 116/+8 663/+12 257 € par personne supplémentaire en IdF, et
+// +5 151/+6 598/+9 357 € hors IdF — confirmé lors de l'appel).
 const MPR_PLAFONDS = {
   idf: [
-    [23768, 28933, 40404],
-    [34884, 42463, 59394],
-    [41893, 51000, 71060],
-    [48914, 59549, 83637],
-    [55961, 68123, 95758],
+    [24031, 29253, 40851],
+    [35270, 42933, 60051],
+    [42357, 51564, 71846],
+    [49455, 60208, 84562],
+    [56580, 68877, 96817],
   ],
   province: [
-    [17173, 22015, 30844],
-    [25115, 32197, 45340],
-    [30206, 38719, 54592],
-    [35285, 45234, 63844],
-    [40388, 51775, 73098],
+    [17363, 22259, 31185],
+    [25393, 32553, 45842],
+    [30540, 39148, 55196],
+    [35676, 45735, 64550],
+    [40835, 52348, 73907],
   ],
 };
 
