@@ -961,6 +961,14 @@ const Simulator = () => {
             </div>
           )}
           {renderStep()}
+          {step > 1 && step <= TOTAL_QUESTIONS && (
+            <button
+              onClick={prevStep}
+              className="mt-6 flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#2b5a8f] font-medium transition-colors"
+            >
+              <ArrowLeft size={15} /> Je me suis trompé, revenir en arrière
+            </button>
+          )}
         </>
       )}
     </div>
@@ -1204,6 +1212,30 @@ const IP5Energie = () => {
                   </span>
                 </li>
               </ul>
+
+              {/* Les dispositifs officiels que nous mobilisons */}
+              <div className="bg-white rounded-2xl p-5 shadow-lg">
+                <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4 text-center">
+                  Les dispositifs officiels que nous mobilisons
+                </p>
+                <div className="flex items-center justify-center gap-8 flex-wrap">
+                  <img
+                    src="/images/aides/maprimerenov.png"
+                    alt="MaPrimeRénov' — Mieux chez moi, mieux pour la planète"
+                    className="h-12 w-auto"
+                    loading="lazy"
+                  />
+                  <img
+                    src="/images/aides/cee.png"
+                    alt="CEE — Les certificats d'économies d'énergie"
+                    className="h-12 w-auto"
+                    loading="lazy"
+                  />
+                </div>
+                <p className="text-gray-400 text-[11px] text-center mt-3">
+                  Montants attribués selon l'éligibilité de chaque foyer.
+                </p>
+              </div>
             </div>
 
             <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl text-gray-900 relative">
