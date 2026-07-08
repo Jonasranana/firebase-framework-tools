@@ -15,6 +15,7 @@ jobs:
           node-version: 22
       - run: npm ci
       - run: npx vite build
+      - run: node scripts/generate-sitemap.mjs
 
       # Copier-coller depuis un éditeur de texte peut injecter des
       # caractères parasites dans le secret ; on ne garde que l'ASCII

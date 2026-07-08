@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /autos
+Disallow: /cars/
+Disallow: /list-car
+Disallow: /my-bookings
+Disallow: /my-cars
+Disallow: /profile
+
+Sitemap: https://ip5-energie.web.app/sitemap.xml
