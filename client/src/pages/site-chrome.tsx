@@ -82,6 +82,7 @@ export const FACEBOOK_URL = "https://www.facebook.com/share/1DnkfumaaV/";
 // l'ancre, géré nativement par le navigateur).
 export const NAV_LINKS = [
   { href: "/#avantages", label: "Avantages" },
+  { href: "/#marques", label: "Nos PAC" },
   { href: "/#subventions", label: "Aides de l'État" },
   { href: "/#realisations", label: "Réalisations" },
   { href: "/#avis", label: "Avis clients" },
