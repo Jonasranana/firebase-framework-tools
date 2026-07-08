@@ -28,10 +28,23 @@ export function useFrenchPageMeta(title: string) {
     html.style.direction = "ltr";
     html.lang = "fr";
     document.title = title;
+
+    // URL canonique : le site vit sur plusieurs adresses (ip5-energie.web.app
+    // et l'ancienne kachoto-7554c.web.app) ; on indique à Google laquelle
+    // fait foi pour éviter le contenu dupliqué.
+    const canonical = document.querySelector<HTMLLinkElement>(
+      'link[rel="canonical"]',
+    );
+    const prevCanonical = canonical?.href ?? null;
+    if (canonical) {
+      canonical.href = `https://ip5-energie.web.app${window.location.pathname}`;
+    }
+
     return () => {
       html.style.direction = prevDir;
       html.lang = prevLang;
       document.title = prevTitle;
+      if (canonical && prevCanonical) canonical.href = prevCanonical;
     };
   }, [title]);
 }
@@ -123,6 +136,12 @@ export const SiteHeader = () => {
             >
               <Phone size={18} />
               <span className="hidden md:inline">07 49 52 52 67</span>
+            </a>
+            <a
+              href="/#simulateur"
+              className="hidden lg:inline-flex items-center gap-2 bg-[#2b5a8f] text-white px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-blue-800 transition-colors shadow-md"
+            >
+              Simulation gratuite
             </a>
           </div>
         </div>
@@ -248,7 +267,7 @@ export const SiteFooter = () => (
           réservés.
         </p>
         <p className="mt-4 md:mt-0 text-gray-500">
-          Propulsé pour la conversion.
+          IP5 CONSEILS — SIREN 890 293 277
         </p>
       </div>
     </div>
