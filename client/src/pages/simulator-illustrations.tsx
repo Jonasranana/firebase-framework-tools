@@ -117,28 +117,25 @@ const OwnerScene = () => (
   </Stage>
 );
 
-// 3 — Surface : la maison grandit avec le curseur (30 → 300 m²), sous la neige
+// 3 — Surface : la maison seule, au centre, qui grandit avec le curseur
+// (30 → 300 m²) pendant qu'il neige autour. La valeur est déjà affichée en
+// grand sous l'illustration, on ne la répète pas ici.
 const SurfaceScene = ({ surface = 100 }: { surface?: number }) => {
-  const scale = 0.7 + ((surface - 30) / 270) * 0.55;
+  const scale = 0.72 + ((surface - 30) / 270) * 0.6;
   return (
     <Stage>
-      <Snowflake x={150} y={30} />
-      <Snowflake x={190} y={40} delay="1.4s" />
-      <Snowflake x={125} y={64} delay=".7s" />
+      <Snowflake x={30} y={34} />
+      <Snowflake x={52} y={62} delay=".9s" />
+      <Snowflake x={168} y={30} delay=".4s" />
+      <Snowflake x={192} y={60} delay="1.4s" />
       <g
         style={{
           transform: `scale(${scale})`,
-          transformOrigin: "60px 105px",
+          transformOrigin: "110px 104px",
           transition: "transform .25s ease-out",
         }}
       >
-        <House x={14} y={4} />
-      </g>
-      <g className="ip5-anim" style={anim("ip5-float", "3.4s")}>
-        <rect x="142" y="72" width="62" height="26" rx="13" fill="#2b5a8f" />
-        <text x="173" y="90" textAnchor="middle" fontSize="14" fontWeight="800" fill="#ffffff">
-          {surface} m²
-        </text>
+        <House x={60} y={4} />
       </g>
       <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
     </Stage>
@@ -150,37 +147,40 @@ const SurfaceScene = ({ surface = 100 }: { surface?: number }) => {
 const HeatingScene = () => (
   <Stage>
     <g>
-      {/* radiateur : colonnes bien visibles */}
-      {[0, 1, 2, 3, 4].map((i) => (
+      {/* radiateur blanc à colonnes, posé au sol */}
+      {[0, 1, 2, 3, 4, 5].map((i) => (
         <rect
           key={i}
-          x={70 + i * 17}
-          y="42"
+          x={68 + i * 15.5}
+          y="44"
           width="12"
-          height="52"
+          height="50"
           rx="6"
-          fill="#e2e8f0"
-          stroke="#64748b"
+          fill="#f8fafc"
+          stroke="#475569"
           strokeWidth="3"
         />
       ))}
-      <rect x="64" y="50" width="92" height="7" rx="3.5" fill="#64748b" />
-      <rect x="64" y="80" width="92" height="7" rx="3.5" fill="#64748b" />
-      {/* pieds + molette de réglage */}
-      <line x1="76" y1="94" x2="76" y2="103" stroke="#64748b" strokeWidth="4" strokeLinecap="round" />
-      <line x1="144" y1="94" x2="144" y2="103" stroke="#64748b" strokeWidth="4" strokeLinecap="round" />
-      <circle cx="160" cy="46" r="6.5" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
-      {/* la chaleur qui monte du radiateur */}
-      {[0, 1, 2].map((i) => (
+      <rect x="62" y="52" width="98" height="6" rx="3" fill="#475569" />
+      <rect x="62" y="80" width="98" height="6" rx="3" fill="#475569" />
+      {/* pieds */}
+      <line x1="74" y1="94" x2="74" y2="104" stroke="#475569" strokeWidth="4" strokeLinecap="round" />
+      <line x1="148" y1="94" x2="148" y2="104" stroke="#475569" strokeWidth="4" strokeLinecap="round" />
+      {/* robinet thermostatique avec sa molette rouge */}
+      <line x1="160" y1="58" x2="172" y2="58" stroke="#475569" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="177" cy="58" r="7" fill="#ef4444" stroke="#991b1b" strokeWidth="2.5" />
+      <line x1="177" y1="54" x2="177" y2="62" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" />
+      {/* la chaleur qui monte en ondulant */}
+      {[0, 1, 2, 3].map((i) => (
         <path
           key={i}
-          d={`M${86 + i * 24} 36 q5 -7 0 -14`}
+          d={`M${78 + i * 22} 38 q5 -7 0 -14 q-5 -7 0 -12`}
           stroke="#f97316"
           strokeWidth="4"
           strokeLinecap="round"
           fill="none"
           className="ip5-anim"
-          style={anim("ip5-wave", "1.5s", `${i * 0.35}s`)}
+          style={anim("ip5-wave", "1.5s", `${i * 0.3}s`)}
         />
       ))}
     </g>
@@ -226,16 +226,16 @@ const FamilyScene = () => {
   );
   return (
     <Stage>
-      <g opacity=".35">
-        <House x={118} y={8} />
+      <g opacity=".3">
+        <House x={132} y={8} />
       </g>
-      {person(46, 42, 1.15, "#2b5a8f", 0)}
-      {person(76, 44, 1.1, "#0ea5e9", 1)}
-      {person(104, 54, 0.8, "#22c55e", 2)}
-      {person(126, 56, 0.7, "#f59e0b", 3)}
+      {person(30, 42, 1.15, "#2b5a8f", 0)}
+      {person(58, 44, 1.1, "#0ea5e9", 1)}
+      {person(84, 54, 0.8, "#22c55e", 2)}
+      {person(104, 56, 0.7, "#f59e0b", 3)}
       <g className="ip5-anim" style={anim("ip5-rise", "3s", ".5s", "ease-out")}>
         <path
-          d="M86 30 C86 26 90 24 92 27 C94 24 98 26 98 30 C98 34 92 38 92 38 C92 38 86 34 86 30 Z"
+          d="M64 30 C64 26 68 24 70 27 C72 24 76 26 76 30 C76 34 70 38 70 38 C70 38 64 34 64 30 Z"
           fill="#f472b6"
         />
       </g>
