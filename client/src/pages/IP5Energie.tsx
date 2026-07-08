@@ -35,6 +35,11 @@ import {
   AIChatWidget,
   useFrenchPageMeta,
 } from "./site-chrome";
+import {
+  StepIllustration,
+  CalculatingScene,
+  IllustrationStyles,
+} from "./simulator-illustrations";
 
 // --- COMPONENTS ---
 
@@ -528,9 +533,6 @@ const Simulator = () => {
       case 5:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
-              <Map className="text-[#2b5a8f]" size={32} />
-            </div>
             <h3 className="text-2xl font-bold text-gray-800 mb-2">
               Dans quel département se situe votre projet ?
             </h3>
@@ -578,9 +580,6 @@ const Simulator = () => {
       case 6:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
-              <Users className="text-[#2b5a8f]" size={32} />
-            </div>
             <h3 className="text-2xl font-bold text-gray-800 mb-2">
               Combien de personnes composent votre foyer ?
             </h3>
@@ -609,9 +608,6 @@ const Simulator = () => {
         );
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
-              <PiggyBank className="text-[#2b5a8f]" size={32} />
-            </div>
             <h3 className="text-2xl font-bold text-gray-800 mb-2">
               Quel est le revenu fiscal de votre foyer ?
             </h3>
@@ -653,9 +649,6 @@ const Simulator = () => {
       case 8:
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-blue-100">
-              <CalendarClock className="text-[#2b5a8f]" size={32} />
-            </div>
             <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
               Dernière question : c'est pour quand ?
             </h3>
@@ -931,9 +924,24 @@ const Simulator = () => {
         </div>
       )}
 
+      <IllustrationStyles />
+
       {isCalculating ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#2b5a8f] mb-6"></div>
+        <div className="flex flex-col items-center justify-center py-6">
+          <div className="w-full">
+            <CalculatingScene />
+          </div>
+          <div className="flex gap-2 my-4" aria-hidden="true">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <span
+                key={i}
+                className="w-3 h-3 rounded-full bg-[#2b5a8f]"
+                style={{
+                  animation: `ip5-bounce-dot 1s ease-in-out ${i * 0.12}s infinite`,
+                }}
+              ></span>
+            ))}
+          </div>
           <p className="text-gray-800 font-bold text-lg text-center mb-2">
             Calcul de vos droits en cours...
           </p>
@@ -943,7 +951,17 @@ const Simulator = () => {
           </p>
         </div>
       ) : (
-        renderStep()
+        <>
+          {step !== TOTAL_QUESTIONS + 1 && (
+            <div
+              key={`illu-${step}`}
+              className="animate-in fade-in zoom-in-95 duration-500"
+            >
+              <StepIllustration step={step} surface={formData.surface} />
+            </div>
+          )}
+          {renderStep()}
+        </>
       )}
     </div>
   );
