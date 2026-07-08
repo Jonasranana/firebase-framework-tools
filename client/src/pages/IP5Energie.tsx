@@ -1327,17 +1327,18 @@ const IP5Energie = () => {
                 <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4 text-center">
                   Les dispositifs officiels que nous mobilisons
                 </p>
-                <div className="flex items-center justify-center gap-8 flex-wrap">
+                <div className="flex items-center justify-center gap-4 sm:gap-6">
                   <img
                     src="/images/aides/maprimerenov.png"
                     alt="MaPrimeRénov' — Mieux chez moi, mieux pour la planète"
-                    className="h-12 w-auto"
+                    className="h-9 sm:h-11 w-auto"
                     loading="lazy"
                   />
+                  <span className="w-px h-10 bg-gray-200 flex-shrink-0" />
                   <img
                     src="/images/aides/cee.png"
                     alt="CEE — Les certificats d'économies d'énergie"
-                    className="h-12 w-auto"
+                    className="h-11 sm:h-14 w-auto"
                     loading="lazy"
                   />
                 </div>
@@ -1347,8 +1348,8 @@ const IP5Energie = () => {
               </div>
             </div>
 
-            <div className="bg-white p-8 md:p-10 rounded-3xl shadow-2xl text-gray-900 relative">
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-yellow-400 rounded-full flex flex-col items-center justify-center shadow-lg transform rotate-12 border-4 border-white">
+            <div className="bg-white px-8 pb-8 pt-20 md:p-10 rounded-3xl shadow-2xl text-gray-900 relative">
+              <div className="absolute -top-6 right-5 md:-right-6 w-24 h-24 bg-yellow-400 rounded-full flex flex-col items-center justify-center shadow-lg transform rotate-12 border-4 border-white">
                 <span className="text-sm font-bold text-yellow-900 leading-none">
                   Jusqu'à
                 </span>
