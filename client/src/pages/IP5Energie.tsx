@@ -146,6 +146,54 @@ const REVIEWS = [
   },
 ];
 
+// Les 6 modèles de pompes à chaleur air/eau installés par IP5 Énergie.
+// Caractéristiques reprises des fiches techniques constructeur ; le modèle
+// exact est choisi avec le client selon son logement et son projet.
+const PAC_MODELS = [
+  {
+    brand: "Daikin",
+    logo: "daikin.png",
+    model: "Altherma 3 R",
+    desc: "Pompe à chaleur air/eau haute performance, eau chaude jusqu'à 60 °C.",
+    specs: ["Air/eau", "11 · 14 · 16 kW", "Fluide R-32"],
+  },
+  {
+    brand: "Atlantic",
+    logo: "atlantic.png",
+    model: "Alféa Excellia S",
+    desc: "Split air/eau idéale en rénovation, silencieuse et fiable.",
+    specs: ["Air/eau", "Fabrication française", "Connectée"],
+  },
+  {
+    brand: "De Dietrich",
+    logo: "dedietrich.png",
+    model: "Alezio S",
+    desc: "PAC air/eau réversible « Split Inverter » : chauffage et rafraîchissement.",
+    specs: ["Air/eau réversible", "4,6 à 14,6 kW", "Inverter"],
+  },
+  {
+    brand: "TCL",
+    logo: "tcl.png",
+    model: "Bibloc R32",
+    desc: "Bibloc air/eau : chauffage, rafraîchissement et eau chaude sanitaire.",
+    specs: ["Air/eau", "4 à 16 kW", "Classe A+++"],
+  },
+  {
+    brand: "Blaupunkt",
+    logo: "blaupunkt.png",
+    model: "Monobloc",
+    desc: "Solution complète chauffage, rafraîchissement et eau chaude sanitaire.",
+    specs: ["Air/eau", "Monobloc", "Chaud + froid + ECS"],
+  },
+  {
+    brand: "AUX",
+    logo: "aux.png",
+    model: "Titan R290",
+    desc: "Monobloc au fluide écologique R-290, marque française.",
+    specs: ["Air/eau", "Fluide R-290", "Garantie 10 ans"],
+  },
+];
+
 const TOTAL_QUESTIONS = 8;
 
 type SimulatorData = {
@@ -1152,6 +1200,64 @@ const IP5Energie = () => {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Nos pompes à chaleur : les 6 modèles installés */}
+      <section id="marques" className="py-24 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center max-w-3xl mx-auto mb-16">
+            <Kicker icon={BadgeCheck}>Nos pompes à chaleur</Kicker>
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+              Les 6 marques que nous installons
+            </h2>
+            <p className="text-xl text-gray-600">
+              Nous sélectionnons les meilleures pompes à chaleur air/eau du
+              marché. Le modèle est choisi avec vous, selon votre logement et
+              votre budget.
+            </p>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {PAC_MODELS.map((m) => (
+              <div
+                key={m.brand}
+                className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-7 flex flex-col"
+              >
+                <div className="h-14 flex items-center mb-5">
+                  <img
+                    src={`/images/marques/${m.logo}`}
+                    alt={`Logo ${m.brand}`}
+                    className="max-h-11 max-w-[170px] object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900">
+                  {m.brand}{" "}
+                  <span className="text-[#2b5a8f]">{m.model}</span>
+                </h3>
+                <p className="text-gray-600 text-sm leading-relaxed mt-2 mb-5 flex-1">
+                  {m.desc}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {m.specs.map((s) => (
+                    <span
+                      key={s}
+                      className="bg-blue-50 text-[#2b5a8f] text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-sm text-gray-400 mt-10 max-w-2xl mx-auto">
+            Toutes nos pompes à chaleur sont installées par des techniciens
+            certifiés RGE QualiPAC et éligibles aux aides MaPrimeRénov' et CEE,
+            selon votre situation.
+          </p>
         </div>
       </section>
 
