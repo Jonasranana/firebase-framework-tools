@@ -24,25 +24,9 @@ export const IllustrationStyles = () => (
 const anim = (name: string, dur: string, delay = "0s", timing = "ease-in-out") =>
   ({ animation: `${name} ${dur} ${timing} ${delay} infinite` }) as React.CSSProperties;
 
-// Scène commune : fond dégradé doux + bulles décoratives qui flottent.
+// Scène commune : fond dégradé doux, sans fioritures.
 const Stage = ({ children }: { children: React.ReactNode }) => (
   <div className="relative h-36 mb-5 rounded-2xl bg-gradient-to-br from-blue-50 via-cyan-50 to-blue-100 border border-blue-100 overflow-hidden flex items-center justify-center">
-    <span
-      className="absolute w-16 h-16 rounded-full bg-cyan-200/50 -top-4 -left-4"
-      style={anim("ip5-float", "4s")}
-    />
-    <span
-      className="absolute w-8 h-8 rounded-full bg-blue-200/60 top-4 right-8"
-      style={anim("ip5-float", "3.2s", ".6s")}
-    />
-    <span
-      className="absolute w-5 h-5 rounded-full bg-green-200/70 bottom-3 right-16"
-      style={anim("ip5-drift", "5s", ".3s")}
-    />
-    <span
-      className="absolute w-10 h-10 rounded-full bg-blue-300/30 -bottom-3 left-10"
-      style={anim("ip5-float", "4.6s", "1s")}
-    />
     <svg viewBox="0 0 220 120" className="relative h-full w-auto" aria-hidden="true">
       {children}
     </svg>
