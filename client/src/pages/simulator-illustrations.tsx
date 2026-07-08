@@ -49,33 +49,23 @@ const Stage = ({ children }: { children: React.ReactNode }) => (
   </div>
 );
 
-const Sun = ({ x = 185, y = 22 }: { x?: number; y?: number }) => (
-  <g className="ip5-anim" style={anim("ip5-float", "3.5s")}>
-    <circle cx={x} cy={y} r="11" fill="#fbbf24" />
-    {Array.from({ length: 8 }).map((_, i) => {
-      const a = (i * Math.PI) / 4;
-      return (
-        <line
-          key={i}
-          x1={x + Math.cos(a) * 14}
-          y1={y + Math.sin(a) * 14}
-          x2={x + Math.cos(a) * 18}
-          y2={y + Math.sin(a) * 18}
-          stroke="#fbbf24"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-        />
-      );
-    })}
+// Flocon qui tombe doucement : rappelle que la PAC affronte l'hiver.
+const Snowflake = ({ x, y = 38, delay = "0s" }: { x: number; y?: number; delay?: string }) => (
+  <g className="ip5-anim" style={anim("ip5-fall", "3.2s", delay, "linear")}>
+    <line x1={x - 5} y1={y} x2={x + 5} y2={y} stroke="#7dd3fc" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1={x} y1={y - 5} x2={x} y2={y + 5} stroke="#7dd3fc" strokeWidth="2.5" strokeLinecap="round" />
+    <line x1={x - 4} y1={y - 4} x2={x + 4} y2={y + 4} stroke="#7dd3fc" strokeWidth="2" strokeLinecap="round" />
+    <line x1={x - 4} y1={y + 4} x2={x + 4} y2={y - 4} stroke="#7dd3fc" strokeWidth="2" strokeLinecap="round" />
   </g>
 );
 
+// La fenêtre est chaude et éclairée : dehors l'hiver, dedans le confort.
 const House = ({ x = 0, y = 0 }: { x?: number; y?: number }) => (
   <g transform={`translate(${x} ${y})`}>
     <rect x="18" y="52" width="64" height="48" rx="4" fill="#ffffff" stroke="#2b5a8f" strokeWidth="3.5" />
     <path d="M10 56 L50 22 L90 56 Z" fill="#2b5a8f" />
     <rect x="64" y="26" width="9" height="18" rx="2" fill="#2b5a8f" />
-    <rect x="28" y="62" width="16" height="14" rx="2" fill="#7dd3fc" stroke="#2b5a8f" strokeWidth="2.5" />
+    <rect x="28" y="62" width="16" height="14" rx="2" fill="#fde68a" stroke="#2b5a8f" strokeWidth="2.5" />
     <rect x="56" y="66" width="16" height="34" rx="2" fill="#2b5a8f" />
     <circle cx="60" cy="84" r="1.8" fill="#fbbf24" />
   </g>
@@ -98,10 +88,11 @@ const Smoke = ({ x, y }: { x: number; y: number }) => (
   </>
 );
 
-// 1 — Type de logement : maison + immeuble sous le soleil
+// 1 — Type de logement : maison + immeuble sous les flocons, fenêtres chaudes
 const HousingScene = () => (
   <Stage>
-    <Sun />
+    <Snowflake x={110} y={30} />
+    <Snowflake x={196} y={26} delay="1.2s" />
     <House x={4} y={4} />
     <Smoke x={72} y={28} />
     <g>
@@ -115,7 +106,7 @@ const HousingScene = () => (
             width="12"
             height="10"
             rx="2"
-            fill={r === 1 && c === 1 ? "#fbbf24" : "#7dd3fc"}
+            fill={(r + c) % 2 === 0 ? "#fde68a" : "#7dd3fc"}
             stroke="#2b5a8f"
             strokeWidth="2"
           />
@@ -142,64 +133,77 @@ const OwnerScene = () => (
   </Stage>
 );
 
-// 3 — Surface : la maison grandit avec le curseur (30 → 300 m²)
+// 3 — Surface : la maison grandit avec le curseur (30 → 300 m²), sous la neige
 const SurfaceScene = ({ surface = 100 }: { surface?: number }) => {
   const scale = 0.7 + ((surface - 30) / 270) * 0.55;
   return (
     <Stage>
-      <Sun x={190} y={20} />
+      <Snowflake x={150} y={30} />
+      <Snowflake x={190} y={40} delay="1.4s" />
+      <Snowflake x={125} y={64} delay=".7s" />
       <g
         style={{
           transform: `scale(${scale})`,
-          transformOrigin: "50px 105px",
+          transformOrigin: "60px 105px",
           transition: "transform .25s ease-out",
         }}
       >
-        <House x={4} y={4} />
+        <House x={14} y={4} />
       </g>
-      {/* règle de mesure */}
-      <g>
-        <line x1="120" y1="100" x2="205" y2="100" stroke="#2b5a8f" strokeWidth="3" strokeLinecap="round" />
-        <line x1="120" y1="93" x2="120" y2="107" stroke="#2b5a8f" strokeWidth="3" strokeLinecap="round" />
-        <line x1="205" y1="93" x2="205" y2="107" stroke="#2b5a8f" strokeWidth="3" strokeLinecap="round" />
-        {[135, 150, 165, 180, 195].map((x) => (
-          <line key={x} x1={x} y1="96" x2={x} y2="104" stroke="#60a5fa" strokeWidth="2" />
-        ))}
+      <g className="ip5-anim" style={anim("ip5-float", "3.4s")}>
+        <rect x="142" y="72" width="62" height="26" rx="13" fill="#2b5a8f" />
+        <text x="173" y="90" textAnchor="middle" fontSize="14" fontWeight="800" fill="#ffffff">
+          {surface} m²
+        </text>
       </g>
-      <text x="162" y="86" textAnchor="middle" fontSize="13" fontWeight="800" fill="#2b5a8f">
-        {surface} m²
-      </text>
+      <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
     </Stage>
   );
 };
 
-// 4 — Chauffage actuel : vieille chaudière, flamme et flocons (le froid qui guette)
+// 4 — Chauffage actuel : le bon vieux radiateur qui chauffe à plein régime
+// pendant qu'il neige dehors — tout le monde le reconnaît.
 const HeatingScene = () => (
   <Stage>
     <g>
-      <rect x="78" y="26" width="52" height="74" rx="8" fill="#e2e8f0" stroke="#64748b" strokeWidth="3.5" />
-      <circle cx="104" cy="48" r="11" fill="#fff" stroke="#64748b" strokeWidth="3" />
-      <circle cx="104" cy="48" r="4" fill="#64748b" />
-      <rect x="88" y="68" width="32" height="6" rx="3" fill="#94a3b8" />
-      <rect x="88" y="80" width="22" height="6" rx="3" fill="#94a3b8" />
-      <g className="ip5-anim" style={{ ...anim("ip5-flicker", "0.9s"), transformOrigin: "104px 100px" }}>
-        <path d="M104 108 C96 100 98 92 104 86 C110 92 112 100 104 108 Z" fill="#f97316" transform="translate(0 -14)" />
-        <path d="M104 104 C100 100 101 95 104 92 C107 95 108 100 104 104 Z" fill="#fbbf24" transform="translate(0 -14)" />
-      </g>
+      {/* radiateur : colonnes bien visibles */}
+      {[0, 1, 2, 3, 4].map((i) => (
+        <rect
+          key={i}
+          x={70 + i * 17}
+          y="42"
+          width="12"
+          height="52"
+          rx="6"
+          fill="#e2e8f0"
+          stroke="#64748b"
+          strokeWidth="3"
+        />
+      ))}
+      <rect x="64" y="50" width="92" height="7" rx="3.5" fill="#64748b" />
+      <rect x="64" y="80" width="92" height="7" rx="3.5" fill="#64748b" />
+      {/* pieds + molette de réglage */}
+      <line x1="76" y1="94" x2="76" y2="103" stroke="#64748b" strokeWidth="4" strokeLinecap="round" />
+      <line x1="144" y1="94" x2="144" y2="103" stroke="#64748b" strokeWidth="4" strokeLinecap="round" />
+      <circle cx="160" cy="46" r="6.5" fill="#ef4444" stroke="#991b1b" strokeWidth="2" />
+      {/* la chaleur qui monte du radiateur */}
+      {[0, 1, 2].map((i) => (
+        <path
+          key={i}
+          d={`M${86 + i * 24} 36 q5 -7 0 -14`}
+          stroke="#f97316"
+          strokeWidth="4"
+          strokeLinecap="round"
+          fill="none"
+          className="ip5-anim"
+          style={anim("ip5-wave", "1.5s", `${i * 0.35}s`)}
+        />
+      ))}
     </g>
-    {[
-      { x: 40, d: "0s" },
-      { x: 56, d: ".9s" },
-      { x: 165, d: ".4s" },
-      { x: 182, d: "1.3s" },
-    ].map((f, i) => (
-      <g key={i} className="ip5-anim" style={anim("ip5-fall", "3s", f.d, "linear")}>
-        <line x1={f.x - 5} y1={40} x2={f.x + 5} y2={40} stroke="#7dd3fc" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1={f.x} y1={35} x2={f.x} y2={45} stroke="#7dd3fc" strokeWidth="2.5" strokeLinecap="round" />
-        <line x1={f.x - 4} y1={36} x2={f.x + 4} y2={44} stroke="#7dd3fc" strokeWidth="2" strokeLinecap="round" />
-        <line x1={f.x - 4} y1={44} x2={f.x + 4} y2={36} stroke="#7dd3fc" strokeWidth="2" strokeLinecap="round" />
-      </g>
-    ))}
+    <Snowflake x={36} y={40} />
+    <Snowflake x={50} y={64} delay=".9s" />
+    <Snowflake x={186} y={42} delay=".4s" />
+    <Snowflake x={200} y={68} delay="1.3s" />
     <ellipse cx="110" cy="106" rx="80" ry="5" fill="#bfdbfe" opacity=".6" />
   </Stage>
 );
@@ -362,10 +366,11 @@ export const CalculatingScene = () => (
   </Stage>
 );
 
-// Résultats : la maison bien chauffée, soleil, euros qui s'envolent
+// Résultats : dehors il neige, la PAC chauffe la maison, les euros s'envolent
 const ResultScene = () => (
   <Stage>
-    <Sun x={188} y={22} />
+    <Snowflake x={196} y={26} delay=".6s" />
+    <Snowflake x={124} y={26} />
     <House x={8} y={4} />
     <HeatPump x={104} y={56} spin="2.2s" />
     {[0, 1, 2].map((i) => (
