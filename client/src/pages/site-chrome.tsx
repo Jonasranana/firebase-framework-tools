@@ -488,7 +488,7 @@ export const AIChatWidget = () => {
           <AIStar size={28} className="relative drop-shadow" />
         )}
         {!isOpen && (
-          <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+          <span className="hidden md:block absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
             Posez vos questions à notre IA, propulsée par Gemini
           </span>
         )}
