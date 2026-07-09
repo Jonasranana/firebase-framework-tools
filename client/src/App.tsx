@@ -24,6 +24,8 @@ const MentionsLegales = lazy(() =>
 const Confidentialite = lazy(() =>
   import("@/pages/Legal").then((m) => ({ default: m.Confidentialite })),
 );
+// Outil interne privé (accès Google restreint) — non lié depuis le site public.
+const OutilDevis = lazy(() => import("@/pages/OutilDevis"));
 const Home = lazy(() => import("@/pages/Home"));
 const CarDetails = lazy(() => import("@/pages/CarDetails"));
 const ListCar = lazy(() => import("@/pages/ListCar"));
@@ -54,6 +56,8 @@ function Router() {
         <Route path="/articles/:slug" component={ArticleDetail} />
         <Route path="/mentions-legales" component={MentionsLegales} />
         <Route path="/confidentialite" component={Confidentialite} />
+        {/* Outil interne privé — accès restreint par connexion Google */}
+        <Route path="/outil-devis" component={OutilDevis} />
         <Route path="/autos" component={Home} />
         <Route path="/cars/:id" component={CarDetails} />
         <Route path="/list-car" component={ListCar} />
