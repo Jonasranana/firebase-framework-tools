@@ -455,6 +455,15 @@ export default function OutilDevis() {
       const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
       const authInstance = auth.getAuth(app);
       setAuthApi({ ...auth, authInstance });
+      // Termine un éventuel retour de redirection et remonte les erreurs
+      // de configuration (ex. connexion Google non activée dans Firebase).
+      auth.getRedirectResult(authInstance).catch((e: any) => {
+        if (e?.code === "auth/operation-not-allowed") {
+          setError(
+            "La connexion Google n'est pas encore activée côté Firebase.",
+          );
+        }
+      });
       unsub = auth.onAuthStateChanged(authInstance, (user: FirebaseUser) => {
         const mail = (user?.email ?? "").toLowerCase();
         if (!mail) {
@@ -480,9 +489,12 @@ export default function OutilDevis() {
     setError("");
     try {
       const provider = new authApi.GoogleAuthProvider();
-      await authApi.signInWithPopup(authApi.authInstance, provider);
+      // Redirection (fiable sur mobile, contrairement au popup souvent bloqué)
+      await authApi.signInWithRedirect(authApi.authInstance, provider);
     } catch (e: any) {
-      if (e?.code !== "auth/popup-closed-by-user") {
+      if (e?.code === "auth/operation-not-allowed") {
+        setError("La connexion Google n'est pas encore activée côté Firebase.");
+      } else {
         setError("Connexion impossible. Vérifiez votre compte Google.");
       }
     }
