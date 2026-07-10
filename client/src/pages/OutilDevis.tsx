@@ -77,6 +77,21 @@ function useNoIndex() {
 
 type FirebaseUser = { email: string | null } | null;
 
+// Message clair selon l'erreur Firebase (surtout la configuration manquante).
+function authErrorMessage(e: any): string {
+  switch (e?.code) {
+    case "auth/operation-not-allowed":
+      return "Connexion Google non activée dans Firebase (Authentication → Sign-in method → Google → Activer).";
+    case "auth/unauthorized-domain":
+      return "Domaine non autorisé : ajoutez ip5-energie.web.app dans Firebase (Authentication → Settings → Authorized domains).";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "";
+    default:
+      return "Connexion impossible. Vérifiez votre compte Google.";
+  }
+}
+
 // ── Champ de saisie numérique (gros, mobile-first) ─────────────────────────
 const NumField = ({
   label,
@@ -458,11 +473,7 @@ export default function OutilDevis() {
       // Termine un éventuel retour de redirection et remonte les erreurs
       // de configuration (ex. connexion Google non activée dans Firebase).
       auth.getRedirectResult(authInstance).catch((e: any) => {
-        if (e?.code === "auth/operation-not-allowed") {
-          setError(
-            "La connexion Google n'est pas encore activée côté Firebase.",
-          );
-        }
+        setError(authErrorMessage(e));
       });
       unsub = auth.onAuthStateChanged(authInstance, (user: FirebaseUser) => {
         const mail = (user?.email ?? "").toLowerCase();
@@ -492,11 +503,7 @@ export default function OutilDevis() {
       // Redirection (fiable sur mobile, contrairement au popup souvent bloqué)
       await authApi.signInWithRedirect(authApi.authInstance, provider);
     } catch (e: any) {
-      if (e?.code === "auth/operation-not-allowed") {
-        setError("La connexion Google n'est pas encore activée côté Firebase.");
-      } else {
-        setError("Connexion impossible. Vérifiez votre compte Google.");
-      }
+      setError(authErrorMessage(e));
     }
   };
 
