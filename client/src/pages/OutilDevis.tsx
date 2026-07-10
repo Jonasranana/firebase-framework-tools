@@ -42,7 +42,9 @@ const ECRETEMENT: Record<string, number> = {
   Rose: 0.4,
 };
 const TVA_TAUX = 0.055; // TVA réduite 5,5 % (rénovation énergétique)
-const CEE_DEFAUT = 4000; // prime CEE indicative, modifiable
+// Prime CEE indicative (modifiable) : chez notre partenaire, ~7 000 à
+// 8 200 € selon la région ; 7 500 € comme point de départ moyen.
+const CEE_DEFAUT = 7500;
 const PLAFOND_DEPENSE_MPR = 12000; // dépense éligible plafonnée (mention légale)
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -337,7 +339,7 @@ const Simulateur = ({
               value={primeCEE}
               onChange={setPrimeCEE}
               suffix="€"
-              hint="Modifiable — varie selon le fournisseur."
+              hint="≈ 7 000 à 8 200 € selon la région — à ajuster selon le partenaire CEE."
             />
           </div>
         </section>
