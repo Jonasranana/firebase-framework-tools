@@ -481,11 +481,9 @@ export default function OutilDevis() {
         );
       const authInstance = auth.getAuth(app);
       setAuthApi({ ...auth, authInstance });
-      // Termine un éventuel retour de redirection (si le pop-up bascule en
-      // redirection sur certains navigateurs) et remonte les erreurs.
-      auth.getRedirectResult(authInstance).catch((e: any) => {
-        setError(authErrorMessage(e));
-      });
+      // Connexion uniquement par pop-up (voir signIn) : pas de
+      // getRedirectResult, qui pouvait resurgir une vieille erreur de
+      // redirection restée coincée dans le stockage du navigateur.
       unsub = auth.onAuthStateChanged(authInstance, (user: FirebaseUser) => {
         const mail = (user?.email ?? "").toLowerCase();
         if (!mail) {
@@ -511,23 +509,15 @@ export default function OutilDevis() {
     setError("");
     const provider = new authApi.GoogleAuthProvider();
     try {
-      // Pop-up : recommandé quand le domaine du site diffère de l'authDomain
-      // Firebase (évite la perte de session au retour de redirection).
+      // Uniquement pop-up : session fiable même quand le domaine du site
+      // diffère de l'authDomain Firebase, et aucun résidu de redirection.
       await authApi.signInWithPopup(authApi.authInstance, provider);
     } catch (e: any) {
-      // Si le navigateur bloque le pop-up, on bascule sur la redirection.
-      if (
-        e?.code === "auth/popup-blocked" ||
-        e?.code === "auth/operation-not-supported-in-this-environment" ||
-        e?.code === "auth/cancelled-popup-request"
-      ) {
-        try {
-          await authApi.signInWithRedirect(authApi.authInstance, provider);
-          return;
-        } catch (e2: any) {
-          setError(authErrorMessage(e2));
-          return;
-        }
+      if (e?.code === "auth/popup-blocked") {
+        setError(
+          "Votre navigateur a bloqué la fenêtre de connexion. Autorisez les pop-ups pour ce site, puis réessayez.",
+        );
+        return;
       }
       setError(authErrorMessage(e));
     }
