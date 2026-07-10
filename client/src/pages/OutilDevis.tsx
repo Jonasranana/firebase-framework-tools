@@ -463,11 +463,21 @@ export default function OutilDevis() {
   useEffect(() => {
     let unsub = () => {};
     (async () => {
-      const [{ initializeApp, getApps, getApp }, auth] = await Promise.all([
+      const [{ initializeApp, getApps }, auth] = await Promise.all([
         import("firebase/app"),
         import("firebase/auth"),
       ]);
-      const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
+      // App Firebase dédiée à l'outil : authDomain pointé sur le domaine du
+      // site (même origine que la page) pour que la session de connexion
+      // Google persiste — sinon les navigateurs bloquent le partage entre
+      // ip5-energie.web.app et kachoto-7554c.firebaseapp.com.
+      const APP_NAME = "outil-devis";
+      const app =
+        getApps().find((a) => a.name === APP_NAME) ??
+        initializeApp(
+          { ...FIREBASE_CONFIG, authDomain: "ip5-energie.web.app" },
+          APP_NAME,
+        );
       const authInstance = auth.getAuth(app);
       setAuthApi({ ...auth, authInstance });
       // Termine un éventuel retour de redirection (si le pop-up bascule en
