@@ -258,6 +258,14 @@ export const SiteFooter = () => (
                 Politique de confidentialité
               </a>
             </li>
+            <li>
+              <a
+                href="/espace-pro"
+                className="hover:text-blue-400 transition-colors"
+              >
+                Espace Pro
+              </a>
+            </li>
           </ul>
         </div>
       </div>
