@@ -63,7 +63,7 @@ function useNoIndex() {
     const html = document.documentElement;
     const prevDir = html.style.direction;
     html.style.direction = "ltr";
-    document.title = "Outil interne — IP5 Énergie";
+    document.title = "Calculette IP5 Énergie";
     const meta = document.createElement("meta");
     meta.name = "robots";
     meta.content = "noindex, nofollow";
@@ -229,7 +229,7 @@ const Simulateur = ({
 
       <div className="max-w-2xl mx-auto px-4">
         <div className="flex items-center gap-2 text-xs text-gray-400 mt-3 mb-4">
-          <Lock size={13} /> Outil interne privé — {email}
+          <Lock size={13} /> Calculette IP5 Énergie — {email}
           {clientMode && (
             <span className="ml-auto text-green-600 font-semibold">
               Coûts &amp; marge masqués
@@ -560,7 +560,7 @@ export default function OutilDevis() {
               <Calculator size={26} />
             </div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">
-              Outil interne — Devis
+              Calculette IP5 Énergie
             </h1>
             <p className="text-sm text-gray-500 mb-6">
               Accès réservé. Connectez-vous avec votre compte Google autorisé.
