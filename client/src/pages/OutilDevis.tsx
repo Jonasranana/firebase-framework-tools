@@ -467,17 +467,15 @@ export default function OutilDevis() {
         import("firebase/app"),
         import("firebase/auth"),
       ]);
-      // App Firebase dédiée à l'outil : authDomain pointé sur le domaine du
-      // site (même origine que la page) pour que la session de connexion
-      // Google persiste — sinon les navigateurs bloquent le partage entre
-      // ip5-energie.web.app et kachoto-7554c.firebaseapp.com.
+      // App Firebase dédiée à l'outil. On garde l'authDomain par défaut
+      // (kachoto-7554c.firebaseapp.com), déjà autorisé côté OAuth Google :
+      // l'outil doit donc être ouvert sur CE domaine
+      // (kachoto-7554c.firebaseapp.com/outil-devis) pour que la connexion
+      // soit en même origine et que la session persiste.
       const APP_NAME = "outil-devis";
       const app =
         getApps().find((a) => a.name === APP_NAME) ??
-        initializeApp(
-          { ...FIREBASE_CONFIG, authDomain: "ip5-energie.web.app" },
-          APP_NAME,
-        );
+        initializeApp(FIREBASE_CONFIG, APP_NAME);
       const authInstance = auth.getAuth(app);
       setAuthApi({ ...auth, authInstance });
       // Termine un éventuel retour de redirection (si le pop-up bascule en
