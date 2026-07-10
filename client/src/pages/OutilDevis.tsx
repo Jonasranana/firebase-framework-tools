@@ -470,8 +470,8 @@ export default function OutilDevis() {
       const app = getApps().length ? getApp() : initializeApp(FIREBASE_CONFIG);
       const authInstance = auth.getAuth(app);
       setAuthApi({ ...auth, authInstance });
-      // Termine un éventuel retour de redirection et remonte les erreurs
-      // de configuration (ex. connexion Google non activée dans Firebase).
+      // Termine un éventuel retour de redirection (si le pop-up bascule en
+      // redirection sur certains navigateurs) et remonte les erreurs.
       auth.getRedirectResult(authInstance).catch((e: any) => {
         setError(authErrorMessage(e));
       });
@@ -498,11 +498,26 @@ export default function OutilDevis() {
   const signIn = async () => {
     if (!authApi) return;
     setError("");
+    const provider = new authApi.GoogleAuthProvider();
     try {
-      const provider = new authApi.GoogleAuthProvider();
-      // Redirection (fiable sur mobile, contrairement au popup souvent bloqué)
-      await authApi.signInWithRedirect(authApi.authInstance, provider);
+      // Pop-up : recommandé quand le domaine du site diffère de l'authDomain
+      // Firebase (évite la perte de session au retour de redirection).
+      await authApi.signInWithPopup(authApi.authInstance, provider);
     } catch (e: any) {
+      // Si le navigateur bloque le pop-up, on bascule sur la redirection.
+      if (
+        e?.code === "auth/popup-blocked" ||
+        e?.code === "auth/operation-not-supported-in-this-environment" ||
+        e?.code === "auth/cancelled-popup-request"
+      ) {
+        try {
+          await authApi.signInWithRedirect(authApi.authInstance, provider);
+          return;
+        } catch (e2: any) {
+          setError(authErrorMessage(e2));
+          return;
+        }
+      }
       setError(authErrorMessage(e));
     }
   };
