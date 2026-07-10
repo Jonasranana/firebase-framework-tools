@@ -56,7 +56,8 @@ function Router() {
         <Route path="/articles/:slug" component={ArticleDetail} />
         <Route path="/mentions-legales" component={MentionsLegales} />
         <Route path="/confidentialite" component={Confidentialite} />
-        {/* Outil interne privé — accès restreint par connexion Google */}
+        {/* Espace Pro — accès restreint par connexion Google (2 comptes) */}
+        <Route path="/espace-pro" component={OutilDevis} />
         <Route path="/outil-devis" component={OutilDevis} />
         <Route path="/autos" component={Home} />
         <Route path="/cars/:id" component={CarDetails} />

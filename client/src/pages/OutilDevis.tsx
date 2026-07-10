@@ -63,7 +63,7 @@ function useNoIndex() {
     const html = document.documentElement;
     const prevDir = html.style.direction;
     html.style.direction = "ltr";
-    document.title = "Calculette IP5 Énergie";
+    document.title = "Espace Pro — IP5 Énergie";
     const meta = document.createElement("meta");
     meta.name = "robots";
     meta.content = "noindex, nofollow";
@@ -467,15 +467,18 @@ export default function OutilDevis() {
         import("firebase/app"),
         import("firebase/auth"),
       ]);
-      // App Firebase dédiée à l'outil. On garde l'authDomain par défaut
-      // (kachoto-7554c.firebaseapp.com), déjà autorisé côté OAuth Google :
-      // l'outil doit donc être ouvert sur CE domaine
-      // (kachoto-7554c.firebaseapp.com/outil-devis) pour que la connexion
-      // soit en même origine et que la session persiste.
-      const APP_NAME = "outil-devis";
+      // App Firebase dédiée à l'outil : authDomain = domaine du site public,
+      // pour que la connexion se fasse en même origine (session persistante)
+      // et que l'outil vive sur ip5-energie.web.app (pas de « kachoto »
+      // visible). Nécessite d'avoir ajouté l'URI de redirection
+      // https://ip5-energie.web.app/__/auth/handler côté OAuth Google.
+      const APP_NAME = "espace-pro";
       const app =
         getApps().find((a) => a.name === APP_NAME) ??
-        initializeApp(FIREBASE_CONFIG, APP_NAME);
+        initializeApp(
+          { ...FIREBASE_CONFIG, authDomain: "ip5-energie.web.app" },
+          APP_NAME,
+        );
       const authInstance = auth.getAuth(app);
       setAuthApi({ ...auth, authInstance });
       // Termine un éventuel retour de redirection (si le pop-up bascule en
@@ -560,10 +563,11 @@ export default function OutilDevis() {
               <Calculator size={26} />
             </div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">
-              Calculette IP5 Énergie
+              Espace Pro
             </h1>
             <p className="text-sm text-gray-500 mb-6">
-              Accès réservé. Connectez-vous avec votre compte Google autorisé.
+              Accès réservé aux professionnels IP5 Énergie. Connectez-vous
+              avec votre compte Google autorisé.
             </p>
             <button
               onClick={signIn}

@@ -7,5 +7,6 @@ Disallow: /my-bookings
 Disallow: /my-cars
 Disallow: /profile
 Disallow: /outil-devis
+Disallow: /espace-pro
 
 Sitemap: https://ip5-energie.web.app/sitemap.xml
