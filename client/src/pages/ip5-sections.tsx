@@ -156,6 +156,7 @@ export const PAC_MODELS = [
   {
     brand: "Daikin",
     logo: "daikin.png",
+    photo: "daikin.jpg",
     model: "Altherma 3 R",
     desc: "Pompe à chaleur air/eau haute performance, eau chaude jusqu'à 60 °C.",
     specs: ["Air/eau", "11 · 14 · 16 kW", "Fluide R-32"],
@@ -163,6 +164,7 @@ export const PAC_MODELS = [
   {
     brand: "Atlantic",
     logo: "atlantic.png",
+    photo: "atlantic.jpg",
     model: "Alféa Excellia S",
     desc: "Split air/eau idéale en rénovation, silencieuse et fiable.",
     specs: ["Air/eau", "Fabrication française", "Connectée"],
@@ -170,6 +172,7 @@ export const PAC_MODELS = [
   {
     brand: "De Dietrich",
     logo: "dedietrich.png",
+    photo: "dedietrich.jpg",
     model: "Alezio S",
     desc: "PAC air/eau réversible « Split Inverter » : chauffage et rafraîchissement.",
     specs: ["Air/eau réversible", "4,6 à 14,6 kW", "Inverter"],
@@ -177,6 +180,7 @@ export const PAC_MODELS = [
   {
     brand: "TCL",
     logo: "tcl.png",
+    photo: "tcl.jpg",
     model: "Bibloc R32",
     desc: "Bibloc air/eau : chauffage, rafraîchissement et eau chaude sanitaire.",
     specs: ["Air/eau", "4 à 16 kW", "Classe A+++"],
@@ -184,6 +188,7 @@ export const PAC_MODELS = [
   {
     brand: "Blaupunkt",
     logo: "blaupunkt.png",
+    photo: "blaupunkt.jpg",
     model: "Monobloc",
     desc: "Solution complète chauffage, rafraîchissement et eau chaude sanitaire.",
     specs: ["Air/eau", "Monobloc", "Chaud + froid + ECS"],
@@ -191,6 +196,7 @@ export const PAC_MODELS = [
   {
     brand: "AUX",
     logo: "aux.png",
+    photo: "aux.jpg",
     model: "Titan R290",
     desc: "Monobloc au fluide écologique R-290, marque française.",
     specs: ["Air/eau", "Fluide R-290", "Garantie 10 ans"],
@@ -1229,31 +1235,42 @@ export const MarquesSection = () => (
         {PAC_MODELS.map((m) => (
           <div
             key={m.brand}
-            className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 p-7 flex flex-col"
+            className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden"
           >
-            <div className="h-14 flex items-center mb-5">
+            {/* Photo du produit (fiche constructeur) */}
+            <div className="h-48 bg-gradient-to-br from-gray-50 to-blue-50/40 overflow-hidden">
               <img
-                src={`/images/marques/${m.logo}`}
-                alt={`Logo ${m.brand}`}
-                className="max-h-11 max-w-[170px] object-contain"
+                src={`/images/marques/produits/${m.photo}`}
+                alt={`Pompe à chaleur ${m.brand} ${m.model}`}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"
               />
             </div>
-            <h3 className="text-lg font-bold text-gray-900">
-              {m.brand} <span className="text-[#2b5a8f]">{m.model}</span>
-            </h3>
-            <p className="text-gray-600 text-sm leading-relaxed mt-2 mb-5 flex-1">
-              {m.desc}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {m.specs.map((s) => (
-                <span
-                  key={s}
-                  className="bg-blue-50 text-[#2b5a8f] text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100"
-                >
-                  {s}
-                </span>
-              ))}
+            <div className="p-7 flex flex-col flex-1">
+              <div className="h-11 flex items-center mb-4">
+                <img
+                  src={`/images/marques/${m.logo}`}
+                  alt={`Logo ${m.brand}`}
+                  className="max-h-9 max-w-[150px] object-contain"
+                  loading="lazy"
+                />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900">
+                {m.brand} <span className="text-[#2b5a8f]">{m.model}</span>
+              </h3>
+              <p className="text-gray-600 text-sm leading-relaxed mt-2 mb-5 flex-1">
+                {m.desc}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {m.specs.map((s) => (
+                  <span
+                    key={s}
+                    className="bg-blue-50 text-[#2b5a8f] text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
             </div>
           </div>
         ))}
