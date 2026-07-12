@@ -3,13 +3,12 @@ import { BadgeCheck } from "lucide-react";
 import {
   PageLayout,
   PageHero,
-  AvantagesSection,
   MarquesSection,
   FinalCTA,
 } from "./ip5-sections";
 
-// Page « La pompe à chaleur » : pourquoi choisir cette solution, et les 6
-// modèles que nous installons.
+// Page « La pompe à chaleur » : bandeau titre + les 6 modèles que nous
+// installons (catalogue), puis appel à l'action.
 const PompeAChaleur = () => (
   <PageLayout title="Nos pompes à chaleur — IP5 Énergie">
     <PageHero
@@ -19,7 +18,6 @@ const PompeAChaleur = () => (
       highlight="performant"
       subtitle="Chauffage doux en hiver, jusqu'à 4 kWh de chaleur pour 1 kWh consommé, et un logement valorisé. Découvrez les 6 marques que nous installons."
     />
-    <AvantagesSection />
     <MarquesSection />
     <FinalCTA />
   </PageLayout>
