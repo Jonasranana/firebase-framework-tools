@@ -1286,10 +1286,15 @@ export const MarquesSection = () => (
 );
 
 // Section « aides de l'État » : MaPrimeRénov', CEE, projet clé en main.
-export const AidesSection = () => (
+// `asHero` : quand la section est en tête de la page /aides, on ajoute
+// l'espace nécessaire pour passer sous le menu fixe (évite le doublon de
+// bandeau bleu qui donnait un effet « coupé en deux »).
+export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => (
   <section
     id="subventions"
-    className="py-24 bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] text-white relative overflow-hidden"
+    className={`${
+      asHero ? "pt-36 pb-24 lg:pt-44" : "py-24"
+    } bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] text-white relative overflow-hidden`}
   >
     <div
       className="absolute inset-0 opacity-10"
