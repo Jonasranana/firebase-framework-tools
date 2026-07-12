@@ -10,6 +10,7 @@ import {
   Menu,
   Facebook,
 } from "lucide-react";
+import { useLocation } from "wouter";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
 
 // Éléments d'en-tête, de pied de page et l'assistant IA, partagés entre la
@@ -77,20 +78,24 @@ export const FIREBASE_CONFIG = {
 
 export const FACEBOOK_URL = "https://www.facebook.com/share/1DnkfumaaV/";
 
-// Liens en "/#ancre" plutôt que "#ancre" : ils fonctionnent aussi bien depuis
-// la page d'accueil que depuis /articles (navigation vers "/" puis saut à
-// l'ancre, géré nativement par le navigateur).
+// Menu principal : un vrai site multi-pages. Chaque entrée mène à une page
+// dédiée (et non plus à une ancre de la page d'accueil).
 export const NAV_LINKS = [
-  { href: "/#avantages", label: "Avantages" },
-  { href: "/#marques", label: "Nos PAC" },
-  { href: "/#subventions", label: "Aides de l'État" },
-  { href: "/#realisations", label: "Réalisations" },
-  { href: "/#avis", label: "Avis clients" },
+  { href: "/", label: "Accueil" },
+  { href: "/pompe-a-chaleur", label: "Pompes à chaleur" },
+  { href: "/aides", label: "Aides" },
+  { href: "/realisations", label: "Réalisations" },
   { href: "/articles", label: "Articles" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export const SiteHeader = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [location] = useLocation();
+  // La page d'accueil (« / ») ne doit être active que sur la racine exacte ;
+  // les autres pages le sont dès que l'URL commence par leur chemin.
+  const isActive = (href: string) =>
+    href === "/" ? location === "/" : location.startsWith(href);
 
   return (
     <nav className="bg-white/80 backdrop-blur-md fixed w-full z-50 top-0 border-b border-gray-100">
@@ -101,7 +106,7 @@ export const SiteHeader = () => {
               onClick={() => setIsMobileMenuOpen((v) => !v)}
               aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
               aria-expanded={isMobileMenuOpen}
-              className="md:hidden text-gray-700 hover:text-[#2b5a8f] transition-colors p-1 -ml-1"
+              className="lg:hidden text-gray-700 hover:text-[#2b5a8f] transition-colors p-1 -ml-1"
             >
               {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
@@ -109,12 +114,17 @@ export const SiteHeader = () => {
               <LogoIP5 />
             </a>
           </div>
-          <div className="hidden md:flex space-x-8 items-center">
+          <div className="hidden lg:flex space-x-6 xl:space-x-8 items-center">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
-                className="text-gray-600 hover:text-[#2b5a8f] font-medium transition-colors"
+                aria-current={isActive(link.href) ? "page" : undefined}
+                className={`font-medium whitespace-nowrap transition-colors ${
+                  isActive(link.href)
+                    ? "text-[#2b5a8f] font-semibold"
+                    : "text-gray-600 hover:text-[#2b5a8f]"
+                }`}
               >
                 {link.label}
               </a>
@@ -132,17 +142,17 @@ export const SiteHeader = () => {
             </a>
             <a
               href="tel:+33749525267"
-              className="flex items-center gap-2 text-[#2b5a8f] font-bold hover:text-blue-800 transition-colors"
+              className="flex items-center gap-2 text-[#2b5a8f] font-bold hover:text-blue-800 transition-colors whitespace-nowrap"
               aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
             >
               <Phone size={18} />
               <span className="hidden md:inline">07 49 52 52 67</span>
             </a>
             <a
-              href="/#simulateur"
-              className="hidden lg:inline-flex items-center gap-2 bg-[#2b5a8f] text-white px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-blue-800 transition-colors shadow-md"
+              href="/contact"
+              className="hidden xl:inline-flex items-center gap-2 bg-[#2b5a8f] text-white px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-blue-800 transition-colors shadow-md"
             >
-              Simulation gratuite
+              Devis gratuit
             </a>
           </div>
         </div>
@@ -150,14 +160,19 @@ export const SiteHeader = () => {
 
       {/* Menu déroulant mobile */}
       {isMobileMenuOpen && (
-        <div className="md:hidden border-t border-gray-100 bg-white animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden border-t border-gray-100 bg-white animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="px-4 py-3 flex flex-col">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="py-3 text-gray-700 hover:text-[#2b5a8f] font-medium border-b border-gray-50 last:border-0 transition-colors"
+                aria-current={isActive(link.href) ? "page" : undefined}
+                className={`py-3 font-medium border-b border-gray-50 last:border-0 transition-colors ${
+                  isActive(link.href)
+                    ? "text-[#2b5a8f] font-semibold"
+                    : "text-gray-700 hover:text-[#2b5a8f]"
+                }`}
               >
                 {link.label}
               </a>

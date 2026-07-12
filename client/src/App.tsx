@@ -24,6 +24,12 @@ const MentionsLegales = lazy(() =>
 const Confidentialite = lazy(() =>
   import("@/pages/Legal").then((m) => ({ default: m.Confidentialite })),
 );
+// Pages du site IP5 Énergie (multi-pages). L'accueil (IP5Energie) est chargé
+// d'emblée ; les pages intérieures sont chargées à la demande.
+const PompeAChaleur = lazy(() => import("@/pages/PompeAChaleur"));
+const Aides = lazy(() => import("@/pages/Aides"));
+const Realisations = lazy(() => import("@/pages/Realisations"));
+const Contact = lazy(() => import("@/pages/Contact"));
 // Outil interne privé (accès Google restreint) — non lié depuis le site public.
 const OutilDevis = lazy(() => import("@/pages/OutilDevis"));
 const Home = lazy(() => import("@/pages/Home"));
@@ -52,6 +58,10 @@ function Router() {
             en alias pour les liens déjà partagés. L'app voitures vit sur /autos. */}
         <Route path="/" component={IP5Energie} />
         <Route path="/ip5-energie" component={IP5Energie} />
+        <Route path="/pompe-a-chaleur" component={PompeAChaleur} />
+        <Route path="/aides" component={Aides} />
+        <Route path="/realisations" component={Realisations} />
+        <Route path="/contact" component={Contact} />
         <Route path="/articles" component={ArticlesList} />
         <Route path="/articles/:slug" component={ArticleDetail} />
         <Route path="/mentions-legales" component={MentionsLegales} />
