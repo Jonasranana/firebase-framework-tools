@@ -17,11 +17,10 @@
     />
     <meta property="og:image" content="https://ip5-energie.web.app/images/realisations/unite-exterieure.jpg" />
     <meta name="theme-color" content="#2b5a8f" />
-    <!-- Le site est conçu en thème clair. On le déclare explicitement pour que
-         les navigateurs (Android Chrome, Samsung Internet…) n'appliquent pas
-         leur « mode sombre » automatique, qui rendait certains textes en
-         dégradé (« trois », « financée »…) illisibles sur fond assombri. -->
-    <meta name="color-scheme" content="light" />
+    <!-- Le site gère lui-même les deux thèmes (clair + sombre) via
+         prefers-color-scheme. On le déclare pour que les navigateurs
+         n'appliquent pas leur propre mode sombre automatique par-dessus. -->
+    <meta name="color-scheme" content="light dark" />
     <link rel="canonical" href="https://ip5-energie.web.app/" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />

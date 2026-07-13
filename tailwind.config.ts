@@ -1,7 +1,10 @@
 import type { Config } from "tailwindcss";
 
 export default {
-  darkMode: ["class"],
+  // Le mode sombre suit le réglage du système (prefers-color-scheme) : les
+  // classes `dark:` s'activent automatiquement quand le téléphone est en
+  // mode sombre.
+  darkMode: "media",
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
