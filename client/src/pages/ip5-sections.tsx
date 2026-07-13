@@ -25,7 +25,6 @@ import {
   HandCoins,
   BadgeCheck,
   Sparkles,
-  TrendingUp,
 } from "lucide-react";
 import {
   FIREBASE_CONFIG,
@@ -1153,123 +1152,78 @@ export const AvantagesSection = () => (
       </div>
 
       <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
-        {/* 1 — Économies : la facture qui fond */}
-        <div className="group flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden">
-          <div className="relative h-44 bg-gradient-to-br from-emerald-50 to-green-100/60 dark:from-emerald-950/40 dark:to-green-950/20 flex items-end justify-center gap-7 pb-7 overflow-hidden">
-            <span className="absolute top-5 right-5 text-3xl font-black text-green-500">
-              −70%
+        {/* 1 — Économies */}
+        <div className="group relative bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 p-8 md:p-9 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+          <PiggyBank
+            size={24}
+            strokeWidth={1.5}
+            className="absolute top-8 right-8 text-gray-300 dark:text-slate-600 group-hover:text-[#2b5a8f] dark:group-hover:text-blue-400 transition-colors"
+          />
+          <div className="text-6xl font-extrabold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-br from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
+            −70%
+          </div>
+          <div className="mt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-slate-500">
+            sur votre facture
+          </div>
+          <div className="w-10 h-px bg-gray-200 dark:bg-slate-700 my-6" />
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            Jusqu'à 70% d'économies
+          </h3>
+          <p className="text-gray-600 dark:text-slate-300 leading-relaxed">
+            Pour 1 kWh d'électricité consommé, la pompe à chaleur restitue
+            jusqu'à 4 kWh de chaleur. Votre facture fond instantanément.
+          </p>
+        </div>
+
+        {/* 2 — Rendement / écologie */}
+        <div className="group relative bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 p-8 md:p-9 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+          <Leaf
+            size={24}
+            strokeWidth={1.5}
+            className="absolute top-8 right-8 text-gray-300 dark:text-slate-600 group-hover:text-[#2b5a8f] dark:group-hover:text-blue-400 transition-colors"
+          />
+          <div className="text-6xl font-extrabold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-br from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
+            ×4
+          </div>
+          <div className="mt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-slate-500">
+            de rendement (COP)
+          </div>
+          <div className="w-10 h-px bg-gray-200 dark:bg-slate-700 my-6" />
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            Écologique & performant
+          </h3>
+          <p className="text-gray-600 dark:text-slate-300 leading-relaxed">
+            Fini le fioul et le gaz : vous utilisez les calories gratuites de
+            l'air. Zéro énergie fossile, empreinte carbone réduite.
+          </p>
+        </div>
+
+        {/* 3 — Valorisation */}
+        <div className="group relative bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 p-8 md:p-9 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden">
+          <ShieldCheck
+            size={24}
+            strokeWidth={1.5}
+            className="absolute top-8 right-8 text-gray-300 dark:text-slate-600 group-hover:text-[#2b5a8f] dark:group-hover:text-blue-400 transition-colors"
+          />
+          <div className="flex items-baseline gap-2">
+            <span className="text-6xl font-extrabold tracking-tighter leading-none text-transparent bg-clip-text bg-gradient-to-br from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
+              A
             </span>
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-[11px] font-bold text-gray-500 dark:text-slate-400">100 €</span>
-              <div className="w-9 h-24 rounded-t-lg bg-gray-300 dark:bg-slate-600 origin-bottom transition-transform duration-500 group-hover:scale-y-105"></div>
-              <span className="text-xs font-semibold text-gray-500 dark:text-slate-400">Avant</span>
-            </div>
-            <div className="flex flex-col items-center gap-2">
-              <span className="text-[11px] font-bold text-green-600 dark:text-green-400">30 €</span>
-              <div className="w-9 h-8 rounded-t-lg bg-gradient-to-t from-green-500 to-emerald-400 shadow-lg shadow-green-500/40 origin-bottom transition-transform duration-500 group-hover:scale-y-110"></div>
-              <span className="text-xs font-semibold text-green-600 dark:text-green-400">Après</span>
-            </div>
+            <span className="text-2xl font-bold text-gray-300 dark:text-slate-600">
+              DPE
+            </span>
           </div>
-          <div className="p-7 flex flex-col flex-1">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-green-600 text-white flex items-center justify-center shadow-md shadow-green-500/30 flex-shrink-0">
-                <PiggyBank size={20} />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Jusqu'à 70% d'économies
-              </h3>
-            </div>
-            <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed">
-              Pour 1 kWh d'électricité consommé, la pompe à chaleur restitue
-              jusqu'à 4 kWh de chaleur. Votre facture fond instantanément.
-            </p>
+          <div className="mt-3 text-[11px] font-bold uppercase tracking-[0.18em] text-gray-400 dark:text-slate-500">
+            meilleure étiquette énergie
           </div>
-        </div>
-
-        {/* 2 — Rendement : 1 kWh payé → 4 kWh de chaleur */}
-        <div className="group flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden">
-          <div className="relative h-44 bg-gradient-to-br from-sky-50 to-blue-100/60 dark:from-sky-950/40 dark:to-blue-950/20 flex items-center justify-center gap-3 px-4 overflow-hidden">
-            <div className="flex flex-col items-center gap-1.5">
-              <div className="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 shadow-md flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-1">
-                <Zap size={26} className="text-sky-500" fill="currentColor" />
-              </div>
-              <span className="text-xs font-bold text-gray-700 dark:text-slate-200">1 kWh</span>
-              <span className="text-[10px] text-gray-400 dark:text-slate-500 -mt-1.5">payé</span>
-            </div>
-            <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-sky-500 to-[#2b5a8f] dark:from-sky-400 dark:to-blue-400">
-              ×4
-            </div>
-            <div className="flex flex-col items-center gap-1.5">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-orange-400 to-red-500 shadow-lg shadow-orange-500/40 flex items-center justify-center transition-transform duration-300 group-hover:-translate-y-1">
-                <Flame size={26} className="text-white" />
-              </div>
-              <span className="text-xs font-bold text-gray-700 dark:text-slate-200">4 kWh</span>
-              <span className="text-[10px] text-gray-400 dark:text-slate-500 -mt-1.5">de chaleur</span>
-            </div>
-          </div>
-          <div className="p-7 flex flex-col flex-1">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-sky-400 to-[#2b5a8f] text-white flex items-center justify-center shadow-md shadow-blue-500/30 flex-shrink-0">
-                <Leaf size={20} />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Écologique & propre
-              </h3>
-            </div>
-            <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed">
-              Fini le fioul et le gaz : vous utilisez les calories gratuites de
-              l'air. Zéro énergie fossile, empreinte carbone réduite.
-            </p>
-          </div>
-        </div>
-
-        {/* 3 — Valorisation : l'étiquette DPE qui grimpe */}
-        <div className="group flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 overflow-hidden">
-          <div className="relative h-44 bg-gradient-to-br from-violet-50 to-purple-100/60 dark:from-violet-950/40 dark:to-purple-950/20 flex items-center justify-center gap-4 px-6 overflow-hidden">
-            <div className="flex flex-col gap-1 w-[125px]">
-              {[
-                { l: "A", c: "bg-green-600", w: "w-[46%]", hi: true },
-                { l: "B", c: "bg-lime-500", w: "w-[57%]" },
-                { l: "C", c: "bg-yellow-400", w: "w-[68%]" },
-                { l: "D", c: "bg-amber-500", w: "w-[79%]" },
-                { l: "E", c: "bg-orange-500", w: "w-[90%]" },
-                { l: "F", c: "bg-red-500", w: "w-full" },
-              ].map((r) => (
-                <div
-                  key={r.l}
-                  className={`h-4 rounded-r-md flex items-center justify-end pr-1.5 text-[9px] font-black text-white ${r.c} ${r.w} ${
-                    r.hi
-                      ? "ring-2 ring-violet-500 ring-offset-1 ring-offset-violet-50 dark:ring-offset-slate-900 scale-105 origin-left shadow-md relative z-10"
-                      : "opacity-90"
-                  }`}
-                >
-                  {r.l}
-                </div>
-              ))}
-            </div>
-            <div className="flex flex-col items-center text-violet-600 dark:text-violet-400 transition-transform duration-300 group-hover:-translate-y-1">
-              <TrendingUp size={26} />
-              <span className="text-[11px] font-bold mt-1 text-center leading-tight">
-                Objectif
-                <br />
-                classe A
-              </span>
-            </div>
-          </div>
-          <div className="p-7 flex flex-col flex-1">
-            <div className="flex items-center gap-2.5 mb-2">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-400 to-purple-600 text-white flex items-center justify-center shadow-md shadow-purple-500/30 flex-shrink-0">
-                <ShieldCheck size={20} />
-              </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                Valorisation du bien
-              </h3>
-            </div>
-            <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed">
-              Un meilleur DPE, c'est une maison qui vaut plus cher à la revente
-              et se loue plus facilement. Un vrai atout pour votre patrimoine.
-            </p>
-          </div>
+          <div className="w-10 h-px bg-gray-200 dark:bg-slate-700 my-6" />
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+            Valorisation du bien
+          </h3>
+          <p className="text-gray-600 dark:text-slate-300 leading-relaxed">
+            Un meilleur DPE, c'est une maison qui vaut plus cher à la revente et
+            se loue plus facilement. Un vrai atout pour votre patrimoine.
+          </p>
         </div>
       </div>
     </div>
