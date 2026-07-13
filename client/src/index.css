@@ -5,10 +5,10 @@
 @tailwind utilities;
 
 :root {
-  /* Site en thème clair uniquement : empêche le mode sombre automatique des
-     navigateurs mobiles d'assombrir la page et de casser la lisibilité des
-     textes en dégradé. */
-  color-scheme: light;
+  /* Le site fournit ses propres thèmes clair et sombre (via prefers-color-
+     scheme). On déclare les deux pour que le navigateur n'ajoute pas son
+     mode sombre automatique par-dessus. */
+  color-scheme: light dark;
 
   --font-sans: 'Inter', 'Assistant', system-ui, sans-serif;
 

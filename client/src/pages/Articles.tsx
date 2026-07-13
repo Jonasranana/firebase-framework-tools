@@ -27,7 +27,7 @@ const CATEGORY_ICONS: Record<string, typeof PiggyBank> = {
 const CategoryBadge = ({ category }: { category: string }) => {
   const Icon = CATEGORY_ICONS[category] ?? PiggyBank;
   return (
-    <span className="inline-flex items-center gap-1.5 bg-blue-50 text-[#2b5a8f] text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
+    <span className="inline-flex items-center gap-1.5 bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
       <Icon size={13} /> {category}
     </span>
   );
@@ -69,15 +69,15 @@ export const ArticlesList = () => {
   const articles = sortedArticles();
 
   return (
-    <div dir="ltr" className="font-sans text-gray-900 bg-gray-50 min-h-screen">
+    <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
       <SiteHeader />
 
-      <section className="pt-40 pb-16 bg-white">
+      <section className="pt-40 pb-16 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 mb-4">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 dark:text-white mb-4">
             Le blog IP5 Énergie
           </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <p className="text-xl text-gray-600 dark:text-slate-300 max-w-2xl mx-auto">
             Conseils pratiques, aides de l'État et actualités de la rénovation
             énergétique, expliqués simplement.
           </p>
@@ -91,19 +91,19 @@ export const ArticlesList = () => {
               <a
                 key={article.slug}
                 href={`/articles/${article.slug}`}
-                className="bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-lg transition-shadow overflow-hidden flex flex-col"
+                className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-lg transition-shadow overflow-hidden flex flex-col"
               >
                 <CoverImage article={article} className="w-full h-44" />
                 <div className="p-6 flex flex-col flex-1">
                   <CategoryBadge category={article.category} />
-                  <h2 className="text-xl font-bold text-gray-900 mt-4 mb-2 leading-snug">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mt-4 mb-2 leading-snug">
                     {article.title}
                   </h2>
-                  <p className="text-gray-600 text-sm leading-relaxed flex-1">
+                  <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed flex-1">
                     {article.excerpt}
                   </p>
-                  <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-50">
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                  <div className="flex items-center justify-between mt-5 pt-4 border-t border-gray-50 dark:border-slate-800">
+                    <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-slate-500">
                       <span className="flex items-center gap-1">
                         <Calendar size={13} /> {formatDate(article.date)}
                       </span>
@@ -111,7 +111,7 @@ export const ArticlesList = () => {
                         <Clock size={13} /> {article.readMinutes} min
                       </span>
                     </div>
-                    <span className="text-[#2b5a8f] font-semibold text-sm flex items-center gap-1">
+                    <span className="text-[#2b5a8f] dark:text-blue-400 font-semibold text-sm flex items-center gap-1">
                       Lire <ArrowRight size={14} />
                     </span>
                   </div>
@@ -132,7 +132,7 @@ export const ArticlesList = () => {
 const renderBlock = (block: ContentBlock, i: number) => {
   if (block.type === "h2") {
     return (
-      <h2 key={i} className="text-2xl font-bold text-gray-900 mt-8 mb-3">
+      <h2 key={i} className="text-2xl font-bold text-gray-900 dark:text-white mt-8 mb-3">
         {block.text}
       </h2>
     );
@@ -141,8 +141,8 @@ const renderBlock = (block: ContentBlock, i: number) => {
     return (
       <ul key={i} className="space-y-2 my-4">
         {block.items.map((item, j) => (
-          <li key={j} className="flex items-start gap-3 text-gray-700 leading-relaxed">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#2b5a8f] mt-2.5 flex-shrink-0" />
+          <li key={j} className="flex items-start gap-3 text-gray-700 dark:text-slate-300 leading-relaxed">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#2b5a8f] dark:bg-blue-400 mt-2.5 flex-shrink-0" />
             {item}
           </li>
         ))}
@@ -150,20 +150,20 @@ const renderBlock = (block: ContentBlock, i: number) => {
     );
   }
   return (
-    <p key={i} className="text-gray-700 leading-relaxed my-4">
+    <p key={i} className="text-gray-700 dark:text-slate-300 leading-relaxed my-4">
       {block.text}
     </p>
   );
 };
 
 const NotFoundArticle = () => (
-  <div dir="ltr" className="font-sans text-gray-900 bg-gray-50 min-h-screen">
+  <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
     <SiteHeader />
     <div className="pt-40 pb-24 max-w-2xl mx-auto px-4 text-center">
-      <h1 className="text-3xl font-bold text-gray-900 mb-4">
+      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
         Article introuvable
       </h1>
-      <p className="text-gray-600 mb-8">
+      <p className="text-gray-600 dark:text-slate-300 mb-8">
         Cet article n'existe pas ou plus. Retrouvez tous nos articles ci-dessous.
       </p>
       <a
@@ -194,14 +194,14 @@ export const ArticleDetail = () => {
     .slice(0, 2);
 
   return (
-    <div dir="ltr" className="font-sans text-gray-900 bg-gray-50 min-h-screen">
+    <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
       <SiteHeader />
 
       <article className="pt-32 pb-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <a
             href="/articles"
-            className="inline-flex items-center gap-2 text-gray-500 hover:text-[#2b5a8f] text-sm font-medium mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-gray-500 dark:text-slate-400 hover:text-[#2b5a8f] dark:hover:text-blue-400 text-sm font-medium mb-6 transition-colors"
           >
             <ArrowLeft size={16} /> Tous les articles
           </a>
@@ -213,11 +213,11 @@ export const ArticleDetail = () => {
 
           <CategoryBadge category={article.category} />
 
-          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mt-4 mb-4 leading-tight">
+          <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mt-4 mb-4 leading-tight">
             {article.title}
           </h1>
 
-          <div className="flex items-center gap-4 text-sm text-gray-400 mb-8 pb-8 border-b border-gray-100">
+          <div className="flex items-center gap-4 text-sm text-gray-400 dark:text-slate-500 mb-8 pb-8 border-b border-gray-100 dark:border-slate-800">
             <span className="flex items-center gap-1.5">
               <Calendar size={14} /> {formatDate(article.date)}
             </span>
@@ -228,11 +228,11 @@ export const ArticleDetail = () => {
 
           <div>{article.content.map(renderBlock)}</div>
 
-          <div className="mt-12 bg-blue-50 border border-blue-100 rounded-3xl p-8 text-center">
-            <h3 className="text-xl font-bold text-gray-900 mb-2">
+          <div className="mt-12 bg-blue-50 dark:bg-blue-950/40 border border-blue-100 dark:border-blue-900 rounded-3xl p-8 text-center">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
               Une question sur votre projet ?
             </h3>
-            <p className="text-gray-600 mb-5">
+            <p className="text-gray-600 dark:text-slate-300 mb-5">
               Testez notre simulateur gratuit ou parlez directement à un
               expert IP5 Énergie.
             </p>
@@ -245,7 +245,7 @@ export const ArticleDetail = () => {
               </a>
               <a
                 href="tel:+33749525267"
-                className="inline-flex items-center justify-center gap-2 bg-white text-[#2b5a8f] border-2 border-[#2b5a8f] px-6 py-3 rounded-full font-semibold hover:bg-blue-50 transition-colors"
+                className="inline-flex items-center justify-center gap-2 bg-white dark:bg-transparent text-[#2b5a8f] dark:text-blue-300 border-2 border-[#2b5a8f] dark:border-blue-500 px-6 py-3 rounded-full font-semibold hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-colors"
               >
                 <Phone size={18} /> 07 49 52 52 67
               </a>
@@ -254,7 +254,7 @@ export const ArticleDetail = () => {
 
           {others.length > 0 && (
             <div className="mt-16">
-              <h3 className="text-lg font-bold text-gray-900 mb-4">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
                 À lire aussi
               </h3>
               <div className="grid sm:grid-cols-2 gap-4">
@@ -262,9 +262,9 @@ export const ArticleDetail = () => {
                   <a
                     key={o.slug}
                     href={`/articles/${o.slug}`}
-                    className="block bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow p-5"
+                    className="block bg-white dark:bg-slate-900 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow p-5"
                   >
-                    <p className="font-semibold text-gray-900 leading-snug">
+                    <p className="font-semibold text-gray-900 dark:text-white leading-snug">
                       {o.title}
                     </p>
                   </a>

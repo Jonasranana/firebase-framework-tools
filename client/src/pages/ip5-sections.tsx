@@ -101,7 +101,7 @@ export const Kicker = ({
     className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border ${
       onDark
         ? "bg-white/10 text-blue-100 border-white/20"
-        : "bg-blue-50 text-[#2b5a8f] border-blue-100"
+        : "bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 border-blue-100 dark:border-blue-900"
     }`}
   >
     <Icon size={14} /> {children}
@@ -1049,7 +1049,7 @@ export const PageLayout = ({
 }) => {
   useFrenchPageMeta(title);
   return (
-    <div dir="ltr" className="font-sans text-gray-900 bg-gray-50 min-h-screen">
+    <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
       <SiteHeader />
       {children}
       <SiteFooter />
@@ -1109,7 +1109,7 @@ export const PageHero = ({
 
 // Bande de confiance (4 gages), utilisée sur l'accueil.
 export const TrustBar = () => (
-  <div className="bg-white border-y border-gray-100">
+  <div className="bg-white dark:bg-slate-900 border-y border-gray-100 dark:border-slate-800">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-2 lg:grid-cols-4 gap-6">
       {[
         { icon: BadgeCheck, title: "Certifié RGE", sub: "QualiPAC" },
@@ -1118,12 +1118,12 @@ export const TrustBar = () => (
         { icon: Users, title: "Entreprise familiale", sub: "un seul interlocuteur" },
       ].map((item) => (
         <div key={item.title} className="flex items-center gap-3 justify-center lg:justify-start">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100 text-[#2b5a8f] flex items-center justify-center flex-shrink-0">
+          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border border-blue-100 dark:border-blue-900 text-[#2b5a8f] dark:text-blue-300 flex items-center justify-center flex-shrink-0">
             <item.icon size={22} />
           </div>
           <div className="leading-tight">
-            <p className="font-bold text-gray-900 text-sm">{item.title}</p>
-            <p className="text-gray-500 text-xs">{item.sub}</p>
+            <p className="font-bold text-gray-900 dark:text-white text-sm">{item.title}</p>
+            <p className="text-gray-500 dark:text-slate-400 text-xs">{item.sub}</p>
           </div>
         </div>
       ))}
@@ -1133,20 +1133,20 @@ export const TrustBar = () => (
 
 // Section « avantages » : pourquoi choisir la pompe à chaleur (3 cartes).
 export const AvantagesSection = () => (
-  <section id="avantages" className="py-24 bg-gray-50 relative overflow-hidden">
-    <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100/40 blur-3xl"></div>
-    <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-green-100/40 blur-3xl"></div>
+  <section id="avantages" className="py-24 bg-gray-50 dark:bg-slate-950 relative overflow-hidden">
+    <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100/40 dark:bg-blue-900/20 blur-3xl"></div>
+    <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-green-100/40 dark:bg-green-900/20 blur-3xl"></div>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
       <div className="text-center max-w-3xl mx-auto mb-16">
         <Kicker icon={Sparkles}>Les avantages</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Pourquoi choisir la{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
             pompe à chaleur
           </span>{" "}
           ?
         </h2>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 dark:text-slate-300">
           Le système de chauffage le plus performant et économique en France.
         </p>
       </div>
@@ -1186,24 +1186,24 @@ export const AvantagesSection = () => (
         ].map((card) => (
           <div
             key={card.title}
-            className="group relative bg-white p-8 pt-10 rounded-3xl border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
+            className="group relative bg-white dark:bg-slate-900 p-8 pt-10 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 overflow-hidden"
           >
             <div
               className={`absolute top-0 inset-x-0 h-1.5 bg-gradient-to-r ${card.bar}`}
             ></div>
             <card.icon
               size={140}
-              className="absolute -bottom-8 -right-8 text-gray-900 opacity-[0.04] group-hover:opacity-[0.07] group-hover:scale-110 transition-all duration-500 pointer-events-none"
+              className="absolute -bottom-8 -right-8 text-gray-900 dark:text-white opacity-[0.04] dark:opacity-[0.06] group-hover:opacity-[0.07] group-hover:scale-110 transition-all duration-500 pointer-events-none"
             />
             <div
               className={`w-16 h-16 bg-gradient-to-br ${card.gradient} text-white rounded-2xl flex items-center justify-center mb-6 shadow-lg ${card.shadow} group-hover:scale-110 transition-transform duration-300`}
             >
               <card.icon size={30} />
             </div>
-            <h3 className="text-xl font-bold mb-3 text-gray-900">
+            <h3 className="text-xl font-bold mb-3 text-gray-900 dark:text-white">
               {card.title}
             </h3>
-            <p className="text-gray-600 leading-relaxed mb-5">{card.text}</p>
+            <p className="text-gray-600 dark:text-slate-300 leading-relaxed mb-5">{card.text}</p>
             <span
               className={`inline-block text-xs font-bold px-3 py-1.5 rounded-full border ${card.chipStyle}`}
             >
@@ -1218,14 +1218,14 @@ export const AvantagesSection = () => (
 
 // Section « nos pompes à chaleur » : les 6 modèles installés.
 export const MarquesSection = () => (
-  <section id="marques" className="py-24 bg-white">
+  <section id="marques" className="py-24 bg-white dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center max-w-3xl mx-auto mb-16">
         <Kicker icon={BadgeCheck}>Nos pompes à chaleur</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Les 6 marques que nous installons
         </h2>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 dark:text-slate-300">
           Nous sélectionnons les meilleures pompes à chaleur air/eau du marché.
           Le modèle est choisi avec vous, selon votre logement et votre budget.
         </p>
@@ -1235,10 +1235,10 @@ export const MarquesSection = () => (
         {PAC_MODELS.map((m) => (
           <div
             key={m.brand}
-            className="group bg-white rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden"
+            className="group bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden"
           >
             {/* Photo du produit (fiche constructeur) */}
-            <div className="h-48 bg-gradient-to-br from-gray-50 to-blue-50/40 overflow-hidden">
+            <div className="h-48 bg-gradient-to-br from-gray-50 to-blue-50/40 dark:from-slate-800 dark:to-slate-800 overflow-hidden">
               <img
                 src={`/images/marques/produits/${m.photo}`}
                 alt={`Pompe à chaleur ${m.brand} ${m.model}`}
@@ -1247,7 +1247,9 @@ export const MarquesSection = () => (
               />
             </div>
             <div className="p-7 flex flex-col flex-1">
-              <div className="h-11 flex items-center mb-4">
+              {/* Le logo reste sur une plaque blanche en mode sombre pour
+                  rester lisible (certains logos sont en noir). */}
+              <div className="inline-flex items-center self-start h-11 mb-4 dark:bg-white dark:rounded-lg dark:px-3">
                 <img
                   src={`/images/marques/${m.logo}`}
                   alt={`Logo ${m.brand}`}
@@ -1255,17 +1257,17 @@ export const MarquesSection = () => (
                   loading="lazy"
                 />
               </div>
-              <h3 className="text-lg font-bold text-gray-900">
-                {m.brand} <span className="text-[#2b5a8f]">{m.model}</span>
+              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+                {m.brand} <span className="text-[#2b5a8f] dark:text-blue-400">{m.model}</span>
               </h3>
-              <p className="text-gray-600 text-sm leading-relaxed mt-2 mb-5 flex-1">
+              <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed mt-2 mb-5 flex-1">
                 {m.desc}
               </p>
               <div className="flex flex-wrap gap-2">
                 {m.specs.map((s) => (
                   <span
                     key={s}
-                    className="bg-blue-50 text-[#2b5a8f] text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100"
+                    className="bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100 dark:border-blue-900"
                   >
                     {s}
                   </span>
@@ -1276,7 +1278,7 @@ export const MarquesSection = () => (
         ))}
       </div>
 
-      <p className="text-center text-sm text-gray-400 mt-10 max-w-2xl mx-auto">
+      <p className="text-center text-sm text-gray-400 dark:text-slate-500 mt-10 max-w-2xl mx-auto">
         Toutes nos pompes à chaleur sont installées par des techniciens
         certifiés RGE QualiPAC et éligibles aux aides MaPrimeRénov' et CEE,
         selon votre situation.
@@ -1437,14 +1439,14 @@ export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => (
 
 // Section « réalisations » : avant/après et détails de chantier.
 export const RealisationsSection = () => (
-  <section id="realisations" className="py-24 bg-gray-50">
+  <section id="realisations" className="py-24 bg-gray-50 dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center max-w-3xl mx-auto mb-16">
         <Kicker icon={Award}>Notre savoir-faire</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Nos réalisations
         </h2>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 dark:text-slate-300">
           Un chantier récent réalisé par notre équipe : remplacement d'une
           ancienne chaudière par une pompe à chaleur air/eau.
         </p>
@@ -1508,7 +1510,7 @@ export const RealisationsSection = () => (
         ].map((photo) => (
           <figure
             key={photo.src}
-            className="group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 bg-white transition-all duration-300 hover:-translate-y-1"
+            className="group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 hover:-translate-y-1"
           >
             <div className="overflow-hidden">
               <img
@@ -1518,7 +1520,7 @@ export const RealisationsSection = () => (
                 loading="lazy"
               />
             </div>
-            <figcaption className="text-sm text-gray-600 px-4 py-3">
+            <figcaption className="text-sm text-gray-600 dark:text-slate-300 px-4 py-3">
               {photo.caption}
             </figcaption>
           </figure>
@@ -1530,14 +1532,14 @@ export const RealisationsSection = () => (
 
 // Section « avis clients ».
 export const AvisSection = () => (
-  <section id="avis" className="py-24 bg-white">
+  <section id="avis" className="py-24 bg-white dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center max-w-3xl mx-auto mb-16">
         <Kicker icon={Star}>Avis clients</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">
+        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Ils ont sauté le pas
         </h2>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 dark:text-slate-300">
           Des propriétaires partout en France nous font confiance pour leur
           transition énergétique.
         </p>
@@ -1547,11 +1549,11 @@ export const AvisSection = () => (
         {REVIEWS.map((review) => (
           <figure
             key={review.name}
-            className="relative bg-gray-50 p-8 rounded-3xl border border-gray-100 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:bg-white transition-all duration-300 overflow-hidden"
+            className="relative bg-gray-50 dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 overflow-hidden"
           >
             <Quote
               size={72}
-              className="absolute -top-2 -right-2 text-[#2b5a8f] opacity-[0.06] pointer-events-none"
+              className="absolute -top-2 -right-2 text-[#2b5a8f] dark:text-blue-400 opacity-[0.06] dark:opacity-[0.1] pointer-events-none"
               fill="currentColor"
             />
             <div
@@ -1562,10 +1564,10 @@ export const AvisSection = () => (
                 <Star key={i} size={18} fill="currentColor" />
               ))}
             </div>
-            <blockquote className="text-gray-700 leading-relaxed mb-6 flex-1">
+            <blockquote className="text-gray-700 dark:text-slate-200 leading-relaxed mb-6 flex-1">
               « {review.text} »
             </blockquote>
-            <figcaption className="flex items-center gap-3 pt-4 border-t border-gray-100">
+            <figcaption className="flex items-center gap-3 pt-4 border-t border-gray-100 dark:border-slate-700">
               <span
                 className="w-11 h-11 rounded-full bg-gradient-to-br from-[#2b5a8f] to-cyan-500 text-white font-bold text-sm flex items-center justify-center flex-shrink-0"
                 aria-hidden="true"
@@ -1579,8 +1581,8 @@ export const AvisSection = () => (
                   .toUpperCase()}
               </span>
               <span>
-                <p className="font-bold text-gray-900">{review.name}</p>
-                <p className="text-sm text-gray-500 flex items-center gap-1">
+                <p className="font-bold text-gray-900 dark:text-white">{review.name}</p>
+                <p className="text-sm text-gray-500 dark:text-slate-400 flex items-center gap-1">
                   <MapPin size={14} /> {review.location}
                 </p>
               </span>
@@ -1596,7 +1598,7 @@ export const AvisSection = () => (
 // « Simuler » renvoie vers le simulateur de la page d'accueil (/#simulateur),
 // il fonctionne donc depuis n'importe quelle page.
 export const FinalCTA = () => (
-  <section className="py-20 bg-gray-50">
+  <section className="py-20 bg-gray-50 dark:bg-slate-950">
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="relative bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] rounded-[2.5rem] px-8 py-14 md:p-16 text-center text-white overflow-hidden shadow-2xl">
         <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-cyan-400/20 blur-3xl"></div>

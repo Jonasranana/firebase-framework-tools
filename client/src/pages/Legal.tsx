@@ -18,14 +18,14 @@ const LegalLayout = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <div dir="ltr" className="font-sans text-gray-900 bg-gray-50 min-h-screen">
+  <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
     <SiteHeader />
     <main className="pt-32 pb-20">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-10">
+        <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-10">
           {title}
         </h1>
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 md:p-10 space-y-8">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm p-8 md:p-10 space-y-8">
           {children}
         </div>
       </div>
@@ -44,8 +44,8 @@ const Section = ({
   children: React.ReactNode;
 }) => (
   <section>
-    <h2 className="text-xl font-bold text-gray-900 mb-3">{title}</h2>
-    <div className="text-gray-700 leading-relaxed space-y-3 text-[15px]">
+    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-3">{title}</h2>
+    <div className="text-gray-700 dark:text-slate-300 leading-relaxed space-y-3 text-[15px]">
       {children}
     </div>
   </section>
@@ -72,7 +72,7 @@ export const MentionsLegales = () => {
           Directrice de la publication : Carole Sitbon
           <br />
           Contact :{" "}
-          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] underline">
+          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
             info@ip5energie.com
           </a>{" "}
           — 07 49 52 52 67
@@ -89,7 +89,7 @@ export const MentionsLegales = () => {
             href="https://firebase.google.com"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#2b5a8f] underline"
+            className="text-[#2b5a8f] dark:text-blue-400 underline"
           >
             firebase.google.com
           </a>
@@ -136,12 +136,12 @@ export const MentionsLegales = () => {
             href="https://ec.europa.eu/consumers/odr"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#2b5a8f] underline"
+            className="text-[#2b5a8f] dark:text-blue-400 underline"
           >
             ec.europa.eu/consumers/odr
           </a>
           . Pour toute réclamation, contactez-nous d'abord à{" "}
-          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] underline">
+          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
             info@ip5energie.com
           </a>
           .
@@ -159,7 +159,7 @@ export const Confidentialite = () => {
         <p>
           Le responsable du traitement est <b>IP5 CONSEILS</b> (SIREN
           890 293 277), 45 rue de Maubeuge, 75009 Paris. Contact :{" "}
-          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] underline">
+          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
             info@ip5energie.com
           </a>
           .
@@ -232,7 +232,7 @@ export const Confidentialite = () => {
         </p>
         <p>
           Pour les exercer, écrivez-nous à{" "}
-          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] underline">
+          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
             info@ip5energie.com
           </a>{" "}
           en précisant votre demande. Vous pouvez aussi introduire une
@@ -241,7 +241,7 @@ export const Confidentialite = () => {
             href="https://www.cnil.fr"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[#2b5a8f] underline"
+            className="text-[#2b5a8f] dark:text-blue-400 underline"
           >
             cnil.fr
           </a>

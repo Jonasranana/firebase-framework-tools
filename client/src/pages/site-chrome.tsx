@@ -98,7 +98,7 @@ export const SiteHeader = () => {
     href === "/" ? location === "/" : location.startsWith(href);
 
   return (
-    <nav className="bg-white/80 backdrop-blur-md fixed w-full z-50 top-0 border-b border-gray-100">
+    <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md fixed w-full z-50 top-0 border-b border-gray-100 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center gap-3">
@@ -106,7 +106,7 @@ export const SiteHeader = () => {
               onClick={() => setIsMobileMenuOpen((v) => !v)}
               aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
               aria-expanded={isMobileMenuOpen}
-              className="lg:hidden text-gray-700 hover:text-[#2b5a8f] transition-colors p-1 -ml-1"
+              className="lg:hidden text-gray-700 dark:text-slate-200 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors p-1 -ml-1"
             >
               {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
@@ -122,8 +122,8 @@ export const SiteHeader = () => {
                 aria-current={isActive(link.href) ? "page" : undefined}
                 className={`font-medium whitespace-nowrap transition-colors ${
                   isActive(link.href)
-                    ? "text-[#2b5a8f] font-semibold"
-                    : "text-gray-600 hover:text-[#2b5a8f]"
+                    ? "text-[#2b5a8f] dark:text-blue-400 font-semibold"
+                    : "text-gray-600 dark:text-slate-300 hover:text-[#2b5a8f] dark:hover:text-blue-400"
                 }`}
               >
                 {link.label}
@@ -136,13 +136,13 @@ export const SiteHeader = () => {
               target="_blank"
               rel="noopener noreferrer"
               aria-label="La page Facebook d'IP5 Énergie"
-              className="hidden md:flex text-gray-400 hover:text-[#2b5a8f] transition-colors"
+              className="hidden md:flex text-gray-400 dark:text-slate-500 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors"
             >
               <Facebook size={20} />
             </a>
             <a
               href="tel:+33749525267"
-              className="flex items-center gap-2 text-[#2b5a8f] font-bold hover:text-blue-800 transition-colors whitespace-nowrap"
+              className="flex items-center gap-2 text-[#2b5a8f] dark:text-blue-400 font-bold hover:text-blue-800 dark:hover:text-blue-300 transition-colors whitespace-nowrap"
               aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
             >
               <Phone size={18} />
@@ -160,7 +160,7 @@ export const SiteHeader = () => {
 
       {/* Menu déroulant mobile */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-100 bg-white animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="px-4 py-3 flex flex-col">
             {NAV_LINKS.map((link) => (
               <a
@@ -168,10 +168,10 @@ export const SiteHeader = () => {
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 aria-current={isActive(link.href) ? "page" : undefined}
-                className={`py-3 font-medium border-b border-gray-50 last:border-0 transition-colors ${
+                className={`py-3 font-medium border-b border-gray-50 dark:border-slate-800 last:border-0 transition-colors ${
                   isActive(link.href)
-                    ? "text-[#2b5a8f] font-semibold"
-                    : "text-gray-700 hover:text-[#2b5a8f]"
+                    ? "text-[#2b5a8f] dark:text-blue-400 font-semibold"
+                    : "text-gray-700 dark:text-slate-200 hover:text-[#2b5a8f] dark:hover:text-blue-400"
                 }`}
               >
                 {link.label}
@@ -180,7 +180,7 @@ export const SiteHeader = () => {
             <a
               href="tel:+33749525267"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-2 py-3 text-[#2b5a8f] font-bold border-b border-gray-50"
+              className="flex items-center gap-2 py-3 text-[#2b5a8f] dark:text-blue-400 font-bold border-b border-gray-50 dark:border-slate-800"
             >
               <Phone size={18} /> 07 49 52 52 67
             </a>
@@ -189,7 +189,7 @@ export const SiteHeader = () => {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-2 py-3 text-gray-600 font-medium"
+              className="flex items-center gap-2 py-3 text-gray-600 dark:text-slate-300 font-medium"
             >
               <Facebook size={18} /> Suivez-nous sur Facebook
             </a>
@@ -416,7 +416,7 @@ export const AIChatWidget = () => {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-x-4 bottom-40 sm:inset-x-auto sm:right-6 sm:bottom-40 sm:w-96 h-[28rem] max-h-[70vh] bg-white rounded-3xl shadow-2xl border border-gray-100 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-x-4 bottom-40 sm:inset-x-auto sm:right-6 sm:bottom-40 sm:w-96 h-[28rem] max-h-[70vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-gradient-to-r from-[#2b5a8f] via-[#41519e] to-[#6b4a9e] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
             <div>
               <div className="flex items-center gap-2 font-bold">
@@ -441,23 +441,23 @@ export const AIChatWidget = () => {
             </button>
           </div>
 
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50">
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3 bg-gray-50 dark:bg-slate-950">
             {messages.map((m, i) => (
               <div
                 key={i}
                 className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${
                   m.role === "user"
                     ? "bg-[#2b5a8f] text-white ml-auto rounded-br-sm"
-                    : "bg-white text-gray-800 border border-gray-100 rounded-bl-sm"
+                    : "bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 border border-gray-100 dark:border-slate-700 rounded-bl-sm"
                 }`}
               >
                 {m.text}
               </div>
             ))}
             {isLoading && (
-              <div className="bg-white border border-gray-100 rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-2 w-fit">
-                <Loader2 size={16} className="animate-spin text-[#2b5a8f]" />
-                <span className="text-sm text-gray-500">En train d'écrire...</span>
+              <div className="bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl rounded-bl-sm px-4 py-2.5 flex items-center gap-2 w-fit">
+                <Loader2 size={16} className="animate-spin text-[#2b5a8f] dark:text-blue-400" />
+                <span className="text-sm text-gray-500 dark:text-slate-400">En train d'écrire...</span>
               </div>
             )}
             {error && (
@@ -472,7 +472,7 @@ export const AIChatWidget = () => {
               e.preventDefault();
               send();
             }}
-            className="flex items-center gap-2 p-3 border-t border-gray-100 flex-shrink-0"
+            className="flex items-center gap-2 p-3 border-t border-gray-100 dark:border-slate-700 flex-shrink-0"
           >
             <input
               type="text"
@@ -481,7 +481,7 @@ export const AIChatWidget = () => {
               placeholder="Posez votre question..."
               aria-label="Votre question à l'assistant"
               disabled={isLoading}
-              className="flex-1 px-4 py-2.5 rounded-full border border-gray-200 focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none text-sm bg-gray-50 disabled:opacity-60"
+              className="flex-1 px-4 py-2.5 rounded-full border border-gray-200 dark:border-slate-600 focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none text-sm bg-gray-50 dark:bg-slate-800 dark:text-white dark:placeholder-slate-400 disabled:opacity-60"
             />
             <button
               type="submit"
