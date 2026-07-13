@@ -5,6 +5,11 @@
 @tailwind utilities;
 
 :root {
+  /* Site en thème clair uniquement : empêche le mode sombre automatique des
+     navigateurs mobiles d'assombrir la page et de casser la lisibilité des
+     textes en dégradé. */
+  color-scheme: light;
+
   --font-sans: 'Inter', 'Assistant', system-ui, sans-serif;
 
   --background: 0 0% 100%;
