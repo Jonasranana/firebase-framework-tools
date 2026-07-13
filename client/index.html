@@ -17,10 +17,28 @@
     />
     <meta property="og:image" content="https://ip5-energie.web.app/images/realisations/unite-exterieure.jpg" />
     <meta name="theme-color" content="#2b5a8f" />
-    <!-- Le site gère lui-même les deux thèmes (clair + sombre) via
-         prefers-color-scheme. On le déclare pour que les navigateurs
-         n'appliquent pas leur propre mode sombre automatique par-dessus. -->
+    <!-- Le site gère lui-même les deux thèmes (clair + sombre). On le déclare
+         pour que les navigateurs n'appliquent pas leur propre mode sombre
+         automatique par-dessus. -->
     <meta name="color-scheme" content="light dark" />
+    <!-- Applique le thème AVANT le rendu pour éviter tout clignotement :
+         préférence enregistrée par le visiteur, sinon réglage du système. -->
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem("ip5-theme");
+          var theme =
+            saved ||
+            (window.matchMedia &&
+            window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light");
+          var root = document.documentElement;
+          root.classList.toggle("dark", theme === "dark");
+          root.style.colorScheme = theme;
+        } catch (e) {}
+      })();
+    </script>
     <link rel="canonical" href="https://ip5-energie.web.app/" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
