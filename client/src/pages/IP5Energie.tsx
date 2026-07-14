@@ -5,6 +5,7 @@ import {
   Simulator,
   TrustBar,
   AvantagesSection,
+  VideoSection,
   FinalCTA,
 } from "./ip5-sections";
 
@@ -82,6 +83,9 @@ const IP5Energie = () => {
 
       {/* Avantages de la pompe à chaleur */}
       <AvantagesSection />
+
+      {/* Vidéos pédagogiques : la PAC et les aides expliquées */}
+      <VideoSection />
 
       {/* Raccourcis vers les pages détaillées */}
       <section className="py-24 bg-white dark:bg-slate-950">

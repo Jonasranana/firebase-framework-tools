@@ -25,6 +25,8 @@ import {
   HandCoins,
   BadgeCheck,
   Sparkles,
+  Play,
+  Film,
 } from "lucide-react";
 import {
   FIREBASE_CONFIG,
@@ -1225,6 +1227,107 @@ export const AvantagesSection = () => (
             se loue plus facilement. Un vrai atout pour votre patrimoine.
           </p>
         </div>
+      </div>
+    </div>
+  </section>
+);
+
+// Les 2 vidéos pédagogiques de la page d'accueil. Faciles à remplacer : il
+// suffit de changer l'identifiant YouTube (`id`) — la partie après « v= »
+// dans l'URL de la vidéo.
+const VIDEOS = [
+  {
+    id: "dZHY7DnotGA",
+    title: "Comment fonctionne une pompe à chaleur ?",
+    caption:
+      "En quelques minutes : comment une pompe à chaleur capte les calories de l'air pour chauffer toute la maison, pour bien moins cher qu'une chaudière.",
+  },
+  {
+    id: "ESQASfDrNDc",
+    title: "Les aides de l'État : MaPrimeRénov' & CEE",
+    caption:
+      "MaPrimeRénov' et les Certificats d'Économie d'Énergie (financés par les fournisseurs d'énergie) peuvent couvrir une grande partie de votre installation.",
+  },
+];
+
+// Lecteur vidéo « respect de la vie privée » : on n'affiche qu'une vignette
+// tant que le visiteur n'a pas cliqué. La vidéo YouTube (sans cookie) ne se
+// charge qu'au clic, ce qui évite tout traceur avant consentement (RGPD).
+const VideoCard = ({
+  id,
+  title,
+  caption,
+}: {
+  id: string;
+  title: string;
+  caption: string;
+}) => {
+  const [play, setPlay] = useState(false);
+  return (
+    <figure className="group bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
+      <div className="relative aspect-video bg-gray-900">
+        {play ? (
+          <iframe
+            src={`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&rel=0`}
+            title={title}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setPlay(true)}
+            aria-label={`Lire la vidéo : ${title}`}
+            className="absolute inset-0 w-full h-full"
+          >
+            <img
+              src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
+              alt=""
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <span className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors" />
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span className="w-16 h-16 rounded-full bg-[#2b5a8f]/95 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                <Play size={28} className="text-white ml-1" fill="currentColor" />
+              </span>
+            </span>
+          </button>
+        )}
+      </div>
+      <figcaption className="p-6 flex flex-col flex-1">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">
+          {title}
+        </h3>
+        <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed">
+          {caption}
+        </p>
+      </figcaption>
+    </figure>
+  );
+};
+
+// Section « Comprendre en vidéo » : explique la pompe à chaleur et les aides
+// aux visiteurs qui découvrent le sujet.
+export const VideoSection = () => (
+  <section id="videos" className="py-24 bg-gray-50 dark:bg-slate-950">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center max-w-3xl mx-auto mb-14">
+        <Kicker icon={Film}>Comprendre en vidéo</Kicker>
+        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
+          Tout devient clair en 2 vidéos
+        </h2>
+        <p className="text-xl text-gray-600 dark:text-slate-300">
+          La pompe à chaleur et les aides de l'État, expliquées simplement. De
+          quoi y voir clair avant de vous lancer.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-8">
+        {VIDEOS.map((v) => (
+          <VideoCard key={v.id} {...v} />
+        ))}
       </div>
     </div>
   </section>
