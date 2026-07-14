@@ -35,12 +35,17 @@ Ce poste **n'avance pas** l'objectif VLSI/DV/RTL. C'est un détour software/IA.
 ---
 
 ## Prépa de l'appel (P0) — avant JEUDI 16/07
-- [~] Pitch HE — contenu OK (structure builder/founder), mais COPIÉ mon script → à s'approprier + livrer sans lire
-- [ ] Pitch version EN (ils testeront l'anglais)
-- [ ] Pressure-test follow-ups (en cours) : « pourquoi un job étudiant si tu as une boîte ? », GenAI/MCP, intégrations concrètes
-- [ ] « Pourquoi Siemens/Dynamo » (levier : fondateur qui comprend les startups + GenAI)
-- [ ] 2 questions à poser à Ran (sur Dynamo/startups/stack GenAI)
-- [ ] Logistique : dispo (h/sem), date de début
+- [x] Fiche PDF complète créée (Fiche_Entretien_Siemens_Dynamo.pdf) — pitch + réponses HE/EN, questions, checklist
+- [x] Pitch HE + EN rédigés (à S'APPROPRIER — dire à voix haute jusqu'à naturel, ne pas réciter)
+- [x] Réponses : pourquoi job étudiant / pourquoi Dynamo / GenAI-MCP / projet TX/RX
+- [ ] RESTE À FAIRE PAR JONAS : dire le pitch à voix haute 3× (HE puis EN)
+- [ ] RESTE À FAIRE : essayer 1h un outil IA (Cursor/Copilot/Claude) → dire "I used X" concret
+- [ ] Confirmer sa vraie dispo (h/sem) + date de début possible
+
+### Atout CV découvert (14/07) — à exploiter
+- IP5 Énergie : a DÉJÀ intégré des LLM APIs en Python → **vraie expérience GenAI**, pas débutant.
+- Fondateur ×2 (Oncharge + IP5) → angle "builder qui parle aux startups" renforcé.
+- CV envoyé à Ran = orienté software/C++/LLM/debug → rester cohérent avec ça (PAS "je suis hardware/VLSI").
 
 ---
 
