@@ -9,8 +9,6 @@ import {
   Sparkles,
   Menu,
   Facebook,
-  Sun,
-  Moon,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
@@ -91,46 +89,6 @@ export const NAV_LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
-// Gère le thème clair/sombre. Le thème initial est posé très tôt par le
-// script inline de index.html (préférence enregistrée, sinon réglage du
-// système) ; ce hook lit cet état et permet de le basculer manuellement.
-// Basculer applique la classe `.dark` ET color-scheme sur <html>, ce qui
-// force notre vrai thème sombre et empêche le navigateur d'assombrir la
-// page lui-même de façon approximative.
-function useTheme() {
-  const [isDark, setIsDark] = useState(false);
-  useEffect(() => {
-    setIsDark(document.documentElement.classList.contains("dark"));
-  }, []);
-  const toggle = () => {
-    const root = document.documentElement;
-    const next = !root.classList.contains("dark");
-    root.classList.toggle("dark", next);
-    root.style.colorScheme = next ? "dark" : "light";
-    try {
-      localStorage.setItem("ip5-theme", next ? "dark" : "light");
-    } catch (e) {
-      /* stockage indisponible : le choix ne sera pas mémorisé */
-    }
-    setIsDark(next);
-  };
-  return { isDark, toggle };
-}
-
-const ThemeToggle = ({ className = "" }: { className?: string }) => {
-  const { isDark, toggle } = useTheme();
-  return (
-    <button
-      onClick={toggle}
-      aria-label={isDark ? "Passer en mode clair" : "Passer en mode sombre"}
-      title={isDark ? "Mode clair" : "Mode sombre"}
-      className={`text-gray-500 dark:text-slate-300 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors ${className}`}
-    >
-      {isDark ? <Sun size={20} /> : <Moon size={20} />}
-    </button>
-  );
-};
-
 export const SiteHeader = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location] = useLocation();
@@ -173,7 +131,6 @@ export const SiteHeader = () => {
             ))}
           </div>
           <div className="flex items-center gap-4">
-            <ThemeToggle />
             <a
               href={FACEBOOK_URL}
               target="_blank"
