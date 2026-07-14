@@ -3,8 +3,10 @@
 ## 🎯 CIBLE ACTIVE
 **Application Engineering Student — Siemens Digital Industries Software**
 - Req **512845** • postulé 08/07/2026 • statut : **En cours de traitement (Manager)**
-- Recruteur : **Ran Livnat** (ran.livnat@siemens.com) — שיחת היכרות (jeu 16/07 aprem ou dim 19/07 matin). Réponse dispo envoyée 14/07 ✅
+- Recruteur : **Ran Livnat** (ran.livnat@siemens.com) — שיחת היכרות **CONFIRMÉE jeudi 16/07** (zimoun envoyé) ✅
+- **Équipe : Siemens Dynamo — Open Innovation Program** (innovation ouverte / scouting startups, lancé TLV 2018 ; Industry 4.0, digital twin, AI, robotique, supply chain). Devoir donné par Ran : étudier siemens-dynamo.com.
 - Lieu : Airport City. Part-time, hybride. **Paie : 80 ₪/h (licence 1re année), 90 ₪/h ensuite.**
+- 🔑 HOOK : Dynamo bosse avec des **fondateurs de startups** → Jonas EST fondateur (Oncharge). Angle rare, parle leur langue.
 
 ### ⚠️ Nature RÉELLE du poste (JD lu le 14/07)
 **Software + innovation GenAI — PAS de la vérif/EDA, PAS du VLSI.**
@@ -32,12 +34,13 @@ Ce poste **n'avance pas** l'objectif VLSI/DV/RTL. C'est un détour software/IA.
 
 ---
 
-## Prépa de l'appel (P0) — avant jeudi
-- [ ] Pitch 90s (EN + HE) — calibré builder/software/PoC (PAS silicium)
-- [ ] « Pourquoi Siemens / ce poste » (levier : builder + OCPP + GenAI curiosity)
-- [ ] Raconter Oncharge comme un PoC/produit livré (intégrations, OCPP)
-- [ ] 2 questions à poser à Ran (équipe, techno, GenAI stack)
-- [ ] Logistique : dispo, lien/lieu, durée
+## Prépa de l'appel (P0) — avant JEUDI 16/07
+- [~] Pitch HE — contenu OK (structure builder/founder), mais COPIÉ mon script → à s'approprier + livrer sans lire
+- [ ] Pitch version EN (ils testeront l'anglais)
+- [ ] Pressure-test follow-ups (en cours) : « pourquoi un job étudiant si tu as une boîte ? », GenAI/MCP, intégrations concrètes
+- [ ] « Pourquoi Siemens/Dynamo » (levier : fondateur qui comprend les startups + GenAI)
+- [ ] 2 questions à poser à Ran (sur Dynamo/startups/stack GenAI)
+- [ ] Logistique : dispo (h/sem), date de début
 
 ---
 
