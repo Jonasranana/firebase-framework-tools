@@ -38,9 +38,12 @@ Ce poste **n'avance pas** l'objectif VLSI/DV/RTL. C'est un détour software/IA.
 - [x] Fiche PDF complète créée (Fiche_Entretien_Siemens_Dynamo.pdf) — pitch + réponses HE/EN, questions, checklist
 - [x] Pitch HE + EN rédigés (à S'APPROPRIER — dire à voix haute jusqu'à naturel, ne pas réciter)
 - [x] Réponses : pourquoi job étudiant / pourquoi Dynamo / GenAI-MCP / projet TX/RX
+- [x] Fiche v2 : + portfolio Dynamo (8 startups FR/EN) + 10 questions pièges avec réponses HE/EN
 - [ ] RESTE À FAIRE PAR JONAS : dire le pitch à voix haute 3× (HE puis EN)
 - [ ] RESTE À FAIRE : essayer 1h un outil IA (Cursor/Copilot/Claude) → dire "I used X" concret
-- [ ] Confirmer sa vraie dispo (h/sem) + date de début possible
+- [ ] Remplir "X שעות בשבוע" (vraie dispo) dans la réponse part-time
+- [ ] Mémoriser 2-3 startups du portfolio (Cybord/Boardera/Retrocausal — angle hardware)
+- [ ] (Optionnel avant jeudi) faire un `mock` complet avec moi
 
 ### Atout CV découvert (14/07) — à exploiter
 - IP5 Énergie : a DÉJÀ intégré des LLM APIs en Python → **vraie expérience GenAI**, pas débutant.
