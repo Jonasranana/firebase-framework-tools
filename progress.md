@@ -23,6 +23,11 @@
 - Python (P0), builder mindset, fast learner, hébreu+anglais.
 - À NE PAS faire : se prétendre software engineer confirmé. Vendre builder + envie d'apprendre GenAI.
 
+### Autres candidatures en cours (15/07)
+- **NVIDIA — Student DV Engineer, GPU-Networking** : CV dédié créé (`Jonas_Sitbon_CV_NVIDIA_DV.pdf`) — verif-first, angle protocoles/networking (CAN/OCPP/serial), dispo 4 semestres explicite. PILE la cible VLSI/DV.
+- **Altair Semiconductor — SOC Verification Student** : cover letter + portfolio 1 page envoyés à Jonas (candidature à soumettre). Cible DV alignée.
+- Entretien Siemens Dynamo (Ran) : **demain 17h30** — prompt de coaching pour Projet Claude livré.
+
 ### État candidatures
 - Software Engineering Student (510111) → ❌ refusée.
 - Application Engineering Student (512845) → ✅ vivante, niveau manager. **SEULE cible active.**
