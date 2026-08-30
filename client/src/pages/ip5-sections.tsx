@@ -344,7 +344,10 @@ const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
 // alourdir le bundle. Le honeypot est vérifié avant l'appel.
 // Les règles Firestore doivent autoriser la création sur ip5_leads :
 //   match /ip5_leads/{doc} { allow create: if true; allow read: if false; }
-async function submitLead(data: SimulatorData): Promise<void> {
+async function submitLead(
+  data: SimulatorData,
+  source = "simulateur-landing",
+): Promise<void> {
   if (data.company) return; // bot détecté, on ignore silencieusement
   const [appMod, fsMod]: any[] = await Promise.all([
     // Imports CDN à l'exécution (hors bundle), pas de types disponibles.
@@ -360,15 +363,31 @@ async function submitLead(data: SimulatorData): Promise<void> {
   const { company, ...lead } = data;
   await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
     ...lead,
-    source: "simulateur-landing",
+    // « source » identifie l'origine du lead : « simulateur-landing » pour
+    // l'accueil, « landing-pac-meta » pour la campagne publicitaire Meta.
+    // Utile pour mesurer le retour sur investissement des pubs.
+    source,
     createdAt: fsMod.serverTimestamp(),
     // Passe à true quand le robot de synchronisation a copié le lead dans
     // Monday (voir scripts/sync-leads-to-monday.mjs).
     mondaySynced: false,
   });
+
+  // Conversion Meta Pixel : signale à Facebook/Instagram qu'un lead a été
+  // capté, pour l'optimisation et la mesure des campagnes. Ne fait rien si le
+  // Pixel n'est pas chargé (ID non renseigné dans index.html).
+  try {
+    (window as any).fbq?.("track", "Lead", { content_category: source });
+  } catch {
+    /* le tracking ne doit jamais casser l'enregistrement du lead */
+  }
 }
 
-export const Simulator = () => {
+export const Simulator = ({
+  source = "simulateur-landing",
+}: {
+  source?: string;
+} = {}) => {
   const [step, setStep] = useState(1);
   const [isCalculating, setIsCalculating] = useState(false);
   const [formData, setFormData] = useState<SimulatorData>(INITIAL_DATA);
@@ -436,7 +455,7 @@ export const Simulator = () => {
 
     setIsSubmitting(true);
     try {
-      await submitLead(formData);
+      await submitLead(formData, source);
       setStep(TOTAL_QUESTIONS + 2);
     } catch (err) {
       console.error("Échec de l'enregistrement du lead:", err);
