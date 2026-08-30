@@ -807,7 +807,7 @@ export const Simulator = ({
                   placeholder="Votre nom complet"
                   value={formData.name}
                   aria-invalid={!!errors.name}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 ${errors.name ? "border-red-400" : "border-gray-300"}`}
+                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.name ? "border-red-400" : "border-gray-300"}`}
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
@@ -829,7 +829,7 @@ export const Simulator = ({
                   placeholder="Votre numéro de téléphone"
                   value={formData.phone}
                   aria-invalid={!!errors.phone}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 ${errors.phone ? "border-red-400" : "border-gray-300"}`}
+                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.phone ? "border-red-400" : "border-gray-300"}`}
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
@@ -850,7 +850,7 @@ export const Simulator = ({
                   placeholder="Votre e-mail (facultatif, pour le devis écrit)"
                   value={formData.email}
                   aria-invalid={!!errors.email}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 ${errors.email ? "border-red-400" : "border-gray-300"}`}
+                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.email ? "border-red-400" : "border-gray-300"}`}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
