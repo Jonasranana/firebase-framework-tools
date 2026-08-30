@@ -55,17 +55,15 @@
 
     <!-- ─── Meta Pixel (Facebook / Instagram Ads) ─────────────────────────
          Mesure les conversions des campagnes publicitaires Meta.
-         ⚙️  À FAIRE : remplacez REMPLACER_PAR_VOTRE_ID_PIXEL par l'ID
-         numérique de votre Pixel (Gestionnaire d'événements Meta → Sources
-         de données → votre Pixel → l'ID à côté du nom, ex : 123456789012345).
-         Tant que l'ID n'est pas renseigné, ce bloc ne fait RIEN (aucun appel
-         réseau). Une fois l'ID collé, le Pixel se charge et suit :
+         Pixel « IP5 Énergie » — ID 1241790268079116. Suit :
            • PageView  → sur chaque page (ci-dessous)
            • Lead      → à la soumission du simulateur (voir submitLead)
+         Pour changer de Pixel un jour : remplacez la valeur de META_PIXEL_ID.
+         La garde « REMPLACER » désactive proprement le bloc si on la remet.
     ------------------------------------------------------------------------ -->
     <script>
       (function () {
-        var META_PIXEL_ID = "REMPLACER_PAR_VOTRE_ID_PIXEL";
+        var META_PIXEL_ID = "1241790268079116";
         if (!META_PIXEL_ID || META_PIXEL_ID.indexOf("REMPLACER") === 0) return;
         !(function (f, b, e, v, n, t, s) {
           if (f.fbq) return;
