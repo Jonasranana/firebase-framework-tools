@@ -57,7 +57,7 @@ export const MentionsLegales = () => {
     <LegalLayout title="Mentions légales">
       <Section title="Éditeur du site">
         <p>
-          Le site <b>ip5-energie.web.app</b> (« IP5 Énergie ») est édité par :
+          Le site <b>ip5energie.fr</b> (« IP5 Énergie ») est édité par :
         </p>
         <p>
           <b>IP5 CONSEILS</b>, société par actions simplifiée (SAS) au capital
