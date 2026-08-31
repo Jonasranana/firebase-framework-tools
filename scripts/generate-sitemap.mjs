@@ -3,7 +3,7 @@
 // lundi par la routine automatique).
 import { readFileSync, writeFileSync } from "node:fs";
 
-const BASE = "https://ip5-energie.web.app";
+const BASE = "https://ip5energie.fr";
 const today = new Date().toISOString().slice(0, 10);
 
 const source = readFileSync("client/src/pages/articles-data.ts", "utf8");

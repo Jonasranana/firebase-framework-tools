@@ -9,4 +9,4 @@ Disallow: /profile
 Disallow: /outil-devis
 Disallow: /espace-pro
 
-Sitemap: https://ip5-energie.web.app/sitemap.xml
+Sitemap: https://ip5energie.fr/sitemap.xml

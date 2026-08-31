@@ -30,15 +30,15 @@ export function useFrenchPageMeta(title: string) {
     html.lang = "fr";
     document.title = title;
 
-    // URL canonique : le site vit sur plusieurs adresses (ip5-energie.web.app
-    // et l'ancienne kachoto-7554c.web.app) ; on indique à Google laquelle
-    // fait foi pour éviter le contenu dupliqué.
+    // URL canonique : le site vit sur plusieurs adresses (ip5energie.fr, ainsi
+    // que ip5-energie.web.app et l'ancienne kachoto-7554c.web.app) ; on indique
+    // à Google que ip5energie.fr fait foi, pour éviter le contenu dupliqué.
     const canonical = document.querySelector<HTMLLinkElement>(
       'link[rel="canonical"]',
     );
     const prevCanonical = canonical?.href ?? null;
     if (canonical) {
-      canonical.href = `https://ip5-energie.web.app${window.location.pathname}`;
+      canonical.href = `https://ip5energie.fr${window.location.pathname}`;
     }
 
     return () => {
