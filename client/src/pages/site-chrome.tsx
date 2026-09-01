@@ -9,6 +9,8 @@ import {
   Sparkles,
   Menu,
   Facebook,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
@@ -89,6 +91,34 @@ export const NAV_LINKS = [
   { href: "/contact", label: "Contact" },
 ];
 
+// Bouton lune/soleil : chaque visiteur choisit clair ou sombre. Le choix est
+// mémorisé (localStorage) et appliqué dès le chargement par le script inline
+// de index.html, pour éviter tout clignotement au premier affichage.
+const ThemeToggle = () => {
+  const [dark, setDark] = useState(false);
+  useEffect(() => {
+    setDark(document.documentElement.classList.contains("dark"));
+  }, []);
+  const toggle = () => {
+    const next = !document.documentElement.classList.contains("dark");
+    document.documentElement.classList.toggle("dark", next);
+    try {
+      localStorage.setItem("theme", next ? "dark" : "light");
+    } catch {}
+    setDark(next);
+  };
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      aria-label={dark ? "Passer en mode clair" : "Passer en mode sombre"}
+      className="text-gray-500 dark:text-slate-300 hover:text-[#2b5a8f] dark:hover:text-blue-300 transition-colors p-1"
+    >
+      {dark ? <Sun size={20} /> : <Moon size={20} />}
+    </button>
+  );
+};
+
 export const SiteHeader = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [location] = useLocation();
@@ -131,6 +161,7 @@ export const SiteHeader = () => {
             ))}
           </div>
           <div className="flex items-center gap-4">
+            <ThemeToggle />
             <a
               href={FACEBOOK_URL}
               target="_blank"
