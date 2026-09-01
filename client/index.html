@@ -21,6 +21,21 @@
          réglage du téléphone. On le déclare pour que les navigateurs
          n'appliquent pas leur propre mode sombre automatique par-dessus. -->
     <meta name="color-scheme" content="light dark" />
+    <!-- Thème clair/sombre piloté par une classe « dark » sur <html>. Ce
+         script s'exécute avant le rendu (aucun clignotement) : il applique le
+         choix mémorisé par le visiteur (bouton lune/soleil), et à défaut, le
+         réglage de son appareil. -->
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("theme");
+          var dark = t
+            ? t === "dark"
+            : window.matchMedia("(prefers-color-scheme: dark)").matches;
+          document.documentElement.classList.toggle("dark", dark);
+        } catch (e) {}
+      })();
+    </script>
     <link rel="canonical" href="https://ip5energie.fr/" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />

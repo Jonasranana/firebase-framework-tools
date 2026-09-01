@@ -4,7 +4,7 @@ export default {
   // Le mode sombre suit le réglage du téléphone (prefers-color-scheme) : les
   // classes `dark:` s'activent automatiquement quand le visiteur a mis son
   // appareil en mode sombre, sans bouton sur le site.
-  darkMode: "media",
+  darkMode: "class",
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
