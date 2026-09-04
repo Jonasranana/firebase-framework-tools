@@ -316,7 +316,24 @@ export const SiteFooter = () => (
         </div>
       </div>
 
-      <div className="border-t border-gray-800 mt-16 pt-8 flex flex-col md:flex-row justify-between items-center text-sm">
+      {/* Mention obligatoire (arrêté du 7 juillet 2026, en vigueur au
+          1er octobre 2026) : toute communication commerciale sur la
+          rénovation énergétique doit renvoyer au service public France Rénov'.
+          Phrase imposée mot pour mot. */}
+      <div className="mt-14 rounded-xl border border-gray-800 bg-gray-800/40 px-5 py-4 text-sm leading-relaxed text-gray-400">
+        Avant de vous engager, le service public vous informe gratuitement pour
+        préparer et sécuriser votre projet :{" "}
+        <a
+          href="https://www.france-renov.gouv.fr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-semibold text-blue-400 hover:text-blue-300 underline"
+        >
+          www.france-renov.gouv.fr
+        </a>
+      </div>
+
+      <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-sm">
         <p>
           &copy; {new Date().getFullYear()} IP5 Énergie. Tous droits
           réservés.
