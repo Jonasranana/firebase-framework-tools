@@ -85,6 +85,7 @@ export const FACEBOOK_URL = "https://www.facebook.com/share/1DnkfumaaV/";
 export const NAV_LINKS = [
   { href: "/", label: "Accueil" },
   { href: "/pompe-a-chaleur", label: "Pompes à chaleur" },
+  { href: "/solaire", label: "Solaire" },
   { href: "/aides", label: "Aides" },
   { href: "/realisations", label: "Réalisations" },
   { href: "/articles", label: "Articles" },
