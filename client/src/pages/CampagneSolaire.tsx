@@ -121,17 +121,17 @@ const CampagneSolaire = () => {
                 <Gift size={16} /> Aides 2026 ouvertes — vérifiez votre montant
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-gray-900 dark:text-white">
-                Votre eau chaude,{" "}
+                Eau chaude &amp; chauffage{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-400 dark:to-orange-400">
-                  gratuite
-                </span>{" "}
-                grâce au soleil
+                  solaires
+                </span>
               </h1>
               <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Installez un <b>chauffe-eau solaire</b> et couvrez jusqu'à 70% de
-                vos besoins en eau chaude gratuitement. Avec{" "}
-                <b>MaPrimeRénov'</b> et la <b>prime CEE</b>, découvrez en 2
-                minutes le montant d'aides auquel vous avez droit.
+                Des panneaux solaires thermiques pour votre eau chaude{" "}
+                <b>et</b> votre chauffage — <b>à partir de 0 €</b> selon
+                éligibilité, grâce à <b>MaPrimeRénov'</b> et la{" "}
+                <b>prime CEE</b>. Découvrez en 2 minutes le montant d'aides
+                auquel vous avez droit.
               </p>
 
               <div className="flex justify-center lg:justify-start">
