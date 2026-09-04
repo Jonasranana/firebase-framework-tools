@@ -27,8 +27,9 @@ const Confidentialite = lazy(() =>
 // Pages du site IP5 Énergie (multi-pages). L'accueil (IP5Energie) est chargé
 // d'emblée ; les pages intérieures sont chargées à la demande.
 const PompeAChaleur = lazy(() => import("@/pages/PompeAChaleur"));
-// Landing page dédiée aux campagnes publicitaires Meta (Facebook / Instagram).
+// Landing pages dédiées aux campagnes publicitaires Meta (Facebook / Instagram).
 const CampagnePAC = lazy(() => import("@/pages/CampagnePAC"));
+const CampagneSolaire = lazy(() => import("@/pages/CampagneSolaire"));
 const Aides = lazy(() => import("@/pages/Aides"));
 const Realisations = lazy(() => import("@/pages/Realisations"));
 const Contact = lazy(() => import("@/pages/Contact"));
@@ -64,6 +65,8 @@ function Router() {
         {/* Landing pubs Meta : /pac (URL courte pour les annonces) + alias */}
         <Route path="/pac" component={CampagnePAC} />
         <Route path="/simulateur-pac" component={CampagnePAC} />
+        <Route path="/solaire" component={CampagneSolaire} />
+        <Route path="/chauffe-eau-solaire" component={CampagneSolaire} />
         <Route path="/aides" component={Aides} />
         <Route path="/realisations" component={Realisations} />
         <Route path="/contact" component={Contact} />
