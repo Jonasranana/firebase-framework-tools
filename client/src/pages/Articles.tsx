@@ -7,6 +7,7 @@ import {
   PiggyBank,
   Zap,
   ShieldCheck,
+  Sun,
   Phone,
 } from "lucide-react";
 import {
@@ -21,6 +22,7 @@ import { ARTICLES, type Article, type ContentBlock } from "./articles-data";
 const CATEGORY_ICONS: Record<string, typeof PiggyBank> = {
   "Aides & subventions": PiggyBank,
   "Pompe à chaleur": Zap,
+  "Solaire": Sun,
   "Certification & confiance": ShieldCheck,
 };
 
