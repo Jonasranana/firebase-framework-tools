@@ -246,7 +246,7 @@ function rewardFor(key: keyof SimulatorData, value: string): string | null {
   switch (key) {
     case "housingType":
       return value === "Maison"
-        ? "Parfait ! Les maisons sont idéales pour une pompe à chaleur air/eau."
+        ? "Parfait ! Les maisons sont idéales pour ce type d'installation."
         : "C'est noté ! Des solutions existent aussi en appartement.";
     case "ownerStatus":
       if (value === "Propriétaire")
@@ -256,11 +256,11 @@ function rewardFor(key: keyof SimulatorData, value: string): string | null {
       return "C'est noté — nous vous expliquerons les options possibles avec votre propriétaire.";
     case "currentHeating":
       if (value === "Fioul")
-        return "Bonne nouvelle : remplacer une chaudière fioul est souvent le cas le mieux subventionné !";
+        return "Bonne nouvelle : quand on chauffe au fioul, les travaux sont souvent parmi les mieux subventionnés !";
       if (value === "Gaz")
-        return "Bonne nouvelle : le remplacement du gaz ouvre droit à de belles aides, selon éligibilité.";
+        return "Bonne nouvelle : quand on chauffe au gaz, on peut ouvrir droit à de belles aides, selon éligibilité.";
       if (value === "Electrique")
-        return "Une pompe à chaleur consomme jusqu'à 3 fois moins qu'un chauffage électrique classique.";
+        return "C'est noté ! De belles économies sont souvent possibles grâce aux aides, selon éligibilité.";
       return "C'est noté, nos experts sauront s'adapter à votre installation.";
     case "department":
       return "C'est noté ! Nous appliquons le barème d'aides de votre département.";
