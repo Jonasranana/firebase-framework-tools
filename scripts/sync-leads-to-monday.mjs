@@ -167,7 +167,10 @@ const parisDate = (iso) =>
 async function createMondayItem(lead) {
   const f = lead.fields;
   const columnValues = {
-    [COL.statut]: { label: "Nouveau" },
+    // Statut « nouveau lead » = première étiquette de la colonne (index 0).
+    // On cible l'index plutôt que le texte : ainsi, renommer l'étiquette dans
+    // Monday (ex. « Nouveau » → « New ») ne casse plus la synchronisation.
+    [COL.statut]: { index: 0 },
     [COL.telephone]: { phone: normalizePhone(f.phone), countryShortName: "FR" },
     [COL.recuLe]: { date: parisDate(f.createdAt) },
     [COL.typeLogement]: String(f.housingType ?? ""),
