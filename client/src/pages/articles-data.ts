@@ -339,4 +339,189 @@ export const ARTICLES: Article[] = [
       },
     ],
   },
+  {
+    slug: "chauffe-eau-solaire-individuel-fonctionnement",
+    title: "Chauffe-eau solaire : produire son eau chaude avec le soleil",
+    excerpt:
+      "Le chauffe-eau solaire individuel (CESI) capte la chaleur du soleil pour couvrir une grande partie de vos besoins en eau chaude sanitaire.",
+    category: "Solaire",
+    date: "2026-08-17",
+    readMinutes: 5,
+    content: [
+      {
+        type: "p",
+        text: "Le chauffe-eau solaire individuel, souvent abrégé CESI, utilise l'énergie gratuite du soleil pour chauffer l'eau chaude sanitaire d'un logement. C'est l'une des façons les plus simples et les plus éprouvées de réduire une facture d'énergie, puisque la production d'eau chaude représente une part importante de la consommation d'un foyer.",
+      },
+      {
+        type: "h2",
+        text: "Le principe : capter la chaleur, pas la lumière",
+      },
+      {
+        type: "p",
+        text: "Des capteurs solaires thermiques, posés sur le toit, absorbent le rayonnement du soleil et réchauffent un liquide caloporteur qui circule à l'intérieur. Ce liquide transporte la chaleur jusqu'à un ballon de stockage, où un échangeur la transmet à l'eau sanitaire. Contrairement au photovoltaïque, on ne produit pas d'électricité : on récupère directement de la chaleur.",
+      },
+      {
+        type: "h2",
+        text: "Les composants d'une installation",
+      },
+      {
+        type: "list",
+        items: [
+          "Les capteurs solaires thermiques, installés sur la toiture bien exposée",
+          "Le liquide caloporteur, qui circule en circuit fermé et résiste au gel",
+          "Le ballon de stockage à échangeur, qui garde l'eau chaude disponible",
+          "Un appoint (résistance électrique, chaudière ou pompe à chaleur) pour les jours peu ensoleillés",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Quelle part de l'eau chaude est couverte ?",
+      },
+      {
+        type: "p",
+        text: "En moyenne, un chauffe-eau solaire bien dimensionné couvre une grande partie des besoins annuels en eau chaude sanitaire, la proportion variant selon la région, l'ensoleillement et la taille du foyer. Le système d'appoint prend automatiquement le relais lorsque le soleil ne suffit pas, notamment en hiver, pour garantir de l'eau chaude toute l'année.",
+      },
+      {
+        type: "p",
+        text: "Envie de savoir si votre logement s'y prête et quelles aides vous pourriez mobiliser ? Utilisez notre simulateur ou appelez le 07 49 52 52 67 pour une étude gratuite.",
+      },
+    ],
+  },
+  {
+    slug: "panneaux-solaires-thermiques-ou-photovoltaiques",
+    title: "Panneaux solaires thermiques ou photovoltaïques : la différence",
+    excerpt:
+      "On les confond souvent : les uns produisent de la chaleur (eau chaude, chauffage), les autres de l'électricité. Comment choisir selon votre besoin.",
+    category: "Solaire",
+    date: "2026-08-24",
+    readMinutes: 4,
+    content: [
+      {
+        type: "p",
+        text: "« Panneaux solaires » : l'expression désigne en réalité deux technologies très différentes, qu'on confond souvent. Comprendre la distinction est essentiel avant de se lancer, car elles ne répondent pas au même besoin.",
+      },
+      {
+        type: "h2",
+        text: "Le solaire thermique produit de la chaleur",
+      },
+      {
+        type: "p",
+        text: "Les capteurs thermiques transforment le rayonnement du soleil en chaleur. Cette chaleur sert à produire l'eau chaude sanitaire et, dans certains systèmes, à participer au chauffage du logement. C'est la solution la plus directe quand l'objectif est de réduire la facture liée à l'eau chaude et au chauffage.",
+      },
+      {
+        type: "h2",
+        text: "Le photovoltaïque produit de l'électricité",
+      },
+      {
+        type: "p",
+        text: "Les panneaux photovoltaïques, eux, convertissent la lumière en électricité grâce à des cellules en silicium. Cette électricité peut être autoconsommée ou revendue. Ils ne produisent pas d'eau chaude directement : leur rôle est de couvrir une partie de la consommation électrique du logement.",
+      },
+      {
+        type: "h2",
+        text: "Lequel choisir selon votre besoin",
+      },
+      {
+        type: "list",
+        items: [
+          "Besoin d'eau chaude ou de chauffage : le solaire thermique est la réponse la plus efficace",
+          "Besoin de réduire sa facture d'électricité : le photovoltaïque est adapté",
+          "Les deux technologies peuvent coexister sur un même toit selon la place disponible",
+        ],
+      },
+      {
+        type: "p",
+        text: "IP5 Énergie installe des solutions solaires thermiques pour l'eau chaude et le chauffage. Pour savoir ce qui convient à votre logement, testez notre simulateur ou appelez le 07 49 52 52 67.",
+      },
+    ],
+  },
+  {
+    slug: "systeme-solaire-combine-chauffage-eau-chaude",
+    title: "Le système solaire combiné : chauffage et eau chaude solaires",
+    excerpt:
+      "Le système solaire combiné (SSC) va plus loin que le chauffe-eau solaire : il participe aussi au chauffage de la maison.",
+    category: "Solaire",
+    date: "2026-08-31",
+    readMinutes: 5,
+    content: [
+      {
+        type: "p",
+        text: "Le système solaire combiné, ou SSC, est une installation solaire thermique plus ambitieuse que le simple chauffe-eau : en plus de l'eau chaude sanitaire, il contribue au chauffage du logement. Une même surface de capteurs sert ainsi deux usages.",
+      },
+      {
+        type: "h2",
+        text: "Comment fonctionne un SSC",
+      },
+      {
+        type: "p",
+        text: "Des capteurs thermiques, en surface plus importante que pour un simple chauffe-eau, réchauffent un liquide caloporteur relié à un ballon tampon. Ce ballon alimente à la fois le circuit d'eau chaude sanitaire et le circuit de chauffage du logement. Un appoint complète la production lorsque l'ensoleillement est insuffisant.",
+      },
+      {
+        type: "h2",
+        text: "Quelle part du chauffage peut-il couvrir ?",
+      },
+      {
+        type: "p",
+        text: "Un SSC couvre une partie des besoins de chauffage sur l'année, la proportion dépendant fortement de la région, de la qualité de l'isolation et du type d'émetteurs de chaleur. Il ne remplace généralement pas totalement un système de chauffage, mais réduit d'autant la consommation du système d'appoint.",
+      },
+      {
+        type: "h2",
+        text: "Pour quels logements est-il adapté ?",
+      },
+      {
+        type: "list",
+        items: [
+          "Les maisons équipées d'émetteurs basse température, comme un plancher chauffant, en tirent le meilleur parti",
+          "Une toiture bien exposée (idéalement plein sud) et sans ombrage important",
+          "Une surface de toit suffisante pour accueillir les capteurs nécessaires",
+        ],
+      },
+      {
+        type: "p",
+        text: "Seule une étude sur place permet de dire si un SSC est pertinent chez vous et de le dimensionner correctement. Pour une première estimation, utilisez notre simulateur ou appelez le 07 49 52 52 67.",
+      },
+    ],
+  },
+  {
+    slug: "aides-solaire-thermique-maprimerenov-cee",
+    title: "Solaire thermique : quelles aides pour financer votre installation ?",
+    excerpt:
+      "Chauffe-eau solaire et système solaire combiné peuvent être financés en partie par MaPrimeRénov' et les primes CEE, sous conditions.",
+    category: "Aides & subventions",
+    date: "2026-09-05",
+    readMinutes: 5,
+    content: [
+      {
+        type: "p",
+        text: "Installer un chauffe-eau solaire ou un système solaire combiné représente un investissement, mais plusieurs dispositifs publics peuvent en financer une partie. Comme pour les autres travaux de rénovation énergétique, l'objectif de l'État est d'encourager les équipements qui réduisent la consommation d'énergie fossile.",
+      },
+      {
+        type: "h2",
+        text: "MaPrimeRénov' et les CEE, aussi pour le solaire",
+      },
+      {
+        type: "p",
+        text: "Le solaire thermique fait partie des travaux éligibles à MaPrimeRénov' et aux Certificats d'Économie d'Énergie (CEE). Ces deux dispositifs, souvent cumulables, fonctionnent pour le solaire selon la même logique que pour une pompe à chaleur : le montant dépend de vos revenus, de la composition de votre foyer et du type d'installation.",
+      },
+      {
+        type: "h2",
+        text: "La condition indispensable : un installateur RGE",
+      },
+      {
+        type: "p",
+        text: "Pour ouvrir droit aux aides, les travaux doivent être réalisés par une entreprise certifiée RGE (Reconnu Garant de l'Environnement) pour le solaire thermique — la qualification correspondante s'appelle QualiSol. Vous pouvez vérifier gratuitement la certification d'une entreprise sur l'annuaire officiel france-renov.gouv.fr avant de signer un devis.",
+      },
+      {
+        type: "h2",
+        text: "Des montants propres à chaque situation",
+      },
+      {
+        type: "p",
+        text: "Aucun montant d'aide n'est garanti à l'avance : il se calcule à partir de votre revenu fiscal de référence, de votre foyer et du projet précis. C'est pourquoi il vaut mieux faire vérifier votre éligibilité réelle plutôt que de se fier à un chiffre général vu ailleurs.",
+      },
+      {
+        type: "p",
+        text: "IP5 Énergie évalue vos droits et prépare votre dossier d'aides de A à Z. Estimez votre situation avec notre simulateur ou appelez le 07 49 52 52 67.",
+      },
+    ],
+  },
 ];
