@@ -17,7 +17,22 @@ const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_I
 // Identifiants du tableau Monday (créé le 2026-07-07). Si le tableau est
 // supprimé/recréé, mettre à jour ces valeurs.
 const MONDAY_BOARD_ID = "18420831671";
-const MONDAY_GROUP_ID = "group_mm51rzdz"; // groupe "📥 Nouveaux leads du site"
+// Rangement automatique des leads par campagne (voir groupForSource).
+// group_mm51rzdz = "📥 Nouveaux leads du site" : filet de sécurité pour les
+// leads de l'accueil ou toute nouvelle source non prévue.
+const MONDAY_GROUP_DEFAULT = "group_mm51rzdz";
+const MONDAY_GROUP_PAC = "group_mm6xxvj3"; // "🔥 Leads PAC (pompe à chaleur)"
+const MONDAY_GROUP_SOLAIRE = "group_mm6x4y9p"; // "☀️ Leads Solaire (eau chaude & chauffage)"
+
+// Choisit le groupe Monday selon la « source » du lead (ex. « landing-pac-meta »,
+// « landing-solaire-insta »). On teste par mot-clé pour rester robuste si les
+// libellés de source évoluent ; à défaut, le groupe général.
+const groupForSource = (source) => {
+  const s = String(source ?? "").toLowerCase();
+  if (s.includes("solaire")) return MONDAY_GROUP_SOLAIRE;
+  if (s.includes("pac")) return MONDAY_GROUP_PAC;
+  return MONDAY_GROUP_DEFAULT;
+};
 const COL = {
   statut: "color_mm51cvw8",
   telephone: "phone_mm51zq5n",
@@ -201,7 +216,7 @@ async function createMondayItem(lead) {
       query,
       variables: {
         board: MONDAY_BOARD_ID,
-        group: MONDAY_GROUP_ID,
+        group: groupForSource(f.source),
         name: String(f.name ?? "Lead sans nom").slice(0, 255),
         values: JSON.stringify(columnValues),
       },
