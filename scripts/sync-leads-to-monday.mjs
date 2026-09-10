@@ -23,12 +23,16 @@ const MONDAY_BOARD_ID = "18420831671";
 const MONDAY_GROUP_DEFAULT = "group_mm51rzdz";
 const MONDAY_GROUP_PAC = "group_mm6xxvj3"; // "🔥 Leads PAC (pompe à chaleur)"
 const MONDAY_GROUP_SOLAIRE = "group_mm6x4y9p"; // "☀️ Leads Solaire (eau chaude & chauffage)"
+const MONDAY_GROUP_SMS = "group_mm72ym8c"; // "📲 Réactivation SMS" (relance de l'ancienne base)
 
 // Choisit le groupe Monday selon la « source » du lead (ex. « landing-pac-meta »,
 // « landing-solaire-insta »). On teste par mot-clé pour rester robuste si les
 // libellés de source évoluent ; à défaut, le groupe général.
 const groupForSource = (source) => {
   const s = String(source ?? "").toLowerCase();
+  // Les relances SMS (source « sms-… ») vont dans leur propre groupe, quel
+  // que soit le produit (le produit est indiqué par la colonne « Projet »).
+  if (s.includes("sms")) return MONDAY_GROUP_SMS;
   if (s.includes("solaire")) return MONDAY_GROUP_SOLAIRE;
   if (s.includes("pac")) return MONDAY_GROUP_PAC;
   return MONDAY_GROUP_DEFAULT;
