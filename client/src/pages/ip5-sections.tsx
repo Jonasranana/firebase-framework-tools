@@ -216,6 +216,10 @@ type SimulatorData = {
   householdSize: string;
   incomeBracket: string;
   projectTiming: string;
+  // Produit qui intéresse le prospect : « Pompe à chaleur », « Panneaux
+  // solaires » ou « Les deux ». Un seul formulaire couvre les deux offres
+  // (mêmes critères d'aides).
+  projectType: string;
   name: string;
   phone: string;
   email: string; // optionnel
@@ -232,6 +236,7 @@ const INITIAL_DATA: SimulatorData = {
   householdSize: "",
   incomeBracket: "",
   projectTiming: "",
+  projectType: "",
   name: "",
   phone: "",
   email: "",
@@ -401,6 +406,30 @@ export const Simulator = ({
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Source réelle du lead : un paramètre d'URL « ?src= » (ex. lien SMS)
+  // prime sur la source de la page, pour mesurer les campagnes de réactivation.
+  const effectiveSource = (() => {
+    try {
+      const p = new URLSearchParams(window.location.search).get("src");
+      return p && p.trim() ? p.trim().slice(0, 40) : source;
+    } catch {
+      return source;
+    }
+  })();
+
+  // Pré-sélection du projet selon l'origine : PAC sur la landing PAC, solaire
+  // sur la landing solaire, « Les deux » sur le simulateur générique (site, SMS).
+  useEffect(() => {
+    const s = effectiveSource.toLowerCase();
+    const def = s.includes("solaire")
+      ? "Panneaux solaires"
+      : s.includes("pac")
+        ? "Pompe à chaleur"
+        : "Les deux";
+    setFormData((d) => (d.projectType ? d : { ...d, projectType: def }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const goToResults = () => {
     setReward(null);
     setIsCalculating(true);
@@ -455,7 +484,7 @@ export const Simulator = ({
 
     setIsSubmitting(true);
     try {
-      await submitLead(formData, source);
+      await submitLead(formData, effectiveSource);
       setStep(TOTAL_QUESTIONS + 2);
     } catch (err) {
       console.error("Échec de l'enregistrement du lead:", err);
@@ -795,6 +824,33 @@ export const Simulator = ({
               Recevez votre devis exact gratuit
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              {/* Choix du projet : un seul formulaire couvre PAC et solaire. */}
+              <div>
+                <p className="text-sm font-semibold text-gray-700 mb-2 text-center">
+                  Votre projet
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  {["Pompe à chaleur", "Panneaux solaires", "Les deux"].map(
+                    (p) => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() =>
+                          setFormData({ ...formData, projectType: p })
+                        }
+                        aria-pressed={formData.projectType === p}
+                        className={`px-2 py-2.5 rounded-xl border text-xs font-bold leading-tight transition ${
+                          formData.projectType === p
+                            ? "border-[#2b5a8f] bg-[#2b5a8f] text-white shadow"
+                            : "border-gray-300 bg-gray-50 text-gray-700 hover:border-[#2b5a8f]"
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ),
+                  )}
+                </div>
+              </div>
               <div>
                 <label htmlFor="lead-name" className="sr-only">
                   Nom complet

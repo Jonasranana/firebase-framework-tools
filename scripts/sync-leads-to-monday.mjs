@@ -47,6 +47,7 @@ const COL = {
   echeance: "text_mm51k07s",
   email: "email_mm5178r7",
   source: "text_mm51e0cv",
+  projet: "text_mm72vg5a",
 };
 
 const mondayToken = process.env.MONDAY_API_TOKEN;
@@ -197,6 +198,7 @@ async function createMondayItem(lead) {
     [COL.revenus]: String(f.incomeBracket ?? ""),
     [COL.echeance]: String(f.projectTiming ?? ""),
     [COL.source]: String(f.source ?? "site-internet"),
+    [COL.projet]: String(f.projectType ?? ""),
   };
   const email = String(f.email ?? "").trim();
   if (email) {
