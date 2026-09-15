@@ -396,8 +396,10 @@ function getIncomeBrackets(department: string, householdSize: string) {
   ];
 }
 
-// Numéros FR : 0X XX XX XX XX ou +33 X XX XX XX XX, séparateurs tolérés
-const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
+// Numéros FR : 0X XX XX XX XX ou +33 X XX XX XX XX, séparateurs tolérés.
+// Exporté : réutilisé par les formulaires pro (ex. landing Station de
+// gonflage) qui ne passent pas par le composant Simulator.
+export const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
 
 // Enregistre le lead dans Firestore (projet Firebase du site, collection
 // "ip5_leads"). Le SDK est chargé à la volée depuis le CDN pour ne pas
