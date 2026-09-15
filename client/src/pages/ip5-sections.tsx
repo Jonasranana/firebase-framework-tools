@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Leaf,
   PiggyBank,
@@ -109,6 +109,61 @@ export const Kicker = ({
     <Icon size={14} /> {children}
   </span>
 );
+
+// Révèle son contenu en fondu + léger glissement vers le haut lorsqu'il entre
+// dans l'écran. Donne au site un rythme moderne « au défilement », sans
+// bibliothèque. Respecte le réglage système « animations réduites » (dans ce
+// cas le contenu s'affiche immédiatement, sans animation).
+export const Reveal = ({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const [shown, setShown] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const reduce =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (reduce || typeof IntersectionObserver === "undefined") {
+      setShown(true);
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            setShown(true);
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className={`transition-all duration-700 ease-out motion-reduce:transition-none ${
+        shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+      } ${className}`}
+      style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
+    >
+      {children}
+    </div>
+  );
+};
 
 const DEPARTMENTS = [
   "01 - Ain", "02 - Aisne", "03 - Allier", "04 - Alpes-de-Haute-Provence", "05 - Hautes-Alpes",
@@ -341,8 +396,10 @@ function getIncomeBrackets(department: string, householdSize: string) {
   ];
 }
 
-// Numéros FR : 0X XX XX XX XX ou +33 X XX XX XX XX, séparateurs tolérés
-const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
+// Numéros FR : 0X XX XX XX XX ou +33 X XX XX XX XX, séparateurs tolérés.
+// Exporté : réutilisé par les formulaires pro (ex. landing Station de
+// gonflage) qui ne passent pas par le composant Simulator.
+export const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
 
 // Enregistre le lead dans Firestore (projet Firebase du site, collection
 // "ip5_leads"). Le SDK est chargé à la volée depuis le CDN pour ne pas

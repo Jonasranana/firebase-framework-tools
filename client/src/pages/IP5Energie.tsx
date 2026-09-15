@@ -1,5 +1,5 @@
 import React from "react";
-import { ShieldCheck, CheckCircle2, Zap, ArrowRight, Award } from "lucide-react";
+import { ShieldCheck, CheckCircle2, Zap, ArrowRight, Award, Star } from "lucide-react";
 import {
   PageLayout,
   Simulator,
@@ -7,7 +7,20 @@ import {
   AvantagesSection,
   VideoSection,
   FinalCTA,
+  Reveal,
+  REVIEWS,
 } from "./ip5-sections";
+
+// Initiales pour les pastilles d'avatar de la preuve sociale du hero
+// (ex. « Sophie & Laurent P. » -> « SL »). Réutilise les avis réels du site.
+const initials = (name: string) =>
+  name
+    .split(/[\s&]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase();
 
 // Page d'accueil d'IP5 Énergie : accroche + simulateur (capture de leads),
 // gages de confiance, avantages de la pompe à chaleur, et raccourcis vers les
@@ -17,6 +30,21 @@ const IP5Energie = () => {
     <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 80% d'aides">
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden bg-white dark:bg-slate-950">
+        {/* Grille en filigrane : donne de la profondeur au fond, estompée sur
+            les bords par un masque radial pour rester discrète. */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-25"
+          aria-hidden="true"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgb(148 163 184 / 0.14) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.14) 1px, transparent 1px)",
+            backgroundSize: "48px 48px",
+            maskImage:
+              "radial-gradient(ellipse 80% 60% at 50% 40%, black, transparent 78%)",
+            WebkitMaskImage:
+              "radial-gradient(ellipse 80% 60% at 50% 40%, black, transparent 78%)",
+          }}
+        ></div>
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] rounded-full bg-blue-50 dark:bg-blue-900/20 blur-3xl opacity-70"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-green-50 dark:bg-green-900/20 blur-3xl opacity-70"></div>
 
@@ -66,6 +94,32 @@ const IP5Energie = () => {
                   engagement
                 </span>
               </p>
+
+              {/* Preuve sociale : avatars des clients (initiales des avis réels
+                  du site) + note 5 étoiles, pour rassurer dès le premier écran. */}
+              <div className="mt-8 flex items-center gap-4 justify-center lg:justify-start">
+                <div className="flex -space-x-3">
+                  {REVIEWS.map((r) => (
+                    <span
+                      key={r.name}
+                      className="w-10 h-10 rounded-full ring-2 ring-white dark:ring-slate-950 bg-gradient-to-br from-[#2b5a8f] to-cyan-500 text-white text-xs font-bold flex items-center justify-center"
+                      aria-hidden="true"
+                    >
+                      {initials(r.name)}
+                    </span>
+                  ))}
+                </div>
+                <div className="text-left">
+                  <div className="flex text-yellow-400" aria-hidden="true">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={15} fill="currentColor" />
+                    ))}
+                  </div>
+                  <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">
+                    Des familles accompagnées partout en France
+                  </p>
+                </div>
+              </div>
             </div>
 
             <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
@@ -82,12 +136,17 @@ const IP5Energie = () => {
       <TrustBar />
 
       {/* Avantages de la pompe à chaleur */}
-      <AvantagesSection />
+      <Reveal>
+        <AvantagesSection />
+      </Reveal>
 
       {/* Vidéos pédagogiques : la PAC et les aides expliquées */}
-      <VideoSection />
+      <Reveal>
+        <VideoSection />
+      </Reveal>
 
       {/* Raccourcis vers les pages détaillées */}
+      <Reveal>
       <section className="py-24 bg-white dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
@@ -156,9 +215,12 @@ const IP5Energie = () => {
           </div>
         </div>
       </section>
+      </Reveal>
 
       {/* Bandeau d'appel à l'action final */}
-      <FinalCTA />
+      <Reveal>
+        <FinalCTA />
+      </Reveal>
     </PageLayout>
   );
 };
