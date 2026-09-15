@@ -24,6 +24,9 @@ const MONDAY_GROUP_DEFAULT = "group_mm51rzdz";
 const MONDAY_GROUP_PAC = "group_mm6xxvj3"; // "🔥 Leads PAC (pompe à chaleur)"
 const MONDAY_GROUP_SOLAIRE = "group_mm6x4y9p"; // "☀️ Leads Solaire (eau chaude & chauffage)"
 const MONDAY_GROUP_SMS = "group_mm72ym8c"; // "📲 Réactivation SMS" (relance de l'ancienne base)
+// "🚗 Leads Station de gonflage (pro)" — produit B2B (fiche CEE TRA-SE-104),
+// distinct des leads particuliers PAC/Solaire (voir CampagneGonflage.tsx).
+const MONDAY_GROUP_GONFLAGE = "group_mm77rsgm";
 
 // Choisit le groupe Monday selon la « source » du lead (ex. « landing-pac-meta »,
 // « landing-solaire-insta »). On teste par mot-clé pour rester robuste si les
@@ -33,6 +36,7 @@ const groupForSource = (source) => {
   // Les relances SMS (source « sms-… ») vont dans leur propre groupe, quel
   // que soit le produit (le produit est indiqué par la colonne « Projet »).
   if (s.includes("sms")) return MONDAY_GROUP_SMS;
+  if (s.includes("gonflage")) return MONDAY_GROUP_GONFLAGE;
   if (s.includes("solaire")) return MONDAY_GROUP_SOLAIRE;
   if (s.includes("pac")) return MONDAY_GROUP_PAC;
   return MONDAY_GROUP_DEFAULT;
@@ -52,6 +56,11 @@ const COL = {
   email: "email_mm5178r7",
   source: "text_mm51e0cv",
   projet: "text_mm72vg5a",
+  // Colonnes propres aux leads pro « Station de gonflage » (vides pour les
+  // leads particuliers PAC/Solaire).
+  contactPro: "text_mm77achg",
+  typeSite: "text_mm77txp",
+  nbVehicules: "text_mm77hatv",
 };
 
 const mondayToken = process.env.MONDAY_API_TOKEN;
@@ -203,6 +212,11 @@ async function createMondayItem(lead) {
     [COL.echeance]: String(f.projectTiming ?? ""),
     [COL.source]: String(f.source ?? "site-internet"),
     [COL.projet]: String(f.projectType ?? ""),
+    // Champs propres aux leads pro « Station de gonflage » (CampagneGonflage.tsx) ;
+    // vides (chaîne vide) pour les leads particuliers PAC/Solaire, sans risque.
+    [COL.contactPro]: String(f.contact ?? ""),
+    [COL.typeSite]: String(f.typeSite ?? ""),
+    [COL.nbVehicules]: String(f.nbVehicules ?? ""),
   };
   const email = String(f.email ?? "").trim();
   if (email) {
