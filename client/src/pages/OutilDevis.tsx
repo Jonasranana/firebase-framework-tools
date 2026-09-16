@@ -48,6 +48,35 @@ const CEE_DEFAUT = 7500;
 const PLAFOND_DEPENSE_MPR = 12000; // dépense éligible plafonnée (mention légale)
 // ──────────────────────────────────────────────────────────────────────────
 
+// ── Barème partenaire Econergos / plateforme Prémi ─────────────────────────
+// Prémi gère marchandise + installateur + administratif, paie tous les 15
+// jours (100 % du CEE, 80 % de MaPrimeRénov ; solde des 20 % restants plus
+// tard), et prend une commission de 12 % HT sur le montant MaPrimeRénov.
+// Chiffres à jour au 16/09/2026 — certains montants CEE restent "à vérifier"
+// auprès d'Econergos (voir feuille Parametres du classeur de suivi).
+const PREMI_COMMISSION = 0.12; // % HT sur MaPrimeRénov
+const PREMI_TVA_COMMISSION = 0.2;
+const PREMI_TAUX_NET_MPR = 1 - PREMI_COMMISSION * (1 + PREMI_TVA_COMMISSION); // 85,6 %
+
+const PREMI_CEE: Record<string, Record<"H1" | "H2", number>> = {
+  Bleu: { H1: 8517, H2: 7400 },
+  Jaune: { H1: 4580, H2: 3200 },
+  Violet: { H1: 4580, H2: 3200 },
+};
+const PREMI_MPR_BRUT: Record<string, number> = {
+  Bleu: 5000,
+  Jaune: 4000,
+  Violet: 3000,
+};
+const PREMI_FOURNI_POSE: Record<string, number> = {
+  Atlantis: 5700,
+  Chappée: 5900,
+};
+const PREMI_PRECARITES = ["Bleu", "Jaune", "Violet"] as const;
+const PREMI_ZONES = ["H1", "H2"] as const;
+const PREMI_MARQUES = ["Atlantis", "Chappée"] as const;
+// ──────────────────────────────────────────────────────────────────────────
+
 const CATEGORIES = [
   { key: "Bleu", label: "Bleu — très modeste", dot: "bg-blue-600" },
   { key: "Jaune", label: "Jaune — modeste", dot: "bg-yellow-400" },
@@ -129,6 +158,176 @@ const NumField = ({
   </label>
 );
 
+// ── Simulateur de marge — dossiers PAC via Econergos / plateforme Prémi ────
+const MargesPremi = () => {
+  const [precarite, setPrecarite] =
+    useState<(typeof PREMI_PRECARITES)[number]>("Bleu");
+  const [zone, setZone] = useState<(typeof PREMI_ZONES)[number]>("H1");
+  const [marque, setMarque] =
+    useState<(typeof PREMI_MARQUES)[number]>("Atlantis");
+
+  const r = useMemo(() => {
+    const cee = PREMI_CEE[precarite]?.[zone] ?? 0;
+    const mprBrut = PREMI_MPR_BRUT[precarite] ?? 0;
+    const mprNet = mprBrut * PREMI_TAUX_NET_MPR;
+    const totalPercu = cee + mprNet;
+    const cout = PREMI_FOURNI_POSE[marque] ?? 0;
+    const marge = totalPercu - cout;
+    const margePct = totalPercu > 0 ? marge / totalPercu : 0;
+    return { cee, mprBrut, mprNet, totalPercu, cout, marge, margePct };
+  }, [precarite, zone, marque]);
+
+  const margeColor =
+    r.margePct >= 0.4
+      ? "text-green-600"
+      : r.margePct >= 0.2
+        ? "text-orange-500"
+        : "text-red-600";
+
+  return (
+    <>
+      <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 mb-4">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">
+          Choisir le dossier
+        </h2>
+        <div className="space-y-4">
+          <div>
+            <span className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Précarité énergétique
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              {PREMI_PRECARITES.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPrecarite(p)}
+                  className={`px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    precarite === p
+                      ? "border-[#2b5a8f] bg-blue-50 text-[#2b5a8f]"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <span className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Zone climatique
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {PREMI_ZONES.map((z) => (
+                <button
+                  key={z}
+                  onClick={() => setZone(z)}
+                  className={`px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    zone === z
+                      ? "border-[#2b5a8f] bg-blue-50 text-[#2b5a8f]"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  {z}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <span className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Marque PAC (fourni-posé)
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {PREMI_MARQUES.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMarque(m)}
+                  className={`px-3 py-2.5 rounded-xl border-2 text-sm font-semibold text-left transition-all ${
+                    marque === m
+                      ? "border-[#2b5a8f] bg-blue-50 text-[#2b5a8f]"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  {m}
+                  <span className="block text-xs font-normal text-gray-400">
+                    {euros(PREMI_FOURNI_POSE[m])}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <div className="bg-gradient-to-br from-[#173a5e] to-[#2b5a8f] text-white rounded-3xl p-6 text-center shadow-lg">
+          <p className="text-blue-100 text-sm font-semibold mb-1">
+            Total perçu — CEE + MaPrimeRénov
+          </p>
+          <p className="text-5xl font-black leading-none">
+            {euros(r.totalPercu)}
+          </p>
+          <p className="text-blue-200 text-xs mt-2">
+            CEE {euros(r.cee)} + MaPrimeRénov net {euros(r.mprNet)}
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-center">
+            <p className="text-gray-500 text-sm font-semibold mb-1">
+              Coût fourni-posé
+            </p>
+            <p className="text-3xl font-black text-gray-900">
+              {euros(r.cout)}
+            </p>
+          </div>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-center">
+            <p className="text-gray-500 text-sm font-semibold mb-1">Marge</p>
+            <p className={`text-3xl font-black ${margeColor}`}>
+              {euros(r.marge)}
+            </p>
+            <p className={`text-sm font-bold ${margeColor}`}>
+              {(r.margePct * 100).toFixed(1)} %
+            </p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-sm">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+            Détail
+          </h3>
+          <dl className="space-y-2">
+            <Row k={`CEE perçu (${precarite} ${zone})`} v={euros(r.cee)} />
+            <Row
+              k={`MaPrimeRénov brut (${precarite})`}
+              v={euros(r.mprBrut)}
+            />
+            <Row
+              k={`Commission Prémi (${Math.round(PREMI_COMMISSION * 100)}% HT)`}
+              v={`− ${euros(r.mprBrut - r.mprNet)}`}
+            />
+            <div className="border-t border-gray-100 pt-2">
+              <Row k="MaPrimeRénov net reçu" v={euros(r.mprNet)} bold />
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <div className="mt-6 text-[11px] leading-relaxed text-gray-400 space-y-1">
+        <p className="font-semibold text-gray-500">
+          Montants indicatifs — Econergos / plateforme Prémi.
+        </p>
+        <p>
+          Prémi paie 100 % du CEE et 80 % de MaPrimeRénov sous 15 jours,
+          solde des 20 % restants plus tard.
+        </p>
+        <p>
+          Certains montants CEE restent à vérifier auprès d'Econergos avant
+          utilisation en dossier réel.
+        </p>
+      </div>
+    </>
+  );
+};
+
 // ── Le simulateur (affiché seulement une fois autorisé) ────────────────────
 const Simulateur = ({
   email,
@@ -137,6 +336,7 @@ const Simulateur = ({
   email: string;
   onSignOut: () => void;
 }) => {
+  const [tab, setTab] = useState<"devis" | "marges">("devis");
   const [clientMode, setClientMode] = useState(false);
   const [prixAchatPompe, setPrixAchatPompe] = useState("");
   const [pose, setPose] = useState("");
@@ -207,17 +407,19 @@ const Simulateur = ({
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           <LogoIP5 className="h-9 md:h-9" />
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => setClientMode((v) => !v)}
-              className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
-                clientMode
-                  ? "bg-green-100 text-green-700"
-                  : "bg-blue-50 text-[#2b5a8f]"
-              }`}
-            >
-              {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
-              {clientMode ? "Mode client" : "Mode interne"}
-            </button>
+            {tab === "devis" && (
+              <button
+                onClick={() => setClientMode((v) => !v)}
+                className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+                  clientMode
+                    ? "bg-green-100 text-green-700"
+                    : "bg-blue-50 text-[#2b5a8f]"
+                }`}
+              >
+                {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
+                {clientMode ? "Mode client" : "Mode interne"}
+              </button>
+            )}
             <button
               onClick={onSignOut}
               aria-label="Se déconnecter"
@@ -227,18 +429,44 @@ const Simulateur = ({
             </button>
           </div>
         </div>
+        <div className="max-w-2xl mx-auto px-4 pb-2 flex gap-2">
+          <button
+            onClick={() => setTab("devis")}
+            className={`flex-1 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+              tab === "devis"
+                ? "bg-[#2b5a8f] text-white"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            Devis PAC
+          </button>
+          <button
+            onClick={() => setTab("marges")}
+            className={`flex-1 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+              tab === "marges"
+                ? "bg-[#2b5a8f] text-white"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            Marges Prémi
+          </button>
+        </div>
       </header>
 
       <div className="max-w-2xl mx-auto px-4">
         <div className="flex items-center gap-2 text-xs text-gray-400 mt-3 mb-4">
           <Lock size={13} /> Calculette IP5 Énergie — {email}
-          {clientMode && (
+          {tab === "devis" && clientMode && (
             <span className="ml-auto text-green-600 font-semibold">
               Coûts &amp; marge masqués
             </span>
           )}
         </div>
 
+        {tab === "marges" && <MargesPremi />}
+
+        {tab === "devis" && (
+          <>
         {/* NOS COÛTS — masqués en mode client */}
         {!clientMode && (
           <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 mb-4">
@@ -436,6 +664,8 @@ const Simulateur = ({
           <p>La prime CEE varie selon le fournisseur.</p>
           <p>Montants définitifs confirmés au montage du dossier.</p>
         </div>
+          </>
+        )}
       </div>
     </div>
   );
