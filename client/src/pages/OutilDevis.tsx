@@ -159,7 +159,7 @@ const NumField = ({
 );
 
 // ── Simulateur de marge — dossiers PAC via Econergos / plateforme Prémi ────
-const MargesPremi = () => {
+export const MargesPremi = () => {
   const [precarite, setPrecarite] =
     useState<(typeof PREMI_PRECARITES)[number]>("Bleu");
   const [zone, setZone] = useState<(typeof PREMI_ZONES)[number]>("H1");
