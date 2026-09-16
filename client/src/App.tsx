@@ -38,6 +38,10 @@ const Realisations = lazy(() => import("@/pages/Realisations"));
 const Contact = lazy(() => import("@/pages/Contact"));
 // Outil interne privé (accès Google restreint) — non lié depuis le site public.
 const OutilDevis = lazy(() => import("@/pages/OutilDevis"));
+// Simulateur de marge Prémi, accès direct par URL secrète (pas de connexion,
+// comme /pac ou /gonflage) — non lié depuis le site public. Ne jamais lier
+// cette route ailleurs : quiconque a l'URL y a accès.
+const MargesPremiPublic = lazy(() => import("@/pages/MargesPremiPublic"));
 const Home = lazy(() => import("@/pages/Home"));
 const CarDetails = lazy(() => import("@/pages/CarDetails"));
 const ListCar = lazy(() => import("@/pages/ListCar"));
@@ -83,6 +87,9 @@ function Router() {
         {/* Espace Pro — accès restreint par connexion Google (2 comptes) */}
         <Route path="/espace-pro" component={OutilDevis} />
         <Route path="/outil-devis" component={OutilDevis} />
+        {/* Simulateur de marge Prémi — accès direct par URL secrète, sans
+            connexion. Ne jamais lier cette route depuis une page publique. */}
+        <Route path="/marges-premi-1e3e9eef05" component={MargesPremiPublic} />
         <Route path="/autos" component={Home} />
         <Route path="/cars/:id" component={CarDetails} />
         <Route path="/list-car" component={ListCar} />
