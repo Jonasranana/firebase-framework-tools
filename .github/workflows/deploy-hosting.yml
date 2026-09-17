@@ -44,9 +44,12 @@ jobs:
         run: npx firebase-tools@latest deploy --only hosting --project kachoto-7554c --non-interactive
 
       # Envoi automatique de l'e-mail de signature (CRM Station de gonflage).
-      # Nécessite le plan Blaze + les secrets GMAIL_* configurés une fois
-      # via `firebase functions:secrets:set` (voir functions/README.md).
+      # Nécessite le plan Blaze + les secrets GMAIL_* + des rôles IAM
+      # supplémentaires pour ce compte de service (voir functions/README.md) :
+      # tant que ce n'est pas fait, cette étape échoue sans bloquer le
+      # déploiement du Hosting ci-dessus (continue-on-error).
       - name: Deploy Cloud Functions
+        continue-on-error: true
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: npx firebase-tools@latest deploy --only functions --project kachoto-7554c --non-interactive
