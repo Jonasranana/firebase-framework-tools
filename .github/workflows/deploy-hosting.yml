@@ -43,6 +43,12 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: npx firebase-tools@latest deploy --only hosting --project kachoto-7554c --non-interactive
 
+      # Firebase analyse le code des Functions localement avant de déployer
+      # (pour lister les déclencheurs) : il faut donc leurs dépendances
+      # installées ici, `npm ci` à la racine ne couvre que le site.
+      - name: Install Functions dependencies
+        run: npm ci --prefix functions
+
       # Envoi automatique de l'e-mail de signature (CRM Station de gonflage).
       # Nécessite le plan Blaze + les secrets GMAIL_* + des rôles IAM
       # supplémentaires pour ce compte de service (voir functions/README.md) :
