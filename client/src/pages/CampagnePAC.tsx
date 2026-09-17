@@ -117,7 +117,7 @@ const CampagnePAC = () => {
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-gray-900 dark:text-white">
                 Jusqu'à{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
-                  80% d'aides
+                  100% d'aides
                 </span>{" "}
                 pour votre pompe à chaleur
               </h1>
