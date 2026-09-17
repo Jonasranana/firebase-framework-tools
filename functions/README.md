@@ -57,27 +57,39 @@ apparaîtra comme expéditeur).
 ## 5. Droits IAM pour le déploiement automatique (CI)
 
 Le compte de service déjà utilisé pour déployer le Hosting (secret GitHub
-`FIREBASE_SERVICE_ACCOUNT`) a besoin de rôles supplémentaires pour pouvoir
-déployer des Cloud Functions v2. Dans
-[IAM & Admin](https://console.cloud.google.com/iam-admin/iam?project=kachoto-7554c),
+`FIREBASE_SERVICE_ACCOUNT`, ex. `firebase-adminsdk-fbsvc@<projet>...`) a
+besoin de rôles supplémentaires pour pouvoir déployer des Cloud Functions
+v2 avec déclencheur Eventarc et secrets. Confirmé par un déploiement réel
+(plusieurs allers-retours pour identifier exactement ce qu'il fallait).
+Dans [IAM & Admin](https://console.cloud.google.com/iam-admin/iam?project=kachoto-7554c),
 lui ajouter :
 
 - **Cloud Functions Admin** (`roles/cloudfunctions.admin`)
 - **Cloud Build Editor** (`roles/cloudbuild.builds.editor`)
 - **Artifact Registry Writer** (`roles/artifactregistry.writer`)
 - **Service Account User** (`roles/iam.serviceAccountUser`)
-- **Eventarc Admin** (`roles/eventarc.admin`) — déclencheurs Firestore
-- **Service Usage Admin** (`roles/serviceusage.serviceUsageAdmin`) — sans ce
-  rôle, le déploiement échoue dès la première étape avec une erreur du type
-  `403 Permission denied to get service [runtimeconfig.googleapis.com]`,
-  avant même de vérifier le plan Blaze ou les secrets Gmail
-- **Secret Manager Secret Accessor** (`roles/secretmanager.secretAccessor`) —
-  sans ce rôle, le déploiement échoue en essayant de lire les secrets
-  `GMAIL_*` avec `403 Permission 'secretmanager.secrets.get' denied`
+- **Eventarc Admin** (`roles/eventarc.admin`)
+- **Service Usage Admin** (`roles/serviceusage.serviceUsageAdmin`) —
+  nécessaire dès la toute première vérification des API activées
+- **Secret Manager Admin** (`roles/secretmanager.admin`) — englobe la
+  lecture des métadonnées des secrets (`secrets.get`, nécessaire au
+  déploiement) et la possibilité d'accorder au compte d'exécution de la
+  fonction l'accès aux secrets (`setIamPolicy`), que firebase-tools fait
+  automatiquement à chaque déploiement
+- **Project IAM Admin** (`roles/resourcemanager.projectIamAdmin`) —
+  laisse firebase-tools accorder lui-même, au premier déploiement, les
+  droits nécessaires aux comptes techniques internes de Google
+  (Pub/Sub, Cloud Run, Eventarc) pour que le déclencheur Firestore
+  fonctionne, sans quoi il faut les accorder à la main un par un
 
 Sans ces rôles, l'étape "Deploy Cloud Functions" du workflow GitHub Actions
-échouera (le Hosting continuera à se déployer normalement, c'est une étape
-séparée).
+échoue (le Hosting continue de se déployer normalement, c'est une étape
+séparée grâce à `continue-on-error`).
 
-Une fois ces 5 étapes faites, chaque envoi de pré-devis ou de contrat
+Une fois cette configuration faite, chaque envoi de pré-devis ou de contrat
 depuis le CRM déclenche automatiquement l'e-mail — rien d'autre à changer.
+Au tout premier déploiement d'une fonction 2ᵉ génération sur un projet,
+compter quelques minutes de délai de propagation côté Google (le compte
+technique Eventarc vient d'être créé) : un simple nouvel essai suffit si
+le déploiement échoue une fois avec un message mentionnant l'Eventarc
+Service Agent.

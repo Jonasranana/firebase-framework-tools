@@ -51,12 +51,13 @@ jobs:
         run: npm ci --prefix functions
 
       # Envoi automatique de l'e-mail de signature (CRM Station de gonflage).
-      # Nécessite le plan Blaze + les secrets GMAIL_* + des rôles IAM
-      # supplémentaires pour ce compte de service (voir functions/README.md) :
-      # tant que ce n'est pas fait, cette étape échoue sans bloquer le
-      # déploiement du Hosting ci-dessus (continue-on-error).
+      # --force : configure automatiquement la politique de nettoyage des
+      # images de conteneur dans Artifact Registry (sinon la commande
+      # réussit quand même à déployer mais retourne un code d'erreur).
+      # continue-on-error : ne bloque jamais le déploiement du Hosting
+      # ci-dessus en cas de souci ponctuel côté Cloud Functions/Eventarc.
       - name: Deploy Cloud Functions
         continue-on-error: true
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-        run: npx firebase-tools@latest deploy --only functions --project kachoto-7554c --non-interactive
+        run: npx firebase-tools@latest deploy --only functions --project kachoto-7554c --non-interactive --force
