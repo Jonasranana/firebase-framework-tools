@@ -67,6 +67,10 @@ lui ajouter :
 - **Artifact Registry Writer** (`roles/artifactregistry.writer`)
 - **Service Account User** (`roles/iam.serviceAccountUser`)
 - **Eventarc Admin** (`roles/eventarc.admin`) — déclencheurs Firestore
+- **Service Usage Admin** (`roles/serviceusage.serviceUsageAdmin`) — sans ce
+  rôle, le déploiement échoue dès la première étape avec une erreur du type
+  `403 Permission denied to get service [runtimeconfig.googleapis.com]`,
+  avant même de vérifier le plan Blaze ou les secrets Gmail
 
 Sans ces rôles, l'étape "Deploy Cloud Functions" du workflow GitHub Actions
 échouera (le Hosting continuera à se déployer normalement, c'est une étape
