@@ -22,6 +22,7 @@ import {
 import { LogoIP5 } from "./site-chrome";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
 import { getEspaceProApp } from "@/lib/espacePro";
+import { useBrowserBackLevel } from "@/hooks/use-browser-back-level";
 
 // ─────────────────────────────────────────────────────────────────────────
 // CRM "Station de gonflage" — suivi des dossiers CEE (fiche TRA-SE-104),
@@ -1476,6 +1477,15 @@ export default function GonflageCRM({ email, onBack }: { email: string; onBack: 
   useEffect(() => {
     load();
   }, []);
+
+  // Le bouton "précédent" du navigateur referme un niveau (onglet Dossiers,
+  // modale de création, fiche détail) au lieu de quitter la page.
+  useBrowserBackLevel(view === "dossiers", () => setView("tableau"));
+  useBrowserBackLevel(showNew, () => setShowNew(false));
+  useBrowserBackLevel(!!openDossier, () => {
+    setOpenDossier(null);
+    load();
+  });
 
   const filtered = useMemo(() => {
     if (!dossiers) return [];
