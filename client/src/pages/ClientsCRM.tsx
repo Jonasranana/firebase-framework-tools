@@ -73,16 +73,26 @@ function groupeStyle(groupe: string) {
   return key ? GROUPE_COLOR[key] : "bg-gray-100 text-gray-700";
 }
 
+// Libellés de la colonne "📞 Statut Appel" du tableau Monday partagé (Pac Pac).
 const STATUT_COLOR: Record<string, string> = {
-  positif: "bg-green-100 text-green-700",
-  "rdv fixé": "bg-green-100 text-green-700",
-  contacté: "bg-blue-100 text-blue-700",
-  new: "bg-red-100 text-red-700",
-  refus: "bg-gray-200 text-gray-600",
-  "non qualifié": "bg-gray-200 text-gray-600",
+  "à appeler": "bg-red-100 text-red-700",
+  "rdv pris": "bg-green-100 text-green-700",
+  "docs recu": "bg-green-100 text-green-700",
+  intéressé: "bg-blue-100 text-blue-700",
+  "attente docs": "bg-blue-100 text-blue-700",
+  "rappel demandé": "bg-indigo-100 text-indigo-700",
+  "a relancer": "bg-indigo-100 text-indigo-700",
+  "en cours": "bg-orange-100 text-orange-700",
+  "en cours chez bets": "bg-orange-100 text-orange-700",
+  "vt faite par bets": "bg-orange-100 text-orange-700",
   nrp: "bg-amber-100 text-amber-700",
-  "nrp 2": "bg-amber-100 text-amber-700",
-  message: "bg-indigo-100 text-indigo-700",
+  "injoignable / nrp": "bg-amber-100 text-amber-700",
+  "manque les revenu": "bg-amber-100 text-amber-700",
+  "manque les info": "bg-amber-100 text-amber-700",
+  "pas intéressé": "bg-gray-200 text-gray-600",
+  "mauvais numéro": "bg-gray-200 text-gray-600",
+  "pas éligible revenu": "bg-gray-200 text-gray-600",
+  "pas eligible a la pac": "bg-gray-200 text-gray-600",
 };
 
 function statutStyle(statut: string) {
