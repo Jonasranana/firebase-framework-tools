@@ -159,6 +159,14 @@ const genToken = () =>
     .join("");
 
 // ── Génération PDF (pré-devis / attestation / contrat) ──────────────────
+// toLocaleString("fr-FR") sépare les milliers par une espace fine
+// insécable (U+202F), absente de la police Helvetica standard utilisée
+// par jsPDF : elle s'affichait comme un caractère parasite ("/") dans le
+// PDF. On la remplace par une espace normale, propre dans cette police.
+function pdfNumber(n: number, opts?: Intl.NumberFormatOptions) {
+  return n.toLocaleString("fr-FR", opts).replace(/[  ]/g, " ");
+}
+
 export type DocumentData = {
   reference: string;
   typeStation?: "A" | "B" | "C";
@@ -248,11 +256,11 @@ export async function buildDocumentPdf(
       ["Pose et installation", "Offerte"],
       [
         "Contrat d'entretien de la station de gonflage",
-        `${(d.primeCEE ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`,
+        `${pdfNumber(d.primeCEE ?? 0, { minimumFractionDigits: 2 })} €`,
       ],
       [
         "Déduction Prime CEE — opération TRA-SE-104",
-        `− ${(d.primeCEE ?? 0).toLocaleString("fr-FR", { minimumFractionDigits: 2 })} €`,
+        `- ${pdfNumber(d.primeCEE ?? 0, { minimumFractionDigits: 2 })} €`,
       ],
     ];
     for (const [k, v] of rows) {
@@ -272,7 +280,7 @@ export async function buildDocumentPdf(
     y += 12;
     doc.setFontSize(9);
     doc.text(
-      `Volume CEE valorisé : ${(d.kwhCumac ?? 0).toLocaleString("fr-FR")} kWh cumac (${((d.kwhCumac ?? 0) / 1000).toLocaleString("fr-FR")} MWh cumac).`,
+      `Volume CEE valorisé : ${pdfNumber(d.kwhCumac ?? 0)} kWh cumac (${pdfNumber((d.kwhCumac ?? 0) / 1000)} MWh cumac).`,
       15,
       y,
     );
