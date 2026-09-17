@@ -42,6 +42,11 @@ const OutilDevis = lazy(() => import("@/pages/OutilDevis"));
 // comme /pac ou /gonflage) — non lié depuis le site public. Ne jamais lier
 // cette route ailleurs : quiconque a l'URL y a accès.
 const MargesPremiPublic = lazy(() => import("@/pages/MargesPremiPublic"));
+// Signature publique d'un pré-devis/contrat CEE Station de gonflage : pas
+// de connexion, protégée par un jeton unique et imprévisible dans l'URL
+// (voir GonflageCRM.tsx). Ne lie que la collection Firestore
+// gonflage_signatures, jamais le dossier complet.
+const GonflageSignature = lazy(() => import("@/pages/GonflageSignature"));
 const Home = lazy(() => import("@/pages/Home"));
 const CarDetails = lazy(() => import("@/pages/CarDetails"));
 const ListCar = lazy(() => import("@/pages/ListCar"));
@@ -90,6 +95,7 @@ function Router() {
         {/* Simulateur de marge Prémi — accès direct par URL secrète, sans
             connexion. Ne jamais lier cette route depuis une page publique. */}
         <Route path="/marges-premi-1e3e9eef05" component={MargesPremiPublic} />
+        <Route path="/gonflage-signature/:token" component={GonflageSignature} />
         <Route path="/autos" component={Home} />
         <Route path="/cars/:id" component={CarDetails} />
         <Route path="/list-car" component={ListCar} />

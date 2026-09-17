@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
 import ClientsCRM from "./ClientsCRM";
+import GonflageCRM from "./GonflageCRM";
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -908,6 +909,9 @@ export default function OutilDevis() {
           onBack={() => setCategory(null)}
         />
       );
+    }
+    if (category === "gonflage") {
+      return <GonflageCRM email={email} onBack={() => setCategory(null)} />;
     }
     return (
       <ComingSoon category={category} onBack={() => setCategory(null)} />
