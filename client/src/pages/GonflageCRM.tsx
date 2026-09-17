@@ -765,8 +765,20 @@ const DossierDetail = ({
 function formatDateTime(iso: string) {
   if (!iso) return "";
   const dt = new Date(iso);
-  if (isNaN(dt.getTime())) return iso;
+  if (isNaN(dt.getTime())) return "";
   return dt.toLocaleString("fr-FR");
+}
+
+// Firestore renvoie un objet Timestamp (pas une string) pour les champs
+// écrits avec serverTimestamp() — on le convertit ici pour que le reste
+// du code (typé en string, affiché tel quel) ne plante pas au rendu.
+function tsToIso(v: unknown): string {
+  if (!v) return "";
+  if (typeof v === "string") return v;
+  if (typeof (v as { toDate?: () => Date }).toDate === "function") {
+    return (v as { toDate: () => Date }).toDate().toISOString();
+  }
+  return "";
 }
 
 const BeneficiaireCard = ({
@@ -1043,7 +1055,10 @@ const StepSignature = ({
       const { getFirestore, doc, getDoc } = await import("firebase/firestore");
       const db = getFirestore(app);
       const snap = await getDoc(doc(db, "gonflage_signatures", token));
-      if (!cancelled && snap.exists()) setSig(snap.data() as any);
+      if (!cancelled && snap.exists()) {
+        const data = snap.data() as any;
+        setSig({ ...data, signeAt: tsToIso(data.signeAt) });
+      }
       setLoading(false);
       if (!cancelled && snap.exists() && (snap.data() as any).statut === "signe") onAdvance();
     })();
@@ -1416,7 +1431,10 @@ export default function GonflageCRM({ email, onBack }: { email: string; onBack: 
       const { getFirestore, collection, getDocs } = await import("firebase/firestore");
       const db = getFirestore(app);
       const snap = await getDocs(collection(db, "gonflage_dossiers"));
-      const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<Dossier, "id">) }));
+      const list = snap.docs.map((d) => {
+        const data = d.data() as Omit<Dossier, "id">;
+        return { id: d.id, ...data, createdAt: tsToIso(data.createdAt) };
+      });
       list.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
       setDossiers(list);
     } catch (e) {
