@@ -7,6 +7,11 @@ import {
   Calculator,
   ShieldAlert,
   Loader2,
+  Flame,
+  Sun,
+  Gauge,
+  ArrowLeft,
+  Construction,
 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
 import ClientsCRM from "./ClientsCRM";
@@ -350,9 +355,11 @@ export const MargesPremi = () => {
 const Simulateur = ({
   email,
   onSignOut,
+  onBack,
 }: {
   email: string;
   onSignOut: () => void;
+  onBack: () => void;
 }) => {
   const [tab, setTab] = useState<"devis" | "marges" | "clients">("devis");
   const [clientMode, setClientMode] = useState(false);
@@ -423,7 +430,16 @@ const Simulateur = ({
       {/* Barre du haut */}
       <header className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <LogoIP5 className="h-9 md:h-9" />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onBack}
+              aria-label="Retour aux métiers"
+              className="p-1.5 -ml-1.5 text-gray-400 hover:text-gray-700 transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <LogoIP5 className="h-9 md:h-9" />
+          </div>
           <div className="flex items-center gap-2">
             {tab === "devis" && (
               <button
@@ -701,6 +717,94 @@ const Simulateur = ({
   );
 };
 
+type ProCategory = "pac" | "solaire" | "gonflage";
+
+const PRO_CATEGORIES: {
+  key: ProCategory;
+  label: string;
+  icon: typeof Flame;
+  color: string;
+}[] = [
+  { key: "pac", label: "Pompe à chaleur", icon: Flame, color: "text-orange-500 bg-orange-50" },
+  { key: "solaire", label: "Solaire", icon: Sun, color: "text-yellow-500 bg-yellow-50" },
+  { key: "gonflage", label: "Station de gonflage", icon: Gauge, color: "text-purple-500 bg-purple-50" },
+];
+
+// ── Écran d'accueil de l'Espace Pro : choix du métier ───────────────────────
+const CategoryPicker = ({
+  email,
+  onSelect,
+  onSignOut,
+}: {
+  email: string;
+  onSelect: (c: ProCategory) => void;
+  onSignOut: () => void;
+}) => (
+  <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12" dir="ltr">
+    <LogoIP5 className="h-10 mb-8" />
+    <h1 className="text-xl font-bold text-gray-900 mb-1 text-center">
+      Espace Pro
+    </h1>
+    <p className="text-sm text-gray-400 mb-8 text-center">
+      Choisissez un métier pour continuer
+    </p>
+    <div className="w-full max-w-sm space-y-3">
+      {PRO_CATEGORIES.map(({ key, label, icon: Icon, color }) => (
+        <button
+          key={key}
+          onClick={() => onSelect(key)}
+          className="w-full flex items-center gap-4 bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-left hover:border-[#2b5a8f] transition-colors"
+        >
+          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${color}`}>
+            <Icon size={24} />
+          </div>
+          <span className="font-bold text-gray-900 flex-1">{label}</span>
+        </button>
+      ))}
+    </div>
+    <div className="mt-10 flex items-center gap-2 text-xs text-gray-400">
+      <Lock size={13} /> {email}
+      <button
+        onClick={onSignOut}
+        aria-label="Se déconnecter"
+        className="ml-2 text-gray-400 hover:text-gray-700 transition-colors"
+      >
+        <LogOut size={15} />
+      </button>
+    </div>
+  </div>
+);
+
+// ── Placeholder pour les métiers pas encore outillés (Solaire, Gonflage) ───
+const ComingSoon = ({
+  category,
+  onBack,
+}: {
+  category: ProCategory;
+  onBack: () => void;
+}) => {
+  const meta = PRO_CATEGORIES.find((c) => c.key === category)!;
+  return (
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4" dir="ltr">
+      <div className="max-w-sm w-full bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 ${meta.color}`}>
+          <Construction size={26} />
+        </div>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">{meta.label}</h1>
+        <p className="text-sm text-gray-500 mb-6">
+          Les outils pour ce métier arrivent bientôt.
+        </p>
+        <button
+          onClick={onBack}
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-[#2b5a8f]"
+        >
+          <ArrowLeft size={16} /> Retour
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const Row = ({ k, v, bold }: { k: string; v: string; bold?: boolean }) => (
   <div className="flex items-center justify-between">
     <dt className={`text-gray-600 ${bold ? "font-bold text-gray-900" : ""}`}>
@@ -721,6 +825,7 @@ export default function OutilDevis() {
   const [email, setEmail] = useState("");
   const [authApi, setAuthApi] = useState<any>(null);
   const [error, setError] = useState("");
+  const [category, setCategory] = useState<ProCategory | null>(null);
 
   useEffect(() => {
     let unsub = () => {};
@@ -786,7 +891,27 @@ export default function OutilDevis() {
   };
 
   if (status === "authorized") {
-    return <Simulateur email={email} onSignOut={signOut} />;
+    if (!category) {
+      return (
+        <CategoryPicker
+          email={email}
+          onSelect={setCategory}
+          onSignOut={signOut}
+        />
+      );
+    }
+    if (category === "pac") {
+      return (
+        <Simulateur
+          email={email}
+          onSignOut={signOut}
+          onBack={() => setCategory(null)}
+        />
+      );
+    }
+    return (
+      <ComingSoon category={category} onBack={() => setCategory(null)} />
+    );
   }
 
   // Écran de connexion / accès refusé
