@@ -1071,7 +1071,14 @@ const StepSignature = ({
 }) => {
   const [sig, setSig] = useState<{ statut: string; nom?: string; signatureDataUrl?: string; signeAt?: string; validUntil?: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [downloading, setDownloading] = useState(false);
   const token = d[tokenField];
+  // Cette carte reste consultable après coup (ex. revenir sur "Attente de
+  // signature" une fois le dossier à l'étape 4) : ne déclenche l'avancée
+  // automatique que si ce document est encore l'étape en cours du dossier,
+  // sinon la revisite renverrait aussitôt à l'étape suivante.
+  const expectedStep = docKind === "predevis" ? "3" : "4";
+  const isCurrentStep = d.etape === expectedStep;
 
   useEffect(() => {
     let cancelled = false;
@@ -1089,12 +1096,27 @@ const StepSignature = ({
         setSig({ ...data, signeAt: tsToIso(data.signeAt) });
       }
       setLoading(false);
-      if (!cancelled && snap.exists() && (snap.data() as any).statut === "signe") onAdvance();
+      if (!cancelled && isCurrentStep && snap.exists() && (snap.data() as any).statut === "signe") onAdvance();
     })();
     return () => {
       cancelled = true;
     };
   }, [token]);
+
+  const telechargerSigne = async () => {
+    if (!sig || !sig.signatureDataUrl || !sig.nom) return;
+    setDownloading(true);
+    try {
+      const pdf = await buildDocumentPdf(docKind, d, {
+        nom: sig.nom,
+        dataUrl: sig.signatureDataUrl,
+        date: formatDateTime(sig.signeAt ?? "") || new Date().toLocaleDateString("fr-FR"),
+      });
+      pdf.save(`${docKind === "contrat" ? "contrat" : "pre-devis"}-signe-${d.raisonSociale}.pdf`);
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -1125,9 +1147,19 @@ const StepSignature = ({
           </span>
           <p className="text-xs text-gray-500">Demande envoyée à {d.email}</p>
           {sig.statut === "signe" && (
-            <p className="text-xs font-semibold text-green-700 mt-1">
-              Signé par {sig.nom} le {formatDateTime(sig.signeAt ?? "")}
-            </p>
+            <>
+              <p className="text-xs font-semibold text-green-700 mt-1">
+                Signé par {sig.nom} le {formatDateTime(sig.signeAt ?? "")}
+              </p>
+              <button
+                onClick={telechargerSigne}
+                disabled={downloading}
+                className="mt-3 inline-flex items-center gap-1.5 text-xs font-bold text-white bg-[#2b5a8f] px-3 py-2 rounded-full disabled:opacity-50"
+              >
+                {downloading ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                Télécharger le document signé (PDF)
+              </button>
+            </>
           )}
         </div>
       )}
