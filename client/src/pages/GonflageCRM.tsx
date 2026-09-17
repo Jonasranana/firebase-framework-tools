@@ -623,15 +623,18 @@ const DossierDetail = ({
   dossier: initial,
   onClose,
   onUpdated,
+  onDeleted,
 }: {
   dossier: Dossier;
   onClose: () => void;
   onUpdated: (patch: Partial<Dossier>) => void;
+  onDeleted: () => void;
 }) => {
   const [d, setD] = useState(initial);
   const [activeStep, setActiveStep] = useState<string>(
     d.etape === "annule" ? "1" : d.etape,
   );
+  const [deleting, setDeleting] = useState(false);
 
   const patch = async (fields: Partial<Dossier>) => {
     setD((prev) => ({ ...prev, ...fields }));
@@ -650,6 +653,24 @@ const DossierDetail = ({
   const advance = (next: EtapeKey) => {
     patch({ etape: next });
     if (next !== "annule") setActiveStep(next);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Supprimer définitivement le dossier "${d.raisonSociale}" ? Cette action est irréversible.`)) return;
+    setDeleting(true);
+    try {
+      const app = await getEspaceProApp();
+      const { getFirestore, doc, deleteDoc } = await import("firebase/firestore");
+      const db = getFirestore(app);
+      await deleteDoc(doc(db, "gonflage_dossiers", d.id));
+      if (d.preDevisToken) await deleteDoc(doc(db, "gonflage_signatures", d.preDevisToken)).catch(() => {});
+      if (d.contratToken) await deleteDoc(doc(db, "gonflage_signatures", d.contratToken)).catch(() => {});
+      onDeleted();
+    } catch (e) {
+      console.error(e);
+      alert("Échec de la suppression. Réessayez.");
+      setDeleting(false);
+    }
   };
 
   const currentIdx = stepIndex(d.etape);
@@ -680,6 +701,13 @@ const DossierDetail = ({
               className="inline-flex items-center gap-1.5 text-xs font-bold text-red-600 bg-red-50 px-3 py-2 rounded-full"
             >
               <Ban size={13} /> Annulé / Pas intéressé
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-white bg-red-600 px-3 py-2 rounded-full disabled:opacity-50"
+            >
+              {deleting ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />} Supprimer
             </button>
           </div>
         </div>
@@ -1639,6 +1667,10 @@ export default function GonflageCRM({ email, onBack }: { email: string; onBack: 
           onUpdated={(patch) => {
             setOpenDossier((d) => (d ? { ...d, ...patch } : d));
             setDossiers((list) => (list ? list.map((d) => (d.id === openDossier.id ? { ...d, ...patch } : d)) : list));
+          }}
+          onDeleted={() => {
+            setOpenDossier(null);
+            load();
           }}
         />
       )}
