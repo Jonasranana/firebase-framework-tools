@@ -29,6 +29,7 @@ jobs:
           python3 -m json.tool "$RUNNER_TEMP/sa.json" > /dev/null \
             && echo "Service account JSON is valid." \
             || { echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not valid JSON even after sanitizing"; exit 1; }
+          echo "Deploying as: $(python3 -c "import json;print(json.load(open('$RUNNER_TEMP/sa.json'))['client_email'])")"
 
       # Le site "ip5-energie" (URL de marque ip5-energie.web.app) est créé à
       # la volée s'il n'existe pas encore ; la commande échoue sans gravité
