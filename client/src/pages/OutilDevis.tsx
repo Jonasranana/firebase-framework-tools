@@ -16,6 +16,7 @@ import {
 import { LogoIP5 } from "./site-chrome";
 import ClientsCRM from "./ClientsCRM";
 import GonflageCRM from "./GonflageCRM";
+import { useBrowserBackLevel } from "@/hooks/use-browser-back-level";
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -827,6 +828,9 @@ export default function OutilDevis() {
   const [authApi, setAuthApi] = useState<any>(null);
   const [error, setError] = useState("");
   const [category, setCategory] = useState<ProCategory | null>(null);
+  // Le bouton "précédent" du navigateur referme le métier ouvert au lieu de
+  // quitter l'Espace Pro.
+  useBrowserBackLevel(category !== null, () => setCategory(null));
 
   useEffect(() => {
     let unsub = () => {};
