@@ -8,6 +8,9 @@ import { MargesPremi } from "./OutilDevis";
 // /gonflage). Non lié depuis le site public, non indexé. Ne jamais ajouter
 // de lien vers cette page dans la navigation ou dans un contenu public :
 // quiconque a l'URL y a accès.
+//
+// Ne contient aucune donnée client (voir OutilDevis.tsx pour l'onglet
+// Clients, protégé par une vraie connexion Google + règles Firestore).
 // ─────────────────────────────────────────────────────────────────────────
 
 function useNoIndex() {

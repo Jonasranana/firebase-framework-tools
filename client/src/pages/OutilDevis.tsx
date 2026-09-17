@@ -8,7 +8,8 @@ import {
   ShieldAlert,
   Loader2,
 } from "lucide-react";
-import { FIREBASE_CONFIG, LogoIP5 } from "./site-chrome";
+import { LogoIP5 } from "./site-chrome";
+import ClientsCRM from "./ClientsCRM";
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -336,7 +337,7 @@ const Simulateur = ({
   email: string;
   onSignOut: () => void;
 }) => {
-  const [tab, setTab] = useState<"devis" | "marges">("devis");
+  const [tab, setTab] = useState<"devis" | "marges" | "clients">("devis");
   const [clientMode, setClientMode] = useState(false);
   const [prixAchatPompe, setPrixAchatPompe] = useState("");
   const [pose, setPose] = useState("");
@@ -450,6 +451,16 @@ const Simulateur = ({
           >
             Marges Prémi
           </button>
+          <button
+            onClick={() => setTab("clients")}
+            className={`flex-1 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+              tab === "clients"
+                ? "bg-[#2b5a8f] text-white"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            Clients
+          </button>
         </div>
       </header>
 
@@ -464,6 +475,8 @@ const Simulateur = ({
         </div>
 
         {tab === "marges" && <MargesPremi />}
+
+        {tab === "clients" && <ClientsCRM />}
 
         {tab === "devis" && (
           <>
@@ -695,8 +708,8 @@ export default function OutilDevis() {
   useEffect(() => {
     let unsub = () => {};
     (async () => {
-      const [{ initializeApp, getApps }, auth] = await Promise.all([
-        import("firebase/app"),
+      const [{ getEspaceProApp }, auth] = await Promise.all([
+        import("@/lib/espacePro"),
         import("firebase/auth"),
       ]);
       // App Firebase dédiée à l'outil : authDomain = domaine du site public,
@@ -704,13 +717,9 @@ export default function OutilDevis() {
       // et que l'outil vive sur ip5-energie.web.app (pas de « kachoto »
       // visible). Nécessite d'avoir ajouté l'URI de redirection
       // https://ip5-energie.web.app/__/auth/handler côté OAuth Google.
-      const APP_NAME = "espace-pro";
-      const app =
-        getApps().find((a) => a.name === APP_NAME) ??
-        initializeApp(
-          { ...FIREBASE_CONFIG, authDomain: "ip5-energie.web.app" },
-          APP_NAME,
-        );
+      // Réutilisée par l'onglet Clients (Firestore) pour partager la même
+      // session authentifiée.
+      const app = await getEspaceProApp();
       const authInstance = auth.getAuth(app);
       setAuthApi({ ...auth, authInstance });
       // Connexion uniquement par pop-up (voir signIn) : pas de
