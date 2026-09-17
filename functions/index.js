@@ -10,17 +10,20 @@ const GMAIL_SENDER_EMAIL = defineSecret("GMAIL_SENDER_EMAIL");
 
 const SITE_URL = "https://ip5energie.fr";
 
-function encodeSubject(subject) {
-  return `=?utf-8?B?${Buffer.from(subject, "utf-8").toString("base64")}?=`;
+// Les en-têtes (From, Subject...) doivent rester en ASCII : les caractères
+// accentués sont encodés au format RFC 2047 (mot encodé), sinon ils sont
+// mal réinterprétés par les clients mail (accents en caractères parasites).
+function encodeHeaderWord(text) {
+  return `=?utf-8?B?${Buffer.from(text, "utf-8").toString("base64")}?=`;
 }
 
 function buildRawMessage({ to, from, subject, html }) {
   const message = [
-    `From: IP5 Énergie <${from}>`,
+    `From: ${encodeHeaderWord("IP5 Énergie")} <${from}>`,
     `To: ${to}`,
     "Content-Type: text/html; charset=utf-8",
     "MIME-Version: 1.0",
-    `Subject: ${encodeSubject(subject)}`,
+    `Subject: ${encodeHeaderWord(subject)}`,
     "",
     html,
   ].join("\r\n");
