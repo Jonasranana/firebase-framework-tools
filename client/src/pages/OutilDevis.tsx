@@ -76,6 +76,9 @@ const PREMI_FOURNI_POSE: Record<string, number> = {
 const PREMI_PRECARITES = ["Bleu", "Jaune", "Violet"] as const;
 const PREMI_ZONES = ["H1", "H2"] as const;
 const PREMI_MARQUES = ["Atlantis", "Chappée"] as const;
+// Marge minimum acceptée sur un dossier Prémi. En dessous, on complète en
+// facturant un reste à charge au client plutôt que de vendre à perte.
+const PREMI_MARGE_MIN = 2500;
 // ──────────────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
@@ -175,7 +178,8 @@ export const MargesPremi = () => {
     const cout = PREMI_FOURNI_POSE[marque] ?? 0;
     const marge = totalPercu - cout;
     const margePct = totalPercu > 0 ? marge / totalPercu : 0;
-    return { cee, mprBrut, mprNet, totalPercu, cout, marge, margePct };
+    const resteACharge = Math.max(0, PREMI_MARGE_MIN - marge);
+    return { cee, mprBrut, mprNet, totalPercu, cout, marge, margePct, resteACharge };
   }, [precarite, zone, marque]);
 
   const margeColor =
@@ -290,6 +294,19 @@ export const MargesPremi = () => {
             </p>
           </div>
         </div>
+
+        {r.resteACharge > 0 && (
+          <div className="bg-red-50 border-2 border-red-200 rounded-3xl p-5">
+            <p className="text-sm font-bold text-red-700 mb-1">
+              Marge sous le minimum ({euros(PREMI_MARGE_MIN)})
+            </p>
+            <p className="text-sm text-red-600">
+              Demander au client un reste à charge de{" "}
+              <span className="font-black">{euros(r.resteACharge)}</span>{" "}
+              pour ramener la marge à {euros(PREMI_MARGE_MIN)}.
+            </p>
+          </div>
+        )}
 
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-sm">
           <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
