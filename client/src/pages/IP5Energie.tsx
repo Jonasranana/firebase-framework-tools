@@ -27,7 +27,7 @@ const initials = (name: string) =>
 // pages détaillées (nos pompes à chaleur, aides de l'État, réalisations).
 const IP5Energie = () => {
   return (
-    <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 80% d'aides">
+    <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 100% d'aides">
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden bg-white dark:bg-slate-950">
         {/* Grille en filigrane : donne de la profondeur au fond, estompée sur
@@ -64,7 +64,7 @@ const IP5Energie = () => {
               <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
                 Remplacez votre ancien chauffage. Profitez d'une chaleur douce
                 en hiver, et bénéficiez des subventions <b>MaPrimeRénov'</b>{" "}
-                pour financer jusqu'à 80% de votre installation.
+                pour financer jusqu'à 100% de votre installation.
               </p>
 
               <div className="flex justify-center lg:justify-start">
@@ -174,7 +174,7 @@ const IP5Energie = () => {
               {
                 href: "/aides",
                 title: "Les aides de l'État",
-                text: "MaPrimeRénov', CEE : jusqu'à 80% de votre installation financée, démarches gérées de A à Z.",
+                text: "MaPrimeRénov', CEE : jusqu'à 100% de votre installation financée, démarches gérées de A à Z.",
                 cta: "Comprendre les aides",
                 img: "/images/realisations/unite-exterieure.jpg",
               },

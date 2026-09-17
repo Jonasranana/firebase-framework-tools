@@ -1600,7 +1600,7 @@ export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => (
               Jusqu'à
             </span>
             <span className="text-2xl font-black text-yellow-900 leading-none">
-              -80%
+              -100%
             </span>
           </div>
 
