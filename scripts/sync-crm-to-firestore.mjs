@@ -6,10 +6,11 @@
 //
 // Depuis le 2026-09-17, les leads du site vivent dans le tableau Monday
 // "Pac Pac😀" (partagé avec toute l'équipe commerciale, voir
-// sync-leads-to-monday.mjs), dans 5 groupes d'arrivée dédiés plutôt que
-// sur un tableau séparé. On ne récupère QUE ces 5 groupes (pas les ~3500
-// autres dossiers du tableau) : ce sont eux qui correspondent aux leads du
-// site internet.
+// sync-leads-to-monday.mjs), dans un groupe d'arrivée dédié plutôt que sur
+// un tableau séparé. On ne récupère QUE ce groupe (pas les ~3500 autres
+// dossiers du tableau) : c'est lui qui correspond aux leads du site
+// internet (PAC/Solaire/SMS/Gonflage, distingués par la colonne
+// "🏷️ Type de lead").
 //
 // Lancé toutes les 15 minutes par .github/workflows/sync-crm-data.yml.
 //
@@ -23,14 +24,10 @@ import { createSign } from "node:crypto";
 const PROJECT_ID = "kachoto-7554c";
 const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
 const BOARD_ID = "18410104402"; // "Pac Pac😀"
-// Groupes d'arrivée des leads du site internet (voir sync-leads-to-monday.mjs).
-const LEAD_GROUP_IDS = [
-  "group_mm791gbb", // 🔥 Leads PAC
-  "group_mm79vwvs", // ☀️ Leads Solaire
-  "group_mm79vvqb", // 📲 Réactivation SMS
-  "group_mm79njmh", // 🚗 Leads Station de gonflage (pro)
-  "group_mm79ghrj", // 📥 Nouveaux leads du site (autre/direct)
-];
+// Groupe d'arrivée unique des leads du site internet (voir
+// sync-leads-to-monday.mjs — un seul groupe pour toutes les sources, la
+// colonne "🏷️ Type de lead" distingue PAC/Solaire/SMS/Gonflage).
+const LEAD_GROUP_IDS = ["group_mm79ghrj"]; // "📥 Nouveaux leads du site internet"
 
 const COL_IDS = [
   "color_mm6vdhz4", // 📞 Statut Appel

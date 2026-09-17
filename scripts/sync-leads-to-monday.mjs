@@ -21,32 +21,13 @@ const FIRESTORE_BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_I
 // commerciale — Mebarek, Carole, Julien, Alexis). Si le tableau est
 // supprimé/recréé, mettre à jour ces valeurs.
 const MONDAY_BOARD_ID = "18410104402";
-// Groupes d'arrivée créés le 2026-09-17, positionnés en haut du tableau
-// (avant les groupes de pipeline existants Potentiel/Opportunité/etc.),
-// pour que les nouveaux leads restent bien visibles et séparés du suivi en
-// cours. group_mm79ghrj = "📥 Nouveaux leads du site" : filet de sécurité
-// pour les leads de l'accueil ou toute nouvelle source non prévue.
-const MONDAY_GROUP_DEFAULT = "group_mm79ghrj";
-const MONDAY_GROUP_PAC = "group_mm791gbb"; // "🔥 Leads PAC (pompe à chaleur)"
-const MONDAY_GROUP_SOLAIRE = "group_mm79vwvs"; // "☀️ Leads Solaire (eau chaude & chauffage)"
-const MONDAY_GROUP_SMS = "group_mm79vvqb"; // "📲 Réactivation SMS" (relance de l'ancienne base)
-// "🚗 Leads Station de gonflage (pro)" — produit B2B (fiche CEE TRA-SE-104),
-// distinct des leads particuliers PAC/Solaire (voir CampagneGonflage.tsx).
-const MONDAY_GROUP_GONFLAGE = "group_mm79njmh";
-
-// Choisit le groupe Monday selon la « source » du lead (ex. « landing-pac-meta »,
-// « landing-solaire-insta »). On teste par mot-clé pour rester robuste si les
-// libellés de source évoluent ; à défaut, le groupe général.
-const groupForSource = (source) => {
-  const s = String(source ?? "").toLowerCase();
-  // Les relances SMS (source « sms-… ») vont dans leur propre groupe, quel
-  // que soit le produit (le produit est indiqué par la colonne « Projet »).
-  if (s.includes("sms")) return MONDAY_GROUP_SMS;
-  if (s.includes("gonflage")) return MONDAY_GROUP_GONFLAGE;
-  if (s.includes("solaire")) return MONDAY_GROUP_SOLAIRE;
-  if (s.includes("pac")) return MONDAY_GROUP_PAC;
-  return MONDAY_GROUP_DEFAULT;
-};
+// Groupe d'arrivée unique, créé le 2026-09-17, positionné en haut du
+// tableau (avant les groupes de pipeline existants Potentiel/Opportunité/
+// etc.), pour que les nouveaux leads restent bien visibles et séparés du
+// suivi en cours. Un seul groupe pour toutes les sources : la colonne
+// "🏷️ Type de lead" (voir typeLeadIndexForSource) suffit à distinguer
+// PAC/Solaire/SMS/Gonflage, pas besoin d'un groupe par produit.
+const MONDAY_GROUP_LEADS = "group_mm79ghrj"; // "📥 Nouveaux leads du site internet"
 // Id interne (pas la position d'affichage) des libellés de la colonne
 // "🏷️ Type de lead" (color_mm79bwsw) — Monday adresse un statut par son id
 // de libellé dans { index: N }, qui ne correspond pas forcément à sa
@@ -271,7 +252,7 @@ async function createMondayItem(lead) {
       query,
       variables: {
         board: MONDAY_BOARD_ID,
-        group: groupForSource(f.source),
+        group: MONDAY_GROUP_LEADS,
         name: String(f.name ?? "Lead sans nom").slice(0, 255),
         values: JSON.stringify(columnValues),
       },
