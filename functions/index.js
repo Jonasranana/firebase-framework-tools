@@ -41,7 +41,7 @@ function buildEmailHtml({ nomContact, isContrat, link, prime }) {
     : "Voici le pré-devis de votre station de gonflage à valider et signer en ligne.";
 
   return `
-    <div style="font-family: Arial, sans-serif; color:#1f2937; max-width:560px; margin:0 auto;">
+    <div style="font-family: Arial, sans-serif; color:#1f2937; max-width:560px;">
       <p>Bonjour ${nomContact || ""},</p>
       <p>${intro}</p>
       ${prime ? `<p><strong>Montant financé par la prime CEE : ${prime}</strong></p>` : ""}
