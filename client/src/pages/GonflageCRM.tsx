@@ -1102,8 +1102,8 @@ const StepSignature = ({
             </button>
           </div>
           <p className="text-[11px] text-gray-400 mt-2">
-            L'envoi automatique par e-mail n'est pas encore activé — copie ce lien et transmets-le au
-            client manuellement en attendant.
+            Un e-mail contenant ce lien a été envoyé automatiquement à {d.email}. Tu peux aussi copier
+            le lien ci-dessus pour le transmettre toi-même (SMS, WhatsApp...).
           </p>
         </div>
       )}
