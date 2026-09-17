@@ -609,7 +609,7 @@ const Toggle = ({
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${checked ? "bg-[#2b5a8f]" : "bg-gray-300"}`}
+      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-[#2b5a8f]/40 focus-visible:ring-offset-2 ${checked ? "bg-[#2b5a8f]" : "bg-gray-300"}`}
     >
       <span
         className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`}
