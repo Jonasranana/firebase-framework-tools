@@ -266,11 +266,11 @@ export const SiteFooter = () => (
             </li>
             <li>
               <a
-                href="mailto:info@ip5energie.com"
+                href="mailto:contact@ip5energie.com"
                 className="flex items-center gap-3 hover:text-blue-400 transition-colors"
               >
                 <MessageCircle size={18} />{" "}
-                <span>info@ip5energie.com</span>
+                <span>contact@ip5energie.com</span>
               </a>
             </li>
             <li>

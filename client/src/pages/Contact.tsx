@@ -23,8 +23,8 @@ const CONTACT_CHANNELS = [
   {
     icon: Mail,
     label: "Par e-mail",
-    value: "info@ip5energie.com",
-    href: "mailto:info@ip5energie.com",
+    value: "contact@ip5energie.com",
+    href: "mailto:contact@ip5energie.com",
     hint: "Pour un devis écrit",
   },
   {

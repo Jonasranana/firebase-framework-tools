@@ -72,8 +72,8 @@ export const MentionsLegales = () => {
           Directrice de la publication : Carole Sitbon
           <br />
           Contact :{" "}
-          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
-            info@ip5energie.com
+          <a href="mailto:contact@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
+            contact@ip5energie.com
           </a>{" "}
           — 07 49 52 52 67
         </p>
@@ -141,8 +141,8 @@ export const MentionsLegales = () => {
             ec.europa.eu/consumers/odr
           </a>
           . Pour toute réclamation, contactez-nous d'abord à{" "}
-          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
-            info@ip5energie.com
+          <a href="mailto:contact@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
+            contact@ip5energie.com
           </a>
           .
         </p>
@@ -159,8 +159,8 @@ export const Confidentialite = () => {
         <p>
           Le responsable du traitement est <b>IP5 CONSEILS</b> (SIREN
           890 293 277), 45 rue de Maubeuge, 75009 Paris. Contact :{" "}
-          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
-            info@ip5energie.com
+          <a href="mailto:contact@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
+            contact@ip5energie.com
           </a>
           .
         </p>
@@ -232,8 +232,8 @@ export const Confidentialite = () => {
         </p>
         <p>
           Pour les exercer, écrivez-nous à{" "}
-          <a href="mailto:info@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
-            info@ip5energie.com
+          <a href="mailto:contact@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
+            contact@ip5energie.com
           </a>{" "}
           en précisant votre demande. Vous pouvez aussi introduire une
           réclamation auprès de la CNIL (
