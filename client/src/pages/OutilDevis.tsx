@@ -493,7 +493,7 @@ const Simulateur = ({
 
         {tab === "marges" && <MargesPremi />}
 
-        {tab === "clients" && <ClientsCRM />}
+        {tab === "clients" && <ClientsCRM email={email} />}
 
         {tab === "devis" && (
           <>

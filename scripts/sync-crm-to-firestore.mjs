@@ -159,7 +159,14 @@ async function upsertClient(token, item) {
     nbVehicules: str(colText(item, "text_mm77hatv")),
     createdAt: str(item.created_at),
   };
-  const url = `${FIRESTORE_BASE}/crm_clients/${item.id}`;
+  // updateMask : ne touche qu'aux champs issus de Monday. Les champs
+  // "internes" ajoutés depuis l'onglet Clients (statutCRM, notesCRM,
+  // updatedAt, updatedBy) ne sont jamais dans `fields` ci-dessus, donc un
+  // updateMask qui ne liste qu'eux les laisse intacts à chaque synchro.
+  const mask = Object.keys(fields)
+    .map((f) => `updateMask.fieldPaths=${encodeURIComponent(f)}`)
+    .join("&");
+  const url = `${FIRESTORE_BASE}/crm_clients/${item.id}?${mask}`;
   const res = await fetch(url, {
     method: "PATCH",
     headers: {
