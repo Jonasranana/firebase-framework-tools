@@ -60,7 +60,7 @@ exports.sendGonflageSignatureEmail = onDocumentCreated(
   {
     document: "gonflage_signatures/{token}",
     secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
-    region: "europe-west1",
+    region: "europe-west9",
   },
   async (event) => {
     const data = event.data?.data();
