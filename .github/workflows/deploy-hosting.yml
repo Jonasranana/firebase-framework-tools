@@ -42,3 +42,11 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
         run: npx firebase-tools@latest deploy --only hosting --project kachoto-7554c --non-interactive
+
+      # Envoi automatique de l'e-mail de signature (CRM Station de gonflage).
+      # Nécessite le plan Blaze + les secrets GMAIL_* configurés une fois
+      # via `firebase functions:secrets:set` (voir functions/README.md).
+      - name: Deploy Cloud Functions
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+        run: npx firebase-tools@latest deploy --only functions --project kachoto-7554c --non-interactive
