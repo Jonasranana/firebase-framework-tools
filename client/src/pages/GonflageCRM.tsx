@@ -20,6 +20,7 @@ import {
   Ban,
   FileText,
   Camera,
+  Pencil,
 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
@@ -183,14 +184,13 @@ export type DocumentData = {
   kwhCumac?: number;
 };
 
-export async function buildDocumentPdf(
+function drawDocumentPage(
+  doc: any,
   kind: "predevis" | "attestation" | "contrat",
   d: DocumentData,
-  signature?: { nom: string; dataUrl: string; date: string },
+  signature: { nom: string; dataUrl: string; date: string } | undefined,
+  logo: string,
 ) {
-  const { jsPDF } = await import("jspdf");
-  const doc = new jsPDF({ unit: "mm", format: "a4" });
-  const logo = await logoDataUrl("#ffffff", 400);
   const logoW = 32;
   const logoH = (387 / 865) * logoW;
 
@@ -200,7 +200,7 @@ export async function buildDocumentPdf(
       s: `Opération standardisée CEE TRA-SE-104 — réf. ${d.reference || "—"}`,
     },
     attestation: {
-      t: "Attestation d'engagement",
+      t: "ATTESTATION D'ENGAGEMENT",
       s: `Station de gonflage ouverte à tout public et gratuite — catégorie ${d.typeStation ?? ""}`,
     },
     contrat: {
@@ -224,19 +224,36 @@ export async function buildDocumentPdf(
   doc.setTextColor(20, 20, 20);
   let y = 44;
 
-  const beneficiaire = [
-    d.raisonSociale,
-    `SIREN : ${d.siren}`,
-    d.adresse,
-    `${d.codePostal} ${d.ville}`,
-    d.nomContact ? `Contact : ${d.nomContact}` : "",
-    d.telephone ? `Tél. : ${d.telephone}` : "",
-  ].filter(Boolean);
+  // L'attestation identifie le signataire comme représentant légal, sur
+  // une seule ligne d'adresse ; le pré-devis/contrat garde contact + tél.
+  // sur deux lignes séparées (adresse, puis code postal/ville).
+  const beneficiaire =
+    kind === "attestation"
+      ? [
+          d.raisonSociale,
+          `SIREN : ${d.siren}`,
+          `${d.adresse} ${d.codePostal} ${d.ville}`.trim(),
+          d.nomContact ? `Représentant légal : ${d.nomContact}` : "",
+        ].filter(Boolean)
+      : [
+          d.raisonSociale,
+          `SIREN : ${d.siren}`,
+          d.adresse,
+          `${d.codePostal} ${d.ville}`,
+          d.nomContact ? `Contact : ${d.nomContact}` : "",
+          d.telephone ? `Tél. : ${d.telephone}` : "",
+        ].filter(Boolean);
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.text(kind === "attestation" ? "Le bénéficiaire" : "Bénéficiaire", 15, y);
+  if (kind === "predevis") {
+    doc.text(`Référence dossier : ${d.reference || "—"}`, 195, y, { align: "right" });
+  }
   doc.setFont("helvetica", "normal");
+  if (kind === "predevis" && d.typeStation) {
+    doc.text(`Station type ${d.typeStation}`, 195, y + 6, { align: "right" });
+  }
   y += 6;
   for (const line of beneficiaire) {
     doc.text(line, 15, y);
@@ -330,7 +347,32 @@ export async function buildDocumentPdf(
     y += 4;
     doc.addImage(signature.dataUrl, "PNG", 15, y, 50, 25);
   }
+}
 
+export async function buildDocumentPdf(
+  kind: "predevis" | "attestation" | "contrat",
+  d: DocumentData,
+  signature?: { nom: string; dataUrl: string; date: string },
+) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const logo = await logoDataUrl("#ffffff", 400);
+  drawDocumentPage(doc, kind, d, signature, logo);
+  return doc;
+}
+
+// Pré-devis + attestation d'engagement réunis dans un seul PDF de 2 pages
+// (le client ne signe qu'une fois, mais s'engage sur les deux documents).
+export async function buildPredevisCompletPdf(
+  d: DocumentData,
+  signature?: { nom: string; dataUrl: string; date: string },
+) {
+  const { jsPDF } = await import("jspdf");
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+  const logo = await logoDataUrl("#ffffff", 400);
+  drawDocumentPage(doc, "predevis", d, signature, logo);
+  doc.addPage();
+  drawDocumentPage(doc, "attestation", d, signature, logo);
   return doc;
 }
 
@@ -820,6 +862,21 @@ function tsToIso(v: unknown): string {
   return "";
 }
 
+const beneficiaireFormFromDossier = (d: Dossier) => ({
+  raisonSociale: d.raisonSociale,
+  siren: d.siren,
+  nomContact: d.nomContact,
+  email: d.email,
+  telephone: d.telephone,
+  adresse: d.adresse,
+  codePostal: d.codePostal,
+  ville: d.ville,
+  adresseTravauxDifferente: d.adresseTravauxDifferente,
+  adresseTravaux: d.adresseTravaux,
+  codePostalTravaux: d.codePostalTravaux,
+  villeTravaux: d.villeTravaux,
+});
+
 const BeneficiaireCard = ({
   dossier: d,
   onPatch,
@@ -828,27 +885,89 @@ const BeneficiaireCard = ({
   onPatch: (f: Partial<Dossier>) => void;
 }) => {
   const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState(beneficiaireFormFromDossier(d));
+
+  const set = (k: keyof typeof form, v: string | boolean) => setForm((f) => ({ ...f, [k]: v }));
+
+  const startEditing = () => {
+    setForm(beneficiaireFormFromDossier(d));
+    setEditing(true);
+  };
+
+  const save = () => {
+    onPatch(form);
+    setEditing(false);
+  };
+
   return (
     <div className="bg-white rounded-3xl border border-gray-100 p-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm font-bold text-gray-900">Bénéficiaire</p>
-        <button onClick={() => setEditing((v) => !v)} className="text-gray-400 hover:text-[#2b5a8f]">
-          <ChevronRight size={15} className={editing ? "rotate-90 transition-transform" : "transition-transform"} />
+        <button
+          onClick={() => (editing ? setEditing(false) : startEditing())}
+          className="text-gray-400 hover:text-[#2b5a8f]"
+          aria-label="Modifier le bénéficiaire"
+        >
+          <Pencil size={14} />
         </button>
       </div>
       <p className="text-xs text-gray-400 mb-3">Coordonnées du client bénéficiaire.</p>
-      <dl className="space-y-1.5 text-xs">
-        <DL k="Raison sociale" v={d.raisonSociale} />
-        <DL k="SIREN" v={d.siren} />
-        <DL k="Contact" v={d.nomContact} />
-        <DL k="Email" v={d.email} />
-        <DL k="Téléphone" v={d.telephone} />
-        <DL k="Adresse" v={`${d.adresse}, ${d.codePostal} ${d.ville}`} />
-        {d.adresseTravauxDifferente && (
-          <DL k="Adresse des travaux" v={`${d.adresseTravaux}, ${d.codePostalTravaux} ${d.villeTravaux}`} />
-        )}
-        <DL k="Type de station" v={d.typeStation ?? "—"} />
-      </dl>
+
+      {!editing ? (
+        <dl className="space-y-1.5 text-xs">
+          <DL k="Raison sociale" v={d.raisonSociale} />
+          <DL k="SIREN" v={d.siren} />
+          <DL k="Contact" v={d.nomContact} />
+          <DL k="Email" v={d.email} />
+          <DL k="Téléphone" v={d.telephone} />
+          <DL k="Adresse" v={`${d.adresse}, ${d.codePostal} ${d.ville}`} />
+          {d.adresseTravauxDifferente && (
+            <DL k="Adresse des travaux" v={`${d.adresseTravaux}, ${d.codePostalTravaux} ${d.villeTravaux}`} />
+          )}
+          <DL k="Type de station" v={d.typeStation ?? "—"} />
+        </dl>
+      ) : (
+        <div className="space-y-3">
+          <Field label="Raison sociale" value={form.raisonSociale} onChange={(v) => set("raisonSociale", v)} full />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="SIREN" value={form.siren} onChange={(v) => set("siren", v)} />
+            <Field label="Contact (nom / prénom)" value={form.nomContact} onChange={(v) => set("nomContact", v)} />
+          </div>
+          <Field label="Email" value={form.email} onChange={(v) => set("email", v)} type="email" full />
+          <Field label="Téléphone" value={form.telephone} onChange={(v) => set("telephone", v)} full />
+          <Field label="Adresse" value={form.adresse} onChange={(v) => set("adresse", v)} full />
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Code postal" value={form.codePostal} onChange={(v) => set("codePostal", v)} />
+            <Field label="Ville" value={form.ville} onChange={(v) => set("ville", v)} />
+          </div>
+          <label className="flex items-center gap-2 text-xs font-semibold text-gray-700">
+            <input
+              type="checkbox"
+              checked={form.adresseTravauxDifferente}
+              onChange={(e) => set("adresseTravauxDifferente", e.target.checked)}
+              className="w-4 h-4 accent-[#2b5a8f]"
+            />
+            Adresse des travaux différente
+          </label>
+          {form.adresseTravauxDifferente && (
+            <>
+              <Field label="Adresse des travaux" value={form.adresseTravaux} onChange={(v) => set("adresseTravaux", v)} full />
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Code postal des travaux" value={form.codePostalTravaux} onChange={(v) => set("codePostalTravaux", v)} />
+                <Field label="Ville des travaux" value={form.villeTravaux} onChange={(v) => set("villeTravaux", v)} />
+              </div>
+            </>
+          )}
+          <div className="flex justify-end gap-2 pt-1">
+            <button onClick={() => setEditing(false)} className="px-3 py-2 text-xs font-bold text-gray-500 rounded-xl hover:bg-gray-50">
+              Annuler
+            </button>
+            <button onClick={save} className="px-4 py-2 text-xs font-bold text-white bg-[#2b5a8f] rounded-xl">
+              Enregistrer
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -1175,7 +1294,7 @@ const Step2 = ({
   const primeCEE = d.primeCEE ?? kwhCumac * TARIF_EUR_PAR_KWH_CUMAC;
 
   const telecharger = async () => {
-    const pdf = await buildDocumentPdf("predevis", { ...d, kwhCumac, primeCEE });
+    const pdf = await buildPredevisCompletPdf({ ...d, kwhCumac, primeCEE });
     pdf.save(`pre-devis-${d.raisonSociale}.pdf`);
   };
 
@@ -1312,11 +1431,15 @@ const StepSignature = ({
     if (!sig || !sig.signatureDataUrl || !sig.nom) return;
     setDownloading(true);
     try {
-      const pdf = await buildDocumentPdf(docKind, d, {
+      const signature = {
         nom: sig.nom,
         dataUrl: sig.signatureDataUrl,
         date: formatDateTime(sig.signeAt ?? "") || new Date().toLocaleDateString("fr-FR"),
-      });
+      };
+      const pdf =
+        docKind === "contrat"
+          ? await buildDocumentPdf("contrat", d, signature)
+          : await buildPredevisCompletPdf(d, signature);
       pdf.save(`${docKind === "contrat" ? "contrat" : "pre-devis"}-signe-${d.raisonSociale}.pdf`);
     } finally {
       setDownloading(false);

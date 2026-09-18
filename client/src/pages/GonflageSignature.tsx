@@ -3,7 +3,7 @@ import { useParams } from "wouter";
 import { Loader2, Download, CheckCircle2 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
 import { getEspaceProApp } from "@/lib/espacePro";
-import { buildDocumentPdf, SignaturePad, type DocumentData } from "./GonflageCRM";
+import { buildDocumentPdf, buildPredevisCompletPdf, SignaturePad, type DocumentData } from "./GonflageCRM";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Page publique (aucune connexion requise) où le client bénéficiaire
@@ -108,11 +108,15 @@ export default function GonflageSignature() {
     if (!doc || !doc.signatureDataUrl || !doc.nom) return;
     setDownloading(true);
     try {
-      const pdf = await buildDocumentPdf(doc.type === "contrat" ? "contrat" : "predevis", doc, {
+      const signature = {
         nom: doc.nom,
         dataUrl: doc.signatureDataUrl,
         date: new Date().toLocaleDateString("fr-FR"),
-      });
+      };
+      const pdf =
+        doc.type === "contrat"
+          ? await buildDocumentPdf("contrat", doc, signature)
+          : await buildPredevisCompletPdf(doc, signature);
       pdf.save(`${doc.type === "contrat" ? "contrat" : "pre-devis"}-signe-${doc.raisonSociale}.pdf`);
     } finally {
       setDownloading(false);
