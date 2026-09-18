@@ -18,6 +18,8 @@ import {
   Upload,
   Trash2,
   Ban,
+  FileText,
+  Camera,
 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
@@ -760,7 +762,7 @@ const DossierDetail = ({
                         {e.key}
                       </span>
                     )}
-                    <span className="text-xs font-bold text-gray-800 leading-tight">{e.label}</span>
+                    <span className="text-xs font-bold text-gray-800 leading-tight">{e.key}. {e.label}</span>
                   </div>
                   <p className="text-[11px] text-gray-400 leading-snug">{e.desc}</p>
                   {isCurrent && (
@@ -893,6 +895,197 @@ const StepHeader = ({ n, title, desc }: { n: string; title: string; desc: string
 );
 
 // Étape 1 — Questionnaire d'éligibilité
+// Types de pièces déposables via la carte "Documents" — même liste que la
+// checklist de l'étape 8 (moins les photos, qui ont leur propre carte).
+const DOCUMENT_TYPES = [
+  "Contrat d'entretien signé",
+  "Attestation d'engagement signée",
+  "PV de réception",
+  "État récapitulatif",
+  "Autre",
+];
+
+// Dépôt de pièces et de photos de chantier, consultable dès l'étape 1 (en
+// plus du dépôt dédié de l'étape 7) : utile quand le commercial récupère
+// déjà des documents ou des photos sur le terrain au moment de qualifier
+// le bénéficiaire, sans attendre la fin du chantier.
+const DocumentsChantierCards = ({ dossier: d }: { dossier: Dossier }) => {
+  const [docType, setDocType] = useState(DOCUMENT_TYPES[0]);
+  const [docs, setDocs] = useState<{ name: string; url: string }[] | null>(null);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const [photos, setPhotos] = useState<{ name: string; url: string }[] | null>(null);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+
+  const loadDocs = async () => {
+    const app = await getEspaceProApp();
+    const { getStorage, ref, listAll, getDownloadURL } = await import("firebase/storage");
+    const storage = getStorage(app);
+    const res = await listAll(ref(storage, `gonflage/${d.id}/documents`));
+    setDocs(await Promise.all(res.items.map(async (i) => ({ name: i.name, url: await getDownloadURL(i) }))));
+  };
+  const loadPhotos = async () => {
+    const app = await getEspaceProApp();
+    const { getStorage, ref, listAll, getDownloadURL } = await import("firebase/storage");
+    const storage = getStorage(app);
+    const res = await listAll(ref(storage, `gonflage/${d.id}/photos-chantier`));
+    setPhotos(await Promise.all(res.items.map(async (i) => ({ name: i.name, url: await getDownloadURL(i) }))));
+  };
+
+  useEffect(() => {
+    loadDocs();
+    loadPhotos();
+  }, []);
+
+  const uploadDoc = async (fl: FileList | null) => {
+    if (!fl || fl.length === 0) return;
+    setUploadingDoc(true);
+    try {
+      const app = await getEspaceProApp();
+      const { getStorage, ref, uploadBytes } = await import("firebase/storage");
+      const storage = getStorage(app);
+      for (const f of Array.from(fl)) {
+        await uploadBytes(ref(storage, `gonflage/${d.id}/documents/${f.name}`), f, {
+          customMetadata: { type: docType },
+        });
+      }
+      await loadDocs();
+    } finally {
+      setUploadingDoc(false);
+    }
+  };
+
+  const uploadPhotos = async (fl: FileList | null) => {
+    if (!fl || fl.length === 0) return;
+    setUploadingPhotos(true);
+    try {
+      const app = await getEspaceProApp();
+      const { getStorage, ref, uploadBytes } = await import("firebase/storage");
+      const storage = getStorage(app);
+      for (const f of Array.from(fl)) {
+        await uploadBytes(ref(storage, `gonflage/${d.id}/photos-chantier/${f.name}`), f);
+      }
+      await loadPhotos();
+    } finally {
+      setUploadingPhotos(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl p-4">
+        <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5 mb-1">
+          <FileText size={15} /> Documents
+        </p>
+        <p className="text-xs text-gray-400 mb-3">Pièces justificatives du dossier CEE.</p>
+        <span className="block text-xs font-semibold text-gray-600 mb-1">Type de document</span>
+        <div className="flex gap-2 mb-3">
+          <select
+            value={docType}
+            onChange={(e) => setDocType(e.target.value)}
+            className="flex-1 text-sm bg-white border-2 border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#2b5a8f]"
+          >
+            {DOCUMENT_TYPES.map((t) => (
+              <option key={t} value={t}>
+                {t}
+              </option>
+            ))}
+          </select>
+          <label className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-700 bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 cursor-pointer whitespace-nowrap">
+            {uploadingDoc ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            Ajouter un fichier
+            <input type="file" multiple className="hidden" disabled={uploadingDoc} onChange={(e) => uploadDoc(e.target.files)} />
+          </label>
+        </div>
+        <div className="border-2 border-gray-100 rounded-xl px-3 py-3">
+          {docs === null && <Loader2 className="animate-spin text-gray-300" size={16} />}
+          {docs && docs.length === 0 && <p className="text-xs text-gray-400">Aucun document déposé.</p>}
+          {docs && docs.length > 0 && (
+            <ul className="space-y-1">
+              {docs.map((f) => (
+                <li key={f.name}>
+                  <a href={f.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#2b5a8f]">
+                    {f.name}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl p-4">
+        <p className="text-sm font-bold text-gray-900 flex items-center gap-1.5 mb-1">
+          <Camera size={15} /> Photos du chantier
+        </p>
+        <p className="text-xs text-gray-400 mb-3">Prises de vue avant / après installation, horodatées automatiquement.</p>
+        <div className="flex items-center gap-2 mb-3">
+          <span
+            className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-full ${
+              photos && photos.length > 0 ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+            }`}
+          >
+            {photos && photos.length > 0 ? <CheckCircle2 size={13} /> : <Clock size={13} />}
+            {photos && photos.length > 0
+              ? `${photos.length} photo${photos.length > 1 ? "s" : ""} reçue${photos.length > 1 ? "s" : ""}`
+              : "Attente photo"}
+          </span>
+          <label className="inline-flex items-center gap-1.5 text-sm font-bold text-gray-700 bg-white border-2 border-gray-200 rounded-xl px-4 py-2.5 cursor-pointer whitespace-nowrap">
+            {uploadingPhotos ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+            Ajouter des photos
+            <input
+              type="file"
+              accept="image/png,image/jpeg"
+              multiple
+              className="hidden"
+              disabled={uploadingPhotos}
+              onChange={(e) => uploadPhotos(e.target.files)}
+            />
+          </label>
+        </div>
+        <label
+          onDragOver={(e) => {
+            e.preventDefault();
+            setDragOver(true);
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault();
+            setDragOver(false);
+            uploadPhotos(e.dataTransfer.files);
+          }}
+          className={`flex flex-col items-center justify-center gap-1 border-2 border-dashed rounded-xl px-4 py-8 text-center cursor-pointer transition-colors ${
+            dragOver ? "border-[#2b5a8f] bg-blue-50" : "border-gray-200"
+          }`}
+        >
+          <Upload size={18} className="text-gray-400 mb-1" />
+          <span className="text-xs font-semibold text-gray-600">Glissez-déposez vos photos ici</span>
+          <span className="text-[11px] text-gray-400">JPG, PNG — 20 Mo maximum par photo</span>
+          <input
+            type="file"
+            accept="image/png,image/jpeg"
+            multiple
+            className="hidden"
+            disabled={uploadingPhotos}
+            onChange={(e) => uploadPhotos(e.target.files)}
+          />
+        </label>
+        {photos && photos.length > 0 && (
+          <ul className="mt-2 space-y-1">
+            {photos.map((f) => (
+              <li key={f.name}>
+                <a href={f.url} target="_blank" rel="noreferrer" className="text-xs font-semibold text-[#2b5a8f]">
+                  {f.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const Step1 = ({
   dossier: d,
   onPatch,
@@ -959,6 +1152,10 @@ const Step1 = ({
       >
         Valider l'éligibilité
       </button>
+
+      <div className="mt-6">
+        <DocumentsChantierCards dossier={d} />
+      </div>
     </div>
   );
 };
