@@ -193,8 +193,12 @@ exports.sendLeadWelcomeEmail = onDocumentCreated(
       return;
     }
     // Le contenu de cet e-mail est spécifique à la pompe à chaleur : on ne
-    // l'envoie pas aux leads uniquement intéressés par le solaire.
-    if (data.projectType !== "Pompe à chaleur" && data.projectType !== "Les deux") {
+    // l'envoie pas aux leads uniquement intéressés par le solaire. Comparaison
+    // tolérante (espaces, casse) : un accent ou une espace mal saisi ne doit
+    // pas faire échouer silencieusement l'envoi.
+    const projectType = String(data.projectType ?? "").trim().toLowerCase();
+    const wantsPAC = projectType.includes("pompe") || projectType.includes("les deux");
+    if (!wantsPAC) {
       logger.info("Lead sans intérêt PAC, envoi de bienvenue ignoré", { leadId, projectType: data.projectType });
       return;
     }
