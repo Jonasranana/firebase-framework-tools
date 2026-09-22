@@ -222,10 +222,10 @@ function buildLeadWelcomeEmailHtml({ prenom }) {
   </tr>
 
   <tr>
-    <td style="padding:0 24px 20px 24px; color:${NAVY_DARK}; font-size:13px;">
-      Une question, envie de nous rappeler directement&nbsp;?<br/>
-      <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a><br/>
-      <a href="tel:+33695920409" style="color:${BLUE}; font-weight:bold; text-decoration:none;">06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
+    <td style="padding:0 24px 20px 24px;">
+      <p style="margin:0 0 10px 0; color:#5b6b7d; font-size:13px;">Une question, envie de nous rappeler directement&nbsp;?</p>
+      <a href="tel:+33749525267" style="display:block; color:${NAVY}; font-weight:bold; font-size:17px; text-decoration:none; margin-bottom:6px;">📞&nbsp;07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a>
+      <a href="tel:+33695920409" style="display:block; color:${NAVY}; font-weight:bold; font-size:17px; text-decoration:none;">📞&nbsp;06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
     </td>
   </tr>
 
@@ -547,11 +547,11 @@ function buildBrandedEmailShell({ bodyHtml }) {
   </tr>
 
   <tr>
-    <td style="padding:0 40px 20px 40px; color:${NAVY_DARK}; font-size:13px; border-top:1px solid #e5e9ef;">
+    <td style="padding:0 40px 20px 40px; border-top:1px solid #e5e9ef;">
       <div style="padding-top:20px;">
-        Une question, envie de nous rappeler directement&nbsp;?<br/>
-        <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a><br/>
-        <a href="tel:+33695920409" style="color:${BLUE}; font-weight:bold; text-decoration:none;">06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
+        <p style="margin:0 0 10px 0; color:#5b6b7d; font-size:13px;">Une question, envie de nous rappeler directement&nbsp;?</p>
+        <a href="tel:+33749525267" style="display:block; color:${NAVY}; font-weight:bold; font-size:17px; text-decoration:none; margin-bottom:6px;">📞&nbsp;07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a>
+        <a href="tel:+33695920409" style="display:block; color:${NAVY}; font-weight:bold; font-size:17px; text-decoration:none;">📞&nbsp;06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
       </div>
     </td>
   </tr>
