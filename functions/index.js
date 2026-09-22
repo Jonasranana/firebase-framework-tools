@@ -603,6 +603,27 @@ function buildFicheTechniqueEmailHtml({ prenom }) {
   });
 }
 
+// Après un appel où le reste à charge n'est pas nul (selon la tranche de
+// revenus du foyer), on envoie la fiche technique avec le montant exact au
+// lieu du message "0 €" générique (voir buildFicheTechniqueEmailHtml).
+function buildRacEmailHtml({ prenom, rac }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
+      <p style="margin:0 0 12px 0;">
+        Merci pour votre accueil lors de notre appel. Comme convenu, vous
+        trouverez ci-joint la fiche technique de notre pompe à chaleur
+        <strong>Atlantic Alféa Excellia S</strong>.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Selon les informations communiquées, le reste à charge estimé après
+        déduction des aides serait d'environ <strong>${rac}&nbsp;€</strong>.
+      </p>
+      <p style="margin:0;">N'hésitez pas si vous avez des questions.</p>
+    `,
+  });
+}
+
 // Modèles de mail pilotés depuis Monday (colonne "📧 Modèle mail",
 // color_mm7ensy9, tableau "Pac Pac😀") : choisir une valeur dans cette
 // colonne envoie automatiquement l'e-mail correspondant au lead, via un
@@ -610,6 +631,18 @@ function buildFicheTechniqueEmailHtml({ prenom }) {
 // nouveau cas de figure : ajouter le libellé comme option de la colonne
 // dans Monday, puis une entrée ici avec son sujet/contenu.
 const MONDAY_TEMPLATE_COLUMN_ID = "color_mm7ensy9";
+const FICHE_TECHNIQUE_ATTACHMENTS = [
+  {
+    filename: "Fiche technique - Atlantic Alfea Excellia S.pdf",
+    mimeType: "application/pdf",
+    path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-s.pdf"),
+  },
+  {
+    filename: "Gamme Alfea Excellia - Atlantic.pdf",
+    mimeType: "application/pdf",
+    path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-gamme.pdf"),
+  },
+];
 const MONDAY_EMAIL_TEMPLATES = {
   "injoignable — relance": {
     subject: "IP5 Énergie — Nous avons essayé de vous joindre",
@@ -618,18 +651,22 @@ const MONDAY_EMAIL_TEMPLATES = {
   "envoi fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
     buildHtml: buildFicheTechniqueEmailHtml,
-    attachments: [
-      {
-        filename: "Fiche technique - Atlantic Alfea Excellia S.pdf",
-        mimeType: "application/pdf",
-        path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-s.pdf"),
-      },
-      {
-        filename: "Gamme Alfea Excellia - Atlantic.pdf",
-        mimeType: "application/pdf",
-        path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-gamme.pdf"),
-      },
-    ],
+    attachments: FICHE_TECHNIQUE_ATTACHMENTS,
+  },
+  "rac 1000€": {
+    subject: "IP5 Énergie — Votre pompe à chaleur (reste à charge estimé)",
+    buildHtml: ({ prenom }) => buildRacEmailHtml({ prenom, rac: "1 000" }),
+    attachments: FICHE_TECHNIQUE_ATTACHMENTS,
+  },
+  "rac 2000€": {
+    subject: "IP5 Énergie — Votre pompe à chaleur (reste à charge estimé)",
+    buildHtml: ({ prenom }) => buildRacEmailHtml({ prenom, rac: "2 000" }),
+    attachments: FICHE_TECHNIQUE_ATTACHMENTS,
+  },
+  "rac 3000€": {
+    subject: "IP5 Énergie — Votre pompe à chaleur (reste à charge estimé)",
+    buildHtml: ({ prenom }) => buildRacEmailHtml({ prenom, rac: "3 000" }),
+    attachments: FICHE_TECHNIQUE_ATTACHMENTS,
   },
 };
 
