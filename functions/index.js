@@ -637,7 +637,7 @@ async function fetchMondayItemContact(itemId, mondayToken) {
   const query = `query ($ids: [ID!]) {
     items(ids: $ids) {
       name
-      column_values(ids: ["email_mm2qmb9n"]) { text }
+      column_values(ids: ["email_mm2qmb9n"]) { text value }
     }
   }`;
   const res = await fetch("https://api.monday.com/v2", {
@@ -654,7 +654,17 @@ async function fetchMondayItemContact(itemId, mondayToken) {
   if (!item) {
     throw new Error(`Item Monday introuvable: ${JSON.stringify(body)}`);
   }
-  const email = item.column_values?.[0]?.text?.trim();
+  // Colonne de type "email" : le champ `text` n'est qu'un libellé d'affichage
+  // (peut diverger de l'adresse réelle) ; l'adresse routable est dans
+  // `value.email`. On ne retombe sur `text` que si `value` est absent.
+  const columnValue = item.column_values?.[0];
+  let email;
+  try {
+    email = JSON.parse(columnValue?.value ?? "null")?.email;
+  } catch {
+    email = undefined;
+  }
+  email = (email ?? columnValue?.text)?.trim();
   return { name: item.name, email };
 }
 
@@ -686,6 +696,10 @@ exports.sendMondayEmailTemplate = onRequest(
 
     const event = req.body?.event;
     if (!event || event.columnId !== MONDAY_TEMPLATE_COLUMN_ID) {
+      logger.info("Webhook Monday ignoré (colonne non concernée)", {
+        columnId: event?.columnId,
+        pulseId: event?.pulseId,
+      });
       res.status(200).send("ignored");
       return;
     }
