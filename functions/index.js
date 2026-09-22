@@ -166,6 +166,15 @@ function buildLeadWelcomeEmailHtml({ prenom }) {
   </tr>
 
   <tr>
+    <td style="padding:0 24px 20px 24px; color:${NAVY_DARK}; font-size:13px;">
+      Une question, envie de nous rappeler directement&nbsp;?
+      <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a>
+      ·
+      <a href="tel:+33695920409" style="color:${BLUE}; font-weight:bold; text-decoration:none;">06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
+    </td>
+  </tr>
+
+  <tr>
     <td style="padding:0 24px 24px 24px; color:#8a94a3; font-size:13px; font-style:italic;">
       — IP5 Énergie
     </td>
@@ -176,6 +185,57 @@ function buildLeadWelcomeEmailHtml({ prenom }) {
 </table>
 </body>
 </html>`;
+}
+
+// E-mail interne envoyé sur contact@ip5energie.com dès qu'un lead arrive
+// dans ip5_leads, avant même la synchro Monday (cron toutes les 15 min) :
+// délai de traitement le plus court possible. Envoyé pour tous les leads,
+// quel que soit le projet (PAC, solaire, les deux).
+function buildLeadNotificationEmailHtml(data) {
+  const NAVY_DARK = "#122f4d";
+  const BLUE = "#2b5a8f";
+  const rows = [
+    ["Nom", data.name],
+    ["Téléphone", data.phone],
+    ["E-mail", data.email],
+    ["Projet", data.projectType],
+    ["Type de logement", data.housingType],
+    ["Statut", data.ownerStatus],
+    ["Surface", data.surface ? `${data.surface} m²` : ""],
+    ["Chauffage actuel", data.currentHeating],
+    ["Département", data.department],
+    ["Foyer", data.householdSize],
+    ["Revenus", data.incomeBracket],
+    ["Échéance projet", data.projectTiming],
+    ["Source", data.source],
+  ].filter(([, value]) => value);
+
+  return `
+    <div style="font-family:Arial,Helvetica,sans-serif; color:${NAVY_DARK}; max-width:560px;">
+      <p style="font-size:16px; font-weight:bold; margin:0 0 4px 0;">Nouveau lead — ${data.name || "sans nom"}</p>
+      <p style="font-size:13px; color:#6b7280; margin:0 0 16px 0;">Reçu à l'instant via le site IP5 Énergie.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px; border-collapse:collapse;">
+        ${rows
+          .map(
+            ([label, value]) => `
+        <tr>
+          <td style="padding:4px 12px 4px 0; color:#6b7280; vertical-align:top; white-space:nowrap;">${label}</td>
+          <td style="padding:4px 0; font-weight:bold;">${value}</td>
+        </tr>`,
+          )
+          .join("")}
+      </table>
+      ${
+        data.phone
+          ? `<p style="margin:20px 0 0 0;">
+              <a href="tel:${String(data.phone).replace(/\s+/g, "")}" style="display:inline-block; background:${BLUE}; color:#ffffff; text-decoration:none; padding:10px 18px; border-radius:10px; font-weight:bold; font-size:13px;">
+                📞 Rappeler ${data.name || "le lead"}
+              </a>
+            </p>`
+          : ""
+      }
+    </div>
+  `;
 }
 
 exports.sendLeadWelcomeEmail = onDocumentCreated(
@@ -221,6 +281,43 @@ exports.sendLeadWelcomeEmail = onDocumentCreated(
       logger.info("E-mail de bienvenue lead envoyé", { leadId, to: data.email });
     } catch (err) {
       logger.error("Échec de l'envoi de l'e-mail de bienvenue lead", { leadId, error: err.message });
+      throw err;
+    }
+  },
+);
+
+exports.notifyNewLead = onDocumentCreated(
+  {
+    document: "ip5_leads/{leadId}",
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+    region: "europe-west9",
+  },
+  async (event) => {
+    const data = event.data?.data();
+    const leadId = event.params.leadId;
+
+    if (!data) {
+      logger.info("Lead vide, notification interne ignorée", { leadId });
+      return;
+    }
+
+    const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+    oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+    const contactEmail = GMAIL_SENDER_EMAIL.value();
+    const raw = buildRawMessage({
+      to: contactEmail,
+      from: contactEmail,
+      subject: `🔔 Nouveau lead — ${data.name || "sans nom"}${data.projectType ? ` (${data.projectType})` : ""}`,
+      html: buildLeadNotificationEmailHtml(data),
+    });
+
+    try {
+      await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+      logger.info("Notification interne nouveau lead envoyée", { leadId, to: contactEmail });
+    } catch (err) {
+      logger.error("Échec de l'envoi de la notification interne nouveau lead", { leadId, error: err.message });
       throw err;
     }
   },
