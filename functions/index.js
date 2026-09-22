@@ -531,33 +531,35 @@ function buildBrandedEmailShell({ bodyHtml }) {
 
   return `<!DOCTYPE html>
 <html lang="fr">
-<body style="margin:0; padding:0; background:#f3f5f8; font-family:Arial,Helvetica,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8; padding:24px 0;">
+<body style="margin:0; padding:0; background:#ffffff; font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;">
 <tr><td align="center">
-<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background:#ffffff; border-radius:20px; overflow:hidden; border:1px solid #e5e9ef;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background:#ffffff;">
 
   <tr>
-    <td style="padding:20px 24px;" align="left">
+    <td style="padding:28px 24px 16px 24px; border-bottom:2px solid ${NAVY};" align="left">
       <img src="${logoUrl}" width="150" alt="IP5 Énergie" style="display:block; height:auto;" />
     </td>
   </tr>
 
   <tr>
-    <td style="padding:8px 24px 24px 24px; color:${NAVY_DARK}; font-size:16px; line-height:1.6;">
+    <td style="padding:24px 24px; color:${NAVY_DARK}; font-size:16px; line-height:1.6;">
       ${bodyHtml}
     </td>
   </tr>
 
   <tr>
-    <td style="padding:0 24px 20px 24px; color:${NAVY_DARK}; font-size:13px;">
-      Une question, envie de nous rappeler directement&nbsp;?<br/>
-      <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a><br/>
-      <a href="tel:+33695920409" style="color:${BLUE}; font-weight:bold; text-decoration:none;">06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
+    <td style="padding:0 24px 20px 24px; color:${NAVY_DARK}; font-size:13px; border-top:1px solid #e5e9ef;">
+      <div style="padding-top:20px;">
+        Une question, envie de nous rappeler directement&nbsp;?<br/>
+        <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a><br/>
+        <a href="tel:+33695920409" style="color:${BLUE}; font-weight:bold; text-decoration:none;">06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
+      </div>
     </td>
   </tr>
 
   <tr>
-    <td style="padding:0 24px 24px 24px; color:#8a94a3; font-size:13px; font-style:italic;">
+    <td style="padding:0 24px 28px 24px; color:#8a94a3; font-size:13px; font-style:italic;">
       — IP5 Énergie
     </td>
   </tr>
