@@ -1,9 +1,12 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
 const { google } = require("googleapis");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
+const { readFileSync } = require("node:fs");
+const path = require("node:path");
 
 initializeApp();
 const db = getFirestore();
@@ -13,6 +16,7 @@ const GMAIL_CLIENT_SECRET = defineSecret("GMAIL_CLIENT_SECRET");
 const GMAIL_REFRESH_TOKEN = defineSecret("GMAIL_REFRESH_TOKEN");
 const GMAIL_SENDER_EMAIL = defineSecret("GMAIL_SENDER_EMAIL");
 const MONDAY_API_TOKEN = defineSecret("MONDAY_API_TOKEN");
+const MONDAY_WEBHOOK_SECRET = defineSecret("MONDAY_WEBHOOK_SECRET");
 
 const SITE_URL = "https://ip5energie.fr";
 
@@ -32,6 +36,46 @@ function buildRawMessage({ to, from, subject, html }) {
     `Subject: ${encodeHeaderWord(subject)}`,
     "",
     html,
+  ].join("\r\n");
+
+  return Buffer.from(message)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/, "");
+}
+
+// Variante avec pièce jointe (multipart/mixed) : utilisée pour les modèles
+// de mail Monday qui joignent un document (ex. fiche technique). Sans
+// pièce jointe, retombe sur le message simple ci-dessus.
+function buildRawMessageWithAttachment({ to, from, subject, html, attachment }) {
+  if (!attachment) {
+    return buildRawMessage({ to, from, subject, html });
+  }
+  const boundary = `ip5_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const fileData = readFileSync(attachment.path).toString("base64");
+  // RFC 2045 : les lignes base64 doivent être limitées à 76 caractères.
+  const fileDataWrapped = fileData.match(/.{1,76}/g).join("\r\n");
+  const message = [
+    `From: ${encodeHeaderWord("IP5 Énergie")} <${from}>`,
+    `To: ${to}`,
+    "MIME-Version: 1.0",
+    `Subject: ${encodeHeaderWord(subject)}`,
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/html; charset=utf-8",
+    "",
+    html,
+    "",
+    `--${boundary}`,
+    `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
+    "Content-Transfer-Encoding: base64",
+    `Content-Disposition: attachment; filename="${attachment.filename}"`,
+    "",
+    fileDataWrapped,
+    "",
+    `--${boundary}--`,
   ].join("\r\n");
 
   return Buffer.from(message)
@@ -466,6 +510,208 @@ exports.syncLeadToMonday = onDocumentCreated(
         "Échec de la synchro Monday immédiate, le filet de sécurité (cron 15 min) prendra le relais",
         { leadId, error: err.message },
       );
+    }
+  },
+);
+
+// Coquille commune (logo, numéros de rappel, signature) pour les modèles
+// de mail déclenchés depuis Monday (voir sendMondayEmailTemplate). Reprend
+// le même habillage que l'e-mail de bienvenue lead, sans le dupliquer
+// entièrement : ici le corps varie selon le modèle choisi dans Monday.
+function buildBrandedEmailShell({ bodyHtml }) {
+  const NAVY = "#173a5e";
+  const NAVY_DARK = "#122f4d";
+  const BLUE = "#2b5a8f";
+  const logoUrl = `${SITE_URL}/images/email/logo-ip5-energie.png`;
+
+  return `<!DOCTYPE html>
+<html lang="fr">
+<body style="margin:0; padding:0; background:#f3f5f8; font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f3f5f8; padding:24px 0;">
+<tr><td align="center">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%; background:#ffffff; border-radius:20px; overflow:hidden; border:1px solid #e5e9ef;">
+
+  <tr>
+    <td style="padding:20px 24px;" align="left">
+      <img src="${logoUrl}" width="150" alt="IP5 Énergie" style="display:block; height:auto;" />
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:8px 24px 24px 24px; color:${NAVY_DARK}; font-size:16px; line-height:1.6;">
+      ${bodyHtml}
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 24px 20px 24px; color:${NAVY_DARK}; font-size:13px;">
+      Une question, envie de nous rappeler directement&nbsp;?
+      <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a>
+      ·
+      <a href="tel:+33695920409" style="color:${BLUE}; font-weight:bold; text-decoration:none;">06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 24px 24px 24px; color:#8a94a3; font-size:13px; font-style:italic;">
+      — IP5 Énergie
+    </td>
+  </tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+}
+
+function buildRelanceInjoignableEmailHtml({ prenom }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
+      <p style="margin:0 0 12px 0;">
+        Nous avons essayé de vous joindre suite à votre demande, mais nous n'avons
+        malheureusement pas réussi à vous avoir au téléphone.
+      </p>
+      <p style="margin:0;">
+        Ce serait dommage de passer à côté de votre pompe à chaleur à
+        <strong>0&nbsp;€</strong> (sous réserve d'éligibilité) — rappelez-nous
+        quand vous voulez, on reprend où on s'était arrêtés.
+      </p>
+    `,
+  });
+}
+
+function buildFicheTechniqueEmailHtml({ prenom }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
+      <p style="margin:0 0 12px 0;">
+        Merci pour votre accueil lors de notre appel. Comme convenu, vous
+        trouverez en pièce jointe la fiche technique de notre pompe à chaleur
+        <strong>Atlantic Isilia M</strong>, que vous pourriez obtenir à
+        <strong>0&nbsp;€</strong> selon votre éligibilité.
+      </p>
+      <p style="margin:0;">N'hésitez pas si vous avez des questions.</p>
+    `,
+  });
+}
+
+// Modèles de mail pilotés depuis Monday (colonne "📧 Modèle mail",
+// color_mm7ensy9, tableau "Pac Pac😀") : choisir une valeur dans cette
+// colonne envoie automatiquement l'e-mail correspondant au lead, via un
+// webhook Monday -> sendMondayEmailTemplate ci-dessous. Pour ajouter un
+// nouveau cas de figure : ajouter le libellé comme option de la colonne
+// dans Monday, puis une entrée ici avec son sujet/contenu.
+const MONDAY_TEMPLATE_COLUMN_ID = "color_mm7ensy9";
+const MONDAY_EMAIL_TEMPLATES = {
+  "injoignable — relance": {
+    subject: "IP5 Énergie — Nous avons essayé de vous joindre",
+    buildHtml: buildRelanceInjoignableEmailHtml,
+  },
+  "envoi fiche technique": {
+    subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
+    buildHtml: buildFicheTechniqueEmailHtml,
+    attachment: {
+      filename: "Fiche technique - Atlantic Isilia M.jpg",
+      mimeType: "image/jpeg",
+      path: path.join(__dirname, "assets", "fiche-technique-isilia-m.jpg"),
+    },
+  },
+};
+
+async function fetchMondayItemContact(itemId, mondayToken) {
+  const query = `query ($ids: [ID!]) {
+    items(ids: $ids) {
+      name
+      column_values(ids: ["email_mm2qmb9n"]) { text }
+    }
+  }`;
+  const res = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: {
+      Authorization: mondayToken,
+      "Content-Type": "application/json",
+      "API-Version": "2024-10",
+    },
+    body: JSON.stringify({ query, variables: { ids: [String(itemId)] } }),
+  });
+  const body = await res.json().catch(() => ({}));
+  const item = body?.data?.items?.[0];
+  if (!item) {
+    throw new Error(`Item Monday introuvable: ${JSON.stringify(body)}`);
+  }
+  const email = item.column_values?.[0]?.text?.trim();
+  return { name: item.name, email };
+}
+
+exports.sendMondayEmailTemplate = onRequest(
+  {
+    secrets: [
+      GMAIL_CLIENT_ID,
+      GMAIL_CLIENT_SECRET,
+      GMAIL_REFRESH_TOKEN,
+      GMAIL_SENDER_EMAIL,
+      MONDAY_API_TOKEN,
+      MONDAY_WEBHOOK_SECRET,
+    ],
+    region: "europe-west9",
+  },
+  async (req, res) => {
+    // Poignée de main de vérification Monday : à la création du webhook,
+    // Monday poste { challenge: "..." } et attend la même valeur en retour
+    // avant d'activer réellement le webhook.
+    if (req.body?.challenge) {
+      res.json({ challenge: req.body.challenge });
+      return;
+    }
+
+    if (req.query.key !== MONDAY_WEBHOOK_SECRET.value()) {
+      res.status(403).send("forbidden");
+      return;
+    }
+
+    const event = req.body?.event;
+    if (!event || event.columnId !== MONDAY_TEMPLATE_COLUMN_ID) {
+      res.status(200).send("ignored");
+      return;
+    }
+
+    const label = String(event.value?.label?.text ?? "").trim().toLowerCase();
+    const template = MONDAY_EMAIL_TEMPLATES[label];
+    if (!template) {
+      logger.info("Modèle mail Monday inconnu, envoi ignoré", { label });
+      res.status(200).send("unknown template");
+      return;
+    }
+
+    try {
+      const { name, email } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
+      if (!email) {
+        logger.warn("Item Monday sans e-mail, envoi de modèle ignoré", { pulseId: event.pulseId });
+        res.status(200).send("no email");
+        return;
+      }
+      const prenom = String(name ?? "").trim().split(/\s+/)[0] || "";
+
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+
+      const raw = buildRawMessageWithAttachment({
+        to: email,
+        from: GMAIL_SENDER_EMAIL.value(),
+        subject: template.subject,
+        html: template.buildHtml({ prenom }),
+        attachment: template.attachment,
+      });
+
+      await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+      logger.info("E-mail modèle Monday envoyé", { pulseId: event.pulseId, label, to: email });
+      res.status(200).send("sent");
+    } catch (err) {
+      logger.error("Échec de l'envoi du modèle mail Monday", { pulseId: event.pulseId, label, error: err.message });
+      res.status(500).send("error");
     }
   },
 );
