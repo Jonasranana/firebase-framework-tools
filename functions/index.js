@@ -2,11 +2,17 @@ const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
 const { google } = require("googleapis");
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+
+initializeApp();
+const db = getFirestore();
 
 const GMAIL_CLIENT_ID = defineSecret("GMAIL_CLIENT_ID");
 const GMAIL_CLIENT_SECRET = defineSecret("GMAIL_CLIENT_SECRET");
 const GMAIL_REFRESH_TOKEN = defineSecret("GMAIL_REFRESH_TOKEN");
 const GMAIL_SENDER_EMAIL = defineSecret("GMAIL_SENDER_EMAIL");
+const MONDAY_API_TOKEN = defineSecret("MONDAY_API_TOKEN");
 
 const SITE_URL = "https://ip5energie.fr";
 
@@ -319,6 +325,147 @@ exports.notifyNewLead = onDocumentCreated(
     } catch (err) {
       logger.error("Échec de l'envoi de la notification interne nouveau lead", { leadId, error: err.message });
       throw err;
+    }
+  },
+);
+
+// Synchronisation immédiate des leads vers Monday (tableau "Pac Pac😀"),
+// en plus de scripts/sync-leads-to-monday.mjs qui continue de tourner
+// toutes les 15 min comme filet de sécurité : il ignore les leads déjà
+// marqués mondaySynced=true, donc aucun risque de doublon si cette
+// fonction a déjà réussi. Si elle échoue (erreur réseau, API Monday down),
+// mondaySynced reste à false et le cron rattrape le lead au tour suivant.
+// Logique de mapping des champs dupliquée depuis ce script plutôt que
+// partagée : deux runtimes différents (module Node autonome vs Cloud
+// Function), la duplication reste plus simple qu'un module commun ici.
+const MONDAY_BOARD_ID = "18410104402";
+const MONDAY_GROUP_LEADS = "group_mm79ghrj"; // "📥 Nouveaux leads du site internet"
+
+const typeLeadIndexForSource = (source) => {
+  const s = String(source ?? "").toLowerCase();
+  if (s.includes("sms")) return 4; // 📲 SMS
+  if (s.includes("gonflage")) return 8; // 🚗 Gonflage
+  if (s.includes("solaire")) return 2; // ☀️ Solaire
+  if (s.includes("pac")) return 1; // 🔥 PAC
+  return 17; // Autre
+};
+
+const MONDAY_COL = {
+  statutAppel: "color_mm6vdhz4", // 📞 Statut Appel
+  typeLead: "color_mm79bwsw", // 🏷️ Type de lead
+  telephone: "phone_mm2qnqr2", // 📞 Téléphone
+  dateContact: "date_mm6vw6b2", // Date 1er contact
+  codePostal: "text_mm2qf4s7", // 📍 Code postal (n° de département)
+  foyer: "text_mm747bpc", // Personnes au foyer
+  revenus: "text_mm6zss8", // Tranche de revenus
+  chauffage: "text_mm747sr4", // Chauffage actuel
+  surface: "numeric_mm2q4jsz", // 📐 Surface
+  email: "email_mm2qmb9n", // 📧 Email
+  source: "text_mm76vm3v", // Source
+  projet: "text_mm76rsb3", // 🔧 Projet
+  notes: "text_mm2qhek4", // 📝 Notes rapides appel
+};
+
+const buildMondayNotes = (f) => {
+  const lines = [];
+  if (f.housingType) lines.push(`Logement : ${f.housingType}`);
+  if (f.ownerStatus) lines.push(`Propriétaire : ${f.ownerStatus}`);
+  if (f.projectTiming) lines.push(`Échéance : ${f.projectTiming}`);
+  if (f.contact) lines.push(`Contact pro : ${f.contact}`);
+  if (f.typeSite) lines.push(`Type de site : ${f.typeSite}`);
+  if (f.nbVehicules) lines.push(`Nb véhicules : ${f.nbVehicules}`);
+  return lines.join(" — ");
+};
+
+const departementCode = (department) => String(department ?? "").slice(0, 2);
+
+// La colonne "phone" de Monday refuse les espaces et séparateurs.
+const normalizePhone = (raw) => {
+  let digits = String(raw ?? "").replace(/\D/g, "");
+  if (digits.startsWith("33") && digits.length === 11) {
+    digits = "0" + digits.slice(2);
+  }
+  return digits;
+};
+
+// createdAt arrive ici comme un Timestamp Firestore (Admin SDK), pas une
+// chaîne ISO comme dans le script cron (qui le lit via l'API REST).
+const parisDate = (ts) => {
+  const date = ts && typeof ts.toDate === "function" ? ts.toDate() : ts ? new Date(ts) : new Date();
+  return new Intl.DateTimeFormat("fr-CA", {
+    timeZone: "Europe/Paris",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
+};
+
+async function createMondayItem(f, mondayToken) {
+  const columnValues = {
+    [MONDAY_COL.statutAppel]: { index: 17 }, // "À appeler"
+    [MONDAY_COL.typeLead]: { index: typeLeadIndexForSource(f.source) },
+    [MONDAY_COL.telephone]: { phone: normalizePhone(f.phone), countryShortName: "FR" },
+    [MONDAY_COL.dateContact]: { date: parisDate(f.createdAt) },
+    [MONDAY_COL.codePostal]: departementCode(f.department),
+    [MONDAY_COL.foyer]: String(f.householdSize ?? ""),
+    [MONDAY_COL.revenus]: String(f.incomeBracket ?? ""),
+    [MONDAY_COL.chauffage]: String(f.currentHeating ?? ""),
+    [MONDAY_COL.surface]: String(f.surface ?? ""),
+    [MONDAY_COL.source]: String(f.source ?? "site-internet"),
+    [MONDAY_COL.projet]: String(f.projectType ?? ""),
+    [MONDAY_COL.notes]: buildMondayNotes(f),
+  };
+  const email = String(f.email ?? "").trim();
+  if (email) {
+    columnValues[MONDAY_COL.email] = { email, text: email };
+  }
+  const query = `mutation ($board: ID!, $group: String!, $name: String!, $values: JSON!) {
+    create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id }
+  }`;
+  const res = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: {
+      Authorization: mondayToken,
+      "Content-Type": "application/json",
+      "API-Version": "2024-10",
+    },
+    body: JSON.stringify({
+      query,
+      variables: {
+        board: MONDAY_BOARD_ID,
+        group: MONDAY_GROUP_LEADS,
+        name: String(f.name ?? "Lead sans nom").slice(0, 255),
+        values: JSON.stringify(columnValues),
+      },
+    }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.errors?.length || !body.data?.create_item?.id) {
+    throw new Error(`Échec de création Monday: ${JSON.stringify(body)}`);
+  }
+  return body.data.create_item.id;
+}
+
+exports.syncLeadToMonday = onDocumentCreated(
+  {
+    document: "ip5_leads/{leadId}",
+    secrets: [MONDAY_API_TOKEN],
+    region: "europe-west9",
+  },
+  async (event) => {
+    const data = event.data?.data();
+    const leadId = event.params.leadId;
+    if (!data) return;
+
+    try {
+      const itemId = await createMondayItem(data, MONDAY_API_TOKEN.value());
+      await db.doc(`ip5_leads/${leadId}`).update({ mondaySynced: true, mondayItemId: String(itemId) });
+      logger.info("Lead synchronisé sur Monday immédiatement", { leadId, itemId });
+    } catch (err) {
+      logger.error(
+        "Échec de la synchro Monday immédiate, le filet de sécurité (cron 15 min) prendra le relais",
+        { leadId, error: err.message },
+      );
     }
   },
 );
