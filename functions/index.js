@@ -223,9 +223,8 @@ function buildLeadWelcomeEmailHtml({ prenom }) {
 
   <tr>
     <td style="padding:0 24px 20px 24px; color:${NAVY_DARK}; font-size:13px;">
-      Une question, envie de nous rappeler directement&nbsp;?
-      <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a>
-      ·
+      Une question, envie de nous rappeler directement&nbsp;?<br/>
+      <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a><br/>
       <a href="tel:+33695920409" style="color:${BLUE}; font-weight:bold; text-decoration:none;">06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
     </td>
   </tr>
@@ -551,9 +550,8 @@ function buildBrandedEmailShell({ bodyHtml }) {
 
   <tr>
     <td style="padding:0 24px 20px 24px; color:${NAVY_DARK}; font-size:13px;">
-      Une question, envie de nous rappeler directement&nbsp;?
-      <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a>
-      ·
+      Une question, envie de nous rappeler directement&nbsp;?<br/>
+      <a href="tel:+33749525267" style="color:${BLUE}; font-weight:bold; text-decoration:none;">07&nbsp;49&nbsp;52&nbsp;52&nbsp;67</a><br/>
       <a href="tel:+33695920409" style="color:${BLUE}; font-weight:bold; text-decoration:none;">06&nbsp;95&nbsp;92&nbsp;04&nbsp;09</a>
     </td>
   </tr>
