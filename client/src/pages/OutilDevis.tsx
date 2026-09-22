@@ -31,6 +31,7 @@ import { useBrowserBackLevel } from "@/hooks/use-browser-back-level";
 const ALLOWED_EMAILS = [
   "jonassitbon8@gmail.com",
   "alexis.sitbon@gmail.com",
+  "carol.sitbon05@gmail.com",
 ];
 
 // ── Barème 2026 — À METTRE À JOUR quand le barème officiel change ──────────
