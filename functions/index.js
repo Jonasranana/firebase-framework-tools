@@ -764,6 +764,39 @@ async function postMondayUpdate(itemId, body, mondayToken) {
   }
 }
 
+// Bascule visible directement dans le tableau (pas besoin d'ouvrir l'item) :
+// la colonne "📧 Mail ( Auto )" elle-même passe sur cette étiquette rouge
+// quand l'envoi est bloqué. Rechange plus tard la valeur sur un des vrais
+// modèles ré-émet un nouveau webhook, mais "⚠️ infos manquantes" ne
+// correspond à aucune clé de MONDAY_EMAIL_TEMPLATES : pas de boucle.
+const MONDAY_LABEL_INFOS_MANQUANTES = "⚠️ Infos manquantes";
+async function setMondayStatusLabel(itemId, columnId, label, mondayToken) {
+  const mutation = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: JSON!) {
+    change_column_value(board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) { id }
+  }`;
+  const res = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: {
+      Authorization: mondayToken,
+      "Content-Type": "application/json",
+      "API-Version": "2024-10",
+    },
+    body: JSON.stringify({
+      query: mutation,
+      variables: {
+        boardId: MONDAY_BOARD_ID,
+        itemId: String(itemId),
+        columnId,
+        value: JSON.stringify({ label }),
+      },
+    }),
+  });
+  const responseBody = await res.json().catch(() => ({}));
+  if (!res.ok || responseBody.errors?.length) {
+    logger.error("Échec du changement d'étiquette Monday", { itemId, columnId, error: JSON.stringify(responseBody) });
+  }
+}
+
 exports.sendMondayEmailTemplate = onRequest(
   {
     secrets: [
@@ -812,11 +845,19 @@ exports.sendMondayEmailTemplate = onRequest(
       const { name, email, racAmount } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
       if (!email) {
         logger.warn("Item Monday sans e-mail, envoi de modèle ignoré", { pulseId: event.pulseId });
-        await postMondayUpdate(
-          event.pulseId,
-          "⚠️ E-mail non envoyé : aucune adresse e-mail renseignée sur cet item.",
-          MONDAY_API_TOKEN.value(),
-        );
+        await Promise.all([
+          postMondayUpdate(
+            event.pulseId,
+            "⚠️ E-mail non envoyé : aucune adresse e-mail renseignée sur cet item.",
+            MONDAY_API_TOKEN.value(),
+          ),
+          setMondayStatusLabel(
+            event.pulseId,
+            MONDAY_TEMPLATE_COLUMN_ID,
+            MONDAY_LABEL_INFOS_MANQUANTES,
+            MONDAY_API_TOKEN.value(),
+          ),
+        ]);
         res.status(200).send("no email");
         return;
       }
@@ -825,11 +866,19 @@ exports.sendMondayEmailTemplate = onRequest(
           "Impossible de déterminer le reste à charge (précarité/zone/marque incomplets ou hors barème, et pas de RAC manuel), envoi ignoré",
           { pulseId: event.pulseId, label },
         );
-        await postMondayUpdate(
-          event.pulseId,
-          "⚠️ E-mail non envoyé : renseignez 🏷️ Précarité + 🌡️ Zone + 🔧 Marque (ou 💶 RAC client à la main), puis rechoisissez l'étiquette \"Confirmation + fiche technique\".",
-          MONDAY_API_TOKEN.value(),
-        );
+        await Promise.all([
+          postMondayUpdate(
+            event.pulseId,
+            "⚠️ E-mail non envoyé : renseignez 🏷️ Précarité + 🌡️ Zone + 🔧 Marque (ou 💶 RAC client à la main), puis rechoisissez l'étiquette \"Confirmation + fiche technique\".",
+            MONDAY_API_TOKEN.value(),
+          ),
+          setMondayStatusLabel(
+            event.pulseId,
+            MONDAY_TEMPLATE_COLUMN_ID,
+            MONDAY_LABEL_INFOS_MANQUANTES,
+            MONDAY_API_TOKEN.value(),
+          ),
+        ]);
         res.status(200).send("rac unresolved");
         return;
       }
