@@ -824,6 +824,37 @@ async function setMondayStatusLabel(itemId, columnId, label, mondayToken) {
   }
 }
 
+// Colonne "📅 Dernier mail envoyé" : mise à jour à chaque envoi réussi
+// (relance, confirmation, demande de document), pour voir d'un coup d'œil
+// dans le tableau quand le lead a été recontacté pour la dernière fois.
+const MONDAY_COL_DERNIER_MAIL = "date_mm7ed3c9";
+async function setMondayDateColumn(itemId, columnId, mondayToken) {
+  const mutation = `mutation ($boardId: ID!, $itemId: ID!, $columnId: String!, $value: JSON!) {
+    change_column_value(board_id: $boardId, item_id: $itemId, column_id: $columnId, value: $value) { id }
+  }`;
+  const res = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: {
+      Authorization: mondayToken,
+      "Content-Type": "application/json",
+      "API-Version": "2024-10",
+    },
+    body: JSON.stringify({
+      query: mutation,
+      variables: {
+        boardId: MONDAY_BOARD_ID,
+        itemId: String(itemId),
+        columnId,
+        value: JSON.stringify({ date: parisDate() }),
+      },
+    }),
+  });
+  const responseBody = await res.json().catch(() => ({}));
+  if (!res.ok || responseBody.errors?.length) {
+    logger.error("Échec de la mise à jour de la date du dernier mail Monday", { itemId, columnId, error: JSON.stringify(responseBody) });
+  }
+}
+
 exports.sendMondayEmailTemplate = onRequest(
   {
     secrets: [
@@ -926,6 +957,7 @@ exports.sendMondayEmailTemplate = onRequest(
 
       await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
       logger.info("E-mail modèle Monday envoyé", { pulseId: event.pulseId, label, to: email });
+      await setMondayDateColumn(event.pulseId, MONDAY_COL_DERNIER_MAIL, MONDAY_API_TOKEN.value());
       res.status(200).send("sent");
     } catch (err) {
       logger.error("Échec de l'envoi du modèle mail Monday", { pulseId: event.pulseId, label, error: err.message });
