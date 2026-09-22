@@ -742,6 +742,28 @@ async function fetchMondayItemContact(itemId, mondayToken) {
   return { name: item.name, email, racAmount };
 }
 
+// Signal visible sur l'item Monday (au lieu d'un simple log invisible côté
+// serveur) quand l'envoi automatique est bloqué : la commerciale voit tout
+// de suite pourquoi rien n'est parti.
+async function postMondayUpdate(itemId, body, mondayToken) {
+  const mutation = `mutation ($itemId: ID!, $body: String!) {
+    create_update(item_id: $itemId, body: $body) { id }
+  }`;
+  const res = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: {
+      Authorization: mondayToken,
+      "Content-Type": "application/json",
+      "API-Version": "2024-10",
+    },
+    body: JSON.stringify({ query: mutation, variables: { itemId: String(itemId), body } }),
+  });
+  const responseBody = await res.json().catch(() => ({}));
+  if (!res.ok || responseBody.errors?.length) {
+    logger.error("Échec de la publication du commentaire Monday", { itemId, error: JSON.stringify(responseBody) });
+  }
+}
+
 exports.sendMondayEmailTemplate = onRequest(
   {
     secrets: [
@@ -790,6 +812,11 @@ exports.sendMondayEmailTemplate = onRequest(
       const { name, email, racAmount } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
       if (!email) {
         logger.warn("Item Monday sans e-mail, envoi de modèle ignoré", { pulseId: event.pulseId });
+        await postMondayUpdate(
+          event.pulseId,
+          "⚠️ E-mail non envoyé : aucune adresse e-mail renseignée sur cet item.",
+          MONDAY_API_TOKEN.value(),
+        );
         res.status(200).send("no email");
         return;
       }
@@ -797,6 +824,11 @@ exports.sendMondayEmailTemplate = onRequest(
         logger.warn(
           "Impossible de déterminer le reste à charge (précarité/zone/marque incomplets ou hors barème, et pas de RAC manuel), envoi ignoré",
           { pulseId: event.pulseId, label },
+        );
+        await postMondayUpdate(
+          event.pulseId,
+          "⚠️ E-mail non envoyé : renseignez 🏷️ Précarité + 🌡️ Zone + 🔧 Marque (ou 💶 RAC client à la main), puis rechoisissez l'étiquette \"Confirmation + fiche technique\".",
+          MONDAY_API_TOKEN.value(),
         );
         res.status(200).send("rac unresolved");
         return;
