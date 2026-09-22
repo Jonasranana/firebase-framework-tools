@@ -21,7 +21,9 @@ Fonction HTTP séparée (pas de déclencheur Firestore) :
   et envoie automatiquement l'e-mail correspondant au lead (récupéré via
   l'API Monday). Pour ajouter un nouveau modèle : ajouter l'option dans la
   colonne Monday, puis une entrée dans `MONDAY_EMAIL_TEMPLATES` (index.js)
-  avec son sujet/contenu/pièce jointe éventuelle.
+  avec son sujet/contenu/pièce jointe éventuelle. À chaque envoi réussi, met
+  aussi à jour la colonne "📅 Dernier mail envoyé" (`date_mm7ed3c9`) avec la
+  date du jour.
 
 Rien à faire côté code pour l'activer — seulement de la configuration,
 à faire une fois, en dehors de ce dépôt :
