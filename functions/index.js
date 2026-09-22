@@ -45,17 +45,29 @@ function buildRawMessage({ to, from, subject, html }) {
     .replace(/=+$/, "");
 }
 
-// Variante avec pièce jointe (multipart/mixed) : utilisée pour les modèles
-// de mail Monday qui joignent un document (ex. fiche technique). Sans
-// pièce jointe, retombe sur le message simple ci-dessus.
-function buildRawMessageWithAttachment({ to, from, subject, html, attachment }) {
-  if (!attachment) {
+// Variante avec pièce(s) jointe(s) (multipart/mixed) : utilisée pour les
+// modèles de mail Monday qui joignent un ou plusieurs documents (ex. fiche
+// technique en plusieurs PDF). Sans pièce jointe, retombe sur le message
+// simple ci-dessus.
+function buildRawMessageWithAttachment({ to, from, subject, html, attachments }) {
+  if (!attachments || attachments.length === 0) {
     return buildRawMessage({ to, from, subject, html });
   }
   const boundary = `ip5_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-  const fileData = readFileSync(attachment.path).toString("base64");
-  // RFC 2045 : les lignes base64 doivent être limitées à 76 caractères.
-  const fileDataWrapped = fileData.match(/.{1,76}/g).join("\r\n");
+  const attachmentParts = attachments.flatMap((attachment) => {
+    const fileData = readFileSync(attachment.path).toString("base64");
+    // RFC 2045 : les lignes base64 doivent être limitées à 76 caractères.
+    const fileDataWrapped = fileData.match(/.{1,76}/g).join("\r\n");
+    return [
+      `--${boundary}`,
+      `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
+      "Content-Transfer-Encoding: base64",
+      `Content-Disposition: attachment; filename="${attachment.filename}"`,
+      "",
+      fileDataWrapped,
+      "",
+    ];
+  });
   const message = [
     `From: ${encodeHeaderWord("IP5 Énergie")} <${from}>`,
     `To: ${to}`,
@@ -68,13 +80,7 @@ function buildRawMessageWithAttachment({ to, from, subject, html, attachment }) 
     "",
     html,
     "",
-    `--${boundary}`,
-    `Content-Type: ${attachment.mimeType}; name="${attachment.filename}"`,
-    "Content-Transfer-Encoding: base64",
-    `Content-Disposition: attachment; filename="${attachment.filename}"`,
-    "",
-    fileDataWrapped,
-    "",
+    ...attachmentParts,
     `--${boundary}--`,
   ].join("\r\n");
 
@@ -588,8 +594,8 @@ function buildFicheTechniqueEmailHtml({ prenom }) {
       <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
       <p style="margin:0 0 12px 0;">
         Merci pour votre accueil lors de notre appel. Comme convenu, vous
-        trouverez en pièce jointe la fiche technique de notre pompe à chaleur
-        <strong>Atlantic Isilia M</strong>, que vous pourriez obtenir à
+        trouverez ci-joint la fiche technique de notre pompe à chaleur
+        <strong>Atlantic Alféa Excellia S</strong>, que vous pourriez obtenir à
         <strong>0&nbsp;€</strong> selon votre éligibilité.
       </p>
       <p style="margin:0;">N'hésitez pas si vous avez des questions.</p>
@@ -612,11 +618,18 @@ const MONDAY_EMAIL_TEMPLATES = {
   "envoi fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
     buildHtml: buildFicheTechniqueEmailHtml,
-    attachment: {
-      filename: "Fiche technique - Atlantic Isilia M.jpg",
-      mimeType: "image/jpeg",
-      path: path.join(__dirname, "assets", "fiche-technique-isilia-m.jpg"),
-    },
+    attachments: [
+      {
+        filename: "Fiche technique - Atlantic Alfea Excellia S.pdf",
+        mimeType: "application/pdf",
+        path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-s.pdf"),
+      },
+      {
+        filename: "Gamme Alfea Excellia - Atlantic.pdf",
+        mimeType: "application/pdf",
+        path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-gamme.pdf"),
+      },
+    ],
   },
 };
 
@@ -703,7 +716,7 @@ exports.sendMondayEmailTemplate = onRequest(
         from: GMAIL_SENDER_EMAIL.value(),
         subject: template.subject,
         html: template.buildHtml({ prenom }),
-        attachment: template.attachment,
+        attachments: template.attachments,
       });
 
       await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
