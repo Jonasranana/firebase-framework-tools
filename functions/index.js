@@ -588,54 +588,78 @@ function buildRelanceInjoignableEmailHtml({ prenom }) {
   });
 }
 
-function buildFicheTechniqueEmailHtml({ prenom }) {
+// Texte dicté par Carole : même corps de mail dans les deux cas (0 € ou
+// reste à charge), seule la phrase sur le montant change.
+function buildFicheTechniqueEmailHtml({ prenom, rac }) {
+  const montant = rac
+    ? `avec un reste à charge de <strong>${rac}&nbsp;€</strong> sous réserve de votre éligibilité`
+    : `à <strong>0&nbsp;€</strong> sous réserve de votre éligibilité`;
   return buildBrandedEmailShell({
     bodyHtml: `
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Rebonjour${prenom ? " " + prenom : ""},</p>
       <p style="margin:0 0 12px 0;">
-        Merci pour votre accueil lors de notre appel. Comme convenu, vous
-        trouverez ci-joint la fiche technique de notre pompe à chaleur
-        <strong>Atlantic Alféa Excellia S</strong>, que vous pourriez obtenir à
-        <strong>0&nbsp;€</strong> selon votre éligibilité.
+        Suite à notre conversation téléphonique et comme convenu, veuillez
+        trouver ci-joint la fiche technique relative au programme
+        d'installation d'une pompe à chaleur, ${montant}.
       </p>
-      <p style="margin:0;">N'hésitez pas si vous avez des questions.</p>
+      <p style="margin:0 0 12px 0;">
+        Nous restons bien évidemment en contact pour la suite de votre
+        dossier.
+      </p>
+      <p style="margin:0;">
+        Bien cordialement,<br/>
+        Carole Sitbon<br/>
+        IP5 Énergie
+      </p>
     `,
   });
 }
 
-// Après un appel où le reste à charge n'est pas nul (selon la tranche de
-// revenus du foyer), on envoie la fiche technique avec le montant exact au
-// lieu du message "0 €" générique (voir buildFicheTechniqueEmailHtml).
-function buildRacEmailHtml({ prenom, rac }) {
-  return buildBrandedEmailShell({
-    bodyHtml: `
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
-      <p style="margin:0 0 12px 0;">
-        Merci pour votre accueil lors de notre appel. Comme convenu, vous
-        trouverez ci-joint la fiche technique de notre pompe à chaleur
-        <strong>Atlantic Alféa Excellia S</strong>.
-      </p>
-      <p style="margin:0 0 12px 0;">
-        Selon les informations communiquées, le reste à charge estimé après
-        déduction des aides serait d'environ <strong>${rac}&nbsp;€</strong>.
-      </p>
-      <p style="margin:0;">N'hésitez pas si vous avez des questions.</p>
-    `,
-  });
-}
-
-// Modèles de mail pilotés depuis Monday (colonne "📧 Modèle mail",
+// Modèles de mail pilotés depuis Monday (colonne "📧 Mail ( Auto )",
 // color_mm7ensy9, tableau "Pac Pac😀") : choisir une valeur dans cette
 // colonne envoie automatiquement l'e-mail correspondant au lead, via un
 // webhook Monday -> sendMondayEmailTemplate ci-dessous. Pour ajouter un
 // nouveau cas de figure : ajouter le libellé comme option de la colonne
 // dans Monday, puis une entrée ici avec son sujet/contenu.
 const MONDAY_TEMPLATE_COLUMN_ID = "color_mm7ensy9";
-// Montant exact du reste à charge, saisi à la main par le commercial
-// d'après l'outil interne "Marges Prémi" (OutilDevis.tsx) : le RAC dépend
-// du dossier (prix de vente, catégorie de revenus, zone, CEE négociée),
-// ce n'est pas une valeur fixe par catégorie.
+
+// Reste à charge (RAC) : calculé automatiquement à partir de 3 colonnes
+// Monday (précarité, zone, marque), avec la même formule que l'outil
+// interne "Marges Prémi" (OutilDevis.tsx) — à garder synchronisé si le
+// barème change. Une saisie manuelle dans MONDAY_COL_RAC prend le pas sur
+// le calcul automatique (cas particuliers hors barème standard).
 const MONDAY_COL_RAC = "numeric_mm7er35c";
+const MONDAY_COL_PRECARITE = "color_mm7eq7pm";
+const MONDAY_COL_ZONE = "color_mm7eccnx";
+const MONDAY_COL_MARQUE = "color_mm7enw6k";
+
+const PREMI_CEE = {
+  Bleu: { H1: 8517, H2: 7400 },
+  Jaune: { H1: 4580, H2: 3200 },
+  Violet: { H1: 4580, H2: 3200 },
+};
+const PREMI_MPR_BRUT = { Bleu: 5000, Jaune: 4000, Violet: 3000 };
+const PREMI_FOURNI_POSE = { Atlantis: 5700, Chappée: 5900 };
+const PREMI_COMMISSION = 0.12; // % HT sur MaPrimeRénov
+const PREMI_TVA_COMMISSION = 0.2;
+const PREMI_TAUX_NET_MPR = 1 - PREMI_COMMISSION * (1 + PREMI_TVA_COMMISSION);
+const PREMI_MARGE_MIN = 2500;
+
+// Renvoie undefined si la combinaison précarité/zone/marque est inconnue
+// (ex. "Rose", non couvert par ce barème) plutôt que de deviner un montant.
+function computeResteACharge({ precarite, zone, marque }) {
+  const cee = PREMI_CEE[precarite]?.[zone];
+  const mprBrut = PREMI_MPR_BRUT[precarite];
+  const cout = PREMI_FOURNI_POSE[marque];
+  if (cee === undefined || mprBrut === undefined || cout === undefined) {
+    return undefined;
+  }
+  const mprNet = mprBrut * PREMI_TAUX_NET_MPR;
+  const totalPercu = cee + mprNet;
+  const marge = totalPercu - cout;
+  return Math.max(0, PREMI_MARGE_MIN - marge);
+}
+
 const FICHE_TECHNIQUE_ATTACHMENTS = [
   {
     filename: "Fiche technique - Atlantic Alfea Excellia S.pdf",
@@ -657,15 +681,9 @@ const MONDAY_EMAIL_TEMPLATES = {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
     buildHtml: buildFicheTechniqueEmailHtml,
     attachments: FICHE_TECHNIQUE_ATTACHMENTS,
-  },
-  "envoi fiche technique (rac)": {
-    subject: "IP5 Énergie — Votre pompe à chaleur (reste à charge estimé)",
-    // rac est lu depuis la colonne Monday MONDAY_COL_RAC au moment de
-    // l'envoi (voir sendMondayEmailTemplate) : ce template a besoin de ce
-    // montant, sans quoi l'envoi est ignoré (requiresRac).
-    buildHtml: ({ prenom, rac }) => buildRacEmailHtml({ prenom, rac }),
-    attachments: FICHE_TECHNIQUE_ATTACHMENTS,
-    requiresRac: true,
+    // A besoin d'un RAC résolu (0 ou positif) pour choisir la bonne phrase
+    // dans l'e-mail — voir sendMondayEmailTemplate.
+    requiresResolvedRac: true,
   },
 };
 
@@ -673,7 +691,13 @@ async function fetchMondayItemContact(itemId, mondayToken) {
   const query = `query ($ids: [ID!]) {
     items(ids: $ids) {
       name
-      column_values(ids: ["email_mm2qmb9n", "${MONDAY_COL_RAC}"]) { id text value }
+      column_values(ids: [
+        "email_mm2qmb9n",
+        "${MONDAY_COL_RAC}",
+        "${MONDAY_COL_PRECARITE}",
+        "${MONDAY_COL_ZONE}",
+        "${MONDAY_COL_MARQUE}"
+      ]) { id text value }
     }
   }`;
   const res = await fetch("https://api.monday.com/v2", {
@@ -703,10 +727,19 @@ async function fetchMondayItemContact(itemId, mondayToken) {
   }
   email = (email ?? emailColumn?.text)?.trim();
 
-  const racText = columns[MONDAY_COL_RAC]?.text?.trim();
-  const rac = racText ? Number(racText).toLocaleString("fr-FR") : undefined;
+  const manualRacText = columns[MONDAY_COL_RAC]?.text?.trim();
+  let racAmount;
+  if (manualRacText) {
+    racAmount = Number(manualRacText);
+  } else {
+    racAmount = computeResteACharge({
+      precarite: columns[MONDAY_COL_PRECARITE]?.text?.trim(),
+      zone: columns[MONDAY_COL_ZONE]?.text?.trim(),
+      marque: columns[MONDAY_COL_MARQUE]?.text?.trim(),
+    });
+  }
 
-  return { name: item.name, email, rac };
+  return { name: item.name, email, racAmount };
 }
 
 exports.sendMondayEmailTemplate = onRequest(
@@ -754,17 +787,21 @@ exports.sendMondayEmailTemplate = onRequest(
     }
 
     try {
-      const { name, email, rac } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
+      const { name, email, racAmount } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
       if (!email) {
         logger.warn("Item Monday sans e-mail, envoi de modèle ignoré", { pulseId: event.pulseId });
         res.status(200).send("no email");
         return;
       }
-      if (template.requiresRac && !rac) {
-        logger.warn("Modèle nécessitant un RAC mais colonne vide, envoi ignoré", { pulseId: event.pulseId, label });
-        res.status(200).send("no rac");
+      if (template.requiresResolvedRac && racAmount === undefined) {
+        logger.warn(
+          "Impossible de déterminer le reste à charge (précarité/zone/marque incomplets ou hors barème, et pas de RAC manuel), envoi ignoré",
+          { pulseId: event.pulseId, label },
+        );
+        res.status(200).send("rac unresolved");
         return;
       }
+      const rac = racAmount > 0 ? racAmount.toLocaleString("fr-FR") : undefined;
       const prenom = String(name ?? "").trim().split(/\s+/)[0] || "";
 
       const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
