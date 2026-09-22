@@ -677,7 +677,7 @@ const MONDAY_EMAIL_TEMPLATES = {
     subject: "IP5 Énergie — Nous avons essayé de vous joindre",
     buildHtml: buildRelanceInjoignableEmailHtml,
   },
-  "envoi fiche technique": {
+  "confirmation + fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
     buildHtml: buildFicheTechniqueEmailHtml,
     attachments: FICHE_TECHNIQUE_ATTACHMENTS,
