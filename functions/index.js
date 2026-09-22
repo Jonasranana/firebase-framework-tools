@@ -631,6 +631,11 @@ function buildRacEmailHtml({ prenom, rac }) {
 // nouveau cas de figure : ajouter le libellé comme option de la colonne
 // dans Monday, puis une entrée ici avec son sujet/contenu.
 const MONDAY_TEMPLATE_COLUMN_ID = "color_mm7ensy9";
+// Montant exact du reste à charge, saisi à la main par le commercial
+// d'après l'outil interne "Marges Prémi" (OutilDevis.tsx) : le RAC dépend
+// du dossier (prix de vente, catégorie de revenus, zone, CEE négociée),
+// ce n'est pas une valeur fixe par catégorie.
+const MONDAY_COL_RAC = "numeric_mm7er35c";
 const FICHE_TECHNIQUE_ATTACHMENTS = [
   {
     filename: "Fiche technique - Atlantic Alfea Excellia S.pdf",
@@ -653,20 +658,14 @@ const MONDAY_EMAIL_TEMPLATES = {
     buildHtml: buildFicheTechniqueEmailHtml,
     attachments: FICHE_TECHNIQUE_ATTACHMENTS,
   },
-  "rac 1000€": {
+  "envoi fiche technique (rac)": {
     subject: "IP5 Énergie — Votre pompe à chaleur (reste à charge estimé)",
-    buildHtml: ({ prenom }) => buildRacEmailHtml({ prenom, rac: "1 000" }),
+    // rac est lu depuis la colonne Monday MONDAY_COL_RAC au moment de
+    // l'envoi (voir sendMondayEmailTemplate) : ce template a besoin de ce
+    // montant, sans quoi l'envoi est ignoré (requiresRac).
+    buildHtml: ({ prenom, rac }) => buildRacEmailHtml({ prenom, rac }),
     attachments: FICHE_TECHNIQUE_ATTACHMENTS,
-  },
-  "rac 2000€": {
-    subject: "IP5 Énergie — Votre pompe à chaleur (reste à charge estimé)",
-    buildHtml: ({ prenom }) => buildRacEmailHtml({ prenom, rac: "2 000" }),
-    attachments: FICHE_TECHNIQUE_ATTACHMENTS,
-  },
-  "rac 3000€": {
-    subject: "IP5 Énergie — Votre pompe à chaleur (reste à charge estimé)",
-    buildHtml: ({ prenom }) => buildRacEmailHtml({ prenom, rac: "3 000" }),
-    attachments: FICHE_TECHNIQUE_ATTACHMENTS,
+    requiresRac: true,
   },
 };
 
@@ -674,7 +673,7 @@ async function fetchMondayItemContact(itemId, mondayToken) {
   const query = `query ($ids: [ID!]) {
     items(ids: $ids) {
       name
-      column_values(ids: ["email_mm2qmb9n"]) { text value }
+      column_values(ids: ["email_mm2qmb9n", "${MONDAY_COL_RAC}"]) { id text value }
     }
   }`;
   const res = await fetch("https://api.monday.com/v2", {
@@ -691,18 +690,23 @@ async function fetchMondayItemContact(itemId, mondayToken) {
   if (!item) {
     throw new Error(`Item Monday introuvable: ${JSON.stringify(body)}`);
   }
+  const columns = Object.fromEntries((item.column_values ?? []).map((c) => [c.id, c]));
   // Colonne de type "email" : le champ `text` n'est qu'un libellé d'affichage
   // (peut diverger de l'adresse réelle) ; l'adresse routable est dans
   // `value.email`. On ne retombe sur `text` que si `value` est absent.
-  const columnValue = item.column_values?.[0];
+  const emailColumn = columns["email_mm2qmb9n"];
   let email;
   try {
-    email = JSON.parse(columnValue?.value ?? "null")?.email;
+    email = JSON.parse(emailColumn?.value ?? "null")?.email;
   } catch {
     email = undefined;
   }
-  email = (email ?? columnValue?.text)?.trim();
-  return { name: item.name, email };
+  email = (email ?? emailColumn?.text)?.trim();
+
+  const racText = columns[MONDAY_COL_RAC]?.text?.trim();
+  const rac = racText ? Number(racText).toLocaleString("fr-FR") : undefined;
+
+  return { name: item.name, email, rac };
 }
 
 exports.sendMondayEmailTemplate = onRequest(
@@ -750,10 +754,15 @@ exports.sendMondayEmailTemplate = onRequest(
     }
 
     try {
-      const { name, email } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
+      const { name, email, rac } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
       if (!email) {
         logger.warn("Item Monday sans e-mail, envoi de modèle ignoré", { pulseId: event.pulseId });
         res.status(200).send("no email");
+        return;
+      }
+      if (template.requiresRac && !rac) {
+        logger.warn("Modèle nécessitant un RAC mais colonne vide, envoi ignoré", { pulseId: event.pulseId, label });
+        res.status(200).send("no rac");
         return;
       }
       const prenom = String(name ?? "").trim().split(/\s+/)[0] || "";
@@ -766,7 +775,7 @@ exports.sendMondayEmailTemplate = onRequest(
         to: email,
         from: GMAIL_SENDER_EMAIL.value(),
         subject: template.subject,
-        html: template.buildHtml({ prenom }),
+        html: template.buildHtml({ prenom, rac }),
         attachments: template.attachments,
       });
 
