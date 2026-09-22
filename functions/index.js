@@ -572,13 +572,17 @@ function buildRelanceInjoignableEmailHtml({ prenom }) {
     bodyHtml: `
       <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
       <p style="margin:0 0 12px 0;">
-        Nous avons essayé de vous joindre suite à votre demande, mais nous n'avons
-        malheureusement pas réussi à vous avoir au téléphone.
+        Nous avons essayé de vous joindre suite à votre demande concernant
+        l'installation d'une pompe à chaleur, sans succès.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Vous pourriez être éligible à une prise en charge à <strong>0&nbsp;€</strong>
+        (sous réserve d'éligibilité) : n'hésitez pas à nous rappeler quand cela
+        vous conviendra, nous reprendrons votre dossier là où nous l'avions laissé.
       </p>
       <p style="margin:0;">
-        Ce serait dommage de passer à côté de votre pompe à chaleur à
-        <strong>0&nbsp;€</strong> (sous réserve d'éligibilité) — rappelez-nous
-        quand vous voulez, on reprend où on s'était arrêtés.
+        Bien cordialement,<br/>
+        Carole Sitbon, IP5 Énergie
       </p>
     `,
   });
