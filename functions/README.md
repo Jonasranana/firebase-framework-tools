@@ -1,10 +1,18 @@
-# Cloud Functions — envoi automatique des e-mails de signature
+# Cloud Functions — envois automatiques et synchro Monday
 
-Une seule fonction ici : `sendGonflageSignatureEmail`. Elle se déclenche à la
-création d'un document `gonflage_signatures/{token}` (pré-devis ou contrat
-d'entretien envoyé depuis le CRM Station de gonflage) et envoie un e-mail au
-client avec le lien de signature, via l'API Gmail (compte Gmail d'IP5
-Énergie, pas un service tiers).
+Fonctions déclenchées à la création d'un document Firestore :
+
+- `sendGonflageSignatureEmail` : sur `gonflage_signatures/{token}` (pré-devis
+  ou contrat d'entretien envoyé depuis le CRM Station de gonflage), envoie
+  un e-mail au client avec le lien de signature, via l'API Gmail.
+- `sendLeadWelcomeEmail` : sur `ip5_leads/{leadId}`, envoie un e-mail de
+  bienvenue aux leads intéressés par une pompe à chaleur.
+- `notifyNewLead` : sur `ip5_leads/{leadId}`, notifie immédiatement
+  `contact@ip5energie.com` de l'arrivée d'un nouveau lead (tous projets).
+- `syncLeadToMonday` : sur `ip5_leads/{leadId}`, crée immédiatement l'item
+  correspondant sur le tableau Monday "Pac Pac😀", au lieu d'attendre le
+  cron `scripts/sync-leads-to-monday.mjs` (qui continue de tourner toutes
+  les 15 min comme filet de sécurité en cas d'échec de cette fonction).
 
 Rien à faire côté code pour l'activer — seulement de la configuration,
 à faire une fois, en dehors de ce dépôt :
@@ -49,10 +57,19 @@ firebase functions:secrets:set GMAIL_CLIENT_ID --project kachoto-7554c
 firebase functions:secrets:set GMAIL_CLIENT_SECRET --project kachoto-7554c
 firebase functions:secrets:set GMAIL_REFRESH_TOKEN --project kachoto-7554c
 firebase functions:secrets:set GMAIL_SENDER_EMAIL --project kachoto-7554c
+firebase functions:secrets:set MONDAY_API_TOKEN --project kachoto-7554c
 ```
 
-Pour le dernier, coller l'adresse Gmail utilisée à l'étape 3 (celle qui
-apparaîtra comme expéditeur).
+Pour `GMAIL_SENDER_EMAIL`, coller l'adresse Gmail utilisée à l'étape 3
+(celle qui apparaîtra comme expéditeur). Pour `MONDAY_API_TOKEN`, coller le
+même jeton API Monday déjà utilisé comme secret GitHub Actions
+`MONDAY_API_TOKEN` (profil Monday → Développeurs → Mon jeton d'accès) — un
+jeton Secret Manager et un secret GitHub sont deux choses séparées même
+s'ils portent le même nom, il faut donc l'enregistrer ici aussi pour que
+`syncLeadToMonday` puisse le lire. Sans ce secret, le déploiement de cette
+fonction précise échoue (`continue-on-error` protège le reste du
+déploiement, voir plus bas), et les leads continuent d'être synchronisés
+uniquement par le cron 15 min en attendant.
 
 ## 5. Droits IAM pour le déploiement automatique (CI)
 
