@@ -615,6 +615,29 @@ function buildFicheTechniqueEmailHtml({ prenom, rac }) {
   });
 }
 
+function buildDemandeAvisImpositionEmailHtml({ prenom }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
+      <p style="margin:0 0 12px 0;">
+        Merci pour votre appel concernant l'installation de votre pompe à
+        chaleur.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Pour finaliser l'étude de votre dossier et déterminer précisément le
+        montant de la prise en charge à laquelle vous avez droit, il ne nous
+        manque plus que votre avis d'imposition. Vous pouvez nous le
+        transmettre par retour de mail, en réponse à ce message.
+      </p>
+      <p style="margin:0;">
+        Bien cordialement,<br/>
+        Carole Sitbon<br/>
+        IP5 Énergie
+      </p>
+    `,
+  });
+}
+
 // Modèles de mail pilotés depuis Monday (colonne "📧 Mail ( Auto )",
 // color_mm7ensy9, tableau "Pac Pac😀") : choisir une valeur dans cette
 // colonne envoie automatiquement l'e-mail correspondant au lead, via un
@@ -676,6 +699,10 @@ const MONDAY_EMAIL_TEMPLATES = {
   "injoignable — relance": {
     subject: "IP5 Énergie — Nous avons essayé de vous joindre",
     buildHtml: buildRelanceInjoignableEmailHtml,
+  },
+  "📎 demande avis d'imposition": {
+    subject: "IP5 Énergie — Merci de nous transmettre votre avis d'imposition",
+    buildHtml: buildDemandeAvisImpositionEmailHtml,
   },
   "confirmation + fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
