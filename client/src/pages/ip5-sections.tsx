@@ -275,9 +275,10 @@ type SimulatorData = {
   // solaires » ou « Les deux ». Un seul formulaire couvre les deux offres
   // (mêmes critères d'aides).
   projectType: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   phone: string;
-  email: string; // optionnel
+  email: string;
   consent: boolean;
   company: string; // honeypot anti-spam : doit rester vide
 };
@@ -292,7 +293,8 @@ const INITIAL_DATA: SimulatorData = {
   incomeBracket: "",
   projectTiming: "",
   projectType: "",
-  name: "",
+  firstName: "",
+  lastName: "",
   phone: "",
   email: "",
   consent: false,
@@ -422,9 +424,14 @@ async function submitLead(
     ? appMod.getApp()
     : appMod.initializeApp(FIREBASE_CONFIG);
   const db = fsMod.getFirestore(app);
-  const { company, ...lead } = data;
+  const { company, firstName, lastName, ...lead } = data;
   await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
     ...lead,
+    // Recombiné en un seul champ « Prénom Nom » : c'est le format attendu par
+    // tout le reste du pipeline (extraction du prénom pour les e-mails et la
+    // colonne Monday "🙋 Prénom (Auto)"), et un formulaire à 2 champs garantit
+    // un format propre plutôt qu'un nom complet tapé n'importe comment.
+    name: `${firstName.trim()} ${lastName.trim()}`.trim(),
     // « source » identifie l'origine du lead : « simulateur-landing » pour
     // l'accueil, « landing-pac-meta » pour la campagne publicitaire Meta.
     // Utile pour mesurer le retour sur investissement des pubs.
@@ -455,7 +462,8 @@ export const Simulator = ({
   const [formData, setFormData] = useState<SimulatorData>(INITIAL_DATA);
   const [reward, setReward] = useState<string | null>(null);
   const [errors, setErrors] = useState<{
-    name?: string;
+    firstName?: string;
+    lastName?: string;
     phone?: string;
     email?: string;
     consent?: string;
@@ -523,15 +531,18 @@ export const Simulator = ({
     e.preventDefault();
 
     const newErrors: typeof errors = {};
-    if (formData.name.trim().length < 2) {
-      newErrors.name = "Merci d'indiquer votre nom complet.";
+    if (formData.lastName.trim().length < 2) {
+      newErrors.lastName = "Merci d'indiquer votre nom.";
+    }
+    if (formData.firstName.trim().length < 2) {
+      newErrors.firstName = "Merci d'indiquer votre prénom.";
     }
     if (!FRENCH_PHONE_REGEX.test(formData.phone.trim())) {
       newErrors.phone = "Merci d'indiquer un numéro de téléphone français valide (ex : 06 12 34 56 78).";
     }
     const email = formData.email.trim();
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      newErrors.email = "Cette adresse e-mail ne semble pas valide (vous pouvez aussi laisser vide).";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      newErrors.email = "Merci d'indiquer une adresse e-mail valide.";
     }
     if (!formData.consent) {
       newErrors.consent = "Vous devez accepter d'être recontacté pour recevoir votre devis.";
@@ -908,26 +919,49 @@ export const Simulator = ({
                   )}
                 </div>
               </div>
-              <div>
-                <label htmlFor="lead-name" className="sr-only">
-                  Nom complet
-                </label>
-                <input
-                  id="lead-name"
-                  type="text"
-                  required
-                  autoComplete="name"
-                  placeholder="Votre nom complet"
-                  value={formData.name}
-                  aria-invalid={!!errors.name}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.name ? "border-red-400" : "border-gray-300"}`}
-                  onChange={(e) =>
-                    setFormData({ ...formData, name: e.target.value })
-                  }
-                />
-                {errors.name && (
-                  <p className="text-red-600 text-xs mt-1">{errors.name}</p>
-                )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="lead-lastname" className="sr-only">
+                    Nom
+                  </label>
+                  <input
+                    id="lead-lastname"
+                    type="text"
+                    required
+                    autoComplete="family-name"
+                    placeholder="Nom"
+                    value={formData.lastName}
+                    aria-invalid={!!errors.lastName}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.lastName ? "border-red-400" : "border-gray-300"}`}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
+                  />
+                  {errors.lastName && (
+                    <p className="text-red-600 text-xs mt-1">{errors.lastName}</p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="lead-firstname" className="sr-only">
+                    Prénom
+                  </label>
+                  <input
+                    id="lead-firstname"
+                    type="text"
+                    required
+                    autoComplete="given-name"
+                    placeholder="Prénom"
+                    value={formData.firstName}
+                    aria-invalid={!!errors.firstName}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.firstName ? "border-red-400" : "border-gray-300"}`}
+                    onChange={(e) =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
+                  />
+                  {errors.firstName && (
+                    <p className="text-red-600 text-xs mt-1">{errors.firstName}</p>
+                  )}
+                </div>
               </div>
               <div>
                 <label htmlFor="lead-phone" className="sr-only">
@@ -953,14 +987,15 @@ export const Simulator = ({
               </div>
               <div>
                 <label htmlFor="lead-email" className="sr-only">
-                  Adresse e-mail (facultatif)
+                  Adresse e-mail
                 </label>
                 <input
                   id="lead-email"
                   type="email"
+                  required
                   autoComplete="email"
                   inputMode="email"
-                  placeholder="Votre e-mail (facultatif, pour le devis écrit)"
+                  placeholder="Votre e-mail"
                   value={formData.email}
                   aria-invalid={!!errors.email}
                   className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.email ? "border-red-400" : "border-gray-300"}`}
