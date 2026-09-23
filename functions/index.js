@@ -159,7 +159,7 @@ function buildLeadWelcomeEmailHtml({ prenom }) {
 
   <tr>
     <td style="padding:24px 24px 8px 24px; color:${NAVY_DARK}; font-size:16px; line-height:1.6;">
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom} 👋, IP5 Énergie.</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour Madame, Monsieur 👋, IP5 Énergie.</p>
       <p style="margin:0;">
         En attendant de vous avoir de vive voix, voici un résumé de la pompe à chaleur
         <strong>Atlantic Isilia M</strong> à laquelle, selon les informations communiquées,
@@ -570,10 +570,11 @@ function buildBrandedEmailShell({ bodyHtml }) {
 function buildRelanceInjoignableEmailHtml({ prenom }) {
   return buildBrandedEmailShell({
     bodyHtml: `
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour Madame, Monsieur,</p>
       <p style="margin:0 0 12px 0;">
-        Nous avons essayé de vous joindre suite à votre demande concernant
-        l'installation d'une pompe à chaleur, sans succès.
+        Nous avons essayé de vous joindre, sans succès, pour savoir si vous
+        seriez intéressé(e) par les informations concernant la possibilité
+        d'installer une pompe à chaleur chez vous.
       </p>
       <p style="margin:0 0 12px 0;">
         Vous pourriez être éligible à une prise en charge à <strong>0&nbsp;€</strong>
@@ -596,7 +597,7 @@ function buildFicheTechniqueEmailHtml({ prenom, rac }) {
     : `à <strong>0&nbsp;€</strong> sous réserve de votre éligibilité`;
   return buildBrandedEmailShell({
     bodyHtml: `
-      <p style="margin:0 0 12px 0; font-weight:bold;">Rebonjour${prenom ? " " + prenom : ""},</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Rebonjour Madame, Monsieur,</p>
       <p style="margin:0 0 12px 0;">
         Suite à notre conversation téléphonique et comme convenu, veuillez
         trouver ci-joint la fiche technique relative au programme
@@ -618,7 +619,7 @@ function buildFicheTechniqueEmailHtml({ prenom, rac }) {
 function buildDemandeAvisImpositionEmailHtml({ prenom }) {
   return buildBrandedEmailShell({
     bodyHtml: `
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${prenom || ""},</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour Madame, Monsieur,</p>
       <p style="margin:0 0 12px 0;">
         Merci pour votre appel concernant l'installation de votre pompe à
         chaleur.
