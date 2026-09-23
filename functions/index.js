@@ -639,6 +639,28 @@ function buildDemandeAvisImpositionEmailHtml({ nomComplet }) {
   });
 }
 
+// Signé "IP5 Énergie" seul (pas un commercial en particulier) : ce mail
+// peut être envoyé après un appel passé par n'importe quel commercial.
+function buildRemerciementAppelEmailHtml({ nomComplet }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet},</p>
+      <p style="margin:0 0 12px 0;">
+        Nous vous remercions pour votre appel concernant l'installation
+        d'une pompe à chaleur.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Nous revenons vers vous prochainement avec plus d'informations
+        pour la suite de votre dossier.
+      </p>
+      <p style="margin:0;">
+        Bien cordialement,<br/>
+        IP5 Énergie
+      </p>
+    `,
+  });
+}
+
 // Modèles de mail pilotés depuis Monday (colonne "📧 Mail ( Auto )",
 // color_mm7ensy9, tableau "Pac Pac😀") : choisir une valeur dans cette
 // colonne envoie automatiquement l'e-mail correspondant au lead, via un
@@ -699,6 +721,10 @@ const MONDAY_EMAIL_TEMPLATES = {
   "📎 demande avis d'imposition": {
     subject: "IP5 Énergie — Merci de nous transmettre votre avis d'imposition",
     buildHtml: buildDemandeAvisImpositionEmailHtml,
+  },
+  "🙏 remerciement appel": {
+    subject: "IP5 Énergie — Merci pour votre appel",
+    buildHtml: buildRemerciementAppelEmailHtml,
   },
   "confirmation + fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
