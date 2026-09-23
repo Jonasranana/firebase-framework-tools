@@ -690,11 +690,6 @@ const FICHE_TECHNIQUE_ATTACHMENTS = [
     mimeType: "application/pdf",
     path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-s.pdf"),
   },
-  {
-    filename: "Gamme Alfea Excellia - Atlantic.pdf",
-    mimeType: "application/pdf",
-    path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-gamme.pdf"),
-  },
 ];
 const MONDAY_EMAIL_TEMPLATES = {
   "injoignable — relance": {
