@@ -127,11 +127,46 @@ export const MentionsLegales = () => {
 
       <Section title="Médiation de la consommation et litiges">
         <p>
-          Conformément aux articles L611-1 et suivants du Code de la
-          consommation, tout consommateur a le droit de recourir gratuitement
-          à un médiateur de la consommation en vue de la résolution amiable
-          d'un litige. Vous pouvez également utiliser la plateforme européenne
-          de règlement en ligne des litiges :{" "}
+          Pour toute réclamation, contactez-nous d'abord à{" "}
+          <a href="mailto:contact@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
+            contact@ip5energie.com
+          </a>
+          .
+        </p>
+        <p className="mt-4">
+          Conformément aux dispositions du Code de la consommation concernant
+          « le processus de médiation des litiges de la consommation »,
+          après nous avoir sollicités et à défaut de réponse vous
+          satisfaisant, vous avez la possibilité de recourir gratuitement à
+          une procédure de médiation de la consommation auprès de :
+        </p>
+        <p className="mt-2">
+          <strong>CM2C</strong>
+          <br />
+          49 rue de Ponthieu
+          <br />
+          75008 Paris
+          <br />
+          Tél : 01 89 47 00 14
+          <br />
+          Site internet :{" "}
+          <a
+            href="https://www.cm2c.net/declarer-un-litige.php"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#2b5a8f] dark:text-blue-400 underline"
+          >
+            cm2c.net/declarer-un-litige.php
+          </a>
+          <br />
+          Mail :{" "}
+          <a href="mailto:litiges@cm2c.net" className="text-[#2b5a8f] dark:text-blue-400 underline">
+            litiges@cm2c.net
+          </a>
+        </p>
+        <p className="mt-4">
+          Vous pouvez également utiliser la plateforme européenne de
+          règlement en ligne des litiges :{" "}
           <a
             href="https://ec.europa.eu/consumers/odr"
             target="_blank"
@@ -139,10 +174,6 @@ export const MentionsLegales = () => {
             className="text-[#2b5a8f] dark:text-blue-400 underline"
           >
             ec.europa.eu/consumers/odr
-          </a>
-          . Pour toute réclamation, contactez-nous d'abord à{" "}
-          <a href="mailto:contact@ip5energie.com" className="text-[#2b5a8f] dark:text-blue-400 underline">
-            contact@ip5energie.com
           </a>
           .
         </p>
