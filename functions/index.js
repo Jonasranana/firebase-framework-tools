@@ -119,7 +119,7 @@ function buildEmailHtml({ nomContact, isContrat, link, prime }) {
 // pompe à chaleur (formulaire simulateur du site, collection ip5_leads).
 // Images hébergées sur le site (pas en pièce jointe / base64) : plus
 // fiable pour l'affichage dans les clients mail que des images intégrées.
-function buildLeadWelcomeEmailHtml({ prenom }) {
+function buildLeadWelcomeEmailHtml({ nomComplet }) {
   const NAVY = "#173a5e";
   const NAVY_DARK = "#122f4d";
   const BLUE = "#2b5a8f";
@@ -159,7 +159,7 @@ function buildLeadWelcomeEmailHtml({ prenom }) {
 
   <tr>
     <td style="padding:24px 24px 8px 24px; color:${NAVY_DARK}; font-size:16px; line-height:1.6;">
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour Madame, Monsieur 👋, IP5 Énergie.</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet} 👋, IP5 Énergie.</p>
       <p style="margin:0;">
         En attendant de vous avoir de vive voix, voici un résumé de la pompe à chaleur
         <strong>Atlantic Isilia M</strong> à laquelle, selon les informations communiquées,
@@ -322,13 +322,13 @@ exports.sendLeadWelcomeEmail = onDocumentCreated(
     oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
-    const prenom = String(data.name ?? "").trim().split(/\s+/)[0] || "";
+    const nomComplet = String(data.name ?? "").trim();
 
     const raw = buildRawMessage({
       to: data.email,
       from: GMAIL_SENDER_EMAIL.value(),
       subject: "IP5 Énergie — Votre pompe à chaleur à 0 €",
-      html: buildLeadWelcomeEmailHtml({ prenom }),
+      html: buildLeadWelcomeEmailHtml({ nomComplet }),
     });
 
     try {
@@ -567,10 +567,10 @@ function buildBrandedEmailShell({ bodyHtml }) {
 </html>`;
 }
 
-function buildRelanceInjoignableEmailHtml({ prenom }) {
+function buildRelanceInjoignableEmailHtml({ nomComplet }) {
   return buildBrandedEmailShell({
     bodyHtml: `
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour Madame, Monsieur,</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet},</p>
       <p style="margin:0 0 12px 0;">
         Nous avons essayé de vous joindre, sans succès, pour savoir si vous
         seriez intéressé(e) par les informations concernant la possibilité
@@ -591,13 +591,13 @@ function buildRelanceInjoignableEmailHtml({ prenom }) {
 
 // Texte dicté par Carole : même corps de mail dans les deux cas (0 € ou
 // reste à charge), seule la phrase sur le montant change.
-function buildFicheTechniqueEmailHtml({ prenom, rac }) {
+function buildFicheTechniqueEmailHtml({ nomComplet, rac }) {
   const montant = rac
     ? `avec un reste à charge de <strong>${rac}&nbsp;€</strong> sous réserve de votre éligibilité`
     : `à <strong>0&nbsp;€</strong> sous réserve de votre éligibilité`;
   return buildBrandedEmailShell({
     bodyHtml: `
-      <p style="margin:0 0 12px 0; font-weight:bold;">Rebonjour Madame, Monsieur,</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Rebonjour ${nomComplet},</p>
       <p style="margin:0 0 12px 0;">
         Suite à notre conversation téléphonique et comme convenu, veuillez
         trouver ci-joint la fiche technique relative au programme
@@ -616,10 +616,10 @@ function buildFicheTechniqueEmailHtml({ prenom, rac }) {
   });
 }
 
-function buildDemandeAvisImpositionEmailHtml({ prenom }) {
+function buildDemandeAvisImpositionEmailHtml({ nomComplet }) {
   return buildBrandedEmailShell({
     bodyHtml: `
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour Madame, Monsieur,</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet},</p>
       <p style="margin:0 0 12px 0;">
         Merci pour votre appel concernant l'installation de votre pompe à
         chaleur.
@@ -942,7 +942,7 @@ exports.sendMondayEmailTemplate = onRequest(
         return;
       }
       const rac = racAmount > 0 ? racAmount.toLocaleString("fr-FR") : undefined;
-      const prenom = String(name ?? "").trim().split(/\s+/)[0] || "";
+      const nomComplet = String(name ?? "").trim();
 
       const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
       oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
@@ -952,7 +952,7 @@ exports.sendMondayEmailTemplate = onRequest(
         to: email,
         from: GMAIL_SENDER_EMAIL.value(),
         subject: template.subject,
-        html: template.buildHtml({ prenom, rac }),
+        html: template.buildHtml({ nomComplet, rac }),
         attachments: template.attachments,
       });
 
