@@ -23,7 +23,9 @@ Fonction HTTP séparée (pas de déclencheur Firestore) :
   colonne Monday, puis une entrée dans `MONDAY_EMAIL_TEMPLATES` (index.js)
   avec son sujet/contenu/pièce jointe éventuelle. À chaque envoi réussi, met
   aussi à jour la colonne "📅 Dernier mail envoyé" (`date_mm7ed3c9`) avec la
-  date du jour.
+  date du jour, et envoie un SMS coordonné via l'API Twilio (numéro
+  `+33939207357`) si le modèle a un `buildSms` et que le téléphone du lead
+  est renseigné — un échec d'envoi SMS n'empêche jamais l'e-mail de partir.
 
 Rien à faire côté code pour l'activer — seulement de la configuration,
 à faire une fois, en dehors de ce dépôt :
@@ -70,6 +72,8 @@ firebase functions:secrets:set GMAIL_REFRESH_TOKEN --project kachoto-7554c
 firebase functions:secrets:set GMAIL_SENDER_EMAIL --project kachoto-7554c
 firebase functions:secrets:set MONDAY_API_TOKEN --project kachoto-7554c
 firebase functions:secrets:set MONDAY_WEBHOOK_SECRET --project kachoto-7554c
+firebase functions:secrets:set TWILIO_ACCOUNT_SID --project kachoto-7554c
+firebase functions:secrets:set TWILIO_AUTH_TOKEN --project kachoto-7554c
 ```
 
 Pour `GMAIL_SENDER_EMAIL`, coller l'adresse Gmail utilisée à l'étape 3
@@ -88,6 +92,13 @@ vérifier que les requêtes reçues par `sendMondayEmailTemplate` viennent
 bien du webhook Monday configuré, pas d'un tiers qui aurait deviné l'URL
 publique de la fonction) — la même valeur doit être utilisée dans l'URL du
 webhook au moment de sa création côté Monday (paramètre `?key=`).
+
+Pour `TWILIO_ACCOUNT_SID` et `TWILIO_AUTH_TOKEN`, les identifiants du
+compte Twilio (Console Twilio → page d'accueil, ou Account → API keys &
+auth tokens), utilisés par `sendMondayEmailTemplate` pour envoyer les SMS
+coordonnés aux e-mails automatiques depuis le numéro `+33939207357`. Si
+l'Auth Token a été régénéré (rotation de sécurité), redéployer les
+fonctions pour que la nouvelle valeur soit prise en compte.
 
 ## 5. Droits IAM pour le déploiement automatique (CI)
 

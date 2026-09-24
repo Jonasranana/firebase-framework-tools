@@ -17,6 +17,9 @@ const GMAIL_REFRESH_TOKEN = defineSecret("GMAIL_REFRESH_TOKEN");
 const GMAIL_SENDER_EMAIL = defineSecret("GMAIL_SENDER_EMAIL");
 const MONDAY_API_TOKEN = defineSecret("MONDAY_API_TOKEN");
 const MONDAY_WEBHOOK_SECRET = defineSecret("MONDAY_WEBHOOK_SECRET");
+const TWILIO_ACCOUNT_SID = defineSecret("TWILIO_ACCOUNT_SID");
+const TWILIO_AUTH_TOKEN = defineSecret("TWILIO_AUTH_TOKEN");
+const TWILIO_FROM_NUMBER = "+33939207357";
 
 const SITE_URL = "https://ip5energie.fr";
 
@@ -713,18 +716,28 @@ const FICHE_TECHNIQUE_ATTACHMENTS = [
     path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-s.pdf"),
   },
 ];
+// SMS commercial : mention de désinscription obligatoire (Code des postes
+// et des communications électroniques, art. L34-5) sur chaque message.
+const SMS_OPT_OUT = "Répondez STOP pour ne plus recevoir de SMS.";
+
 const MONDAY_EMAIL_TEMPLATES = {
   "injoignable — relance": {
     subject: "IP5 Énergie — Nous avons essayé de vous joindre",
     buildHtml: buildRelanceInjoignableEmailHtml,
+    buildSms: () =>
+      `IP5 Énergie : nous avons essayé de vous joindre pour votre pompe à chaleur. Rappelez-nous au 07 49 52 52 67 quand vous voulez. ${SMS_OPT_OUT}`,
   },
   "📎 demande avis d'imposition": {
     subject: "IP5 Énergie — Merci de nous transmettre votre avis d'imposition",
     buildHtml: buildDemandeAvisImpositionEmailHtml,
+    buildSms: () =>
+      `IP5 Énergie : pour finaliser votre dossier, merci de nous transmettre votre avis d'imposition (voir e-mail envoyé). ${SMS_OPT_OUT}`,
   },
   "🙏 remerciement appel": {
     subject: "IP5 Énergie — Merci pour votre appel",
     buildHtml: buildRemerciementAppelEmailHtml,
+    buildSms: () =>
+      `IP5 Énergie : merci pour votre appel. Nous revenons vers vous prochainement avec plus d'informations. ${SMS_OPT_OUT}`,
   },
   "confirmation + fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
@@ -733,7 +746,20 @@ const MONDAY_EMAIL_TEMPLATES = {
     // A besoin d'un RAC résolu (0 ou positif) pour choisir la bonne phrase
     // dans l'e-mail — voir sendMondayEmailTemplate.
     requiresResolvedRac: true,
+    buildSms: () =>
+      `IP5 Énergie : merci pour votre appel. La fiche technique de votre pompe à chaleur vient de vous être envoyée par e-mail. ${SMS_OPT_OUT}`,
   },
+};
+
+// Colonne "phone" Monday : on y écrit toujours des chiffres locaux FR (sans
+// +33, voir normalizePhone) à la création de l'item ; on reconvertit donc au
+// format E.164 attendu par l'API Twilio pour l'envoi de SMS.
+const toE164French = (raw) => {
+  const digits = String(raw ?? "").replace(/[^\d+]/g, "");
+  if (digits.startsWith("+")) return digits;
+  if (digits.startsWith("33") && digits.length === 11) return `+${digits}`;
+  if (digits.startsWith("0") && digits.length === 10) return `+33${digits.slice(1)}`;
+  return digits || undefined;
 };
 
 async function fetchMondayItemContact(itemId, mondayToken) {
@@ -742,6 +768,7 @@ async function fetchMondayItemContact(itemId, mondayToken) {
       name
       column_values(ids: [
         "email_mm2qmb9n",
+        "${MONDAY_COL.telephone}",
         "${MONDAY_COL_RAC}",
         "${MONDAY_COL_PRECARITE}",
         "${MONDAY_COL_ZONE}",
@@ -776,6 +803,15 @@ async function fetchMondayItemContact(itemId, mondayToken) {
   }
   email = (email ?? emailColumn?.text)?.trim();
 
+  const phoneColumn = columns[MONDAY_COL.telephone];
+  let phoneRaw;
+  try {
+    phoneRaw = JSON.parse(phoneColumn?.value ?? "null")?.phone;
+  } catch {
+    phoneRaw = undefined;
+  }
+  const phone = toE164French(phoneRaw ?? phoneColumn?.text);
+
   const manualRacText = columns[MONDAY_COL_RAC]?.text?.trim();
   let racAmount;
   if (manualRacText) {
@@ -788,7 +824,28 @@ async function fetchMondayItemContact(itemId, mondayToken) {
     });
   }
 
-  return { name: item.name, email, racAmount };
+  return { name: item.name, email, phone, racAmount };
+}
+
+// Envoie un SMS via l'API Twilio (REST directe, comme pour Monday/Gmail —
+// pas besoin du SDK complet pour un seul appel). N'écrit jamais l'échec
+// dans la réponse HTTP appelante : un SMS raté ne doit pas faire échouer
+// l'envoi du mail qui l'accompagne.
+async function sendTwilioSms({ to, body, accountSid, authToken }) {
+  const auth = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
+  const params = new URLSearchParams({ To: to, From: TWILIO_FROM_NUMBER, Body: body });
+  const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: params.toString(),
+  });
+  const responseBody = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    logger.error("Échec de l'envoi du SMS Twilio", { to, error: JSON.stringify(responseBody) });
+  }
 }
 
 // Signal visible sur l'item Monday (au lieu d'un simple log invisible côté
@@ -886,6 +943,8 @@ exports.sendMondayEmailTemplate = onRequest(
       GMAIL_SENDER_EMAIL,
       MONDAY_API_TOKEN,
       MONDAY_WEBHOOK_SECRET,
+      TWILIO_ACCOUNT_SID,
+      TWILIO_AUTH_TOKEN,
     ],
     region: "europe-west9",
   },
@@ -922,7 +981,7 @@ exports.sendMondayEmailTemplate = onRequest(
     }
 
     try {
-      const { name, email, racAmount } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
+      const { name, email, phone, racAmount } = await fetchMondayItemContact(event.pulseId, MONDAY_API_TOKEN.value());
       if (!email) {
         logger.warn("Item Monday sans e-mail, envoi de modèle ignoré", { pulseId: event.pulseId });
         await Promise.all([
@@ -979,6 +1038,21 @@ exports.sendMondayEmailTemplate = onRequest(
 
       await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
       logger.info("E-mail modèle Monday envoyé", { pulseId: event.pulseId, label, to: email });
+
+      // Le SMS accompagne le mail mais ne doit jamais le faire échouer :
+      // sendTwilioSms journalise ses propres erreurs sans les relancer.
+      if (phone && template.buildSms) {
+        await sendTwilioSms({
+          to: phone,
+          body: template.buildSms({ rac }),
+          accountSid: TWILIO_ACCOUNT_SID.value(),
+          authToken: TWILIO_AUTH_TOKEN.value(),
+        });
+        logger.info("SMS modèle Monday envoyé", { pulseId: event.pulseId, label, to: phone });
+      } else if (template.buildSms) {
+        logger.warn("Item Monday sans téléphone, SMS ignoré", { pulseId: event.pulseId, label });
+      }
+
       await setMondayDateColumn(event.pulseId, MONDAY_COL_DERNIER_MAIL, MONDAY_API_TOKEN.value());
       res.status(200).send("sent");
     } catch (err) {
