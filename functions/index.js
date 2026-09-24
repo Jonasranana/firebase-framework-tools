@@ -739,6 +739,10 @@ const MONDAY_EMAIL_TEMPLATES = {
     buildSms: () =>
       `IP5 Énergie : merci pour votre appel. Nous revenons vers vous prochainement avec plus d'informations. ${SMS_OPT_OUT}`,
   },
+  "🙏 remerciement appel": {
+    subject: "IP5 Énergie — Merci pour votre appel",
+    buildHtml: buildRemerciementAppelEmailHtml,
+  },
   "confirmation + fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
     buildHtml: buildFicheTechniqueEmailHtml,
