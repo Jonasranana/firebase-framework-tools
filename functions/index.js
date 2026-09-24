@@ -716,28 +716,28 @@ const FICHE_TECHNIQUE_ATTACHMENTS = [
     path: path.join(__dirname, "assets", "fiche-technique-alfea-excellia-s.pdf"),
   },
 ];
-// SMS commercial : mention de désinscription obligatoire (Code des postes
-// et des communications électroniques, art. L34-5) sur chaque message.
-const SMS_OPT_OUT = "Répondez STOP pour ne plus recevoir de SMS.";
+// Mêmes numéros que ceux affichés en pied de page des e-mails (voir
+// buildBrandedEmailShell), pour que le SMS permette de rappeler directement.
+const SMS_PHONE_NUMBERS = "07 49 52 52 67 / 06 95 92 04 09";
 
 const MONDAY_EMAIL_TEMPLATES = {
   "injoignable — relance": {
     subject: "IP5 Énergie — Nous avons essayé de vous joindre",
     buildHtml: buildRelanceInjoignableEmailHtml,
     buildSms: () =>
-      `IP5 Énergie : nous avons essayé de vous joindre pour votre pompe à chaleur. Rappelez-nous au 07 49 52 52 67 quand vous voulez. ${SMS_OPT_OUT}`,
+      `IP5 Énergie : nous avons essayé de vous joindre pour votre pompe à chaleur. Rappelez-nous au ${SMS_PHONE_NUMBERS} quand vous voulez.`,
   },
   "📎 demande avis d'imposition": {
     subject: "IP5 Énergie — Merci de nous transmettre votre avis d'imposition",
     buildHtml: buildDemandeAvisImpositionEmailHtml,
     buildSms: () =>
-      `IP5 Énergie : pour finaliser votre dossier, merci de nous transmettre votre avis d'imposition (voir e-mail envoyé). ${SMS_OPT_OUT}`,
+      `IP5 Énergie : pour finaliser votre dossier, merci de nous transmettre votre avis d'imposition (voir e-mail envoyé). Pour nous joindre : ${SMS_PHONE_NUMBERS}.`,
   },
   "🙏 remerciement appel": {
     subject: "IP5 Énergie — Merci pour votre appel",
     buildHtml: buildRemerciementAppelEmailHtml,
     buildSms: () =>
-      `IP5 Énergie : merci pour votre appel. Nous revenons vers vous prochainement avec plus d'informations. ${SMS_OPT_OUT}`,
+      `IP5 Énergie : merci pour votre appel. Nous revenons vers vous prochainement avec plus d'informations. Pour nous joindre : ${SMS_PHONE_NUMBERS}.`,
   },
   "confirmation + fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
@@ -747,7 +747,7 @@ const MONDAY_EMAIL_TEMPLATES = {
     // dans l'e-mail — voir sendMondayEmailTemplate.
     requiresResolvedRac: true,
     buildSms: () =>
-      `IP5 Énergie : merci pour votre appel. La fiche technique de votre pompe à chaleur vient de vous être envoyée par e-mail. ${SMS_OPT_OUT}`,
+      `IP5 Énergie : merci pour votre appel. La fiche technique de votre pompe à chaleur vient de vous être envoyée par e-mail. Pour nous joindre : ${SMS_PHONE_NUMBERS}.`,
   },
 };
 
