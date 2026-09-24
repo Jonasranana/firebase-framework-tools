@@ -642,6 +642,27 @@ function buildDemandeAvisImpositionEmailHtml({ nomComplet }) {
   });
 }
 
+function buildEligibiliteEmailHtml({ nomComplet }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet},</p>
+      <p style="margin:0 0 12px 0;">
+        Pour bénéficier de la prise en charge, il faut être propriétaire ou
+        locataire du logement concerné, et le montant dépend de votre revenu
+        fiscal de référence (avis d'imposition).
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Vous trouverez également ci-joint la fiche technique de votre pompe
+        à chaleur.
+      </p>
+      <p style="margin:0;">
+        Bien cordialement,<br/>
+        IP5 Énergie
+      </p>
+    `,
+  });
+}
+
 // Signé "IP5 Énergie" seul (pas un commercial en particulier) : ce mail
 // peut être envoyé après un appel passé par n'importe quel commercial.
 function buildRemerciementAppelEmailHtml({ nomComplet }) {
@@ -738,6 +759,13 @@ const MONDAY_EMAIL_TEMPLATES = {
     buildHtml: buildRemerciementAppelEmailHtml,
     buildSms: () =>
       `IP5 Énergie : merci pour votre appel. Nous revenons vers vous prochainement avec plus d'informations. Pour nous joindre : ${SMS_PHONE_NUMBERS}.`,
+  },
+  "🏠 explication éligibilité": {
+    subject: "IP5 Énergie — Comment bénéficier de la prise en charge",
+    buildHtml: buildEligibiliteEmailHtml,
+    attachments: FICHE_TECHNIQUE_ATTACHMENTS,
+    buildSms: () =>
+      `IP5 Énergie : la prise en charge dépend de votre statut (propriétaire/locataire) et de votre revenu fiscal. Détails par e-mail. Pour nous joindre : ${SMS_PHONE_NUMBERS}.`,
   },
   "confirmation + fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
