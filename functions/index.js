@@ -652,7 +652,7 @@ function buildEligibiliteEmailHtml({ nomComplet }) {
         fiscal de référence (avis d'imposition).
       </p>
       <p style="margin:0 0 12px 0;">
-        Vous trouverez également ci-joint la fiche technique de votre pompe
+        Vous trouverez également ci-joint la fiche technique de la pompe
         à chaleur.
       </p>
       <p style="margin:0;">
