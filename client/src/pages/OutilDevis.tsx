@@ -87,6 +87,22 @@ const PREMI_MARQUES = ["Atlantis", "Chappée"] as const;
 // Marge minimum acceptée sur un dossier Prémi. En dessous, on complète en
 // facturant un reste à charge au client plutôt que de vendre à perte.
 const PREMI_MARGE_MIN = 2500;
+
+// Chiffres relevés à la main par Carole ("Georges") le 25/09/2026, pour
+// comparaison avec le calcul Prémi ci-dessus. Pas de formule connue derrière
+// ces montants (CEE + MaPrimeRénov confondus) : simple grille figée tant que
+// la méthode de calcul de Georges n'est pas précisée.
+const GEORGES_TOTAL_PERCU: Record<string, Record<"H1" | "H2", number>> = {
+  Bleu: { H1: 13500, H2: 12000 },
+  Jaune: { H1: 8600, H2: 7400 },
+  Violet: { H1: 7600, H2: 6400 },
+};
+
+const CALCUL_METHODES = [
+  { key: "premi", label: "Prémi (actuel)" },
+  { key: "premi_arrondi", label: "Prémi arrondi" },
+  { key: "georges", label: "Georges" },
+] as const;
 // ──────────────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
@@ -177,18 +193,36 @@ export const MargesPremi = () => {
   const [zone, setZone] = useState<(typeof PREMI_ZONES)[number]>("H1");
   const [marque, setMarque] =
     useState<(typeof PREMI_MARQUES)[number]>("Atlantis");
+  const [methode, setMethode] =
+    useState<(typeof CALCUL_METHODES)[number]["key"]>("premi");
 
   const r = useMemo(() => {
     const cee = PREMI_CEE[precarite]?.[zone] ?? 0;
     const mprBrut = PREMI_MPR_BRUT[precarite] ?? 0;
     const mprNet = mprBrut * PREMI_TAUX_NET_MPR;
-    const totalPercu = cee + mprNet;
+    const totalPercuExact = cee + mprNet;
+    const totalPercu =
+      methode === "premi_arrondi"
+        ? Math.round(totalPercuExact / 100) * 100
+        : methode === "georges"
+          ? (GEORGES_TOTAL_PERCU[precarite]?.[zone] ?? totalPercuExact)
+          : totalPercuExact;
     const cout = PREMI_FOURNI_POSE[marque] ?? 0;
     const marge = totalPercu - cout;
     const margePct = totalPercu > 0 ? marge / totalPercu : 0;
     const resteACharge = Math.max(0, PREMI_MARGE_MIN - marge);
-    return { cee, mprBrut, mprNet, totalPercu, cout, marge, margePct, resteACharge };
-  }, [precarite, zone, marque]);
+    return {
+      cee,
+      mprBrut,
+      mprNet,
+      totalPercuExact,
+      totalPercu,
+      cout,
+      marge,
+      margePct,
+      resteACharge,
+    };
+  }, [precarite, zone, marque, methode]);
 
   const margeColor =
     r.margePct >= 0.4
@@ -204,6 +238,32 @@ export const MargesPremi = () => {
           Choisir le dossier
         </h2>
         <div className="space-y-4">
+          <div>
+            <span className="block text-sm font-semibold text-gray-700 mb-1.5">
+              Méthode de calcul
+            </span>
+            <div className="grid grid-cols-3 gap-2">
+              {CALCUL_METHODES.map((m) => (
+                <button
+                  key={m.key}
+                  onClick={() => setMethode(m.key)}
+                  className={`px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
+                    methode === m.key
+                      ? "border-[#2b5a8f] bg-blue-50 text-[#2b5a8f]"
+                      : "border-gray-200 text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            {methode === "georges" && (
+              <p className="text-xs text-gray-400 mt-1.5">
+                Grille figée relevée à la main le 25/09/2026 — pas de formule
+                CEE/MaPrimeRénov détaillée derrière ces montants.
+              </p>
+            )}
+          </div>
           <div>
             <span className="block text-sm font-semibold text-gray-700 mb-1.5">
               Précarité énergétique
@@ -279,7 +339,11 @@ export const MargesPremi = () => {
             {euros(r.totalPercu)}
           </p>
           <p className="text-blue-200 text-xs mt-2">
-            CEE {euros(r.cee)} + MaPrimeRénov net {euros(r.mprNet)}
+            {methode === "georges"
+              ? "Montant fixe (relevé Georges)"
+              : methode === "premi_arrondi"
+                ? `Arrondi — calcul exact ${euros(r.totalPercuExact)}`
+                : `CEE ${euros(r.cee)} + MaPrimeRénov net ${euros(r.mprNet)}`}
           </p>
         </div>
 
@@ -316,25 +380,48 @@ export const MargesPremi = () => {
           </div>
         )}
 
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-sm">
-          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
-            Détail
-          </h3>
-          <dl className="space-y-2">
-            <Row k={`CEE perçu (${precarite} ${zone})`} v={euros(r.cee)} />
-            <Row
-              k={`MaPrimeRénov brut (${precarite})`}
-              v={euros(r.mprBrut)}
-            />
-            <Row
-              k={`Commission Prémi (${Math.round(PREMI_COMMISSION * 100)}% HT)`}
-              v={`− ${euros(r.mprBrut - r.mprNet)}`}
-            />
-            <div className="border-t border-gray-100 pt-2">
-              <Row k="MaPrimeRénov net reçu" v={euros(r.mprNet)} bold />
-            </div>
-          </dl>
-        </div>
+        {methode === "georges" ? (
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-sm">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+              Détail
+            </h3>
+            <dl className="space-y-2">
+              <Row
+                k={`Montant Georges (${precarite} ${zone})`}
+                v={euros(r.totalPercu)}
+                bold
+              />
+            </dl>
+          </div>
+        ) : (
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-sm">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">
+              Détail
+            </h3>
+            <dl className="space-y-2">
+              <Row k={`CEE perçu (${precarite} ${zone})`} v={euros(r.cee)} />
+              <Row
+                k={`MaPrimeRénov brut (${precarite})`}
+                v={euros(r.mprBrut)}
+              />
+              <Row
+                k={`Commission Prémi (${Math.round(PREMI_COMMISSION * 100)}% HT)`}
+                v={`− ${euros(r.mprBrut - r.mprNet)}`}
+              />
+              <div className="border-t border-gray-100 pt-2">
+                <Row k="MaPrimeRénov net reçu" v={euros(r.mprNet)} bold />
+              </div>
+              {methode === "premi_arrondi" && (
+                <div className="border-t border-gray-100 pt-2">
+                  <Row
+                    k="Total perçu exact (non arrondi)"
+                    v={euros(r.totalPercuExact)}
+                  />
+                </div>
+              )}
+            </dl>
+          </div>
+        )}
       </section>
 
       <div className="mt-6 text-[11px] leading-relaxed text-gray-400 space-y-1">
