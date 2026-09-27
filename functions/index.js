@@ -592,6 +592,34 @@ function buildRelanceInjoignableEmailHtml({ nomComplet }) {
   });
 }
 
+function buildRelance2InjoignableEmailHtml({ nomComplet }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet},</p>
+      <p style="margin:0 0 12px 0;">
+        Nous revenons vers vous suite à notre précédent message : nous n'avons
+        toujours pas réussi à vous joindre au sujet de votre projet de pompe à
+        chaleur.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Votre demande est toujours enregistrée et nous serions ravis d'étudier
+        avec vous les aides auxquelles vous pourriez avoir droit (sous réserve
+        d'éligibilité). Vous pouvez nous rappeler aux numéros ci-dessous, ou
+        simplement répondre à ce mail en nous indiquant le meilleur moment pour
+        vous joindre.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Sans nouvelles de votre part, nous ne vous relancerons plus : n'hésitez
+        pas à revenir vers nous plus tard si votre projet évolue.
+      </p>
+      <p style="margin:0;">
+        Bien cordialement,<br/>
+        Carole Sitbon, IP5 Énergie
+      </p>
+    `,
+  });
+}
+
 // Texte dicté par Carole : même corps de mail dans les deux cas (0 € ou
 // reste à charge), seule la phrase sur le montant change.
 function buildFicheTechniqueEmailHtml({ nomComplet, rac }) {
@@ -747,6 +775,12 @@ const MONDAY_EMAIL_TEMPLATES = {
     buildHtml: buildRelanceInjoignableEmailHtml,
     buildSms: () =>
       `IP5 Énergie : nous avons essayé de vous joindre pour votre pompe à chaleur. Rappelez-nous au ${SMS_PHONE_NUMBERS} quand vous voulez.`,
+  },
+  "injoignable — relance 2": {
+    subject: "IP5 Énergie — Votre projet de pompe à chaleur",
+    buildHtml: buildRelance2InjoignableEmailHtml,
+    buildSms: () =>
+      `IP5 Énergie : nous n'avons toujours pas réussi à vous joindre pour votre projet de pompe à chaleur. Rappelez-nous au ${SMS_PHONE_NUMBERS} ou répondez à notre e-mail.`,
   },
   "📎 demande avis d'imposition": {
     subject: "IP5 Énergie — Merci de nous transmettre votre avis d'imposition",
