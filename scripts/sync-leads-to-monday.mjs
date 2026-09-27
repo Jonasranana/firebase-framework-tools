@@ -217,11 +217,11 @@ const parisDate = (iso) =>
 async function createMondayItem(lead) {
   const f = lead.fields;
   const columnValues = {
-    // Statut « nouveau lead » = "À appeler" (id de libellé 17 sur cette
-    // colonne — vérifié via get_board_info, pas déductible de sa position
+    // Statut « 🆕 Nouveau lead » (id de libellé 101 sur cette colonne —
+    // vérifié via get_board_info, pas déductible de sa position
     // d'affichage). On cible l'id plutôt que le texte : ainsi, renommer
     // l'étiquette dans Monday ne casse plus la synchronisation.
-    [COL.statutAppel]: { index: 17 },
+    [COL.statutAppel]: { index: 101 },
     [COL.typeLead]: { index: typeLeadIndexForSource(f.source) },
     [COL.telephone]: { phone: normalizePhone(f.phone), countryShortName: "FR" },
     [COL.dateContact]: { date: parisDate(f.createdAt) },

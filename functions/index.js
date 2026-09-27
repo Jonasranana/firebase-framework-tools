@@ -454,7 +454,7 @@ const parisDate = (ts) => {
 
 async function createMondayItem(f, mondayToken) {
   const columnValues = {
-    [MONDAY_COL.statutAppel]: { index: 17 }, // "À appeler"
+    [MONDAY_COL.statutAppel]: { index: 101 }, // "🆕 Nouveau lead"
     [MONDAY_COL.typeLead]: { index: typeLeadIndexForSource(f.source) },
     [MONDAY_COL.telephone]: { phone: normalizePhone(f.phone), countryShortName: "FR" },
     [MONDAY_COL.dateContact]: { date: parisDate(f.createdAt) },
