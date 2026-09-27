@@ -608,9 +608,30 @@ function buildRelance2InjoignableEmailHtml({ nomComplet }) {
         simplement répondre à ce mail en nous indiquant le meilleur moment pour
         vous joindre.
       </p>
+      <p style="margin:0;">
+        Bien cordialement,<br/>
+        Carole Sitbon, IP5 Énergie
+      </p>
+    `,
+  });
+}
+
+function buildRelance3InjoignableEmailHtml({ nomComplet }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet},</p>
       <p style="margin:0 0 12px 0;">
-        Sans nouvelles de votre part, nous ne vous relancerons plus : n'hésitez
-        pas à revenir vers nous plus tard si votre projet évolue.
+        Malgré plusieurs tentatives, nous n'avons pas réussi à vous joindre au
+        sujet de votre projet de pompe à chaleur.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Ceci est notre dernier message : sans retour de votre part, nous
+        clôturerons votre demande.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Si vous êtes toujours intéressé(e), il vous suffit de nous rappeler aux
+        numéros ci-dessous ou de répondre à ce mail : nous reprendrons votre
+        dossier là où nous l'avions laissé.
       </p>
       <p style="margin:0;">
         Bien cordialement,<br/>
@@ -770,17 +791,24 @@ const FICHE_TECHNIQUE_ATTACHMENTS = [
 const SMS_PHONE_NUMBERS = "07 49 52 52 67 / 06 95 92 04 09";
 
 const MONDAY_EMAIL_TEMPLATES = {
-  "injoignable — relance": {
+  // Numéro en tête de libellé : Monday tronque la fin des étiquettes.
+  "1 - relance injoignable": {
     subject: "IP5 Énergie — Nous avons essayé de vous joindre",
     buildHtml: buildRelanceInjoignableEmailHtml,
     buildSms: () =>
       `IP5 Énergie : nous avons essayé de vous joindre pour votre pompe à chaleur. Rappelez-nous au ${SMS_PHONE_NUMBERS} quand vous voulez.`,
   },
-  "injoignable — relance 2": {
+  "2 - relance injoignable": {
     subject: "IP5 Énergie — Votre projet de pompe à chaleur",
     buildHtml: buildRelance2InjoignableEmailHtml,
     buildSms: () =>
       `IP5 Énergie : nous n'avons toujours pas réussi à vous joindre pour votre projet de pompe à chaleur. Rappelez-nous au ${SMS_PHONE_NUMBERS} ou répondez à notre e-mail.`,
+  },
+  "3 - relance injoignable": {
+    subject: "IP5 Énergie — Dernier message concernant votre projet",
+    buildHtml: buildRelance3InjoignableEmailHtml,
+    buildSms: () =>
+      `IP5 Énergie : dernier message concernant votre projet de pompe à chaleur. Sans retour de votre part, nous clôturerons votre demande. Pour la poursuivre : ${SMS_PHONE_NUMBERS}.`,
   },
   "📎 demande avis d'imposition": {
     subject: "IP5 Énergie — Merci de nous transmettre votre avis d'imposition",
