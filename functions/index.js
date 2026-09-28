@@ -410,6 +410,8 @@ const typeLeadIndexForSource = (source) => {
 
 const MONDAY_COL = {
   statutAppel: "color_mm6vdhz4", // 📞 Statut Appel
+  typeDemande: "color_mm7m3q82", // 📥 Type de demande
+  creneauRappel: "color_mm7mvkgz", // ⏰ Créneau de rappel
   typeLead: "color_mm79bwsw", // 🏷️ Type de lead
   telephone: "phone_mm2qnqr2", // 📞 Téléphone
   dateContact: "date_mm6vw6b2", // Date 1er contact
@@ -460,6 +462,23 @@ const parisDate = (ts) => {
   }).format(date);
 };
 
+// « 📥 Type de demande » et « ⏰ Créneau de rappel » : ids de libellés
+// vérifiés via get_board_info (colonnes color_mm7m3q82 / color_mm7mvkgz).
+const requestTypeIndex = (f) => {
+  const source = String(f.source ?? "");
+  if (f.requestType) return 1; // 📞 Rappel demandé
+  if (source.startsWith("reactivation")) return 4; // ✉️ Réactivation
+  if (source.includes("gonflage")) return null;
+  return 7; // 🧮 Simulation
+};
+const callbackSlotIndex = (slot) => {
+  const s = String(slot ?? "");
+  if (s.startsWith("Matin")) return 9;
+  if (s.startsWith("Après-midi")) return 0;
+  if (s.startsWith("Fin")) return 3;
+  return null;
+};
+
 async function createMondayItem(f, mondayToken) {
   const columnValues = {
     [MONDAY_COL.statutAppel]: { index: 101 }, // "🆕 Nouveau lead"
@@ -479,6 +498,10 @@ async function createMondayItem(f, mondayToken) {
   if (email) {
     columnValues[MONDAY_COL.email] = { email, text: email };
   }
+  const typeIdx = requestTypeIndex(f);
+  if (typeIdx !== null) columnValues[MONDAY_COL.typeDemande] = { index: typeIdx };
+  const slotIdx = callbackSlotIndex(f.callbackSlot);
+  if (slotIdx !== null) columnValues[MONDAY_COL.creneauRappel] = { index: slotIdx };
   const query = `mutation ($board: ID!, $group: String!, $name: String!, $values: JSON!) {
     create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id }
   }`;
