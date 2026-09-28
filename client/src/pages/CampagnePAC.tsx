@@ -399,7 +399,7 @@ const QuickStart = ({ source }: { source: string }) => {
         <button
           type="button"
           onClick={() => setMode("simulation")}
-          className={`${choice} border-gray-200 dark:border-slate-700 hover:border-gray-300`}
+          className={`${choice} border-amber-400 hover:border-amber-500`}
         >
           <Calculator className="text-gray-500 flex-shrink-0" size={26} />
           <span>
