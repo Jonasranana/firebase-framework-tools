@@ -253,6 +253,8 @@ function buildLeadNotificationEmailHtml(data) {
   const NAVY_DARK = "#122f4d";
   const BLUE = "#2b5a8f";
   const rows = [
+    ["Demande", data.requestType],
+    ["Créneau de rappel", data.callbackSlot],
     ["Nom", data.name],
     ["Téléphone", data.phone],
     ["E-mail", data.email],
@@ -261,7 +263,8 @@ function buildLeadNotificationEmailHtml(data) {
     ["Statut", data.ownerStatus],
     ["Surface", data.surface ? `${data.surface} m²` : ""],
     ["Chauffage actuel", data.currentHeating],
-    ["Département", data.department],
+    ["Code postal", data.postalCode],
+    ["Département", data.postalCode ? "" : data.department],
     ["Foyer", data.householdSize],
     ["Revenus", data.incomeBracket],
     ["Échéance projet", data.projectTiming],
@@ -367,7 +370,9 @@ exports.notifyNewLead = onDocumentCreated(
     const raw = buildRawMessage({
       to: contactEmail,
       from: contactEmail,
-      subject: `🔔 Nouveau lead — ${data.name || "sans nom"}${data.projectType ? ` (${data.projectType})` : ""}`,
+      subject: data.requestType
+        ? `📞 Rappel demandé — ${data.name || "sans nom"}${data.callbackSlot ? ` (${data.callbackSlot})` : ""}`
+        : `🔔 Nouveau lead — ${data.name || "sans nom"}${data.projectType ? ` (${data.projectType})` : ""}`,
       html: buildLeadNotificationEmailHtml(data),
     });
 
@@ -420,6 +425,7 @@ const MONDAY_COL = {
 
 const buildMondayNotes = (f) => {
   const lines = [];
+  if (f.requestType) lines.push(`📞 ${f.requestType}${f.callbackSlot ? ` — ${f.callbackSlot}` : ""}`);
   if (f.housingType) lines.push(`Logement : ${f.housingType}`);
   if (f.ownerStatus) lines.push(`Propriétaire : ${f.ownerStatus}`);
   if (f.projectTiming) lines.push(`Échéance : ${f.projectTiming}`);
@@ -458,7 +464,7 @@ async function createMondayItem(f, mondayToken) {
     [MONDAY_COL.typeLead]: { index: typeLeadIndexForSource(f.source) },
     [MONDAY_COL.telephone]: { phone: normalizePhone(f.phone), countryShortName: "FR" },
     [MONDAY_COL.dateContact]: { date: parisDate(f.createdAt) },
-    [MONDAY_COL.codePostal]: departementCode(f.department),
+    [MONDAY_COL.codePostal]: f.postalCode ? String(f.postalCode) : departementCode(f.department),
     [MONDAY_COL.foyer]: String(f.householdSize ?? ""),
     [MONDAY_COL.revenus]: String(f.incomeBracket ?? ""),
     [MONDAY_COL.chauffage]: String(f.currentHeating ?? ""),

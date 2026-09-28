@@ -69,6 +69,7 @@ const COL = {
 // que de les perdre.
 const buildNotes = (f) => {
   const lines = [];
+  if (f.requestType) lines.push(`📞 ${f.requestType}${f.callbackSlot ? ` — ${f.callbackSlot}` : ""}`);
   if (f.housingType) lines.push(`Logement : ${f.housingType}`);
   if (f.ownerStatus) lines.push(`Propriétaire : ${f.ownerStatus}`);
   if (f.projectTiming) lines.push(`Échéance : ${f.projectTiming}`);
@@ -225,7 +226,7 @@ async function createMondayItem(lead) {
     [COL.typeLead]: { index: typeLeadIndexForSource(f.source) },
     [COL.telephone]: { phone: normalizePhone(f.phone), countryShortName: "FR" },
     [COL.dateContact]: { date: parisDate(f.createdAt) },
-    [COL.codePostal]: departementCode(f.department),
+    [COL.codePostal]: f.postalCode ? String(f.postalCode) : departementCode(f.department),
     [COL.foyer]: String(f.householdSize ?? ""),
     [COL.revenus]: String(f.incomeBracket ?? ""),
     [COL.chauffage]: String(f.currentHeating ?? ""),

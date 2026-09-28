@@ -455,6 +455,59 @@ async function submitLead(
   }
 }
 
+// Demande de rappel express (landing PAC) : même collection et même circuit
+// que le simulateur (Monday, notification interne, pixel Meta), avec
+// seulement les champs utiles pour rappeler.
+export type CallbackRequest = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  postalCode: string;
+  currentHeating: string;
+  callbackSlot: string;
+  company: string; // honeypot anti-spam : doit rester vide
+};
+
+export async function submitCallbackRequest(
+  data: CallbackRequest,
+  source: string,
+): Promise<void> {
+  if (data.company) return;
+  const [appMod, fsMod]: any[] = await Promise.all([
+    // @ts-ignore
+    import(/* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"),
+    // @ts-ignore
+    import(/* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"),
+  ]);
+  const app = appMod.getApps().length
+    ? appMod.getApp()
+    : appMod.initializeApp(FIREBASE_CONFIG);
+  const db = fsMod.getFirestore(app);
+  await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
+    name: `${data.firstName.trim()} ${data.lastName.trim()}`.trim(),
+    phone: data.phone.trim(),
+    email: "",
+    postalCode: data.postalCode.trim(),
+    // Les formules Région/Zone du tableau Monday lisent les 2 premiers
+    // caractères : le code postal complet convient aussi comme département.
+    department: data.postalCode.trim(),
+    currentHeating: data.currentHeating,
+    callbackSlot: data.callbackSlot,
+    requestType: "Demande de rappel",
+    projectType: "Pompe à chaleur",
+    consent: true,
+    source,
+    createdAt: fsMod.serverTimestamp(),
+    mondaySynced: false,
+  });
+  try {
+    if (!source.startsWith("reactivation"))
+      (window as any).fbq?.("track", "Lead", { content_category: source });
+  } catch {
+    /* le tracking ne doit jamais casser l'enregistrement du lead */
+  }
+}
+
 export const Simulator = ({
   source = "simulateur-landing",
 }: {

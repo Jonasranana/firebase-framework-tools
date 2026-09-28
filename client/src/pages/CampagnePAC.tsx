@@ -9,6 +9,11 @@ import {
   HandCoins,
   BadgeCheck,
   Sparkles,
+  Droplet,
+  Flame,
+  HelpCircle,
+  ArrowLeft,
+  Calculator,
 } from "lucide-react";
 import {
   PageLayout,
@@ -18,6 +23,9 @@ import {
   AidesSection,
   RealisationsSection,
   AvisSection,
+  FRENCH_PHONE_REGEX,
+  submitCallbackRequest,
+  type CallbackRequest,
 } from "./ip5-sections";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -100,6 +108,313 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
   );
 };
 
+const HEATING_OPTIONS = [
+  { value: "Fioul", label: "Fioul", icon: Droplet },
+  { value: "Gaz", label: "Gaz", icon: Flame },
+  { value: "Autre", label: "Autre", icon: HelpCircle },
+];
+
+const CALLBACK_SLOTS = [
+  "Matin (9h-12h)",
+  "Après-midi (12h-17h)",
+  "Fin de journée (17h-20h)",
+];
+
+const INITIAL_CALLBACK: CallbackRequest = {
+  firstName: "",
+  lastName: "",
+  phone: "",
+  postalCode: "",
+  currentHeating: "",
+  callbackSlot: "",
+  company: "",
+};
+
+const inputClass =
+  "w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:border-[#2b5a8f] outline-none transition-colors";
+
+// Point d'entrée de la landing : une question (chauffage), puis le choix le
+// plus simple possible — appeler, être rappelé, ou faire la simulation
+// complète. Beaucoup de visiteurs mobiles abandonnent devant un formulaire
+// en plusieurs étapes ; ici, un clic suffit pour entrer en contact.
+const QuickStart = ({ source }: { source: string }) => {
+  const [heating, setHeating] = useState("");
+  const [mode, setMode] = useState<"" | "rappel" | "simulation">("");
+  const [form, setForm] = useState<CallbackRequest>(INITIAL_CALLBACK);
+  const [consent, setConsent] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+
+  if (mode === "simulation") {
+    return <Simulator source={source} />;
+  }
+
+  const trackCall = () => {
+    try {
+      if (!source.startsWith("reactivation"))
+        (window as any).fbq?.("track", "Contact", { content_category: source });
+    } catch {
+      /* sans effet sur l'appel */
+    }
+  };
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const next: Record<string, string> = {};
+    if (!form.firstName.trim()) next.firstName = "Indiquez votre prénom.";
+    if (!form.lastName.trim()) next.lastName = "Indiquez votre nom.";
+    if (!FRENCH_PHONE_REGEX.test(form.phone.trim()))
+      next.phone = "Numéro de téléphone invalide.";
+    if (!/^\d{5}$/.test(form.postalCode.trim()))
+      next.postalCode = "Code postal à 5 chiffres.";
+    if (!form.callbackSlot) next.callbackSlot = "Choisissez un créneau.";
+    if (!consent) next.consent = "Vous devez accepter d'être recontacté(e).";
+    setErrors(next);
+    if (Object.keys(next).length) return;
+    setSubmitting(true);
+    try {
+      await submitCallbackRequest({ ...form, currentHeating: heating }, `${source}-rappel`);
+      setDone(true);
+    } catch {
+      setErrors({ submit: "Une erreur est survenue. Appelez-nous au 07 49 52 52 67." });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const card =
+    "bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-6 md:p-8 text-left";
+
+  if (done) {
+    return (
+      <div className={`${card} text-center`}>
+        <CheckCircle2 className="mx-auto mb-4 text-green-500" size={48} />
+        <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">
+          Merci {form.firstName.trim()} !
+        </h3>
+        <p className="text-gray-600 dark:text-slate-300">
+          Votre demande est bien reçue. Un conseiller IP5 Énergie vous rappelle
+          sur le créneau choisi ({form.callbackSlot.toLowerCase()}).
+        </p>
+      </div>
+    );
+  }
+
+  if (!heating) {
+    return (
+      <div className={card}>
+        <p className="text-sm font-bold text-[#2b5a8f] dark:text-blue-400 mb-1">
+          Question rapide
+        </p>
+        <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-6">
+          Vous chauffez votre logement au :
+        </h3>
+        <div className="grid grid-cols-3 gap-3">
+          {HEATING_OPTIONS.map(({ value, label, icon: Icon }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setHeating(value)}
+              className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-gray-200 dark:border-slate-700 hover:border-[#2b5a8f] hover:bg-blue-50 dark:hover:bg-slate-800 font-bold text-gray-900 dark:text-white transition-colors"
+            >
+              <Icon size={28} className="text-[#2b5a8f] dark:text-blue-400" />
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (mode === "rappel") {
+    return (
+      <form onSubmit={submit} className={card} noValidate>
+        <button
+          type="button"
+          onClick={() => setMode("")}
+          className="inline-flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-gray-800 mb-4"
+        >
+          <ArrowLeft size={16} /> Retour
+        </button>
+        <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-5">
+          On vous rappelle
+        </h3>
+        <input
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          value={form.company}
+          onChange={(e) => setForm({ ...form, company: e.target.value })}
+          className="hidden"
+          aria-hidden="true"
+        />
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <input
+                className={inputClass}
+                placeholder="Prénom"
+                autoComplete="given-name"
+                value={form.firstName}
+                onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+              />
+              {errors.firstName && <p className="text-red-600 text-xs mt-1">{errors.firstName}</p>}
+            </div>
+            <div>
+              <input
+                className={inputClass}
+                placeholder="Nom"
+                autoComplete="family-name"
+                value={form.lastName}
+                onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+              />
+              {errors.lastName && <p className="text-red-600 text-xs mt-1">{errors.lastName}</p>}
+            </div>
+          </div>
+          <div>
+            <input
+              className={inputClass}
+              type="tel"
+              inputMode="tel"
+              placeholder="Téléphone"
+              autoComplete="tel"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            />
+            {errors.phone && <p className="text-red-600 text-xs mt-1">{errors.phone}</p>}
+          </div>
+          <div>
+            <input
+              className={inputClass}
+              inputMode="numeric"
+              maxLength={5}
+              placeholder="Code postal"
+              autoComplete="postal-code"
+              value={form.postalCode}
+              onChange={(e) =>
+                setForm({ ...form, postalCode: e.target.value.replace(/\D/g, "") })
+              }
+            />
+            {errors.postalCode && <p className="text-red-600 text-xs mt-1">{errors.postalCode}</p>}
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
+              Quand préférez-vous être rappelé(e) ?
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {CALLBACK_SLOTS.map((slot) => (
+                <button
+                  key={slot}
+                  type="button"
+                  onClick={() => setForm({ ...form, callbackSlot: slot })}
+                  className={`px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors ${
+                    form.callbackSlot === slot
+                      ? "border-[#2b5a8f] bg-blue-50 text-[#2b5a8f] dark:bg-slate-800 dark:text-blue-300"
+                      : "border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:border-gray-300"
+                  }`}
+                >
+                  {slot}
+                </button>
+              ))}
+            </div>
+            {errors.callbackSlot && <p className="text-red-600 text-xs mt-1">{errors.callbackSlot}</p>}
+          </div>
+          <div>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                className="mt-1 w-4 h-4 accent-[#2b5a8f] flex-shrink-0"
+              />
+              <span className="text-xs text-gray-600 dark:text-slate-400 leading-relaxed">
+                J'accepte d'être recontacté(e) par IP5 Énergie au sujet de ma
+                demande. Mes données ne sont jamais revendues et je peux
+                exercer mes droits (accès, rectification, suppression) à tout
+                moment.
+              </span>
+            </label>
+            {errors.consent && <p className="text-red-600 text-xs mt-1">{errors.consent}</p>}
+          </div>
+          {errors.submit && <p className="text-red-600 text-sm">{errors.submit}</p>}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#2b5a8f] to-cyan-500 text-white py-4 rounded-full font-bold text-lg shadow-lg disabled:opacity-60"
+          >
+            {submitting ? "Envoi…" : "Être rappelé(e)"}
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  const choice =
+    "w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-colors";
+  return (
+    <div className={card}>
+      <button
+        type="button"
+        onClick={() => setHeating("")}
+        className="inline-flex items-center gap-1 text-sm font-semibold text-gray-500 hover:text-gray-800 mb-4"
+      >
+        <ArrowLeft size={16} /> Chauffage : {heating}
+      </button>
+      <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-5">
+        Comment souhaitez-vous avancer ?
+      </h3>
+      <div className="space-y-3">
+        <a
+          href="tel:+33749525267"
+          onClick={trackCall}
+          className={`${choice} border-green-500 bg-green-50 dark:bg-green-950/40 hover:bg-green-100`}
+        >
+          <Phone className="text-green-600 flex-shrink-0" size={26} />
+          <span>
+            <span className="block font-bold text-gray-900 dark:text-white">
+              Appeler maintenant
+            </span>
+            <span className="block text-sm text-gray-600 dark:text-slate-300">
+              07 49 52 52 67
+            </span>
+          </span>
+        </a>
+        <button
+          type="button"
+          onClick={() => setMode("rappel")}
+          className={`${choice} border-[#2b5a8f] bg-blue-50 dark:bg-slate-800 hover:bg-blue-100`}
+        >
+          <Clock className="text-[#2b5a8f] dark:text-blue-400 flex-shrink-0" size={26} />
+          <span>
+            <span className="block font-bold text-gray-900 dark:text-white">
+              Être rappelé(e) rapidement
+            </span>
+            <span className="block text-sm text-gray-600 dark:text-slate-300">
+              Laissez votre numéro, un conseiller vous rappelle
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMode("simulation")}
+          className={`${choice} border-gray-200 dark:border-slate-700 hover:border-gray-300`}
+        >
+          <Calculator className="text-gray-500 flex-shrink-0" size={26} />
+          <span>
+            <span className="block font-bold text-gray-900 dark:text-white">
+              Faire la simulation (2 min)
+            </span>
+            <span className="block text-sm text-gray-600 dark:text-slate-300">
+              Estimez vos aides en détail
+            </span>
+          </span>
+        </button>
+      </div>
+    </div>
+  );
+};
+
 const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?: unknown } = {}) => {
   return (
     <PageLayout title="Pompe à chaleur : vérifiez vos aides 2026 — IP5 Énergie">
@@ -156,7 +471,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
             <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-green-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
               <div className="relative">
-                <Simulator source={source} />
+                <QuickStart source={source} />
               </div>
             </div>
           </div>
