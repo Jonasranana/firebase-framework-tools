@@ -205,7 +205,8 @@ const QuickStart = ({ source }: { source: string }) => {
     return (
       <div className={card}>
         <p className="text-sm font-bold text-[#2b5a8f] dark:text-blue-400 mb-1">
-          Question rapide
+          <span className="lg:hidden">Jusqu'à 100 % d'aides pour votre pompe à chaleur</span>
+          <span className="hidden lg:inline">Question rapide</span>
         </p>
         <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-6">
           Vous chauffez votre logement au :
@@ -422,23 +423,35 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       hideFloatingWhileVisible="simulateur"
     >
       {/* ── HERO calé sur l'annonce : angle AIDES + ÉLIGIBILITÉ ── */}
-      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden bg-white dark:bg-slate-950">
+      <section className="relative pt-24 pb-16 lg:pt-40 lg:pb-28 overflow-hidden bg-white dark:bg-slate-950">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] rounded-full bg-blue-50 dark:bg-blue-900/20 blur-3xl opacity-70"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-green-50 dark:bg-green-900/20 blur-3xl opacity-70"></div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="lg:grid lg:grid-cols-12 gap-16 items-center">
-            <div className="lg:col-span-6 mb-12 lg:mb-0 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-bold text-sm mb-6 border border-green-100 dark:border-green-900 shadow-sm">
+          {/* Mobile : la question rapide en tout premier, puis le titre et le
+              texte. Ordinateur : texte à gauche, question à droite. */}
+          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:gap-x-16 lg:gap-y-0">
+            <div className="order-2 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-1 lg:self-end text-center lg:text-left">
+              <div className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-bold text-sm mb-6 border border-green-100 dark:border-green-900 shadow-sm">
                 <Gift size={16} /> Aides 2026 ouvertes — vérifiez votre montant
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-gray-900 dark:text-white">
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight lg:mb-6 text-gray-900 dark:text-white">
                 Jusqu'à{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
                   100% d'aides
                 </span>{" "}
                 pour votre pompe à chaleur
               </h1>
+            </div>
+
+            <div id="simulateur" className="order-1 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 lg:self-center relative scroll-mt-28">
+              <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-green-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
+              <div className="relative">
+                <QuickStart source={source} />
+              </div>
+            </div>
+
+            <div className="order-3 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-2 lg:self-start text-center lg:text-left">
               <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
                 Remplacez votre ancienne chaudière et divisez votre facture de
                 chauffage. Avec <b>MaPrimeRénov'</b> et la <b>prime CEE</b>{" "}
@@ -446,7 +459,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
                 avez droit.
               </p>
 
-              <div className="flex justify-center lg:justify-start">
+              <div className="hidden lg:flex justify-start">
                 <a
                   href="#simulateur"
                   onClick={scrollToSimulateur}
@@ -456,7 +469,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
                   gratuitement
                 </a>
               </div>
-              <p className="mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-gray-500 dark:text-slate-400 font-medium">
+              <p className="lg:mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-gray-500 dark:text-slate-400 font-medium">
                 <span className="flex items-center gap-1.5">
                   <CheckCircle2 className="text-green-500" size={16} /> 100%
                   gratuit
@@ -469,13 +482,6 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
                   engagement
                 </span>
               </p>
-            </div>
-
-            <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-green-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
-              <div className="relative">
-                <QuickStart source={source} />
-              </div>
             </div>
           </div>
         </div>
