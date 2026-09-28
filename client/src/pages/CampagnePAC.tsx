@@ -417,7 +417,10 @@ const QuickStart = ({ source }: { source: string }) => {
 
 const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?: unknown } = {}) => {
   return (
-    <PageLayout title="Pompe à chaleur : vérifiez vos aides 2026 — IP5 Énergie">
+    <PageLayout
+      title="Pompe à chaleur : vérifiez vos aides 2026 — IP5 Énergie"
+      hideFloatingWhileVisible="simulateur"
+    >
       {/* ── HERO calé sur l'annonce : angle AIDES + ÉLIGIBILITÉ ── */}
       <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden bg-white dark:bg-slate-950">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] rounded-full bg-blue-50 dark:bg-blue-900/20 blur-3xl opacity-70"></div>
