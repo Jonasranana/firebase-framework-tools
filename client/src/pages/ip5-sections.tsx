@@ -1265,21 +1265,44 @@ export const Simulator = ({
 // Enveloppe commune à toutes les pages IP5 Énergie : en-tête, pied de page,
 // assistant IA et bouton WhatsApp, plus le titre d'onglet. Chaque page se
 // contente de fournir son contenu.
+// Masque les boutons flottants tant que l'élément `anchorId` est à l'écran :
+// sur mobile, ils recouvraient les boutons du bloc de choix de la landing.
+function useHiddenWhileVisible(anchorId?: string) {
+  const [hidden, setHidden] = useState(Boolean(anchorId));
+  useEffect(() => {
+    if (!anchorId) return;
+    const el = document.getElementById(anchorId);
+    if (!el || typeof IntersectionObserver === "undefined") {
+      setHidden(false);
+      return;
+    }
+    const observer = new IntersectionObserver(([entry]) => setHidden(entry.isIntersecting));
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [anchorId]);
+  return hidden;
+}
+
 export const PageLayout = ({
   title,
   children,
+  hideFloatingWhileVisible,
 }: {
   title: string;
   children: React.ReactNode;
+  hideFloatingWhileVisible?: string;
 }) => {
   useFrenchPageMeta(title);
+  const hideFloating = useHiddenWhileVisible(hideFloatingWhileVisible);
   return (
     <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
       <SiteHeader />
       {children}
       <SiteFooter />
-      <AIChatWidget />
-      <WhatsAppButton />
+      <div className={hideFloating ? "hidden" : undefined}>
+        <AIChatWidget />
+        <WhatsAppButton />
+      </div>
     </div>
   );
 };
