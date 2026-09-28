@@ -533,7 +533,6 @@ export type CallbackRequest = {
   phone: string;
   postalCode: string;
   currentHeating: string;
-  callbackSlot: string;
   company: string; // honeypot anti-spam : doit rester vide
 };
 
@@ -561,7 +560,6 @@ export async function submitCallbackRequest(
     // caractères : le code postal complet convient aussi comme département.
     department: data.postalCode.trim(),
     currentHeating: data.currentHeating,
-    callbackSlot: data.callbackSlot,
     requestType: "Demande de rappel",
     projectType: "Pompe à chaleur",
     consent: true,

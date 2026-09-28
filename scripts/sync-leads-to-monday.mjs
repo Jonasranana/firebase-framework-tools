@@ -47,7 +47,6 @@ const typeLeadIndexForSource = (source) => {
 const COL = {
   statutAppel: "color_mm6vdhz4", // 📞 Statut Appel
   typeDemande: "color_mm7m3q82", // 📥 Type de demande
-  creneauRappel: "color_mm7mvkgz", // ⏰ Créneau de rappel
   typeLead: "color_mm79bwsw", // 🏷️ Type de lead
   telephone: "phone_mm2qnqr2", // 📞 Téléphone
   dateContact: "date_mm6vw6b2", // Date 1er contact
@@ -71,7 +70,7 @@ const COL = {
 // que de les perdre.
 const buildNotes = (f) => {
   const lines = [];
-  if (f.requestType) lines.push(`📞 ${f.requestType}${f.callbackSlot ? ` — ${f.callbackSlot}` : ""}`);
+  if (f.requestType) lines.push(`📞 ${f.requestType}`);
   if (f.simulationResult) lines.push(`Résultat affiché : ${f.simulationResult}`);
   if (f.housingType) lines.push(`Logement : ${f.housingType}`);
   if (f.ownerStatus) lines.push(`Propriétaire : ${f.ownerStatus}`);
@@ -218,21 +217,14 @@ const parisDate = (iso) =>
     day: "2-digit",
   }).format(iso ? new Date(iso) : new Date());
 
-// « 📥 Type de demande » et « ⏰ Créneau de rappel » : ids de libellés
-// vérifiés via get_board_info (colonnes color_mm7m3q82 / color_mm7mvkgz).
+// « 📥 Type de demande » : ids de libellés vérifiés via get_board_info
+// (colonne color_mm7m3q82).
 const requestTypeIndex = (f) => {
   const source = String(f.source ?? "");
   if (f.requestType) return 1; // 📞 Rappel demandé
   if (source.startsWith("reactivation")) return 4; // ✉️ Réactivation
   if (source.includes("gonflage")) return null;
   return 7; // 🧮 Simulation
-};
-const callbackSlotIndex = (slot) => {
-  const s = String(slot ?? "");
-  if (s.startsWith("Matin")) return 9;
-  if (s.startsWith("Après-midi")) return 0;
-  if (s.startsWith("Fin")) return 3;
-  return null;
 };
 
 async function createMondayItem(lead) {
@@ -261,8 +253,6 @@ async function createMondayItem(lead) {
   }
   const typeIdx = requestTypeIndex(f);
   if (typeIdx !== null) columnValues[COL.typeDemande] = { index: typeIdx };
-  const slotIdx = callbackSlotIndex(f.callbackSlot);
-  if (slotIdx !== null) columnValues[COL.creneauRappel] = { index: slotIdx };
   const query = `mutation ($board: ID!, $group: String!, $name: String!, $values: JSON!) {
     create_item(board_id: $board, group_id: $group, item_name: $name, column_values: $values) { id }
   }`;

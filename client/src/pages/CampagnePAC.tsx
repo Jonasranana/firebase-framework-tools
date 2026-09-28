@@ -114,19 +114,12 @@ const HEATING_OPTIONS = [
   { value: "Autre", label: "Autre", icon: HelpCircle },
 ];
 
-const CALLBACK_SLOTS = [
-  "Matin (9h-12h)",
-  "Après-midi (12h-17h)",
-  "Fin de journée (17h-20h)",
-];
-
 const INITIAL_CALLBACK: CallbackRequest = {
   firstName: "",
   lastName: "",
   phone: "",
   postalCode: "",
   currentHeating: "",
-  callbackSlot: "",
   company: "",
 };
 
@@ -168,7 +161,6 @@ const QuickStart = ({ source }: { source: string }) => {
       next.phone = "Numéro de téléphone invalide.";
     if (!/^\d{5}$/.test(form.postalCode.trim()))
       next.postalCode = "Code postal à 5 chiffres.";
-    if (!form.callbackSlot) next.callbackSlot = "Choisissez un créneau.";
     if (!consent) next.consent = "Vous devez accepter d'être recontacté(e).";
     setErrors(next);
     if (Object.keys(next).length) return;
@@ -195,7 +187,7 @@ const QuickStart = ({ source }: { source: string }) => {
         </h3>
         <p className="text-gray-600 dark:text-slate-300">
           Votre demande est bien reçue. Un conseiller IP5 Énergie vous rappelle
-          sur le créneau choisi ({form.callbackSlot.toLowerCase()}).
+          très rapidement.
         </p>
       </div>
     );
@@ -298,28 +290,6 @@ const QuickStart = ({ source }: { source: string }) => {
               }
             />
             {errors.postalCode && <p className="text-red-600 text-xs mt-1">{errors.postalCode}</p>}
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-slate-300 mb-2">
-              Quand préférez-vous être rappelé(e) ?
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              {CALLBACK_SLOTS.map((slot) => (
-                <button
-                  key={slot}
-                  type="button"
-                  onClick={() => setForm({ ...form, callbackSlot: slot })}
-                  className={`px-3 py-2.5 rounded-xl border-2 text-sm font-semibold transition-colors ${
-                    form.callbackSlot === slot
-                      ? "border-[#2b5a8f] bg-blue-50 text-[#2b5a8f] dark:bg-slate-800 dark:text-blue-300"
-                      : "border-gray-200 dark:border-slate-700 text-gray-600 dark:text-slate-300 hover:border-gray-300"
-                  }`}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
-            {errors.callbackSlot && <p className="text-red-600 text-xs mt-1">{errors.callbackSlot}</p>}
           </div>
           <div>
             <label className="flex items-start gap-3 cursor-pointer">
