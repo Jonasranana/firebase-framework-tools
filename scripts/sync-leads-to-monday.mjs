@@ -70,6 +70,7 @@ const COL = {
 const buildNotes = (f) => {
   const lines = [];
   if (f.requestType) lines.push(`📞 ${f.requestType}${f.callbackSlot ? ` — ${f.callbackSlot}` : ""}`);
+  if (f.simulationResult) lines.push(`Résultat affiché : ${f.simulationResult}`);
   if (f.housingType) lines.push(`Logement : ${f.housingType}`);
   if (f.ownerStatus) lines.push(`Propriétaire : ${f.ownerStatus}`);
   if (f.projectTiming) lines.push(`Échéance : ${f.projectTiming}`);

@@ -382,6 +382,73 @@ const MPR_PLAFONDS = {
 
 const IDF_PREFIXES = ["75", "77", "78", "91", "92", "93", "94", "95"];
 
+// Zones climatiques officielles (H1 par défaut) : servent au barème du
+// résultat de simulation ci-dessous.
+const ZONE_H3 = ["06", "11", "13", "2A", "2B", "30", "34", "66", "83"];
+const ZONE_H2 = [
+  "04", "07", "09", "12", "16", "17", "18", "22", "24", "26", "28", "29", "31",
+  "32", "33", "35", "36", "37", "40", "41", "44", "46", "47", "48", "49", "50",
+  "53", "56", "61", "64", "65", "72", "79", "81", "82", "84", "85", "86",
+];
+const climateZone = (department: string) => {
+  const code = department.slice(0, 2).toUpperCase();
+  return ZONE_H3.includes(code) ? "H3" : ZONE_H2.includes(code) ? "H2" : "H1";
+};
+
+// Reste à charge indicatif par profil et par zone (barème IP5, validé par
+// l'équipe). Montrés en petit : le montant exact dépend de l'avis
+// d'imposition et du logement, et c'est le conseiller qui le confirme.
+const RESTE_A_CHARGE: Record<string, Record<"H1" | "H2", number>> = {
+  Bleu: { H1: 0, H2: 0 },
+  Jaune: { H1: 0, H2: 1600 },
+  Violet: { H1: 1100, H2: 2400 },
+};
+
+export type SimulationResult =
+  | { kind: "zero"; profile: string; zone: string }
+  | { kind: "rac"; profile: string; zone: string; amount: number }
+  | { kind: "rose"; zone: string }
+  | { kind: "h3" }
+  | { kind: "locataire" }
+  | { kind: "etude" };
+
+export function computeSimulationResult(d: {
+  department: string;
+  incomeBracket: string;
+  ownerStatus: string;
+  housingType: string;
+  currentHeating: string;
+}): SimulationResult {
+  const zone = climateZone(d.department);
+  if (zone === "H3") return { kind: "h3" };
+  if (d.ownerStatus === "Locataire") return { kind: "locataire" };
+  if (d.housingType === "Appartement" || !["Fioul", "Gaz"].includes(d.currentHeating))
+    return { kind: "etude" };
+  const bracket = d.incomeBracket.toLowerCase();
+  const profile = ["Bleu", "Jaune", "Violet"].find((p) => bracket.includes(p.toLowerCase()));
+  if (!profile) return { kind: "rose", zone };
+  const amount = RESTE_A_CHARGE[profile][zone as "H1" | "H2"];
+  return amount === 0 ? { kind: "zero", profile, zone } : { kind: "rac", profile, zone, amount };
+}
+
+// Résumé enregistré avec le lead : le conseiller sait ce que le client a vu.
+export function describeSimulationResult(r: SimulationResult): string {
+  switch (r.kind) {
+    case "zero":
+      return `${r.profile} ${r.zone} — 0 € de reste à charge annoncé`;
+    case "rac":
+      return `${r.profile} ${r.zone} — reste à charge annoncé ~${r.amount.toLocaleString("fr-FR")} €`;
+    case "rose":
+      return `Rose ${r.zone} — CEE seule, reste à charge à prévoir`;
+    case "h3":
+      return "Zone H3 — « nous n'intervenons pas encore dans votre zone »";
+    case "locataire":
+      return "Locataire — orienté vers son propriétaire";
+    case "etude":
+      return "Cas à étudier (appartement ou chauffage hors fioul/gaz)";
+  }
+}
+
 const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
 
 // Les 4 profils MaPrimeRénov', avec les tranches adaptées au département
@@ -411,6 +478,7 @@ export const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
 async function submitLead(
   data: SimulatorData,
   source = "simulateur-landing",
+  extra: Record<string, string> = {},
 ): Promise<void> {
   if (data.company) return; // bot détecté, on ignore silencieusement
   const [appMod, fsMod]: any[] = await Promise.all([
@@ -436,6 +504,7 @@ async function submitLead(
     // l'accueil, « landing-pac-meta » pour la campagne publicitaire Meta.
     // Utile pour mesurer le retour sur investissement des pubs.
     source,
+    ...extra,
     createdAt: fsMod.serverTimestamp(),
     // Passe à true quand le robot de synchronisation a copié le lead dans
     // Monday (voir scripts/sync-leads-to-monday.mjs).
@@ -608,7 +677,9 @@ export const Simulator = ({
 
     setIsSubmitting(true);
     try {
-      await submitLead(formData, effectiveSource);
+      await submitLead(formData, effectiveSource, {
+        simulationResult: describeSimulationResult(computeSimulationResult(formData)),
+      });
       setStep(TOTAL_QUESTIONS + 2);
     } catch (err) {
       console.error("Échec de l'enregistrement du lead:", err);
@@ -914,7 +985,6 @@ export const Simulator = ({
         );
       case 9: {
         const savings = savingsEstimate();
-        const isRose = formData.incomeBracket.includes("rose");
 
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -933,9 +1003,7 @@ export const Simulator = ({
               </p>
               <div className="inline-flex items-center justify-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
                 <CheckCircle2 size={14} />{" "}
-                {isRose
-                  ? "Éligible aux primes CEE"
-                  : "Éligible MaPrimeRénov' & CEE"}
+                Votre résultat détaillé juste après
               </div>
               <p className="text-[11px] text-gray-500 mt-3">
                 Estimation indicative, non contractuelle, basée sur vos
@@ -1119,25 +1187,133 @@ export const Simulator = ({
           </div>
         );
       }
-      case 10:
+      case 10: {
+        const result = computeSimulationResult(formData);
+        const prenom = formData.firstName.trim();
+        const profil =
+          result.kind === "zero" || result.kind === "rac"
+            ? `profil ${result.profile} et votre département`
+            : "";
+        const smallPrint =
+          "Estimation indicative selon vos réponses, sous réserve d'éligibilité. Le montant exact dépend de votre avis d'imposition et de votre logement : votre conseiller le confirmera avec vous.";
+        const box = (tone: string, title: string, body: React.ReactNode, note?: React.ReactNode) => (
+          <div className={`rounded-2xl p-6 mb-6 border text-left ${tone}`}>
+            <p className="font-bold text-lg text-gray-900 mb-2">{title}</p>
+            <div className="text-gray-700 text-sm leading-relaxed space-y-2">{body}</div>
+            {note && <p className="text-[11px] text-gray-500 mt-4 leading-relaxed">{note}</p>}
+          </div>
+        );
+        let content: React.ReactNode;
+        switch (result.kind) {
+          case "zero":
+            content = box(
+              "bg-green-50 border-green-200",
+              `Bonne nouvelle${prenom ? `, ${prenom}` : ""} ! 🎉`,
+              <>
+                <p>
+                  Avec votre {profil}, les aides de l'État (MaPrimeRénov' et
+                  prime CEE) peuvent financer votre pompe à chaleur{" "}
+                  <b>jusqu'à 100 %</b>.
+                </p>
+                <p className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
+                  <CheckCircle2 size={14} /> 0 € de reste à charge estimé
+                </p>
+              </>,
+              smallPrint,
+            );
+            break;
+          case "rac":
+            content = box(
+              "bg-blue-50 border-blue-100",
+              `Bonne nouvelle${prenom ? `, ${prenom}` : ""} : vous avez droit aux aides ! 👍`,
+              <>
+                <p>
+                  Avec votre {profil}, vous pouvez bénéficier de MaPrimeRénov'
+                  et de la prime CEE pour votre pompe à chaleur. Un reste à
+                  charge est à prévoir.
+                </p>
+                <p>
+                  Le plus simple : votre conseiller vous rappelle pour tout
+                  vous expliquer et trouver la meilleure solution avec votre
+                  avis d'imposition.
+                </p>
+              </>,
+              <>
+                À titre indicatif, environ {result.amount.toLocaleString("fr-FR")} €.{" "}
+                {smallPrint}
+              </>,
+            );
+            break;
+          case "rose":
+            content = box(
+              "bg-blue-50 border-blue-100",
+              `Merci${prenom ? ` ${prenom}` : ""}, votre demande est bien reçue`,
+              <>
+                <p>
+                  Avec vos revenus, MaPrimeRénov' ne s'applique pas, mais vous
+                  pouvez bénéficier de la prime CEE pour votre pompe à chaleur.
+                  Un reste à charge est à prévoir.
+                </p>
+                <p>
+                  Votre conseiller vous rappelle pour chiffrer votre projet
+                  avec vous.
+                </p>
+              </>,
+              smallPrint,
+            );
+            break;
+          case "h3":
+            content = box(
+              "bg-gray-50 border-gray-200",
+              `Merci${prenom ? ` ${prenom}` : ""} pour votre demande`,
+              <p>
+                Nous n'intervenons pas encore dans votre zone. Nous avons bien
+                noté votre demande et reviendrons vers vous si cela évolue.
+              </p>,
+            );
+            break;
+          case "locataire":
+            content = box(
+              "bg-gray-50 border-gray-200",
+              `Merci${prenom ? ` ${prenom}` : ""} pour votre demande`,
+              <p>
+                Les aides à la pompe à chaleur sont réservées au propriétaire du
+                logement. Parlez-en à votre propriétaire : nous pouvons
+                l'accompagner dans toutes les démarches. Un conseiller peut vous
+                rappeler pour vous expliquer comment faire.
+              </p>,
+            );
+            break;
+          case "etude":
+            content = box(
+              "bg-blue-50 border-blue-100",
+              `Merci${prenom ? ` ${prenom}` : ""}, votre demande est bien reçue`,
+              <>
+                <p>
+                  Votre projet demande une petite étude : les aides concernent
+                  surtout le remplacement d'une chaudière fioul ou gaz dans une
+                  maison.
+                </p>
+                <p>
+                  Votre conseiller vous rappelle pour vérifier avec vous ce à
+                  quoi vous avez droit.
+                </p>
+              </>,
+            );
+            break;
+        }
         return (
-          <div className="text-center py-8 animate-in zoom-in duration-500">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle2 size={40} className="text-green-600" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              Demande envoyée avec succès !
-            </h3>
-            <p className="text-gray-600 mb-6">
-              Un expert technique <b>IP5 Énergie</b> a reçu vos informations.
-              Nous vous appelons d'ici quelques minutes pour valider vos aides
-              de l'État.
+          <div className="py-4 animate-in zoom-in duration-500">
+            <p className="flex items-center justify-center gap-2 text-sm font-semibold text-green-700 mb-4">
+              <CheckCircle2 size={18} /> Demande envoyée
             </p>
+            {content}
             <Button variant="outline" className="w-full" onClick={restart}>
               Faire une nouvelle simulation
             </Button>
           </div>
         );
+      }
       default:
         return null;
     }
