@@ -29,6 +29,7 @@ const Confidentialite = lazy(() =>
 const PompeAChaleur = lazy(() => import("@/pages/PompeAChaleur"));
 // Landing pages dédiées aux campagnes publicitaires Meta (Facebook / Instagram).
 const CampagnePAC = lazy(() => import("@/pages/CampagnePAC"));
+const Desinscription = lazy(() => import("@/pages/Desinscription"));
 const CampagneSolaire = lazy(() => import("@/pages/CampagneSolaire"));
 // Landing B2B : stations de gonflage des pneumatiques (CEE TRA-SE-104),
 // vendue aux entreprises/collectivités, pas aux particuliers.
@@ -77,6 +78,12 @@ function Router() {
         {/* Landing pubs Meta : /pac (URL courte pour les annonces) + alias */}
         <Route path="/pac" component={CampagnePAC} />
         <Route path="/simulateur-pac" component={CampagnePAC} />
+        {/* Lien des campagnes de réactivation (mail/SMS) : même page, leads
+            marqués à part dans Monday et exclus du pixel Meta. */}
+        <Route path="/aides-pac">
+          {() => <CampagnePAC source="reactivation-pac" />}
+        </Route>
+        <Route path="/desinscription" component={Desinscription} />
         <Route path="/solaire" component={CampagneSolaire} />
         <Route path="/chauffe-eau-solaire" component={CampagneSolaire} />
         {/* Landing pub Meta B2B : /gonflage (URL courte pour les annonces) + alias */}

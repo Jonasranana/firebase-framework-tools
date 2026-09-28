@@ -446,7 +446,10 @@ async function submitLead(
   // capté, pour l'optimisation et la mesure des campagnes. Ne fait rien si le
   // Pixel n'est pas chargé (ID non renseigné dans index.html).
   try {
-    (window as any).fbq?.("track", "Lead", { content_category: source });
+    // Les leads des campagnes de réactivation (mail/SMS) ne viennent pas
+    // d'une pub : les compter fausserait l'optimisation des campagnes Meta.
+    if (!source.startsWith("reactivation"))
+      (window as any).fbq?.("track", "Lead", { content_category: source });
   } catch {
     /* le tracking ne doit jamais casser l'enregistrement du lead */
   }

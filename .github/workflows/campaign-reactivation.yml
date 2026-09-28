@@ -1,0 +1,45 @@
+name: Campagne réactivation
+
+# Déclenchement manuel uniquement : chaque étape (aperçu, test, envoi d'un
+# lot) est lancée volontairement, jamais par un push.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "preview (liste seule), test (un mail), send (un lot)"
+        required: true
+        default: preview
+        type: choice
+        options: [preview, test, send]
+      test_email:
+        description: "Adresse du mail test (mode test)"
+        required: false
+      max:
+        description: "Nombre maximum de mails pour ce lot (mode send)"
+        required: false
+        default: "150"
+
+concurrency:
+  group: campagne-reactivation
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+      - name: Run campaign step
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          MODE: ${{ inputs.mode }}
+          TEST_EMAIL: ${{ inputs.test_email }}
+          MAX: ${{ inputs.max }}
+        run: node functions/scripts/campaign-run.js

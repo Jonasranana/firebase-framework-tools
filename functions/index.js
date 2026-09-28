@@ -1197,3 +1197,323 @@ exports.sendGonflageSignatureEmail = onDocumentCreated(
     }
   },
 );
+
+// ─────────────────────────────────────────────────────────────────────────
+// Campagne de réactivation par e-mail (contacts LED du groupe « 0/ Contacts »).
+// Déclenchée en créant un document dans « campaign_runs » (voir
+// functions/scripts/campaign-run.js, lancé par le workflow GitHub
+// « Campagne réactivation ») avec un champ mode :
+//   • preview : calcule la liste des destinataires, n'envoie rien ;
+//   • test    : envoie le mail à testEmail uniquement ;
+//   • send    : envoie aux destinataires pas encore servis, par lots (max).
+// Chaque envoi est tracé dans « campaign_sends » : relancer « send » ne
+// renvoie jamais deux fois le même mail. Les désinscrits (« email_optouts »)
+// sont toujours exclus.
+// ─────────────────────────────────────────────────────────────────────────
+const crypto = require("node:crypto");
+const { FieldValue } = require("firebase-admin/firestore");
+
+const REACTIVATION_CAMPAIGN_ID = "led-2026-09";
+const REACTIVATION_LANDING_URL = `${SITE_URL}/aides-pac`;
+const REACTIVATION_GROUP_ID = "group_mm6vrsfd"; // « 0/ Contacts »
+const REACTIVATION_SUBJECT = "Suite à nos échanges sur l'éclairage LED";
+// Fiches jamais abouties uniquement : on n'écrit pas aux dossiers en cours,
+// aux refus ni aux non-éligibles.
+const REACTIVATION_ALLOWED_STATUSES = new Set([
+  "",
+  "à appeler",
+  "nrp",
+  "nrp 2",
+  "a relancer",
+  "rappel demandé",
+  "me rapelle",
+  "manque les info",
+  "🆕 nouveau lead",
+]);
+const INTERNAL_EMAILS = new Set([
+  "contact@ip5energie.com",
+  "jonassitbon8@gmail.com",
+  "alexis.sitbon@gmail.com",
+  "carol.sitbon05@gmail.com",
+]);
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+const emailKey = (email) => crypto.createHash("sha256").update(email).digest("hex");
+
+function unsubscribeToken(email, secret) {
+  return crypto.createHmac("sha256", secret).update(email).digest("hex").slice(0, 32);
+}
+
+function unsubscribeUrl(email, secret) {
+  const e = Buffer.from(email, "utf-8").toString("base64url");
+  return `${SITE_URL}/desinscription?e=${e}&t=${unsubscribeToken(email, secret)}`;
+}
+
+function buildReactivationLedEmailHtml({ unsubscribe }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0;">Bonjour,</p>
+      <p style="margin:0 0 12px 0;">
+        Nous avions échangé il y a quelque temps au sujet de l'éclairage LED
+        financé par les Certificats d'Économies d'Énergie (CEE), et nous vous
+        avions dit que nous reviendrions vers vous en cas de nouveauté.
+      </p>
+      <p style="margin:0 0 12px 0;">
+        IP5 Énergie accompagne aujourd'hui d'autres travaux financés par les
+        CEE, notamment l'installation d'une pompe à chaleur pour votre
+        logement, avec jusqu'à 100&nbsp;% d'aides selon votre éligibilité
+        (MaPrimeRénov' et CEE).
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Si vous chauffez votre maison au fioul ou au gaz, vous pouvez faire
+        la simulation gratuite en 30 secondes&nbsp;:
+      </p>
+      <p style="margin:0 0 20px 0;">
+        <a href="${REACTIVATION_LANDING_URL}" style="display:inline-block; background:#2b5a8f; color:#ffffff; text-decoration:none; padding:12px 22px; border-radius:8px; font-weight:bold;">Faire ma simulation</a>
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Vous pouvez aussi nous appeler aux numéros ci-dessous, ou simplement
+        répondre à ce mail.
+      </p>
+      <p style="margin:0 0 20px 0;">
+        Bien cordialement,<br/>
+        IP5 Énergie
+      </p>
+      <p style="margin:0; color:#8a94a3; font-size:12px; line-height:1.5;">
+        Vous recevez ce message suite à nos échanges concernant l'éclairage LED.
+        Pour ne plus recevoir nos messages,
+        <a href="${unsubscribe}" style="color:#8a94a3;">cliquez ici</a>.
+      </p>
+    `,
+  });
+}
+
+function buildReactivationLedEmailText({ unsubscribe }) {
+  return [
+    "Bonjour,",
+    "",
+    "Nous avions échangé il y a quelque temps au sujet de l'éclairage LED financé par les Certificats d'Économies d'Énergie (CEE), et nous vous avions dit que nous reviendrions vers vous en cas de nouveauté.",
+    "",
+    "IP5 Énergie accompagne aujourd'hui d'autres travaux financés par les CEE, notamment l'installation d'une pompe à chaleur pour votre logement, avec jusqu'à 100 % d'aides selon votre éligibilité (MaPrimeRénov' et CEE).",
+    "",
+    "Si vous chauffez votre maison au fioul ou au gaz, vous pouvez faire la simulation gratuite en 30 secondes :",
+    REACTIVATION_LANDING_URL,
+    "",
+    "Vous pouvez aussi nous appeler au 07 49 52 52 67 ou au 06 95 92 04 09, ou simplement répondre à ce mail.",
+    "",
+    "Bien cordialement,",
+    "IP5 Énergie",
+    "",
+    `Pour ne plus recevoir nos messages : ${unsubscribe}`,
+  ].join("\r\n");
+}
+
+// Version texte + HTML (multipart/alternative) avec en-tête List-Unsubscribe :
+// deux signaux que les filtres anti-spam attendent d'un envoi groupé propre.
+function buildRawAlternativeMessage({ to, from, subject, html, text, unsubscribe }) {
+  const boundary = `alt_${crypto.randomBytes(12).toString("hex")}`;
+  const b64 = (s) => Buffer.from(s, "utf-8").toString("base64").replace(/.{76}/g, "$&\r\n");
+  const message = [
+    `From: ${encodeHeaderWord("IP5 Énergie")} <${from}>`,
+    `To: ${to}`,
+    `Reply-To: ${from}`,
+    `Subject: ${encodeHeaderWord(subject)}`,
+    `List-Unsubscribe: <${unsubscribe}>, <mailto:${from}?subject=STOP>`,
+    "MIME-Version: 1.0",
+    `Content-Type: multipart/alternative; boundary="${boundary}"`,
+    "",
+    `--${boundary}`,
+    "Content-Type: text/plain; charset=utf-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    b64(text),
+    `--${boundary}`,
+    "Content-Type: text/html; charset=utf-8",
+    "Content-Transfer-Encoding: base64",
+    "",
+    b64(html),
+    `--${boundary}--`,
+  ].join("\r\n");
+  return Buffer.from(message).toString("base64url");
+}
+
+async function mondayQuery(query, variables, mondayToken) {
+  const res = await fetch("https://api.monday.com/v2", {
+    method: "POST",
+    headers: { Authorization: mondayToken, "Content-Type": "application/json", "API-Version": "2024-10" },
+    body: JSON.stringify({ query, variables }),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok || body.errors?.length) throw new Error(`Monday: ${JSON.stringify(body.errors ?? body)}`);
+  return body.data;
+}
+
+async function fetchAllBoardItems(mondayToken) {
+  const fields = `cursor items { id name group { id } column_values(ids: ["${MONDAY_COL.statutAppel}", "email_mm2qmb9n"]) { id text } }`;
+  let data = await mondayQuery(
+    `query ($b: ID!) { boards(ids: [$b]) { items_page(limit: 500) { ${fields} } } }`,
+    { b: MONDAY_BOARD_ID },
+    mondayToken,
+  );
+  let page = data.boards[0].items_page;
+  const items = [...page.items];
+  while (page.cursor) {
+    data = await mondayQuery(`query ($c: String!) { next_items_page(limit: 500, cursor: $c) { ${fields} } }`, { c: page.cursor }, mondayToken);
+    page = data.next_items_page;
+    items.push(...page.items);
+  }
+  return items;
+}
+
+async function buildReactivationRecipients(mondayToken) {
+  const items = await fetchAllBoardItems(mondayToken);
+  const col = (it, id) => (it.column_values.find((c) => c.id === id)?.text ?? "").trim();
+  // Une adresse présente dans un dossier en cours (autre groupe) n'est jamais
+  // relancée comme un « ancien contact ».
+  const activeEmails = new Set(
+    items
+      .filter((it) => it.group.id !== REACTIVATION_GROUP_ID)
+      .map((it) => col(it, "email_mm2qmb9n").toLowerCase())
+      .filter(Boolean),
+  );
+  const optouts = new Set((await db.collection("email_optouts").select().get()).docs.map((d) => d.id));
+
+  const excluded = { sansEmail: 0, emailInvalide: 0, statut: 0, dossierEnCours: 0, interne: 0, doublon: 0, desinscrit: 0 };
+  const seen = new Set();
+  const list = [];
+  for (const it of items) {
+    if (it.group.id !== REACTIVATION_GROUP_ID) continue;
+    const email = col(it, "email_mm2qmb9n").toLowerCase();
+    if (!email) { excluded.sansEmail++; continue; }
+    if (!EMAIL_RE.test(email)) { excluded.emailInvalide++; continue; }
+    if (!REACTIVATION_ALLOWED_STATUSES.has(col(it, MONDAY_COL.statutAppel).toLowerCase())) { excluded.statut++; continue; }
+    if (INTERNAL_EMAILS.has(email)) { excluded.interne++; continue; }
+    if (activeEmails.has(email)) { excluded.dossierEnCours++; continue; }
+    if (seen.has(email)) { excluded.doublon++; continue; }
+    if (optouts.has(emailKey(email))) { excluded.desinscrit++; continue; }
+    seen.add(email);
+    list.push({ itemId: it.id, name: it.name, email });
+  }
+  return { list, excluded };
+}
+
+const maskEmail = (email) => email.replace(/^(.{2})[^@]*/, "$1***");
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+exports.runReactivationCampaign = onDocumentCreated(
+  {
+    document: "campaign_runs/{runId}",
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, MONDAY_API_TOKEN, MONDAY_WEBHOOK_SECRET],
+    region: "europe-west9",
+    timeoutSeconds: 540,
+    memory: "512MiB",
+    retry: false,
+  },
+  async (event) => {
+    const ref = event.data?.ref;
+    const { mode, testEmail, max = 150 } = event.data?.data() ?? {};
+    const startedAt = Date.now();
+    try {
+      const secret = MONDAY_WEBHOOK_SECRET.value();
+      const from = GMAIL_SENDER_EMAIL.value();
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const sendTo = async (to) => {
+        const unsubscribe = unsubscribeUrl(to, secret);
+        const raw = buildRawAlternativeMessage({
+          to,
+          from,
+          subject: REACTIVATION_SUBJECT,
+          html: buildReactivationLedEmailHtml({ unsubscribe }),
+          text: buildReactivationLedEmailText({ unsubscribe }),
+          unsubscribe,
+        });
+        await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+      };
+
+      if (mode === "test") {
+        const to = String(testEmail ?? "").trim().toLowerCase();
+        if (!EMAIL_RE.test(to)) throw new Error("testEmail invalide");
+        await sendTo(to);
+        await ref.update({ status: "done", result: { test: to } });
+        return;
+      }
+
+      const { list, excluded } = await buildReactivationRecipients(MONDAY_API_TOKEN.value());
+      const sentSnap = await db.collection("campaign_sends").where("campaign", "==", REACTIVATION_CAMPAIGN_ID).select().get();
+      const alreadySent = new Set(sentSnap.docs.map((d) => d.id));
+      const pending = list.filter((r) => !alreadySent.has(`${REACTIVATION_CAMPAIGN_ID}_${emailKey(r.email)}`));
+
+      if (mode === "preview") {
+        await ref.update({
+          status: "done",
+          result: {
+            destinataires: list.length,
+            dejaEnvoyes: list.length - pending.length,
+            restantAEnvoyer: pending.length,
+            exclus: excluded,
+            apercu: pending.slice(0, 40).map((r) => `${r.name} — ${maskEmail(r.email)}`),
+          },
+        });
+        return;
+      }
+
+      if (mode !== "send") throw new Error(`mode inconnu : ${mode}`);
+      let sent = 0;
+      const errors = [];
+      for (const r of pending) {
+        if (sent >= Number(max) || Date.now() - startedAt > 450_000) break;
+        try {
+          await sendTo(r.email);
+          await db.doc(`campaign_sends/${REACTIVATION_CAMPAIGN_ID}_${emailKey(r.email)}`).set({
+            campaign: REACTIVATION_CAMPAIGN_ID,
+            itemId: r.itemId,
+            sentAt: FieldValue.serverTimestamp(),
+          });
+          await setMondayDateColumn(r.itemId, MONDAY_COL_DERNIER_MAIL, MONDAY_API_TOKEN.value());
+          sent++;
+        } catch (err) {
+          errors.push(`${maskEmail(r.email)} : ${err.message}`);
+          if (errors.length >= 5) break;
+        }
+        // Rythme volontairement lent : un envoi groupé trop rapide est un
+        // signal de spam pour Gmail et les messageries des destinataires.
+        await sleep(2500);
+      }
+      await ref.update({ status: "done", result: { envoyes: sent, restants: pending.length - sent, erreurs: errors } });
+    } catch (err) {
+      logger.error("Campagne réactivation en échec", { error: err.message });
+      await ref?.update({ status: "error", error: err.message });
+    }
+  },
+);
+
+exports.unsubscribeEmail = onRequest(
+  {
+    secrets: [MONDAY_WEBHOOK_SECRET],
+    region: "europe-west9",
+    cors: [SITE_URL, "https://ip5-energie.web.app", "https://www.ip5energie.fr"],
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("method not allowed");
+      return;
+    }
+    let email;
+    try {
+      email = Buffer.from(String(req.body?.e ?? ""), "base64url").toString("utf-8").trim().toLowerCase();
+    } catch {
+      email = "";
+    }
+    const expected = EMAIL_RE.test(email) ? unsubscribeToken(email, MONDAY_WEBHOOK_SECRET.value()) : "";
+    const given = String(req.body?.t ?? "");
+    if (!expected || given.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(given), Buffer.from(expected))) {
+      res.status(400).send("invalid");
+      return;
+    }
+    await db.doc(`email_optouts/${emailKey(email)}`).set({ at: FieldValue.serverTimestamp() }, { merge: true });
+    logger.info("Désinscription e-mail enregistrée");
+    res.status(200).send("ok");
+  },
+);
