@@ -100,7 +100,7 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
   );
 };
 
-const CampagnePAC = () => {
+const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?: unknown } = {}) => {
   return (
     <PageLayout title="Pompe à chaleur : vérifiez vos aides 2026 — IP5 Énergie">
       {/* ── HERO calé sur l'annonce : angle AIDES + ÉLIGIBILITÉ ── */}
@@ -156,7 +156,7 @@ const CampagnePAC = () => {
             <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
               <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-green-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
               <div className="relative">
-                <Simulator source="landing-pac-meta" />
+                <Simulator source={source} />
               </div>
             </div>
           </div>
