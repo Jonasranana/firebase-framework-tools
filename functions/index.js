@@ -1537,3 +1537,63 @@ exports.unsubscribeEmail = onRequest(
     res.status(200).send("ok");
   },
 );
+
+// ─── Avis clients (page /avis, QR code) ──────────────────────────────────
+// Enregistre l'avis dans Firestore (ip5_avis, statut "a_moderer") et prévient
+// l'équipe par mail. Rien n'est publié automatiquement sur le site. Tous les
+// avis sont acceptés, bons comme mauvais : pas de filtrage selon la note.
+const escapeHtmlText = (s) =>
+  String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+
+exports.submitReview = onRequest(
+  {
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+    region: "europe-west9",
+    cors: [SITE_URL, "https://www.ip5energie.fr", "https://ip5-energie.web.app"],
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("method not allowed");
+      return;
+    }
+    const b = req.body ?? {};
+    if (b.company) {
+      res.status(200).send("ok"); // champ piège anti-robot
+      return;
+    }
+    const rating = Number(b.rating);
+    const clip = (v, n) => String(v ?? "").trim().slice(0, n);
+    const review = {
+      rating,
+      name: clip(b.name, 60),
+      city: clip(b.city, 60),
+      work: clip(b.work, 60),
+      comment: clip(b.comment, 2000),
+      publishConsent: b.publishConsent === true,
+    };
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5 || !review.name || review.comment.length < 3) {
+      res.status(400).send("invalid");
+      return;
+    }
+    await db.collection("ip5_avis").add({ ...review, status: "a_moderer", createdAt: FieldValue.serverTimestamp() });
+
+    try {
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const contactEmail = GMAIL_SENDER_EMAIL.value();
+      const stars = "★".repeat(rating) + "☆".repeat(5 - rating);
+      const html = `<div style="font-family:Arial,sans-serif;font-size:14px;color:#122f4d">
+        <p style="font-size:20px;color:#f59e0b;margin:0 0 8px">${stars}</p>
+        <p><b>${escapeHtmlText(review.name)}</b>${review.city ? ` — ${escapeHtmlText(review.city)}` : ""}${review.work ? `<br>Travaux : ${escapeHtmlText(review.work)}` : ""}</p>
+        <p style="white-space:pre-wrap;border-left:3px solid #2b5a8f;padding-left:10px">${escapeHtmlText(review.comment)}</p>
+        <p style="color:#5b6b7d;font-size:12px">Publication sur le site autorisée : ${review.publishConsent ? "oui" : "non"}</p>
+      </div>`;
+      const raw = buildRawMessage({ to: contactEmail, from: contactEmail, subject: `⭐ Nouvel avis ${rating}/5 — ${review.name}`, html });
+      await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+    } catch (err) {
+      logger.error("Avis enregistré mais notification mail échouée", { error: err.message });
+    }
+    res.status(200).send("ok");
+  },
+);
