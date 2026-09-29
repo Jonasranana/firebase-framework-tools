@@ -11,7 +11,7 @@ const REVIEW_ENDPOINT =
 
 // Lien « Demander des avis » de la fiche Google Business Profile
 // (format https://g.page/r/…/review). Vide = bouton Google masqué.
-const GOOGLE_REVIEW_URL = "";
+const GOOGLE_REVIEW_URL = "https://g.page/r/CQreEU8HGP2XEBM/review";
 
 const WORK_TYPES = ["Pompe à chaleur", "Chauffe-eau solaire", "Éclairage LED", "Autre"];
 
