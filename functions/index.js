@@ -274,7 +274,7 @@ function buildLeadNotificationEmailHtml(data) {
   return `
     <div style="font-family:Arial,Helvetica,sans-serif; color:${NAVY_DARK}; max-width:560px;">
       <p style="font-size:16px; font-weight:bold; margin:0 0 4px 0;">Nouveau lead — ${data.name || "sans nom"}</p>
-      <p style="font-size:13px; color:#6b7280; margin:0 0 16px 0;">Reçu à l'instant via le site IP5 Énergie.</p>
+      <p style="font-size:13px; color:#6b7280; margin:0 0 16px 0;">Reçu à l'instant via ${data.via || "le site IP5 Énergie"}.</p>
       <table role="presentation" cellpadding="0" cellspacing="0" style="font-size:14px; border-collapse:collapse;">
         ${rows
           .map(
@@ -1595,5 +1595,116 @@ exports.submitReview = onRequest(
       logger.error("Avis enregistré mais notification mail échouée", { error: err.message });
     }
     res.status(200).send("ok");
+  },
+);
+
+// ─── Alerte mail pour les leads du formulaire Facebook ───────────────────
+// Les leads du formulaire instantané Meta arrivent dans Monday par
+// l'intégration native Meta → Monday, sans passer par Firestore : ils ne
+// déclenchent donc pas notifyNewLead. Un webhook Monday "create_item" sur le
+// tableau PAC appelle cette fonction, qui envoie la même notification interne
+// et complète Source + Type de lead.
+// Pas de clé dans l'URL : la fonction relit l'item via l'API Monday et n'agit
+// que sur un item récent du groupe « Nouveaux leads », sans Source (les leads
+// du site en ont toujours une) et avec un téléphone ou un e-mail. Remplir la
+// Source rend l'opération idempotente si Monday renvoie le webhook.
+const FB_LEAD_SOURCE = "formulaire-facebook";
+const FB_LEAD_MAX_AGE_MS = 30 * 60 * 1000;
+
+exports.notifyMondayFacebookLead = onRequest(
+  {
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, MONDAY_API_TOKEN],
+    region: "europe-west9",
+  },
+  async (req, res) => {
+    if (req.body?.challenge) {
+      res.json({ challenge: req.body.challenge });
+      return;
+    }
+    const pulseId = req.body?.event?.pulseId;
+    if (!pulseId) {
+      res.status(200).send("ignored");
+      return;
+    }
+
+    const token = MONDAY_API_TOKEN.value();
+    const query = `query ($ids: [ID!]) {
+      items(ids: $ids) {
+        id name created_at
+        board { id }
+        group { id }
+        column_values(ids: ["${MONDAY_COL.source}", "${MONDAY_COL.telephone}", "email_mm2qmb9n", "${MONDAY_COL.codePostal}"]) { id text }
+      }
+    }`;
+    const r = await fetch("https://api.monday.com/v2", {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json", "API-Version": "2024-10" },
+      body: JSON.stringify({ query, variables: { ids: [String(pulseId)] } }),
+    });
+    const item = (await r.json().catch(() => ({})))?.data?.items?.[0];
+    if (!item) {
+      res.status(200).send("not found");
+      return;
+    }
+    const col = Object.fromEntries((item.column_values ?? []).map((c) => [c.id, (c.text ?? "").trim()]));
+    const phone = col[MONDAY_COL.telephone];
+    const email = col["email_mm2qmb9n"];
+    const isFacebookLead =
+      item.board?.id === MONDAY_BOARD_ID &&
+      item.group?.id === MONDAY_GROUP_LEADS &&
+      !col[MONDAY_COL.source] &&
+      (phone || email) &&
+      Date.now() - new Date(item.created_at).getTime() < FB_LEAD_MAX_AGE_MS;
+    if (!isFacebookLead) {
+      res.status(200).send("ignored");
+      return;
+    }
+
+    const changeQuery = `mutation ($board: ID!, $item: ID!, $values: JSON!) {
+      change_multiple_column_values(board_id: $board, item_id: $item, column_values: $values) { id }
+    }`;
+    await fetch("https://api.monday.com/v2", {
+      method: "POST",
+      headers: { Authorization: token, "Content-Type": "application/json", "API-Version": "2024-10" },
+      body: JSON.stringify({
+        query: changeQuery,
+        variables: {
+          board: MONDAY_BOARD_ID,
+          item: String(pulseId),
+          values: JSON.stringify({
+            [MONDAY_COL.source]: FB_LEAD_SOURCE,
+            [MONDAY_COL.typeLead]: { index: typeLeadIndexForSource("pac") },
+          }),
+        },
+      }),
+    }).catch((err) => logger.error("Lead Facebook : mise à jour Source/Type échouée", { pulseId, error: err.message }));
+
+    const data = {
+      requestType: "Formulaire Facebook",
+      name: escapeHtmlText(item.name),
+      phone: escapeHtmlText(phone),
+      email: escapeHtmlText(email),
+      postalCode: escapeHtmlText(col[MONDAY_COL.codePostal]),
+      source: FB_LEAD_SOURCE,
+      via: "le formulaire Facebook",
+    };
+    const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+    oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+    const contactEmail = GMAIL_SENDER_EMAIL.value();
+    const raw = buildRawMessage({
+      to: contactEmail,
+      from: contactEmail,
+      subject: `📘 Lead Formulaire Facebook — ${item.name || "sans nom"}`,
+      html: buildLeadNotificationEmailHtml(data),
+    });
+    try {
+      await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+      logger.info("Notification lead Facebook envoyée", { pulseId });
+      res.status(200).send("sent");
+    } catch (err) {
+      logger.error("Échec notification lead Facebook", { pulseId, error: err.message });
+      res.status(500).send("error");
+    }
   },
 );
