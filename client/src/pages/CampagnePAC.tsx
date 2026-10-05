@@ -107,10 +107,30 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
   );
 };
 
+// Une couleur par énergie pour que les trois choix se distinguent d'un coup
+// d'œil (classes écrites en entier pour que Tailwind les génère).
 const HEATING_OPTIONS = [
-  { value: "Fioul", label: "Fioul", icon: Droplet },
-  { value: "Gaz", label: "Gaz", icon: Flame },
-  { value: "Autre", label: "Autre", icon: HelpCircle },
+  {
+    value: "Fioul",
+    label: "Fioul",
+    icon: Droplet,
+    style: "border-orange-300 bg-orange-50 hover:border-orange-500 hover:bg-orange-100 dark:bg-orange-950/30 dark:border-orange-800",
+    iconStyle: "text-orange-500",
+  },
+  {
+    value: "Gaz",
+    label: "Gaz",
+    icon: Flame,
+    style: "border-sky-300 bg-sky-50 hover:border-sky-500 hover:bg-sky-100 dark:bg-sky-950/30 dark:border-sky-800",
+    iconStyle: "text-sky-500",
+  },
+  {
+    value: "Autre",
+    label: "Autre",
+    icon: HelpCircle,
+    style: "border-violet-300 bg-violet-50 hover:border-violet-500 hover:bg-violet-100 dark:bg-violet-950/30 dark:border-violet-800",
+    iconStyle: "text-violet-500",
+  },
 ];
 
 const INITIAL_CALLBACK: CallbackRequest = {
@@ -203,14 +223,14 @@ const QuickStart = ({ source }: { source: string }) => {
           Vous chauffez votre logement au :
         </h3>
         <div className="grid grid-cols-3 gap-3">
-          {HEATING_OPTIONS.map(({ value, label, icon: Icon }) => (
+          {HEATING_OPTIONS.map(({ value, label, icon: Icon, style, iconStyle }) => (
             <button
               key={value}
               type="button"
               onClick={() => setHeating(value)}
-              className="flex flex-col items-center gap-2 py-5 rounded-2xl border-2 border-gray-200 dark:border-slate-700 hover:border-[#2b5a8f] hover:bg-blue-50 dark:hover:bg-slate-800 font-bold text-gray-900 dark:text-white transition-colors"
+              className={`flex flex-col items-center gap-2 py-5 rounded-2xl border-2 font-bold text-gray-900 dark:text-white transition-colors ${style}`}
             >
-              <Icon size={28} className="text-[#2b5a8f] dark:text-blue-400" />
+              <Icon size={30} className={iconStyle} />
               {label}
             </button>
           ))}
@@ -320,8 +340,10 @@ const QuickStart = ({ source }: { source: string }) => {
     );
   }
 
-  const choice =
-    "w-full flex items-center gap-4 px-5 py-4 rounded-2xl border-2 text-left transition-colors";
+  // La simulation est le choix principal : seul bloc encadré, en grand.
+  // Rappel puis appel viennent ensuite, en simples lignes sans cadre.
+  const secondary =
+    "w-full flex items-center gap-3 px-2 py-3 text-left rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors";
   return (
     <div className={card}>
       <button
@@ -334,53 +356,53 @@ const QuickStart = ({ source }: { source: string }) => {
       <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-5">
         Comment souhaitez-vous avancer ?
       </h3>
-      <div className="space-y-3">
-        <a
-          href="tel:+33749525267"
-          onClick={trackCall}
-          className={`${choice} border-green-500 bg-green-50 dark:bg-green-950/40 hover:bg-green-100`}
-        >
-          <Phone className="text-green-600 flex-shrink-0" size={26} />
+      <button
+        type="button"
+        onClick={() => setMode("simulation")}
+        className="w-full text-left rounded-2xl border-[3px] border-[#2b5a8f] bg-blue-50 dark:bg-slate-800 p-5 shadow-lg hover:shadow-xl hover:bg-blue-100 dark:hover:bg-slate-700 transition-all"
+      >
+        <span className="flex items-center gap-4">
+          <span className="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#2b5a8f] text-white flex items-center justify-center">
+            <Calculator size={30} />
+          </span>
           <span>
-            <span className="block font-bold text-gray-900 dark:text-white">
-              Appeler maintenant
+            <span className="block text-xl font-extrabold text-gray-900 dark:text-white leading-tight">
+              Faire la simulation
             </span>
-            <span className="block text-sm text-gray-600 dark:text-slate-300">
-              07 49 52 52 67
+            <span className="block text-sm text-gray-600 dark:text-slate-300 mt-0.5">
+              2 minutes · gratuite · vos aides en détail
             </span>
           </span>
-        </a>
-        <button
-          type="button"
-          onClick={() => setMode("rappel")}
-          className={`${choice} border-[#2b5a8f] bg-blue-50 dark:bg-slate-800 hover:bg-blue-100`}
-        >
-          <Clock className="text-[#2b5a8f] dark:text-blue-400 flex-shrink-0" size={26} />
-          <span>
-            <span className="block font-bold text-gray-900 dark:text-white">
-              Être rappelé(e) rapidement
-            </span>
-            <span className="block text-sm text-gray-600 dark:text-slate-300">
-              Laissez votre numéro, un conseiller vous rappelle
-            </span>
+        </span>
+        <span className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl bg-[#2b5a8f] text-white font-bold py-3">
+          <Sparkles size={18} /> Commencer la simulation
+        </span>
+      </button>
+      <p className="text-center text-xs font-semibold uppercase tracking-wider text-gray-400 mt-5 mb-1">
+        ou
+      </p>
+      <button type="button" onClick={() => setMode("rappel")} className={secondary}>
+        <Clock className="text-[#2b5a8f] dark:text-blue-400 flex-shrink-0" size={22} />
+        <span>
+          <span className="block font-bold text-gray-900 dark:text-white">
+            Être rappelé(e) rapidement
           </span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode("simulation")}
-          className={`${choice} border-amber-400 hover:border-amber-500`}
-        >
-          <Calculator className="text-gray-500 flex-shrink-0" size={26} />
-          <span>
-            <span className="block font-bold text-gray-900 dark:text-white">
-              Faire la simulation (2 min)
-            </span>
-            <span className="block text-sm text-gray-600 dark:text-slate-300">
-              Estimez vos aides en détail
-            </span>
+          <span className="block text-sm text-gray-500 dark:text-slate-400">
+            Laissez votre numéro, un conseiller vous rappelle
           </span>
-        </button>
-      </div>
+        </span>
+      </button>
+      <a href="tel:+33749525267" onClick={trackCall} className={secondary}>
+        <Phone className="text-[#2b5a8f] dark:text-blue-400 flex-shrink-0" size={22} />
+        <span>
+          <span className="block font-bold text-gray-900 dark:text-white">
+            Appeler maintenant
+          </span>
+          <span className="block text-sm text-gray-500 dark:text-slate-400">
+            07 49 52 52 67
+          </span>
+        </span>
+      </a>
     </div>
   );
 };
