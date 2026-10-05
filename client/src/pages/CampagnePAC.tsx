@@ -21,7 +21,6 @@ import {
   TrustBar,
   AvantagesSection,
   AidesSection,
-  RealisationsSection,
   AvisSection,
   FRENCH_PHONE_REGEX,
   submitCallbackRequest,
@@ -386,6 +385,73 @@ const QuickStart = ({ source }: { source: string }) => {
   );
 };
 
+
+// Preuve par l'image juste sous le hero : le vrai chantier avant / après est
+// ce qui rassure le plus un visiteur venu d'une pub. Remplace, sur cette
+// page, la longue section « Nos réalisations » placée plus bas.
+const CHANTIER_DETAILS = [
+  { src: "unite-exterieure.jpg", alt: "Unité extérieure de la pompe à chaleur posée sur plot béton", caption: "Unité extérieure" },
+  { src: "detail-module-hydraulique.jpg", alt: "Détail du module hydraulique", caption: "Module intérieur" },
+  { src: "tableau-electrique-etiquete.jpg", alt: "Tableau électrique dédié et étiqueté", caption: "Tableau dédié" },
+  { src: "coffret-securite-exterieur.jpg", alt: "Coffret de coupure extérieur aux normes", caption: "Coffret de coupure" },
+];
+
+const ChantierPreuve = () => (
+  <section className="py-14 lg:py-20 bg-white dark:bg-slate-950">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-8">
+        <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
+          Un vrai chantier IP5 Énergie
+        </h2>
+        <p className="text-gray-600 dark:text-slate-300 mt-2">
+          Remplacement d'une chaudière fioul par une pompe à chaleur air/eau.
+        </p>
+      </div>
+      <div className="grid grid-cols-2 gap-3 sm:gap-6">
+        {[
+          { src: "avant-ancienne-chaudiere.jpg", alt: "Ancienne chaudière fioul avant remplacement", label: "Avant", badge: "bg-red-600" },
+          { src: "interieur-pac-ballon.jpg", alt: "Pompe à chaleur et ballon d'eau chaude installés", label: "Après", badge: "bg-green-600" },
+        ].map((photo) => (
+          <figure key={photo.src} className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border border-gray-100 dark:border-slate-800">
+            <img
+              src={`/images/realisations/${photo.src}`}
+              alt={photo.alt}
+              className="w-full h-56 sm:h-80 object-cover"
+              loading="lazy"
+            />
+            <span className={`absolute top-3 left-3 ${photo.badge} text-white text-xs sm:text-sm font-bold uppercase tracking-wide px-3 py-1 rounded-full shadow`}>
+              {photo.label}
+            </span>
+          </figure>
+        ))}
+      </div>
+      <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-3 sm:mt-6">
+        {CHANTIER_DETAILS.map((photo) => (
+          <figure key={photo.src} className="rounded-xl overflow-hidden border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+            <img
+              src={`/images/realisations/${photo.src}`}
+              alt={photo.alt}
+              className="w-full h-20 sm:h-36 object-cover"
+              loading="lazy"
+            />
+            <figcaption className="text-[10px] sm:text-xs text-gray-600 dark:text-slate-300 px-1.5 py-1.5 text-center leading-tight">
+              {photo.caption}
+            </figcaption>
+          </figure>
+        ))}
+      </div>
+      <div className="text-center mt-8">
+        <button
+          onClick={scrollToSimulateur}
+          className="inline-flex items-center gap-2 bg-[#2b5a8f] hover:bg-[#1f4470] text-white font-bold px-7 py-3.5 rounded-full shadow-lg transition-colors"
+        >
+          <Sparkles size={18} /> Vérifier mes aides
+        </button>
+      </div>
+    </div>
+  </section>
+);
+
 const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?: unknown } = {}) => {
   return (
     <PageLayout
@@ -460,14 +526,14 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       {/* Gages de confiance */}
       <TrustBar />
 
+      {/* Preuve par l'image : le vrai chantier, tout de suite */}
+      <ChantierPreuve />
+
       {/* Pourquoi la pompe à chaleur */}
       <AvantagesSection />
 
       {/* Le cœur de l'annonce : les aides détaillées */}
       <AidesSection />
-
-      {/* Preuve sociale : chantiers réels */}
-      <RealisationsSection />
 
       {/* Avis clients */}
       <AvisSection />
