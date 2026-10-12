@@ -146,7 +146,7 @@ export const SiteHeader = () => {
               <LogoIP5 />
             </a>
           </div>
-          <div className="hidden lg:flex space-x-6 xl:space-x-8 items-center">
+          <div className="hidden lg:flex space-x-5 xl:space-x-8 items-center">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
@@ -162,7 +162,7 @@ export const SiteHeader = () => {
               </a>
             ))}
           </div>
-          <div className="flex items-center gap-3 xl:gap-4">
+          <div className="flex items-center gap-3 xl:gap-4 lg:ml-6">
             {/* Accès des artisans partenaires (création de compte + grille de pose) */}
             <a
               href="/espace-pro"
