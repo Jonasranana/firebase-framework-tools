@@ -11,6 +11,7 @@ import {
   Facebook,
   Moon,
   Sun,
+  Briefcase,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
@@ -161,14 +162,24 @@ export const SiteHeader = () => {
               </a>
             ))}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 xl:gap-4">
+            {/* Accès des artisans partenaires (création de compte + grille de pose) */}
+            <a
+              href="/espace-pro"
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-slate-300 hover:text-[#2b5a8f] dark:hover:text-blue-400 border border-gray-200 dark:border-slate-700 rounded-full px-2.5 py-1.5 transition-colors whitespace-nowrap"
+              aria-label="Espace pro : artisans partenaires"
+            >
+              <Briefcase size={16} />
+              <span className="2xl:hidden">Pro</span>
+              <span className="hidden 2xl:inline">Espace pro</span>
+            </a>
             <ThemeToggle />
             <a
               href={FACEBOOK_URL}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="La page Facebook d'IP5 Énergie"
-              className="hidden md:flex text-gray-400 dark:text-slate-500 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors"
+              className="hidden md:flex lg:hidden text-gray-400 dark:text-slate-500 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors"
             >
               <Facebook size={20} />
             </a>
@@ -215,6 +226,13 @@ export const SiteHeader = () => {
               className="flex items-center gap-2 py-3 text-[#2b5a8f] dark:text-blue-400 font-bold border-b border-gray-50 dark:border-slate-800"
             >
               <Phone size={18} /> 07 49 52 52 67
+            </a>
+            <a
+              href="/espace-pro"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center gap-2 py-3 text-gray-700 dark:text-slate-200 font-medium border-b border-gray-50 dark:border-slate-800"
+            >
+              <Briefcase size={18} /> Espace pro (artisans partenaires)
             </a>
             <a
               href={FACEBOOK_URL}
@@ -307,10 +325,10 @@ export const SiteFooter = () => (
             </li>
             <li>
               <a
-                href="/espace-pro"
+                href="/admin"
                 className="hover:text-blue-400 transition-colors"
               >
-                Espace artisans partenaires
+                Admin
               </a>
             </li>
           </ul>
