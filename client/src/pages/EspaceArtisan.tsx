@@ -402,7 +402,7 @@ const STEPS = [
 ];
 
 // Photo d'illustration (image générée, pas un vrai client).
-const HERO_PHOTO = "/images/artisans/installateur-client.webp";
+const HERO_PHOTO = "/images/artisans/installateur-client.jpg";
 
 const goToSignup = () =>
   document.getElementById("inscription")?.scrollIntoView({ behavior: "smooth", block: "start" });
