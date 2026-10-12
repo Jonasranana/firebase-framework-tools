@@ -1760,8 +1760,10 @@ function buildArtisanGridPdf(grid) {
       doc.y = Math.max(doc.y, y + 14);
     };
 
-    heading("Entreprise");
-    for (const f of ARTISAN.COMPANY_FIELDS) row(f.label, val(company[f.id]), "");
+    heading("Artisan");
+    if (val(grid.mondayName)) row("Entreprise (Monday)", val(grid.mondayName), "");
+    if (val(grid.mondayZone)) row("Zone", val(grid.mondayZone), "");
+    for (const f of ARTISAN.COMPANY_FIELDS) if (val(company[f.id])) row(f.label, val(company[f.id]), "");
     row("E-mail du compte", val(grid.email), "");
 
     heading("Déplacements");
@@ -1789,7 +1791,7 @@ function buildArtisanGridPdf(grid) {
 exports.notifyArtisanGridSubmitted = onDocumentWritten(
   {
     document: "artisan_grids/{uid}",
-    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, MONDAY_API_TOKEN],
     region: "europe-west9",
   },
   async (event) => {
@@ -1812,11 +1814,28 @@ exports.notifyArtisanGridSubmitted = onDocumentWritten(
     await lockRef.set({ at: FieldValue.serverTimestamp() });
 
     const authUser = await getAdminAuth().getUser(uid).catch(() => null);
-    const artisanEmail = authUser?.emailVerified ? String(authUser.email ?? "").toLowerCase() : "";
-    const pdf = await buildArtisanGridPdf({ ...after, email: authUser?.email ?? after.email });
+    const accountEmail = String(authUser?.email ?? after.email ?? "").toLowerCase();
+    const artisanEmail = authUser?.emailVerified ? accountEmail : "";
+
+    // Fiche Monday de l'artisan (même e-mail que le compte) : étiquette
+    // « Grille remplie » dans Statut. Ne bloque jamais l'envoi du PDF.
+    let mondayItem = null;
+    try {
+      mondayItem = await markRecruitGridFilled(accountEmail, MONDAY_API_TOKEN.value());
+    } catch (err) {
+      logger.error("Grille artisan : mise à jour Monday échouée", { uid, error: err.message });
+    }
+
+    const pdf = await buildArtisanGridPdf({
+      ...after,
+      email: accountEmail,
+      mondayName: mondayItem?.name,
+      mondayZone: mondayItem?.zone,
+    });
     const company = after.company ?? {};
-    const nom = escapeHtmlText(company.raisonSociale || company.contactNom || authUser?.email || "Artisan");
-    const filename = `Grille-pose-${String(company.raisonSociale || "artisan").replace(/[^A-Za-z0-9-]+/g, "-").slice(0, 40)}.pdf`;
+    const nomBrut = mondayItem?.name || company.raisonSociale || accountEmail || "Artisan";
+    const nom = escapeHtmlText(nomBrut);
+    const filename = `Grille-pose-${String(nomBrut).replace(/[^A-Za-z0-9-]+/g, "-").slice(0, 40)}.pdf`;
     const attachments = [{ content: pdf, filename, mimeType: "application/pdf" }];
 
     const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
@@ -1830,11 +1849,11 @@ exports.notifyArtisanGridSubmitted = onDocumentWritten(
         raw: buildRawMessageWithAttachment({
           to: from,
           from,
-          subject: `🧰 Grille artisan reçue — ${company.raisonSociale || authUser?.email || uid}`,
+          subject: `🧰 Grille artisan reçue — ${nomBrut}`,
           html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#122f4d">
             <p><b>${nom}</b> vient de transmettre sa grille de prix de pose (PDF joint).</p>
-            <p>Contact : ${escapeHtmlText(company.contactNom)} · ${escapeHtmlText(company.telephone)} · ${escapeHtmlText(authUser?.email ?? after.email)}${artisanEmail ? "" : " (e-mail non vérifié : copie non envoyée à l'artisan)"}</p>
-            <p>RGE : ${escapeHtmlText(company.rge)}<br>Décennale : ${escapeHtmlText(company.decennale)}</p>
+            <p>Compte : ${escapeHtmlText(accountEmail)}${artisanEmail ? "" : " (e-mail non vérifié : copie non envoyée à l'artisan)"}</p>
+            <p>${mondayItem ? `Fiche Monday : ${escapeHtmlText(mondayItem.name)}${mondayItem.zone ? ` (${escapeHtmlText(mondayItem.zone)})` : ""} → Statut passé à « Grille remplie ».` : "⚠️ Aucune fiche Monday trouvée avec cet e-mail : étiquette à mettre à la main."}</p>
           </div>`,
           attachments,
         }),
@@ -1874,6 +1893,50 @@ const RECRUIT_COL = {
   mailAuto: "color_mm8211c8",
   relance: "date_mm82zjr3",
 };
+
+// Cherche la fiche du tableau de recrutement dont l'e-mail correspond au
+// compte artisan, et passe son Statut à « Grille remplie » (étiquette créée
+// si elle n'existe pas encore). Retourne { id, name, zone } ou null.
+async function markRecruitGridFilled(email, token) {
+  if (!email) return null;
+  let data = await mondayQuery(
+    `query ($b: [ID!]) { boards(ids: $b) { items_page(limit: 500) { cursor items { id name column_values(ids: ["${RECRUIT_COL.email}", "${RECRUIT_COL.zone}"]) { id text value } } } } }`,
+    { b: [RECRUIT_BOARD_ID] },
+    token,
+  );
+  let page = data.boards?.[0]?.items_page;
+  const items = [...(page?.items ?? [])];
+  while (page?.cursor) {
+    data = await mondayQuery(
+      `query ($c: String!) { next_items_page(limit: 500, cursor: $c) { cursor items { id name column_values(ids: ["${RECRUIT_COL.email}", "${RECRUIT_COL.zone}"]) { id text value } } } }`,
+      { c: page.cursor },
+      token,
+    );
+    page = data.next_items_page;
+    items.push(...(page?.items ?? []));
+  }
+  const match = items.find((it) => {
+    const col = it.column_values.find((c) => c.id === RECRUIT_COL.email);
+    let mail;
+    try {
+      mail = JSON.parse(col?.value ?? "null")?.email;
+    } catch {
+      mail = undefined;
+    }
+    return String(mail ?? col?.text ?? "").trim().toLowerCase() === email;
+  });
+  if (!match) return null;
+  await mondayQuery(
+    `mutation ($b: ID!, $i: ID!, $c: String!, $v: JSON!) { change_column_value(board_id: $b, item_id: $i, column_id: $c, value: $v, create_labels_if_missing: true) { id } }`,
+    { b: RECRUIT_BOARD_ID, i: match.id, c: RECRUIT_COL.statut, v: JSON.stringify({ label: "Grille remplie" }) },
+    token,
+  );
+  return {
+    id: match.id,
+    name: match.name,
+    zone: match.column_values.find((c) => c.id === RECRUIT_COL.zone)?.text ?? "",
+  };
+}
 
 const normalizeLabel = (s) =>
   String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
