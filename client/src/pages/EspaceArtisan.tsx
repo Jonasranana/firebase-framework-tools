@@ -200,11 +200,11 @@ export default function EspaceArtisan() {
   const signOut = () => api?.auth.signOut(api.authInstance);
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="ltr" style={{ colorScheme: "light" }}>
-      <header className="bg-white border-b border-gray-100">
+    <div className="min-h-screen bg-gradient-to-b from-white via-[#eef4fb] to-[#dce9f7]" dir="ltr" style={{ colorScheme: "light" }}>
+      <header className="bg-white/80 backdrop-blur border-b border-gray-100">
         <div className={`${status === "signed-out" ? "max-w-5xl" : "max-w-3xl"} mx-auto px-4 py-4 flex items-center justify-between gap-3`}>
           <a href="/">
-            <LogoIP5 className="h-9" />
+            <LogoIP5 className="h-9 !text-[#f28c28]" />
           </a>
           {user && (
             <button
@@ -336,7 +336,7 @@ export default function EspaceArtisan() {
               </Panel>
             </div>
 
-            <div className="sticky bottom-0 mt-6 -mx-4 px-4 py-4 bg-gray-50/95 backdrop-blur border-t border-gray-200">
+            <div className="sticky bottom-0 mt-6 -mx-4 px-4 py-4 bg-white/95 backdrop-blur border-t border-gray-200">
               {errors.map((e) => (
                 <p key={e} className="text-sm text-red-600 mb-2">
                   {e}
@@ -352,7 +352,7 @@ export default function EspaceArtisan() {
                 <button
                   onClick={finish}
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 bg-[#2b5a8f] hover:bg-[#1f4470] text-white font-bold px-6 py-3 rounded-full disabled:opacity-50"
+                  className="inline-flex items-center gap-2 bg-[#f28c28] hover:bg-[#e07a12] text-white font-bold px-6 py-3 rounded-full shadow-md disabled:opacity-50"
                 >
                   {submitting && <Loader2 className="animate-spin" size={18} />}
                   J'ai terminé
@@ -401,6 +401,9 @@ const STEPS = [
   { icon: CalendarCheck, title: "Vous posez, on gère le reste", text: "Matériel livré, client et dossier suivis par IP5." },
 ];
 
+// Photo d'illustration (image générée, pas un vrai client).
+const HERO_PHOTO = "/images/artisans/installateur-client.jpg";
+
 const goToSignup = () =>
   document.getElementById("inscription")?.scrollIntoView({ behavior: "smooth", block: "start" });
 
@@ -409,8 +412,8 @@ function Presentation() {
     <div>
       <section className="grid md:grid-cols-2 gap-6 md:gap-10 items-center">
         <div className="order-2 md:order-1">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#2b5a8f]">Artisans RGE QualiPAC</p>
-          <h1 className="text-[28px] leading-tight md:text-4xl font-extrabold text-gray-900 mt-2">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#f28c28]">Artisans RGE QualiPAC</p>
+          <h1 className="text-[28px] leading-tight md:text-4xl font-extrabold text-[#0f2b4a] mt-2">
             Recevez des chantiers de pompes à chaleur dans votre région
           </h1>
           <p className="text-gray-600 mt-4 text-base md:text-lg">
@@ -419,22 +422,17 @@ function Presentation() {
           </p>
           <button
             onClick={goToSignup}
-            className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#2b5a8f] hover:bg-[#1f4470] text-white font-bold px-7 py-3.5 rounded-full shadow-lg"
+            className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#f28c28] hover:bg-[#e07a12] text-white font-bold text-lg px-8 py-4 rounded-full shadow-lg shadow-orange-200"
           >
             Remplir ma grille de tarifs
           </button>
           <p className="text-xs text-gray-500 mt-3">Gratuit et sans engagement · 5 minutes</p>
         </div>
-        <div className="order-1 md:order-2 grid grid-cols-2 gap-3">
+        <div className="order-1 md:order-2">
           <img
-            src="/images/realisations/unite-exterieure.jpg"
-            alt="Unité extérieure de pompe à chaleur posée par un artisan partenaire"
-            className="w-full h-44 sm:h-64 md:h-80 object-cover rounded-2xl shadow-md"
-          />
-          <img
-            src="/images/realisations/interieur-pac-ballon.jpg"
-            alt="Module intérieur et ballon d'eau chaude installés"
-            className="w-full h-44 sm:h-64 md:h-80 object-cover rounded-2xl shadow-md mt-6"
+            src={HERO_PHOTO}
+            alt="Un installateur et des propriétaires satisfaits devant leur pompe à chaleur"
+            className="w-full h-56 sm:h-72 md:h-[22rem] object-cover rounded-3xl shadow-xl ring-4 ring-white"
           />
         </div>
       </section>
@@ -461,7 +459,7 @@ function Presentation() {
         <ol className="grid md:grid-cols-3 gap-3 md:gap-4 mt-4">
           {STEPS.map(({ icon: Icon, title, text }, i) => (
             <li key={title} className="flex md:flex-col gap-3 bg-white rounded-2xl border border-gray-100 p-4 md:p-5">
-              <span className="flex-shrink-0 w-10 h-10 rounded-full bg-[#2b5a8f] text-white font-bold flex items-center justify-center">
+              <span className="flex-shrink-0 w-10 h-10 rounded-full bg-[#f28c28] text-white font-bold flex items-center justify-center">
                 {i + 1}
               </span>
               <span>
