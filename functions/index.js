@@ -1811,6 +1811,7 @@ function recruitButton(label) {
 const RECRUIT_STOP = `<p style="margin:18px 0 0 0;color:#8a94a3;font-size:12px;">Vous ne souhaitez plus recevoir nos messages ? Répondez simplement « STOP » à ce mail.</p>`;
 
 // Clés = libellés de « Mail auto » normalisés (sans accents ni ponctuation).
+// « Proposition » = nouveau nom de l'étiquette « Mail 1 (avant l'appel) ».
 const RECRUIT_TEMPLATES = {
   "mail 1 avant l appel": {
     statut: "Mail 1 envoye",
@@ -1865,6 +1866,8 @@ const RECRUIT_TEMPLATES = {
   },
 };
 
+RECRUIT_TEMPLATES.proposition = RECRUIT_TEMPLATES["mail 1 avant l appel"];
+
 exports.sendRecruitmentEmail = onRequest(
   {
     secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, MONDAY_API_TOKEN, MONDAY_WEBHOOK_SECRET],
@@ -1895,14 +1898,7 @@ exports.sendRecruitmentEmail = onRequest(
 
     // Un même modèle n'est jamais envoyé deux fois au même artisan
     // (Monday peut renvoyer un webhook).
-    const sendRef = db.doc(`recruit_sends/${itemId}_${key.replace(/ /g, "_")}`);
-    try {
-      await sendRef.create({ at: FieldValue.serverTimestamp(), template: key });
-    } catch {
-      res.status(200).send("already sent");
-      return;
-    }
-
+    let sendRef = null;
     try {
       const data = await mondayQuery(
         `query ($ids: [ID!]) { items(ids: $ids) { name column_values(ids: ["${RECRUIT_COL.zone}", "${RECRUIT_COL.email}", "${RECRUIT_COL.statut}"]) { id text value } } }`,
@@ -1920,7 +1916,6 @@ exports.sendRecruitmentEmail = onRequest(
       email = String(email ?? cols[RECRUIT_COL.email]?.text ?? "").trim();
       const statut = normalizeLabel(cols[RECRUIT_COL.statut]?.text);
       if (!EMAIL_RE.test(email)) {
-        await sendRef.delete();
         await postMondayUpdate(itemId, "⚠️ Mail non envoyé : adresse e-mail manquante ou invalide.", token);
         res.status(200).send("no email");
         return;
@@ -1931,6 +1926,19 @@ exports.sendRecruitmentEmail = onRequest(
         return;
       }
       const zone = String(cols[RECRUIT_COL.zone]?.text ?? "").trim();
+
+      // Un même modèle n'est jamais envoyé deux fois à la même adresse pour
+      // la même fiche (Monday peut renvoyer un webhook). Changer l'e-mail de
+      // la fiche permet un nouvel envoi.
+      sendRef = db.doc(`recruit_sends/${itemId}_${key.replace(/ /g, "_")}_${emailKey(email.toLowerCase()).slice(0, 16)}`);
+      try {
+        await sendRef.create({ at: FieldValue.serverTimestamp(), template: key });
+      } catch {
+        sendRef = null;
+        await postMondayUpdate(itemId, "ℹ️ Mail déjà envoyé à cette adresse pour ce modèle : pas de second envoi.", token);
+        res.status(200).send("already sent");
+        return;
+      }
 
       const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
       oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
@@ -1963,7 +1971,7 @@ exports.sendRecruitmentEmail = onRequest(
       }
       res.status(200).send("sent");
     } catch (err) {
-      await sendRef.delete().catch(() => {});
+      if (sendRef) await sendRef.delete().catch(() => {});
       logger.error("Échec du mail de recrutement artisan", { itemId, error: err.message });
       res.status(500).send("error");
     }
