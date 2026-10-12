@@ -1764,6 +1764,7 @@ function buildArtisanGridPdf(grid) {
     row("Nom", `${val(id.prenom)} ${val(id.nom)}`.trim(), "");
     if (val(grid.mondayName)) row("Entreprise (Monday)", val(grid.mondayName), "");
     if (val(grid.mondayZone)) row("Zone", val(grid.mondayZone), "");
+    row("Ville", val(id.ville), "");
     row("SIRET", val(id.siret), "");
     row("E-mail", val(id.email), "");
     if (val(id.telephone)) row("Téléphone", val(id.telephone), "");
@@ -1799,6 +1800,7 @@ const RECRUIT_COL = {
   relance: "date_mm82zjr3",
   telephone: "text_mm825e9m",
   siret: "text_mm82j894",
+  ville: "text_mm82ax38",
 };
 const RECRUIT_GROUP_GRILLES = "group_mm829371"; // ✅ Grilles remplies
 
@@ -2012,6 +2014,7 @@ async function upsertRecruitGridItem({ identity, summary }, token) {
   const values = {
     [RECRUIT_COL.statut]: { label: "Grille remplie" },
     [RECRUIT_COL.siret]: identity.siret,
+    [RECRUIT_COL.ville]: identity.ville,
   };
   const existingTel = existing?.column_values.find((c) => c.id === RECRUIT_COL.telephone)?.text;
   if (identity.telephone && !existingTel) values[RECRUIT_COL.telephone] = identity.telephone;
@@ -2073,6 +2076,7 @@ exports.submitArtisanGrid = onRequest(
       prenom: clip(b.identity?.prenom, 60),
       nom: clip(b.identity?.nom, 60),
       siret: clip(b.identity?.siret, 20).replace(/\s/g, ""),
+      ville: clip(b.identity?.ville, 80),
       email: clip(b.identity?.email, 120).toLowerCase(),
       telephone: clip(b.identity?.telephone, 30),
     };
@@ -2081,7 +2085,7 @@ exports.submitArtisanGrid = onRequest(
     const travel = {};
     for (const [k, v] of Object.entries(b.travel ?? {})) if (ARTISAN_TRAVEL_IDS.has(k) && cleanAmount(v)) travel[k] = cleanAmount(v);
     const comment = clip(b.comment, 2000);
-    if (!identity.prenom || !identity.nom || !/^\d{14}$/.test(identity.siret) || !EMAIL_RE.test(identity.email) || !Object.keys(prices).length) {
+    if (!identity.prenom || !identity.nom || !identity.ville || !/^\d{14}$/.test(identity.siret) || !EMAIL_RE.test(identity.email) || !Object.keys(prices).length) {
       res.status(400).send("invalid");
       return;
     }
@@ -2101,7 +2105,7 @@ exports.submitArtisanGrid = onRequest(
     );
     const summary = [
       `🧰 Grille remplie sur ip5energie.fr/espace-pro`,
-      `${identity.prenom} ${identity.nom} · SIRET ${identity.siret} · ${identity.email}${identity.telephone ? ` · ${identity.telephone}` : ""}`,
+      `${identity.prenom} ${identity.nom} · ${identity.ville} · SIRET ${identity.siret} · ${identity.email}${identity.telephone ? ` · ${identity.telephone}` : ""}`,
       ...ARTISAN.TRAVEL_FIELDS.filter((f) => travel[f.id]).map((f) => `${f.label} : ${travel[f.id]} ${f.unit}`),
       ...Object.entries(prices).map(([k, v]) => `${lineLabel[k]} : ${v} €`),
       comment ? `Commentaire : ${comment}` : "",
@@ -2139,7 +2143,7 @@ exports.submitArtisanGrid = onRequest(
             subject: `🧰 Grille artisan reçue — ${nomBrut}`,
             html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#122f4d">
               <p><b>${escapeHtmlText(nomBrut)}</b> vient de transmettre sa grille de prix de pose (PDF joint).</p>
-              <p>SIRET ${escapeHtmlText(identity.siret)} · ${escapeHtmlText(identity.email)}${identity.telephone ? ` · ${escapeHtmlText(identity.telephone)}` : ""}</p>
+              <p>${escapeHtmlText(identity.ville)} · SIRET ${escapeHtmlText(identity.siret)} · ${escapeHtmlText(identity.email)}${identity.telephone ? ` · ${escapeHtmlText(identity.telephone)}` : ""}</p>
               <p>${mondayLine}</p>
             </div>`,
             attachments,

@@ -24,13 +24,14 @@ const DRAFT_KEY = "ip5_artisan_grid_draft";
 const SUBMIT_ENDPOINT =
   "https://europe-west9-kachoto-7554c.cloudfunctions.net/submitArtisanGrid";
 
-type Identity = { prenom: string; nom: string; siret: string; email: string; telephone: string };
-const EMPTY_IDENTITY: Identity = { prenom: "", nom: "", siret: "", email: "", telephone: "" };
+type Identity = { prenom: string; nom: string; siret: string; ville: string; email: string; telephone: string };
+const EMPTY_IDENTITY: Identity = { prenom: "", nom: "", siret: "", ville: "", email: "", telephone: "" };
 
 const IDENTITY_FIELDS: { id: keyof Identity; label: string; type?: string; required: boolean }[] = [
   { id: "prenom", label: "Prénom", required: true },
   { id: "nom", label: "Nom", required: true },
   { id: "siret", label: "SIRET", required: true },
+  { id: "ville", label: "Ville", required: true },
   { id: "email", label: "E-mail", type: "email", required: true },
   { id: "telephone", label: "Téléphone (facultatif)", type: "tel", required: false },
 ];
@@ -170,7 +171,7 @@ export default function EspaceArtisan() {
                       <input
                         type={f.type ?? "text"}
                         inputMode={f.id === "siret" ? "numeric" : undefined}
-                        autoComplete={f.id === "prenom" ? "given-name" : f.id === "nom" ? "family-name" : f.id === "email" ? "email" : f.id === "telephone" ? "tel" : "off"}
+                        autoComplete={f.id === "prenom" ? "given-name" : f.id === "nom" ? "family-name" : f.id === "email" ? "email" : f.id === "telephone" ? "tel" : f.id === "ville" ? "address-level2" : "off"}
                         className={input}
                         maxLength={f.id === "siret" ? 17 : 120}
                         value={identity[f.id]}
