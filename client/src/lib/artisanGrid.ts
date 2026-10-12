@@ -97,8 +97,9 @@ export const SUPPLIED_MATERIAL = [
   },
   {
     brand: "Chappée",
-    model: "Gamme PAC air/eau (modèle précisé au cas par cas)",
-    image: null,
+    model: "Gamme PAC air/eau",
+    image: "/images/artisans/pac-prochainement.jpg",
+    soon: true,
   },
 ];
 
