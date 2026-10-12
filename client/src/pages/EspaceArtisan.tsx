@@ -195,7 +195,7 @@ export default function EspaceArtisan() {
   const signOut = () => api?.auth.signOut(api.authInstance);
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="ltr">
+    <div className="min-h-screen bg-gray-50" dir="ltr" style={{ colorScheme: "light" }}>
       <header className="bg-white border-b border-gray-100">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
           <a href="/">
@@ -403,7 +403,7 @@ function PriceRow({
       <span className="flex-1 text-sm text-gray-700">{label}</span>
       <input
         inputMode="decimal"
-        className="w-28 px-3 py-2 rounded-xl border-2 border-gray-200 text-right text-sm focus:border-[#2b5a8f] outline-none"
+        className="w-28 px-3 py-2 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-semibold text-right text-base focus:border-[#2b5a8f] outline-none"
         value={value}
         maxLength={12}
         onChange={(e) => onChange(e.target.value.replace(/[^0-9.,\s]/g, ""))}
