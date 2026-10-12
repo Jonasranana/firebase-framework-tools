@@ -18,7 +18,6 @@ const PAC_TYPES = [
   { id: "mono", label: "PAC air/eau monobloc" },
   { id: "bibloc", label: "PAC air/eau bi-bloc (split)" },
   { id: "ht", label: "PAC air/eau haute température" },
-  { id: "hybride", label: "PAC hybride (PAC + chaudière)" },
 ];
 
 export const ARTISAN_GRID_SECTIONS: GridSection[] = [
