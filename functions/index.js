@@ -1,4 +1,4 @@
-const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
@@ -1710,14 +1710,14 @@ exports.notifyMondayFacebookLead = onRequest(
 );
 
 // ─── Recrutement des artisans poseurs (espace /espace-pro) ───────────────
-// 1) notifyArtisanGridSubmitted : quand un artisan clique « J'ai terminé »,
-//    sa grille (artisan_grids/{uid}) est mise en PDF et envoyée à IP5, puis
-//    à l'artisan si son adresse e-mail est vérifiée (sinon n'importe qui
-//    pourrait faire envoyer nos mails à une adresse qui n'est pas la sienne).
+// 1) submitArtisanGrid : la page /espace-pro (sans compte) poste la grille
+//    remplie avec prénom, nom, SIRET et e-mail. La fonction l'enregistre,
+//    range l'artisan dans le groupe « ✅ Grilles remplies » du tableau Monday
+//    de recrutement (fiche existante déplacée, sinon nouvelle fiche) et
+//    envoie le PDF à IP5 et à l'artisan.
 // 2) sendRecruitmentEmail : webhook Monday sur la colonne « Mail auto » du
 //    tableau de recrutement ; envoie le mail correspondant (sans aucun tarif
 //    IP5) avec le lien vers /espace-pro, puis met à jour « Statut ».
-const { getAuth: getAdminAuth } = require("firebase-admin/auth");
 const ARTISAN = require("./artisanGrid");
 
 function buildArtisanGridPdf(grid) {
@@ -1730,7 +1730,6 @@ function buildArtisanGridPdf(grid) {
     doc.on("error", reject);
     const NAVY = "#0f2b4a";
     const GREY = "#607083";
-    const company = grid.company ?? {};
     const prices = grid.prices ?? {};
     const travel = grid.travel ?? {};
     const val = (v) => String(v ?? "").trim();
@@ -1760,11 +1759,14 @@ function buildArtisanGridPdf(grid) {
       doc.y = Math.max(doc.y, y + 14);
     };
 
+    const id = grid.identity ?? {};
     heading("Artisan");
+    row("Nom", `${val(id.prenom)} ${val(id.nom)}`.trim(), "");
     if (val(grid.mondayName)) row("Entreprise (Monday)", val(grid.mondayName), "");
     if (val(grid.mondayZone)) row("Zone", val(grid.mondayZone), "");
-    for (const f of ARTISAN.COMPANY_FIELDS) if (val(company[f.id])) row(f.label, val(company[f.id]), "");
-    row("E-mail du compte", val(grid.email), "");
+    row("SIRET", val(id.siret), "");
+    row("E-mail", val(id.email), "");
+    if (val(id.telephone)) row("Téléphone", val(id.telephone), "");
 
     heading("Déplacements");
     for (const f of ARTISAN.TRAVEL_FIELDS) row(f.label, val(travel[f.id]), f.unit);
@@ -1788,103 +1790,6 @@ function buildArtisanGridPdf(grid) {
   });
 }
 
-exports.notifyArtisanGridSubmitted = onDocumentWritten(
-  {
-    document: "artisan_grids/{uid}",
-    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, MONDAY_API_TOKEN],
-    region: "europe-west9",
-  },
-  async (event) => {
-    const before = event.data?.before?.data();
-    const after = event.data?.after?.data();
-    const uid = event.params.uid;
-    if (!after || after.status !== "submitted" || !after.submittedAt) return;
-    const beforeMs = before?.submittedAt?.toMillis?.() ?? 0;
-    const afterMs = after.submittedAt.toMillis?.() ?? 0;
-    if (afterMs === beforeMs) return; // simple enregistrement automatique, pas un nouvel envoi
-
-    // Anti-abus : au plus un envoi toutes les 5 minutes par artisan.
-    const lockRef = db.doc(`artisan_grid_sends/${uid}`);
-    const lock = await lockRef.get();
-    const last = lock.exists ? lock.data().at?.toMillis?.() ?? 0 : 0;
-    if (Date.now() - last < 5 * 60 * 1000) {
-      logger.warn("Grille artisan : envoi ignoré (trop rapproché)", { uid });
-      return;
-    }
-    await lockRef.set({ at: FieldValue.serverTimestamp() });
-
-    const authUser = await getAdminAuth().getUser(uid).catch(() => null);
-    const accountEmail = String(authUser?.email ?? after.email ?? "").toLowerCase();
-    const artisanEmail = authUser?.emailVerified ? accountEmail : "";
-
-    // Fiche Monday de l'artisan (même e-mail que le compte) : étiquette
-    // « Grille remplie » dans Statut. Ne bloque jamais l'envoi du PDF.
-    let mondayItem = null;
-    try {
-      mondayItem = await markRecruitGridFilled(accountEmail, MONDAY_API_TOKEN.value());
-    } catch (err) {
-      logger.error("Grille artisan : mise à jour Monday échouée", { uid, error: err.message });
-    }
-
-    const pdf = await buildArtisanGridPdf({
-      ...after,
-      email: accountEmail,
-      mondayName: mondayItem?.name,
-      mondayZone: mondayItem?.zone,
-    });
-    const company = after.company ?? {};
-    const nomBrut = mondayItem?.name || company.raisonSociale || accountEmail || "Artisan";
-    const nom = escapeHtmlText(nomBrut);
-    const filename = `Grille-pose-${String(nomBrut).replace(/[^A-Za-z0-9-]+/g, "-").slice(0, 40)}.pdf`;
-    const attachments = [{ content: pdf, filename, mimeType: "application/pdf" }];
-
-    const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
-    oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
-    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-    const from = GMAIL_SENDER_EMAIL.value();
-
-    await gmail.users.messages.send({
-      userId: "me",
-      requestBody: {
-        raw: buildRawMessageWithAttachment({
-          to: from,
-          from,
-          subject: `🧰 Grille artisan reçue — ${nomBrut}`,
-          html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#122f4d">
-            <p><b>${nom}</b> vient de transmettre sa grille de prix de pose (PDF joint).</p>
-            <p>Compte : ${escapeHtmlText(accountEmail)}${artisanEmail ? "" : " (e-mail non vérifié : copie non envoyée à l'artisan)"}</p>
-            <p>${mondayItem ? `Fiche Monday : ${escapeHtmlText(mondayItem.name)}${mondayItem.zone ? ` (${escapeHtmlText(mondayItem.zone)})` : ""} → Statut passé à « Grille remplie ».` : "⚠️ Aucune fiche Monday trouvée avec cet e-mail : étiquette à mettre à la main."}</p>
-          </div>`,
-          attachments,
-        }),
-      },
-    });
-    logger.info("Grille artisan envoyée à IP5", { uid });
-
-    if (artisanEmail) {
-      await gmail.users.messages.send({
-        userId: "me",
-        requestBody: {
-          raw: buildRawMessageWithAttachment({
-            to: artisanEmail,
-            from,
-            subject: "IP5 Énergie — Copie de votre grille de prix de pose",
-            html: buildBrandedEmailShell({
-              bodyHtml: `
-                <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour,</p>
-                <p style="margin:0 0 12px 0;">Merci d'avoir complété votre grille de prix de pose. Vous en trouverez une copie en PDF dans ce mail.</p>
-                <p style="margin:0 0 12px 0;">Nous l'étudions et revenons vers vous très rapidement. Vous pouvez la modifier à tout moment sur <a href="${SITE_URL}/espace-pro" style="color:#2b5a8f;">ip5energie.fr/espace-pro</a>.</p>
-                <p style="margin:0;">À très vite,<br>L'équipe IP5 Énergie</p>`,
-            }),
-            attachments,
-          }),
-        },
-      });
-      logger.info("Copie de la grille envoyée à l'artisan", { uid });
-    }
-  },
-);
-
 const RECRUIT_BOARD_ID = "18435041484";
 const RECRUIT_COL = {
   zone: "text_mm8232wx",
@@ -1892,57 +1797,16 @@ const RECRUIT_COL = {
   statut: "color_mm82r5tz",
   mailAuto: "color_mm8211c8",
   relance: "date_mm82zjr3",
+  telephone: "text_mm825e9m",
+  siret: "text_mm82j894",
 };
-
-// Cherche la fiche du tableau de recrutement dont l'e-mail correspond au
-// compte artisan, et passe son Statut à « Grille remplie » (étiquette créée
-// si elle n'existe pas encore). Retourne { id, name, zone } ou null.
-async function markRecruitGridFilled(email, token) {
-  if (!email) return null;
-  let data = await mondayQuery(
-    `query ($b: [ID!]) { boards(ids: $b) { items_page(limit: 500) { cursor items { id name column_values(ids: ["${RECRUIT_COL.email}", "${RECRUIT_COL.zone}"]) { id text value } } } } }`,
-    { b: [RECRUIT_BOARD_ID] },
-    token,
-  );
-  let page = data.boards?.[0]?.items_page;
-  const items = [...(page?.items ?? [])];
-  while (page?.cursor) {
-    data = await mondayQuery(
-      `query ($c: String!) { next_items_page(limit: 500, cursor: $c) { cursor items { id name column_values(ids: ["${RECRUIT_COL.email}", "${RECRUIT_COL.zone}"]) { id text value } } } }`,
-      { c: page.cursor },
-      token,
-    );
-    page = data.next_items_page;
-    items.push(...(page?.items ?? []));
-  }
-  const match = items.find((it) => {
-    const col = it.column_values.find((c) => c.id === RECRUIT_COL.email);
-    let mail;
-    try {
-      mail = JSON.parse(col?.value ?? "null")?.email;
-    } catch {
-      mail = undefined;
-    }
-    return String(mail ?? col?.text ?? "").trim().toLowerCase() === email;
-  });
-  if (!match) return null;
-  await mondayQuery(
-    `mutation ($b: ID!, $i: ID!, $c: String!, $v: JSON!) { change_column_value(board_id: $b, item_id: $i, column_id: $c, value: $v, create_labels_if_missing: true) { id } }`,
-    { b: RECRUIT_BOARD_ID, i: match.id, c: RECRUIT_COL.statut, v: JSON.stringify({ label: "Grille remplie" }) },
-    token,
-  );
-  return {
-    id: match.id,
-    name: match.name,
-    zone: match.column_values.find((c) => c.id === RECRUIT_COL.zone)?.text ?? "",
-  };
-}
+const RECRUIT_GROUP_GRILLES = "group_mm829371"; // ✅ Grilles remplies
 
 const normalizeLabel = (s) =>
   String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 
 function recruitButton(label) {
-  return `<p style="margin:22px 0;"><a href="${SITE_URL}/espace-pro" style="display:inline-block;background:#2b5a8f;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:bold;">${label}</a></p>`;
+  return `<p style="margin:22px 0;"><a href="${SITE_URL}/espace-pro" style="display:inline-block;background:#f28c28;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:999px;font-weight:bold;font-size:16px;">${label}</a></p>`;
 }
 const RECRUIT_STOP = `<p style="margin:18px 0 0 0;color:#8a94a3;font-size:12px;">Vous ne souhaitez plus recevoir nos messages ? Répondez simplement « STOP » à ce mail.</p>`;
 
@@ -1951,19 +1815,21 @@ const RECRUIT_TEMPLATES = {
   "mail 1 avant l appel": {
     statut: "Mail 1 envoye",
     relanceInDays: 3,
-    subject: (zone) => `Pose de pompes à chaleur${zone ? ` — secteur ${zone}` : ""} : partenariat IP5 Énergie`,
+    subject: (zone) => `Des chantiers de pompes à chaleur${zone ? ` en ${zone}` : " dans votre secteur"} — partenariat IP5 Énergie`,
     body: () => `
+      <img src="${SITE_URL}/images/email/artisans-hero.jpg" width="520" alt="Un installateur partenaire IP5 Énergie avec des propriétaires satisfaits" style="display:block; width:100%; max-width:520px; height:auto; border-radius:12px; margin:0 0 20px 0;" />
       <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour,</p>
-      <p style="margin:0 0 12px 0;">Je me permets de vous contacter de la part d'<b>IP5 Énergie</b>. Nous accompagnons des particuliers qui remplacent leur chaudière fioul ou gaz par une pompe à chaleur air/eau, et nous cherchons des <b>artisans RGE QualiPAC</b> dans votre secteur pour réaliser la pose.</p>
-      <p style="margin:0 0 6px 0;">Ce que nous proposons :</p>
-      <ul style="margin:0 0 12px 18px; padding:0;">
-        <li>des chantiers réguliers près de chez vous, sans démarchage de votre part ;</li>
-        <li>le <b>matériel fourni et livré</b> par nos soins (Atlantic, Chappée) : vous n'avancez rien ;</li>
-        <li>la gestion complète des dossiers d'aides et de l'administratif par notre équipe.</li>
+      <p style="margin:0 0 12px 0;"><b>IP5 Énergie</b> accompagne des particuliers qui remplacent leur chaudière fioul ou gaz par une pompe à chaleur. Nous cherchons des <b>artisans RGE QualiPAC</b> dans votre secteur pour réaliser la pose.</p>
+      <p style="margin:0 0 6px 0; font-weight:bold;">Ce que nous vous proposons :</p>
+      <ul style="margin:0 0 14px 18px; padding:0;">
+        <li style="margin-bottom:4px;"><b>Des chantiers près de chez vous</b> : nous trouvons les clients, vous n'avez pas à démarcher.</li>
+        <li style="margin-bottom:4px;"><b>Matériel fourni et livré</b> (Atlantic, Chappée) : vous n'avancez rien.</li>
+        <li style="margin-bottom:4px;"><b>Zéro administratif</b> : dossiers d'aides, devis et suivi client sont gérés par notre équipe.</li>
+        <li><b>Vos prix, vos conditions</b> : vous fixez vos tarifs de pose et votre rayon d'intervention.</li>
       </ul>
-      <p style="margin:0 0 12px 0;">Pour voir si nous pouvons travailler ensemble, le plus simple est d'indiquer <b>vos propres tarifs de pose</b> dans notre espace partenaires (5 minutes, sur téléphone ou ordinateur) :</p>
-      ${recruitButton("Indiquer mes tarifs de pose")}
-      <p style="margin:0;">Je vous appellerai dans les prochains jours pour en discuter.<br>Bien cordialement,<br>L'équipe IP5 Énergie</p>`,
+      <p style="margin:0 0 12px 0;">Pour que nous puissions vous proposer des chantiers adaptés, il suffit de remplir <b>votre grille de tarifs de pose</b> (5 minutes, sur téléphone ou ordinateur, sans créer de compte) :</p>
+      ${recruitButton("Remplir ma grille de tarifs")}
+      <p style="margin:0;">Nous revenons vers vous dès réception. Une question ? Répondez simplement à ce mail.<br>Bien cordialement,<br>L'équipe IP5 Énergie</p>`,
   },
   relance: {
     statut: "Relance envoyee",
@@ -2101,5 +1967,199 @@ exports.sendRecruitmentEmail = onRequest(
       logger.error("Échec du mail de recrutement artisan", { itemId, error: err.message });
       res.status(500).send("error");
     }
+  },
+);
+
+// Recherche d'une fiche du tableau de recrutement par e-mail (toutes pages).
+async function findRecruitItemByEmail(email, token) {
+  const fields = `cursor items { id name column_values(ids: ["${RECRUIT_COL.email}", "${RECRUIT_COL.zone}", "${RECRUIT_COL.telephone}"]) { id text value } }`;
+  let data = await mondayQuery(`query ($b: [ID!]) { boards(ids: $b) { items_page(limit: 500) { ${fields} } } }`, { b: [RECRUIT_BOARD_ID] }, token);
+  let page = data.boards?.[0]?.items_page;
+  const items = [...(page?.items ?? [])];
+  while (page?.cursor) {
+    data = await mondayQuery(`query ($c: String!) { next_items_page(limit: 500, cursor: $c) { ${fields} } }`, { c: page.cursor }, token);
+    page = data.next_items_page;
+    items.push(...(page?.items ?? []));
+  }
+  return (
+    items.find((it) => {
+      const col = it.column_values.find((c) => c.id === RECRUIT_COL.email);
+      let mail;
+      try {
+        mail = JSON.parse(col?.value ?? "null")?.email;
+      } catch {
+        mail = undefined;
+      }
+      return String(mail ?? col?.text ?? "").trim().toLowerCase() === email;
+    }) ?? null
+  );
+}
+
+// Fiche Monday de l'artisan dans « ✅ Grilles remplies » : la fiche
+// prospect existante (même e-mail) y est déplacée, sinon une nouvelle fiche
+// est créée. Statut = « Grille remplie », SIRET et téléphone renseignés,
+// résumé de la grille en commentaire.
+async function upsertRecruitGridItem({ identity, summary }, token) {
+  const existing = await findRecruitItemByEmail(identity.email, token);
+  const values = {
+    [RECRUIT_COL.statut]: { label: "Grille remplie" },
+    [RECRUIT_COL.siret]: identity.siret,
+  };
+  const existingTel = existing?.column_values.find((c) => c.id === RECRUIT_COL.telephone)?.text;
+  if (identity.telephone && !existingTel) values[RECRUIT_COL.telephone] = identity.telephone;
+  let itemId;
+  if (existing) {
+    itemId = existing.id;
+    await mondayQuery(
+      `mutation ($i: ID!, $g: String!) { move_item_to_group(item_id: $i, group_id: $g) { id } }`,
+      { i: itemId, g: RECRUIT_GROUP_GRILLES },
+      token,
+    );
+    await mondayQuery(
+      `mutation ($b: ID!, $i: ID!, $v: JSON!) { change_multiple_column_values(board_id: $b, item_id: $i, column_values: $v, create_labels_if_missing: true) { id } }`,
+      { b: RECRUIT_BOARD_ID, i: itemId, v: JSON.stringify(values) },
+      token,
+    );
+  } else {
+    values[RECRUIT_COL.email] = { email: identity.email, text: identity.email };
+    if (identity.telephone) values[RECRUIT_COL.telephone] = identity.telephone;
+    const data = await mondayQuery(
+      `mutation ($b: ID!, $g: String!, $n: String!, $v: JSON!) { create_item(board_id: $b, group_id: $g, item_name: $n, column_values: $v, create_labels_if_missing: true) { id } }`,
+      { b: RECRUIT_BOARD_ID, g: RECRUIT_GROUP_GRILLES, n: `${identity.prenom} ${identity.nom}`, v: JSON.stringify(values) },
+      token,
+    );
+    itemId = data.create_item.id;
+  }
+  await postMondayUpdate(itemId, summary, token);
+  return {
+    id: itemId,
+    created: !existing,
+    name: existing?.name ?? `${identity.prenom} ${identity.nom}`,
+    zone: existing?.column_values.find((c) => c.id === RECRUIT_COL.zone)?.text ?? "",
+  };
+}
+
+const ARTISAN_LINE_IDS = new Set(ARTISAN.ARTISAN_GRID_SECTIONS.flatMap((s) => s.lines.map((l) => l.id)));
+const ARTISAN_TRAVEL_IDS = new Set(ARTISAN.TRAVEL_FIELDS.map((f) => f.id));
+const cleanAmount = (v) => String(v ?? "").replace(/[^0-9.,\s]/g, "").trim().slice(0, 12);
+
+exports.submitArtisanGrid = onRequest(
+  {
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, MONDAY_API_TOKEN],
+    region: "europe-west9",
+    cors: [SITE_URL, "https://www.ip5energie.fr", "https://ip5-energie.web.app"],
+    timeoutSeconds: 120,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("method not allowed");
+      return;
+    }
+    const b = req.body ?? {};
+    if (b.company) {
+      res.status(200).send("ok"); // champ piège anti-robot
+      return;
+    }
+    const clip = (v, n) => String(v ?? "").trim().slice(0, n);
+    const identity = {
+      prenom: clip(b.identity?.prenom, 60),
+      nom: clip(b.identity?.nom, 60),
+      siret: clip(b.identity?.siret, 20).replace(/\s/g, ""),
+      email: clip(b.identity?.email, 120).toLowerCase(),
+      telephone: clip(b.identity?.telephone, 30),
+    };
+    const prices = {};
+    for (const [k, v] of Object.entries(b.prices ?? {})) if (ARTISAN_LINE_IDS.has(k) && cleanAmount(v)) prices[k] = cleanAmount(v);
+    const travel = {};
+    for (const [k, v] of Object.entries(b.travel ?? {})) if (ARTISAN_TRAVEL_IDS.has(k) && cleanAmount(v)) travel[k] = cleanAmount(v);
+    const comment = clip(b.comment, 2000);
+    if (!identity.prenom || !identity.nom || !/^\d{14}$/.test(identity.siret) || !EMAIL_RE.test(identity.email) || !Object.keys(prices).length) {
+      res.status(400).send("invalid");
+      return;
+    }
+
+    // Anti-abus : au plus un envoi toutes les 5 minutes par adresse e-mail.
+    const lockRef = db.doc(`artisan_grid_sends/${emailKey(identity.email)}`);
+    const lock = await lockRef.get();
+    if (lock.exists && Date.now() - (lock.data().at?.toMillis?.() ?? 0) < 5 * 60 * 1000) {
+      res.status(429).send("too many");
+      return;
+    }
+    await lockRef.set({ at: FieldValue.serverTimestamp() });
+    await db.collection("artisan_submissions").add({ identity, prices, travel, comment, createdAt: FieldValue.serverTimestamp() });
+
+    const lineLabel = Object.fromEntries(
+      ARTISAN.ARTISAN_GRID_SECTIONS.flatMap((s) => s.lines.map((l) => [l.id, `${s.title.replace(/^Pose — /, "")} ${l.label}`])),
+    );
+    const summary = [
+      `🧰 Grille remplie sur ip5energie.fr/espace-pro`,
+      `${identity.prenom} ${identity.nom} · SIRET ${identity.siret} · ${identity.email}${identity.telephone ? ` · ${identity.telephone}` : ""}`,
+      ...ARTISAN.TRAVEL_FIELDS.filter((f) => travel[f.id]).map((f) => `${f.label} : ${travel[f.id]} ${f.unit}`),
+      ...Object.entries(prices).map(([k, v]) => `${lineLabel[k]} : ${v} €`),
+      comment ? `Commentaire : ${comment}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    let mondayItem = null;
+    try {
+      mondayItem = await upsertRecruitGridItem({ identity, summary }, MONDAY_API_TOKEN.value());
+    } catch (err) {
+      logger.error("Grille artisan : mise à jour Monday échouée", { error: err.message });
+    }
+
+    try {
+      const pdf = await buildArtisanGridPdf({ identity, prices, travel, comment, mondayName: mondayItem?.name, mondayZone: mondayItem?.zone });
+      const nomBrut = `${identity.prenom} ${identity.nom}`;
+      const filename = `Grille-pose-${nomBrut.replace(/[^A-Za-z0-9-]+/g, "-").slice(0, 40)}.pdf`;
+      const attachments = [{ content: pdf, filename, mimeType: "application/pdf" }];
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const from = GMAIL_SENDER_EMAIL.value();
+      const mondayLine = mondayItem
+        ? mondayItem.created
+          ? "Nouvelle fiche créée dans Monday (groupe « ✅ Grilles remplies »)."
+          : `Fiche Monday existante « ${escapeHtmlText(mondayItem.name)} »${mondayItem.zone ? ` (${escapeHtmlText(mondayItem.zone)})` : ""} déplacée dans « ✅ Grilles remplies ».`
+        : "⚠️ Mise à jour Monday échouée : fiche à créer à la main.";
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: buildRawMessageWithAttachment({
+            to: from,
+            from,
+            subject: `🧰 Grille artisan reçue — ${nomBrut}`,
+            html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#122f4d">
+              <p><b>${escapeHtmlText(nomBrut)}</b> vient de transmettre sa grille de prix de pose (PDF joint).</p>
+              <p>SIRET ${escapeHtmlText(identity.siret)} · ${escapeHtmlText(identity.email)}${identity.telephone ? ` · ${escapeHtmlText(identity.telephone)}` : ""}</p>
+              <p>${mondayLine}</p>
+            </div>`,
+            attachments,
+          }),
+        },
+      });
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: buildRawMessageWithAttachment({
+            to: identity.email,
+            from,
+            subject: "IP5 Énergie — Copie de votre grille de prix de pose",
+            html: buildBrandedEmailShell({
+              bodyHtml: `
+                <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${escapeHtmlText(identity.prenom)},</p>
+                <p style="margin:0 0 12px 0;">Merci d'avoir complété votre grille de prix de pose. Vous en trouverez une copie en PDF dans ce mail.</p>
+                <p style="margin:0 0 12px 0;">Nous l'étudions et revenons vers vous très rapidement.</p>
+                <p style="margin:0;">À très vite,<br>L'équipe IP5 Énergie</p>`,
+            }),
+            attachments,
+          }),
+        },
+      });
+      logger.info("Grille artisan envoyée", { monday: mondayItem?.id ?? null });
+    } catch (err) {
+      logger.error("Grille artisan : envoi du PDF échoué", { error: err.message });
+    }
+    res.status(200).send("ok");
   },
 );
