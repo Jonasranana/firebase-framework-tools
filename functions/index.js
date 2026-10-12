@@ -1,4 +1,4 @@
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onRequest } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
@@ -58,7 +58,7 @@ function buildRawMessageWithAttachment({ to, from, subject, html, attachments })
   }
   const boundary = `ip5_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const attachmentParts = attachments.flatMap((attachment) => {
-    const fileData = readFileSync(attachment.path).toString("base64");
+    const fileData = (attachment.content ?? readFileSync(attachment.path)).toString("base64");
     // RFC 2045 : les lignes base64 doivent être limitées à 76 caractères.
     const fileDataWrapped = fileData.match(/.{1,76}/g).join("\r\n");
     return [
@@ -1704,6 +1704,338 @@ exports.notifyMondayFacebookLead = onRequest(
       res.status(200).send("sent");
     } catch (err) {
       logger.error("Échec notification lead Facebook", { pulseId, error: err.message });
+      res.status(500).send("error");
+    }
+  },
+);
+
+// ─── Recrutement des artisans poseurs (espace /espace-pro) ───────────────
+// 1) notifyArtisanGridSubmitted : quand un artisan clique « J'ai terminé »,
+//    sa grille (artisan_grids/{uid}) est mise en PDF et envoyée à IP5, puis
+//    à l'artisan si son adresse e-mail est vérifiée (sinon n'importe qui
+//    pourrait faire envoyer nos mails à une adresse qui n'est pas la sienne).
+// 2) sendRecruitmentEmail : webhook Monday sur la colonne « Mail auto » du
+//    tableau de recrutement ; envoie le mail correspondant (sans aucun tarif
+//    IP5) avec le lien vers /espace-pro, puis met à jour « Statut ».
+const { getAuth: getAdminAuth } = require("firebase-admin/auth");
+const ARTISAN = require("./artisanGrid");
+
+function buildArtisanGridPdf(grid) {
+  const PDFDocument = require("pdfkit");
+  return new Promise((resolve, reject) => {
+    const doc = new PDFDocument({ size: "A4", margin: 48 });
+    const chunks = [];
+    doc.on("data", (c) => chunks.push(c));
+    doc.on("end", () => resolve(Buffer.concat(chunks)));
+    doc.on("error", reject);
+    const NAVY = "#0f2b4a";
+    const GREY = "#607083";
+    const company = grid.company ?? {};
+    const prices = grid.prices ?? {};
+    const travel = grid.travel ?? {};
+    const val = (v) => String(v ?? "").trim();
+
+    doc.image(path.join(__dirname, "assets", "logo-ip5-energie.png"), 48, 40, { width: 110 });
+    doc.fillColor(NAVY).fontSize(18).font("Helvetica-Bold").text("Grille de prix de pose", 200, 50, { align: "right" });
+    doc.fillColor(GREY).fontSize(9).font("Helvetica").text(
+      `Transmise le ${new Date().toLocaleDateString("fr-FR", { timeZone: "Europe/Paris" })} via ip5energie.fr/espace-pro`,
+      200, 74, { align: "right" },
+    );
+    doc.moveDown(3);
+    doc.x = 48;
+
+    const heading = (t) => {
+      if (doc.y > 740) doc.addPage();
+      doc.moveDown(0.6).fillColor(NAVY).font("Helvetica-Bold").fontSize(12).text(t, 48);
+      doc.moveTo(48, doc.y + 2).lineTo(547, doc.y + 2).strokeColor("#dfe7e3").stroke();
+      doc.moveDown(0.4);
+    };
+    const row = (label, value, unit) => {
+      if (doc.y > 770) doc.addPage();
+      const y = doc.y;
+      doc.font("Helvetica").fontSize(10).fillColor("#1d2b3a").text(label, 56, y, { width: 330 });
+      const shown = value ? `${value} ${unit ?? ""}`.trim() : "—";
+      doc.font(value ? "Helvetica-Bold" : "Helvetica").fillColor(value ? NAVY : "#a0aab4")
+        .text(shown, 390, y, { width: 157, align: "right" });
+      doc.y = Math.max(doc.y, y + 14);
+    };
+
+    heading("Entreprise");
+    for (const f of ARTISAN.COMPANY_FIELDS) row(f.label, val(company[f.id]), "");
+    row("E-mail du compte", val(grid.email), "");
+
+    heading("Déplacements");
+    for (const f of ARTISAN.TRAVEL_FIELDS) row(f.label, val(travel[f.id]), f.unit);
+
+    for (const s of ARTISAN.ARTISAN_GRID_SECTIONS) {
+      heading(s.title);
+      for (const l of s.lines) row(l.label, val(prices[l.id]), l.unit);
+    }
+
+    if (val(grid.comment)) {
+      heading("Commentaire");
+      doc.font("Helvetica").fontSize(10).fillColor("#1d2b3a").text(val(grid.comment), 56, doc.y, { width: 490 });
+    }
+
+    doc.moveDown(1.5).font("Helvetica").fontSize(8.5).fillColor(GREY).text(
+      "Prix de pose hors taxes indiqués par l'artisan. Matériel (Atlantic, Chappée) fourni et livré par IP5 Énergie. " +
+        "Document informatif, sans engagement des parties tant qu'un contrat de sous-traitance n'est pas signé.",
+      48, doc.y, { width: 499 },
+    );
+    doc.end();
+  });
+}
+
+exports.notifyArtisanGridSubmitted = onDocumentWritten(
+  {
+    document: "artisan_grids/{uid}",
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+    region: "europe-west9",
+  },
+  async (event) => {
+    const before = event.data?.before?.data();
+    const after = event.data?.after?.data();
+    const uid = event.params.uid;
+    if (!after || after.status !== "submitted" || !after.submittedAt) return;
+    const beforeMs = before?.submittedAt?.toMillis?.() ?? 0;
+    const afterMs = after.submittedAt.toMillis?.() ?? 0;
+    if (afterMs === beforeMs) return; // simple enregistrement automatique, pas un nouvel envoi
+
+    // Anti-abus : au plus un envoi toutes les 5 minutes par artisan.
+    const lockRef = db.doc(`artisan_grid_sends/${uid}`);
+    const lock = await lockRef.get();
+    const last = lock.exists ? lock.data().at?.toMillis?.() ?? 0 : 0;
+    if (Date.now() - last < 5 * 60 * 1000) {
+      logger.warn("Grille artisan : envoi ignoré (trop rapproché)", { uid });
+      return;
+    }
+    await lockRef.set({ at: FieldValue.serverTimestamp() });
+
+    const authUser = await getAdminAuth().getUser(uid).catch(() => null);
+    const artisanEmail = authUser?.emailVerified ? String(authUser.email ?? "").toLowerCase() : "";
+    const pdf = await buildArtisanGridPdf({ ...after, email: authUser?.email ?? after.email });
+    const company = after.company ?? {};
+    const nom = escapeHtmlText(company.raisonSociale || company.contactNom || authUser?.email || "Artisan");
+    const filename = `Grille-pose-${String(company.raisonSociale || "artisan").replace(/[^A-Za-z0-9-]+/g, "-").slice(0, 40)}.pdf`;
+    const attachments = [{ content: pdf, filename, mimeType: "application/pdf" }];
+
+    const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+    oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+    const from = GMAIL_SENDER_EMAIL.value();
+
+    await gmail.users.messages.send({
+      userId: "me",
+      requestBody: {
+        raw: buildRawMessageWithAttachment({
+          to: from,
+          from,
+          subject: `🧰 Grille artisan reçue — ${company.raisonSociale || authUser?.email || uid}`,
+          html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#122f4d">
+            <p><b>${nom}</b> vient de transmettre sa grille de prix de pose (PDF joint).</p>
+            <p>Contact : ${escapeHtmlText(company.contactNom)} · ${escapeHtmlText(company.telephone)} · ${escapeHtmlText(authUser?.email ?? after.email)}${artisanEmail ? "" : " (e-mail non vérifié : copie non envoyée à l'artisan)"}</p>
+            <p>RGE : ${escapeHtmlText(company.rge)}<br>Décennale : ${escapeHtmlText(company.decennale)}</p>
+          </div>`,
+          attachments,
+        }),
+      },
+    });
+    logger.info("Grille artisan envoyée à IP5", { uid });
+
+    if (artisanEmail) {
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: buildRawMessageWithAttachment({
+            to: artisanEmail,
+            from,
+            subject: "IP5 Énergie — Copie de votre grille de prix de pose",
+            html: buildBrandedEmailShell({
+              bodyHtml: `
+                <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour,</p>
+                <p style="margin:0 0 12px 0;">Merci d'avoir complété votre grille de prix de pose. Vous en trouverez une copie en PDF dans ce mail.</p>
+                <p style="margin:0 0 12px 0;">Nous l'étudions et revenons vers vous très rapidement. Vous pouvez la modifier à tout moment sur <a href="${SITE_URL}/espace-pro" style="color:#2b5a8f;">ip5energie.fr/espace-pro</a>.</p>
+                <p style="margin:0;">À très vite,<br>L'équipe IP5 Énergie</p>`,
+            }),
+            attachments,
+          }),
+        },
+      });
+      logger.info("Copie de la grille envoyée à l'artisan", { uid });
+    }
+  },
+);
+
+const RECRUIT_BOARD_ID = "18435041484";
+const RECRUIT_COL = {
+  zone: "text_mm8232wx",
+  email: "email_mm82w6sr",
+  statut: "color_mm82r5tz",
+  mailAuto: "color_mm8211c8",
+  relance: "date_mm82zjr3",
+};
+
+const normalizeLabel = (s) =>
+  String(s ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+function recruitButton(label) {
+  return `<p style="margin:22px 0;"><a href="${SITE_URL}/espace-pro" style="display:inline-block;background:#2b5a8f;color:#ffffff;text-decoration:none;padding:13px 22px;border-radius:10px;font-weight:bold;">${label}</a></p>`;
+}
+const RECRUIT_STOP = `<p style="margin:18px 0 0 0;color:#8a94a3;font-size:12px;">Vous ne souhaitez plus recevoir nos messages ? Répondez simplement « STOP » à ce mail.</p>`;
+
+// Clés = libellés de « Mail auto » normalisés (sans accents ni ponctuation).
+const RECRUIT_TEMPLATES = {
+  "mail 1 avant l appel": {
+    statut: "Mail 1 envoye",
+    relanceInDays: 3,
+    subject: (zone) => `Pose de pompes à chaleur${zone ? ` — secteur ${zone}` : ""} : partenariat IP5 Énergie`,
+    body: () => `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour,</p>
+      <p style="margin:0 0 12px 0;">Je me permets de vous contacter de la part d'<b>IP5 Énergie</b>. Nous accompagnons des particuliers qui remplacent leur chaudière fioul ou gaz par une pompe à chaleur air/eau, et nous cherchons des <b>artisans RGE QualiPAC</b> dans votre secteur pour réaliser la pose.</p>
+      <p style="margin:0 0 6px 0;">Ce que nous proposons :</p>
+      <ul style="margin:0 0 12px 18px; padding:0;">
+        <li>des chantiers réguliers près de chez vous, sans démarchage de votre part ;</li>
+        <li>le <b>matériel fourni et livré</b> par nos soins (Atlantic, Chappée) : vous n'avancez rien ;</li>
+        <li>la gestion complète des dossiers d'aides et de l'administratif par notre équipe.</li>
+      </ul>
+      <p style="margin:0 0 12px 0;">Pour voir si nous pouvons travailler ensemble, le plus simple est d'indiquer <b>vos propres tarifs de pose</b> dans notre espace partenaires (5 minutes, sur téléphone ou ordinateur) :</p>
+      ${recruitButton("Indiquer mes tarifs de pose")}
+      <p style="margin:0;">Je vous appellerai dans les prochains jours pour en discuter.<br>Bien cordialement,<br>L'équipe IP5 Énergie</p>`,
+  },
+  relance: {
+    statut: "Relance envoyee",
+    relanceInDays: 4,
+    subject: () => "Partenariat pose de pompes à chaleur — IP5 Énergie",
+    body: () => `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour,</p>
+      <p style="margin:0 0 12px 0;">Je reviens vers vous au sujet de notre recherche d'artisans RGE QualiPAC pour la pose de pompes à chaleur dans votre secteur (matériel fourni et livré par IP5 Énergie, dossiers gérés par nos soins).</p>
+      <p style="margin:0 0 12px 0;">Si le sujet vous intéresse, vous pouvez indiquer vos tarifs de pose en quelques minutes :</p>
+      ${recruitButton("Indiquer mes tarifs de pose")}
+      <p style="margin:0;">Bien cordialement,<br>L'équipe IP5 Énergie</p>`,
+  },
+  "dernier message": {
+    statut: "Dernier message envoye",
+    relanceInDays: null,
+    subject: () => "Dernier message — partenariat pose PAC IP5 Énergie",
+    body: () => `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour,</p>
+      <p style="margin:0 0 12px 0;">Sans retour de votre part, ce sera mon dernier message. Si un partenariat pour la pose de pompes à chaleur vous intéresse plus tard, notre espace partenaires reste ouvert :</p>
+      ${recruitButton("Accéder à l'espace partenaires")}
+      <p style="margin:0;">Bonne continuation,<br>L'équipe IP5 Énergie</p>`,
+  },
+  "mail apres appel": {
+    statut: null,
+    relanceInDays: 3,
+    subject: () => "Suite à notre échange — partenariat IP5 Énergie",
+    body: () => `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour,</p>
+      <p style="margin:0 0 12px 0;">Merci pour notre échange téléphonique. Comme convenu, voici le lien pour indiquer vos tarifs de pose (matériel Atlantic ou Chappée fourni et livré par IP5 Énergie) :</p>
+      ${recruitButton("Indiquer mes tarifs de pose")}
+      <p style="margin:0 0 12px 0;">Une fois votre grille complétée, vous recevrez une copie en PDF et nous reviendrons vers vous rapidement.</p>
+      <p style="margin:0;">Bien cordialement,<br>L'équipe IP5 Énergie</p>`,
+  },
+};
+
+exports.sendRecruitmentEmail = onRequest(
+  {
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, MONDAY_API_TOKEN, MONDAY_WEBHOOK_SECRET],
+    region: "europe-west9",
+  },
+  async (req, res) => {
+    if (req.body?.challenge) {
+      res.json({ challenge: req.body.challenge });
+      return;
+    }
+    if (req.query.key !== MONDAY_WEBHOOK_SECRET.value()) {
+      res.status(403).send("forbidden");
+      return;
+    }
+    const event = req.body?.event;
+    if (!event || String(event.boardId) !== RECRUIT_BOARD_ID || event.columnId !== RECRUIT_COL.mailAuto) {
+      res.status(200).send("ignored");
+      return;
+    }
+    const key = normalizeLabel(event.value?.label?.text);
+    const template = RECRUIT_TEMPLATES[key];
+    if (!template) {
+      res.status(200).send("unknown template");
+      return;
+    }
+    const itemId = String(event.pulseId);
+    const token = MONDAY_API_TOKEN.value();
+
+    // Un même modèle n'est jamais envoyé deux fois au même artisan
+    // (Monday peut renvoyer un webhook).
+    const sendRef = db.doc(`recruit_sends/${itemId}_${key.replace(/ /g, "_")}`);
+    try {
+      await sendRef.create({ at: FieldValue.serverTimestamp(), template: key });
+    } catch {
+      res.status(200).send("already sent");
+      return;
+    }
+
+    try {
+      const data = await mondayQuery(
+        `query ($ids: [ID!]) { items(ids: $ids) { name column_values(ids: ["${RECRUIT_COL.zone}", "${RECRUIT_COL.email}", "${RECRUIT_COL.statut}"]) { id text value } } }`,
+        { ids: [itemId] },
+        token,
+      );
+      const item = data.items?.[0];
+      const cols = Object.fromEntries((item?.column_values ?? []).map((c) => [c.id, c]));
+      let email;
+      try {
+        email = JSON.parse(cols[RECRUIT_COL.email]?.value ?? "null")?.email;
+      } catch {
+        email = undefined;
+      }
+      email = String(email ?? cols[RECRUIT_COL.email]?.text ?? "").trim();
+      const statut = normalizeLabel(cols[RECRUIT_COL.statut]?.text);
+      if (!EMAIL_RE.test(email)) {
+        await sendRef.delete();
+        await postMondayUpdate(itemId, "⚠️ Mail non envoyé : adresse e-mail manquante ou invalide.", token);
+        res.status(200).send("no email");
+        return;
+      }
+      if (statut === "dead" || statut === "signe" || (await db.doc(`email_optouts/${emailKey(email.toLowerCase())}`).get()).exists) {
+        await postMondayUpdate(itemId, "⚠️ Mail non envoyé : artisan marqué Dead / Signé ou désinscrit.", token);
+        res.status(200).send("skipped");
+        return;
+      }
+      const zone = String(cols[RECRUIT_COL.zone]?.text ?? "").trim();
+
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: buildRawMessage({
+            to: email,
+            from: GMAIL_SENDER_EMAIL.value(),
+            subject: template.subject(zone),
+            html: buildBrandedEmailShell({ bodyHtml: template.body() + RECRUIT_STOP }),
+          }),
+        },
+      });
+      logger.info("Mail de recrutement artisan envoyé", { itemId, template: key });
+
+      const values = {};
+      if (template.statut) values[RECRUIT_COL.statut] = { label: template.statut };
+      if (template.relanceInDays) {
+        const d = new Date(Date.now() + template.relanceInDays * 86400000);
+        values[RECRUIT_COL.relance] = { date: d.toISOString().slice(0, 10) };
+      }
+      if (Object.keys(values).length) {
+        await mondayQuery(
+          `mutation ($b: ID!, $i: ID!, $v: JSON!) { change_multiple_column_values(board_id: $b, item_id: $i, column_values: $v) { id } }`,
+          { b: RECRUIT_BOARD_ID, i: itemId, v: JSON.stringify(values) },
+          token,
+        ).catch((err) => logger.error("Recrutement : mise à jour Statut échouée", { itemId, error: err.message }));
+      }
+      res.status(200).send("sent");
+    } catch (err) {
+      await sendRef.delete().catch(() => {});
+      logger.error("Échec du mail de recrutement artisan", { itemId, error: err.message });
       res.status(500).send("error");
     }
   },

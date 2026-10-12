@@ -8,5 +8,6 @@ Disallow: /my-cars
 Disallow: /profile
 Disallow: /outil-devis
 Disallow: /espace-pro
+Disallow: /admin
 
 Sitemap: https://ip5energie.fr/sitemap.xml
