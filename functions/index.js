@@ -1783,7 +1783,7 @@ function buildArtisanGridPdf(grid) {
     }
 
     doc.moveDown(1.5).font("Helvetica").fontSize(8.5).fillColor(GREY).text(
-      "Prix de pose hors taxes indiqués par l'artisan. Matériel (Atlantic, Chappée) fourni et livré par IP5 Énergie. " +
+      "Prix de pose hors taxes indiqués par l'artisan. Matériel (Atlantic ; Chappée prochainement) fourni et livré par IP5 Énergie. " +
         "Document informatif, sans engagement des parties tant qu'un contrat de sous-traitance n'est pas signé.",
       48, doc.y, { width: 499 },
     );
@@ -1826,7 +1826,7 @@ const RECRUIT_TEMPLATES = {
       <p style="margin:0 0 6px 0; font-weight:bold;">Ce que nous vous proposons :</p>
       <ul style="margin:0 0 14px 18px; padding:0;">
         <li style="margin-bottom:4px;"><b>Des chantiers près de chez vous</b> : nous trouvons les clients, vous n'avez pas à démarcher.</li>
-        <li style="margin-bottom:4px;"><b>Matériel fourni et livré</b> (Atlantic, Chappée) : vous n'avancez rien.</li>
+        <li style="margin-bottom:4px;"><b>Matériel fourni et livré</b> (Atlantic, et Chappée prochainement) : vous n'avancez rien.</li>
         <li style="margin-bottom:4px;"><b>Zéro administratif</b> : dossiers d'aides, devis et suivi client sont gérés par notre équipe.</li>
         <li><b>Vos prix, vos conditions</b> : vous fixez vos tarifs de pose et votre rayon d'intervention.</li>
       </ul>
@@ -1861,7 +1861,7 @@ const RECRUIT_TEMPLATES = {
     subject: () => "Suite à notre échange — partenariat IP5 Énergie",
     body: () => `
       <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour,</p>
-      <p style="margin:0 0 12px 0;">Merci pour notre échange téléphonique. Comme convenu, voici le lien pour indiquer vos tarifs de pose (matériel Atlantic ou Chappée fourni et livré par IP5 Énergie) :</p>
+      <p style="margin:0 0 12px 0;">Merci pour notre échange téléphonique. Comme convenu, voici le lien pour indiquer vos tarifs de pose (matériel Atlantic fourni et livré par IP5 Énergie) :</p>
       ${recruitButton("Indiquer mes tarifs de pose")}
       <p style="margin:0 0 12px 0;">Une fois votre grille complétée, vous recevrez une copie en PDF et nous reviendrons vers vous rapidement.</p>
       <p style="margin:0;">Bien cordialement,<br>L'équipe IP5 Énergie</p>`,

@@ -206,7 +206,14 @@ export default function EspaceArtisan() {
                         </div>
                       )}
                       <div>
-                        <div className="font-bold text-gray-900 text-sm">{m.brand}</div>
+                        <div className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                          {m.brand}
+                          {"soon" in m && m.soon && (
+                            <span className="text-[10px] font-bold uppercase tracking-wide bg-orange-100 text-[#c96a0e] rounded-full px-2 py-0.5">
+                              Prochainement
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-gray-500">{m.model}</div>
                       </div>
                     </div>
@@ -306,7 +313,7 @@ const OFFER = [
   {
     icon: Package,
     title: "Matériel fourni et livré",
-    text: "PAC Atlantic ou Chappée livrées par IP5 : vous n'achetez rien, vous posez.",
+    text: "PAC Atlantic (Chappée prochainement) livrées par IP5 : vous n'achetez rien, vous posez.",
   },
   {
     icon: FileCheck2,
