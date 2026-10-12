@@ -12,7 +12,6 @@ import { LogoIP5 } from "./site-chrome";
 import { getEspaceProApp } from "@/lib/espacePro";
 import {
   ARTISAN_GRID_SECTIONS,
-  COMPANY_FIELDS,
   SUPPLIED_MATERIAL,
   TRAVEL_FIELDS,
   type ArtisanGrid,
@@ -71,7 +70,7 @@ export default function EspaceArtisan() {
   const [user, setUser] = useState<any>(null);
   const [grid, setGrid] = useState<ArtisanGrid>(EMPTY);
   const [saveState, setSaveState] = useState<"" | "saving" | "saved" | "error">("");
-  const [open, setOpen] = useState<string>("company");
+  const [open, setOpen] = useState<string>("pose_mono");
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const loaded = useRef(false);
@@ -174,17 +173,10 @@ export default function EspaceArtisan() {
   );
 
   const finish = async () => {
-    const missing = COMPANY_FIELDS.filter((f) => f.required && !String(grid.company[f.id] ?? "").trim()).map(
-      (f) => f.label,
-    );
     const errs: string[] = [];
-    if (missing.length) errs.push(`À compléter : ${missing.join(", ")}.`);
     if (filledPrices === 0) errs.push("Indiquez au moins un prix de pose.");
     setErrors(errs);
-    if (errs.length) {
-      if (missing.length) setOpen("company");
-      return;
-    }
+    if (errs.length) return;
     setSubmitting(true);
     clearTimeout(saveTimer.current);
     try {
@@ -285,27 +277,6 @@ export default function EspaceArtisan() {
             </section>
 
             <div className="mt-6 space-y-3">
-              <Panel id="company" title="Votre entreprise" open={open} setOpen={setOpen}>
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {COMPANY_FIELDS.map((f) => (
-                    <label key={f.id} className="block">
-                      <span className="text-xs font-semibold text-gray-600">
-                        {f.label}
-                        {f.required && " *"}
-                      </span>
-                      <input
-                        className={input}
-                        value={grid.company[f.id] ?? ""}
-                        maxLength={200}
-                        onChange={(e) =>
-                          update((g) => ({ ...g, company: { ...g.company, [f.id]: e.target.value } }))
-                        }
-                      />
-                    </label>
-                  ))}
-                </div>
-              </Panel>
-
               <Panel id="travel" title="Déplacements" icon={<Truck size={18} />} open={open} setOpen={setOpen}>
                 <div className="space-y-3">
                   {TRAVEL_FIELDS.map((f) => (
