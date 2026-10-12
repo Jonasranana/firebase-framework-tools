@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  CalendarCheck,
   CheckCircle2,
   ChevronDown,
+  ClipboardList,
+  FileCheck2,
   Loader2,
   LogOut,
   MailCheck,
+  MapPin,
   Package,
   Truck,
+  Wrench,
 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
 import { getEspaceProApp } from "@/lib/espacePro";
@@ -195,11 +200,11 @@ export default function EspaceArtisan() {
   const signOut = () => api?.auth.signOut(api.authInstance);
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="ltr">
-      <header className="bg-white border-b border-gray-100">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between gap-3">
+    <div className="min-h-screen bg-gradient-to-b from-white via-[#eef4fb] to-[#dce9f7]" dir="ltr" style={{ colorScheme: "light" }}>
+      <header className="bg-white/80 backdrop-blur border-b border-gray-100">
+        <div className={`${status === "signed-out" ? "max-w-5xl" : "max-w-3xl"} mx-auto px-4 py-4 flex items-center justify-between gap-3`}>
           <a href="/">
-            <LogoIP5 className="h-9" />
+            <LogoIP5 className="h-9 !text-[#f28c28]" />
           </a>
           {user && (
             <button
@@ -212,14 +217,21 @@ export default function EspaceArtisan() {
         </div>
       </header>
 
-      <main className="max-w-3xl mx-auto px-4 py-8">
+      <main className={`${status === "signed-out" ? "max-w-5xl" : "max-w-3xl"} mx-auto px-4 py-6 sm:py-8`}>
         {status === "loading" && (
           <div className="py-20 flex justify-center text-gray-400">
             <Loader2 className="animate-spin" size={28} />
           </div>
         )}
 
-        {status === "signed-out" && api && <Login api={api} />}
+        {status === "signed-out" && api && (
+          <>
+            <Presentation />
+            <div id="inscription" className="scroll-mt-6 mt-10">
+              <Login api={api} />
+            </div>
+          </>
+        )}
 
         {status === "done" && (
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center">
@@ -245,6 +257,11 @@ export default function EspaceArtisan() {
               Indiquez vos prix <b>hors taxes</b> pour la pose. Laissez vide ce que vous ne faites pas. Tout est
               enregistré automatiquement : vous pouvez revenir plus tard.
             </p>
+            <div className="mt-4 rounded-2xl bg-blue-50 border border-blue-100 p-4 text-sm text-[#173a5e]">
+              <b>Pourquoi cette grille ?</b> Elle nous permet de vous proposer directement des chantiers dans
+              votre secteur, au prix que <b>vous</b> avez fixé et dans le rayon que vous acceptez, sans
+              renégocier à chaque fois.
+            </div>
             {user && !user.emailVerified && user.providerData?.[0]?.providerId === "password" && (
               <p className="mt-4 flex gap-2 items-start text-sm bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3">
                 <MailCheck size={18} className="flex-shrink-0 mt-0.5" />
@@ -319,7 +336,7 @@ export default function EspaceArtisan() {
               </Panel>
             </div>
 
-            <div className="sticky bottom-0 mt-6 -mx-4 px-4 py-4 bg-gray-50/95 backdrop-blur border-t border-gray-200">
+            <div className="sticky bottom-0 mt-6 -mx-4 px-4 py-4 bg-white/95 backdrop-blur border-t border-gray-200">
               {errors.map((e) => (
                 <p key={e} className="text-sm text-red-600 mb-2">
                   {e}
@@ -335,7 +352,7 @@ export default function EspaceArtisan() {
                 <button
                   onClick={finish}
                   disabled={submitting}
-                  className="inline-flex items-center gap-2 bg-[#2b5a8f] hover:bg-[#1f4470] text-white font-bold px-6 py-3 rounded-full disabled:opacity-50"
+                  className="inline-flex items-center gap-2 bg-[#f28c28] hover:bg-[#e07a12] text-white font-bold px-6 py-3 rounded-full shadow-md disabled:opacity-50"
                 >
                   {submitting && <Loader2 className="animate-spin" size={18} />}
                   J'ai terminé
@@ -349,6 +366,117 @@ export default function EspaceArtisan() {
           Une question ? 07 49 52 52 67 · contact@ip5energie.com
         </p>
       </main>
+    </div>
+  );
+}
+
+// Présentation de l'offre aux artisans (visible avant la connexion) : tout
+// ce qu'il faut savoir même si on ne les a pas eus au téléphone.
+const OFFER = [
+  {
+    icon: MapPin,
+    title: "Des chantiers près de chez vous",
+    text: "Nous trouvons les clients et vous proposons des installations de pompes à chaleur dans votre secteur.",
+  },
+  {
+    icon: Package,
+    title: "Matériel fourni et livré",
+    text: "PAC Atlantic ou Chappée livrées par IP5 : vous n'achetez rien, vous posez.",
+  },
+  {
+    icon: FileCheck2,
+    title: "Zéro administratif",
+    text: "Dossiers d'aides (CEE, MaPrimeRénov'), devis et suivi client : notre équipe s'occupe de tout.",
+  },
+  {
+    icon: Wrench,
+    title: "Vos prix, vos conditions",
+    text: "Vous fixez vos tarifs de pose et votre rayon d'intervention. Vous restez libre d'accepter chaque chantier.",
+  },
+];
+
+const STEPS = [
+  { icon: ClipboardList, title: "Vous remplissez votre grille", text: "5 minutes, sur téléphone ou ordinateur." },
+  { icon: MapPin, title: "On vous propose des chantiers", text: "Dans votre zone, à vos prix, selon vos disponibilités." },
+  { icon: CalendarCheck, title: "Vous posez, on gère le reste", text: "Matériel livré, client et dossier suivis par IP5." },
+];
+
+// Photo d'illustration (image générée, pas un vrai client).
+const HERO_PHOTO = "/images/artisans/installateur-client.webp";
+
+const goToSignup = () =>
+  document.getElementById("inscription")?.scrollIntoView({ behavior: "smooth", block: "start" });
+
+function Presentation() {
+  return (
+    <div>
+      <section className="grid md:grid-cols-2 gap-6 md:gap-10 items-center">
+        <div className="order-2 md:order-1">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#f28c28]">Artisans RGE QualiPAC</p>
+          <h1 className="text-[28px] leading-tight md:text-4xl font-extrabold text-[#0f2b4a] mt-2">
+            Recevez des chantiers de pompes à chaleur dans votre région
+          </h1>
+          <p className="text-gray-600 mt-4 text-base md:text-lg">
+            IP5 Énergie accompagne des particuliers qui remplacent leur chaudière fioul ou gaz. Nous cherchons des
+            artisans de confiance pour réaliser la pose près de chez eux.
+          </p>
+          <button
+            onClick={goToSignup}
+            className="mt-6 w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#f28c28] hover:bg-[#e07a12] text-white font-bold text-lg px-8 py-4 rounded-full shadow-lg shadow-orange-200"
+          >
+            Remplir ma grille de tarifs
+          </button>
+          <p className="text-xs text-gray-500 mt-3">Gratuit et sans engagement · 5 minutes</p>
+        </div>
+        <div className="order-1 md:order-2">
+          <img
+            src={HERO_PHOTO}
+            alt="Un installateur et des propriétaires satisfaits devant leur pompe à chaleur"
+            className="w-full h-64 sm:h-80 md:h-[24rem] object-cover object-[60%_40%] rounded-3xl shadow-xl ring-4 ring-white"
+          />
+        </div>
+      </section>
+
+      <section className="mt-10 md:mt-14">
+        <h2 className="text-xl md:text-2xl font-extrabold text-gray-900">Ce que nous vous proposons</h2>
+        <div className="grid sm:grid-cols-2 gap-3 md:gap-4 mt-4">
+          {OFFER.map(({ icon: Icon, title, text }) => (
+            <div key={title} className="flex gap-3 bg-white rounded-2xl border border-gray-100 p-4 md:p-5">
+              <span className="flex-shrink-0 w-10 h-10 rounded-xl bg-blue-50 text-[#2b5a8f] flex items-center justify-center">
+                <Icon size={20} />
+              </span>
+              <span>
+                <span className="block font-bold text-gray-900">{title}</span>
+                <span className="block text-sm text-gray-600 mt-0.5">{text}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10 md:mt-14">
+        <h2 className="text-xl md:text-2xl font-extrabold text-gray-900">Comment ça marche</h2>
+        <ol className="grid md:grid-cols-3 gap-3 md:gap-4 mt-4">
+          {STEPS.map(({ icon: Icon, title, text }, i) => (
+            <li key={title} className="flex md:flex-col gap-3 bg-white rounded-2xl border border-gray-100 p-4 md:p-5">
+              <span className="flex-shrink-0 w-10 h-10 rounded-full bg-[#f28c28] text-white font-bold flex items-center justify-center">
+                {i + 1}
+              </span>
+              <span>
+                <span className="flex items-center gap-2 font-bold text-gray-900">
+                  <Icon size={18} className="text-[#2b5a8f] hidden md:inline" /> {title}
+                </span>
+                <span className="block text-sm text-gray-600 mt-0.5">{text}</span>
+              </span>
+            </li>
+          ))}
+        </ol>
+        <div className="mt-6 rounded-2xl bg-blue-50 border border-blue-100 p-4 md:p-5 text-sm md:text-base text-[#173a5e]">
+          <b>Pourquoi une grille de tarifs ?</b> Avec vos prix de pose, votre rayon de déplacement et la distance
+          maximale que vous acceptez, nous savons tout de suite quels chantiers vous proposer. Pas de négociation à
+          chaque fois : vous recevez uniquement des installations qui vous conviennent.
+        </div>
+      </section>
     </div>
   );
 }
@@ -399,16 +527,16 @@ function PriceRow({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="flex items-center gap-3">
-      <span className="flex-1 text-sm text-gray-700">{label}</span>
+    <label className="flex items-center gap-2 sm:gap-3">
+      <span className="flex-1 min-w-0 text-sm text-gray-700 leading-snug">{label}</span>
       <input
         inputMode="decimal"
-        className="w-28 px-3 py-2 rounded-xl border-2 border-gray-200 text-right text-sm focus:border-[#2b5a8f] outline-none"
+        className="w-24 sm:w-28 flex-shrink-0 px-3 py-2 rounded-xl border-2 border-gray-200 bg-white text-gray-900 font-semibold text-right text-base focus:border-[#2b5a8f] outline-none"
         value={value}
         maxLength={12}
         onChange={(e) => onChange(e.target.value.replace(/[^0-9.,\s]/g, ""))}
       />
-      <span className="w-20 text-xs text-gray-500">{unit}</span>
+      <span className="w-14 sm:w-20 flex-shrink-0 text-[11px] sm:text-xs leading-tight text-gray-500">{unit}</span>
     </label>
   );
 }
@@ -452,10 +580,10 @@ function Login({ api }: { api: any }) {
 
   return (
     <div className="max-w-md mx-auto bg-white rounded-3xl border border-gray-100 shadow-sm p-7">
-      <h1 className="text-2xl font-extrabold text-gray-900">Espace artisans partenaires</h1>
+      <h2 className="text-2xl font-extrabold text-gray-900">Accédez à votre grille</h2>
       <p className="text-sm text-gray-600 mt-2 mb-6">
-        Créez votre compte puis indiquez vos tarifs de pose. Le matériel (Atlantic, Chappée) est fourni et livré par
-        IP5 Énergie.
+        Créez votre compte (ou connectez-vous) pour indiquer vos tarifs de pose. Tout est enregistré
+        automatiquement : vous pouvez revenir quand vous voulez.
       </p>
       <button
         onClick={google}
