@@ -310,7 +310,7 @@ export const SiteFooter = () => (
                 href="/espace-pro"
                 className="hover:text-blue-400 transition-colors"
               >
-                Espace Pro
+                Espace artisans partenaires
               </a>
             </li>
           </ul>
