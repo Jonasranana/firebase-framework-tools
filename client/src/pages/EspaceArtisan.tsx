@@ -402,7 +402,7 @@ const STEPS = [
 ];
 
 // Photo d'illustration (image générée, pas un vrai client).
-const HERO_PHOTO = "/images/artisans/installateur-client.jpg";
+const HERO_PHOTO = "/images/artisans/installateur-client.webp";
 
 const goToSignup = () =>
   document.getElementById("inscription")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -432,7 +432,7 @@ function Presentation() {
           <img
             src={HERO_PHOTO}
             alt="Un installateur et des propriétaires satisfaits devant leur pompe à chaleur"
-            className="w-full h-56 sm:h-72 md:h-[22rem] object-cover rounded-3xl shadow-xl ring-4 ring-white"
+            className="w-full h-64 sm:h-80 md:h-[24rem] object-cover object-[60%_40%] rounded-3xl shadow-xl ring-4 ring-white"
           />
         </div>
       </section>
