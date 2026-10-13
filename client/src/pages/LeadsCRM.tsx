@@ -28,7 +28,11 @@ import {
 import { getEspaceProApp } from "@/lib/espacePro";
 import LeadsTable from "./LeadsTable";
 import {
+  CRM_BOARDS_COLLECTION,
   CRM_LEADS_COLLECTION,
+  DEFAULT_LEAD_GROUPS,
+  LEADS_BOARD_ID,
+  type LeadGroup,
   LEAD_STATUSES,
   LEAD_TYPES,
   TYPE_BADGE,
@@ -552,6 +556,7 @@ const LeadSheet = ({
           ...clean,
           source: "saisie-manuelle",
           status: "nouveau",
+          group: DEFAULT_LEAD_GROUPS[0].id,
           rappelLe: "",
           details: {},
           notes: [],
@@ -925,13 +930,83 @@ export default function LeadsCRM({ email }: { email: string }) {
     }
   };
 
+  // Groupes du tableau : lus en direct dans crm_boards/leads ; valeurs par
+  // défaut tant que la liste n'a jamais été modifiée (ou illisible).
+  const [groups, setGroups] = useState<LeadGroup[]>(DEFAULT_LEAD_GROUPS);
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { m, db } = await fs();
+        unsub = m.onSnapshot(
+          m.doc(db, CRM_BOARDS_COLLECTION, LEADS_BOARD_ID),
+          (snap) => {
+            const g = snap.data()?.groups;
+            if (!cancelled && Array.isArray(g) && g.length) setGroups(g as LeadGroup[]);
+          },
+          (e) => console.error("Groupes non lisibles (règle crm_boards ?)", e),
+        );
+      } catch (e) {
+        console.error(e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
+  }, []);
+
+  const saveGroups = async (next: LeadGroup[]) => {
+    const previous = groups;
+    setGroups(next); // affichage immédiat, annulé si l'enregistrement échoue
+    try {
+      const { m, db } = await fs();
+      await m.setDoc(m.doc(db, CRM_BOARDS_COLLECTION, LEADS_BOARD_ID), {
+        groups: next,
+        updatedAt: m.serverTimestamp(),
+        updatedBy: email,
+      });
+    } catch (e) {
+      console.error(e);
+      setGroups(previous);
+      setError(
+        "Impossible d'enregistrer les groupes : la règle Firestore « crm_boards » n'est probablement pas encore publiée.",
+      );
+    }
+  };
+
+  const moveToGroup = async (id: string, groupId: string) => {
+    const lead = leads?.find((l) => l.id === id);
+    if (!lead) return;
+    const from = groups.find((g) => g.id === lead.group) ?? groups[0];
+    const to = groups.find((g) => g.id === groupId);
+    if (!to || from.id === to.id) return;
+    try {
+      const { m } = await fs();
+      await patchLead(id, email, {
+        group: groupId,
+        notes: m.arrayUnion({
+          id: newId(),
+          text: `Groupe : ${from.title} → ${to.title}`,
+          by: email,
+          at: new Date().toISOString(),
+          kind: "statut",
+        } satisfies LeadNote),
+      });
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de changer le groupe. Réessayez.");
+    }
+  };
+
   const patchFromTable = (id: string, patch: Record<string, unknown>) =>
     patchLead(id, email, patch).catch((e) => {
       console.error(e);
       setError("Modification non enregistrée. Réessayez.");
     });
 
-  const createFromTable = async (status: LeadStatus, name: string) => {
+  const createFromTable = async (groupId: string, name: string) => {
     try {
       const { m, db } = await fs();
       await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
@@ -943,7 +1018,8 @@ export default function LeadsCRM({ email }: { email: string }) {
         type: "PAC",
         source: "saisie-manuelle",
         projet: "",
-        status,
+        status: "nouveau",
+        group: groupId,
         rappelLe: "",
         details: {},
         notes: [],
@@ -1050,8 +1126,8 @@ export default function LeadsCRM({ email }: { email: string }) {
         )}
       </div>
 
-      {/* Filtre par statut (vue liste) */}
-      {view === "liste" && (
+      {/* Filtre par statut (vues tableau et liste) */}
+      {view !== "colonnes" && (
         <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 -mx-1 px-1">
           <button
             onClick={() => setStatusFilter("")}
@@ -1097,7 +1173,10 @@ export default function LeadsCRM({ email }: { email: string }) {
       {/* Vue tableau façon Monday */}
       {leads && view === "tableau" && (
         <LeadsTable
-          leads={baseFiltered}
+          leads={filtered}
+          groups={groups}
+          onGroupsChange={saveGroups}
+          onGroup={moveToGroup}
           onOpen={setOpenId}
           onStatus={moveLead}
           onPatch={patchFromTable}

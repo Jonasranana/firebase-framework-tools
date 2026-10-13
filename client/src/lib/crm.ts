@@ -56,6 +56,8 @@ export type Lead = {
   source: string;
   projet: string;
   status: LeadStatus;
+  // Groupe du tableau (identifiant d'un LeadGroup), comme les groupes Monday.
+  group: string;
   // Date de rappel prévue (AAAA-MM-JJ), vide si aucune.
   rappelLe: string;
   // Informations de qualification (revenus, chauffage…) : libellé → valeur.
@@ -89,6 +91,7 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     source: String(d.source ?? ""),
     projet: String(d.projet ?? ""),
     status,
+    group: String(d.group ?? ""),
     rappelLe: String(d.rappelLe ?? ""),
     details: d.details && typeof d.details === "object" ? d.details : {},
     notes: Array.isArray(d.notes) ? d.notes : [],
@@ -233,3 +236,37 @@ export function artisanFromDoc(id: string, d: Record<string, any>): Artisan {
 }
 
 export const isoToYmd = (iso: string) => (iso ? iso.slice(0, 10) : "");
+
+// ─────────────────────────────────────────────────────────────────────────
+// Groupes du tableau Leads (façon Monday). La liste des groupes est stockée
+// dans Firestore (crm_boards/leads) et modifiable depuis le tableau ; tant
+// qu'elle n'existe pas, DEFAULT_LEAD_GROUPS est utilisée (reprend les groupes
+// du tableau Monday « Pac Pac »). Un lead dont le groupe est inconnu ou
+// supprimé s'affiche dans le premier groupe.
+// ─────────────────────────────────────────────────────────────────────────
+export const CRM_BOARDS_COLLECTION = "crm_boards";
+export const LEADS_BOARD_ID = "leads";
+
+export type LeadGroup = { id: string; title: string; color: string };
+
+export const DEFAULT_LEAD_GROUPS: LeadGroup[] = [
+  { id: "nouveaux", title: "📥 Nouveaux leads", color: "#579bfc" },
+  { id: "contacts", title: "0/ Contacts", color: "#9d50dd" },
+  { id: "mebarek", title: "1/ Leads Mebarek", color: "#00c875" },
+  { id: "rdv_mebarek", title: "RDV pris par Mebarek", color: "#007eb5" },
+  { id: "docs_demandes", title: "2/ Docs demandés", color: "#fdab3d" },
+  { id: "docs_recus", title: "3/ Docs reçus", color: "#66ccff" },
+  { id: "previsite", title: "4/ Accord prévisite", color: "#ff642e" },
+  { id: "installation", title: "5/ Date d'installation", color: "#037f4c" },
+  { id: "nrp", title: "NRP", color: "#cab641" },
+  { id: "pas_eligible", title: "Pas éligibles", color: "#7f8794" },
+];
+
+// Palette proposée pour colorer un groupe (couleurs Monday).
+export const GROUP_COLORS = [
+  "#579bfc", "#66ccff", "#00c875", "#037f4c", "#cab641", "#fdab3d",
+  "#ff642e", "#df2f4a", "#ff5ac4", "#9d50dd", "#7f8794", "#333333",
+];
+
+export const groupOf = (lead: Lead, groups: LeadGroup[]) =>
+  groups.find((g) => g.id === lead.group) ?? groups[0];
