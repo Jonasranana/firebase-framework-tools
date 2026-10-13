@@ -1,0 +1,1209 @@
+import { useEffect, useMemo, useState } from "react";
+import {
+  Phone,
+  MessageCircle,
+  Mail,
+  Search,
+  Plus,
+  List,
+  Columns3,
+  Table2,
+  Loader2,
+  BellRing,
+  Check,
+  X,
+  Send,
+  Paperclip,
+  Trash2,
+  Upload,
+  FileText,
+} from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { getEspaceProApp } from "@/lib/espacePro";
+import LeadsTable from "./LeadsTable";
+import {
+  CRM_LEADS_COLLECTION,
+  LEAD_STATUSES,
+  LEAD_TYPES,
+  TYPE_BADGE,
+  formatDateTime,
+  formatPhone,
+  formatShortDate,
+  formatYmd,
+  leadFromDoc,
+  statusInfo,
+  telHref,
+  todayYmd,
+  whatsappHref,
+  type Lead,
+  type LeadNote,
+  type LeadStatus,
+  type LeadType,
+} from "@/lib/crm";
+
+// ─────────────────────────────────────────────────────────────────────────
+// Onglet Leads — CRM maison (étape 1 du remplacement de Monday).
+// Données : collection Firestore crm_leads, lue en temps réel avec la session
+// Google de l'Espace Pro (règles Firestore : e-mails autorisés uniquement).
+// Deux vues (liste / colonnes par statut), recherche, filtres, et une fiche
+// avec notes, rappel, boutons appeler / WhatsApp / mail.
+// ─────────────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 50; // leads affichés par "Afficher plus" (liste)
+const COLUMN_SIZE = 30; // leads affichés par colonne (vue colonnes)
+
+const newId = () => Math.random().toString(36).slice(2, 10);
+
+const normalize = (s: string) =>
+  s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+async function fs() {
+  const app = await getEspaceProApp();
+  return import("firebase/firestore").then((m) => ({
+    m,
+    db: m.getFirestore(app),
+  }));
+}
+
+async function patchLead(
+  id: string,
+  email: string,
+  patch: Record<string, unknown>,
+) {
+  const { m, db } = await fs();
+  await m.updateDoc(m.doc(db, CRM_LEADS_COLLECTION, id), {
+    ...patch,
+    updatedAt: m.serverTimestamp(),
+    updatedBy: email,
+  });
+}
+
+async function addLeadNote(id: string, email: string, note: LeadNote) {
+  const { m } = await fs();
+  await patchLead(id, email, { notes: m.arrayUnion(note) });
+}
+
+// ── Pastilles ──────────────────────────────────────────────────────────────
+const StatusBadge = ({ status }: { status: LeadStatus }) => {
+  const s = statusInfo(status);
+  return (
+    <span
+      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${s.badge}`}
+    >
+      {s.label}
+    </span>
+  );
+};
+
+const TypeBadge = ({ type }: { type: LeadType }) => (
+  <span
+    className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${TYPE_BADGE[type] ?? TYPE_BADGE.Autre}`}
+  >
+    {type}
+  </span>
+);
+
+const isOverdue = (l: Lead) =>
+  !!l.rappelLe && l.rappelLe <= todayYmd() && !["gagne", "perdu"].includes(l.status);
+
+const RappelTag = ({ lead }: { lead: Lead }) =>
+  lead.rappelLe ? (
+    <span
+      className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+        isOverdue(lead) ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"
+      }`}
+    >
+      <BellRing size={10} /> {formatYmd(lead.rappelLe).slice(0, 5)}
+    </span>
+  ) : null;
+
+// Boutons rapides (appeler / WhatsApp) : ne déclenchent pas l'ouverture de la fiche.
+const QuickActions = ({ lead }: { lead: Lead }) => {
+  const tel = telHref(lead.phone);
+  const wa = whatsappHref(lead.phone);
+  if (!tel) return null;
+  const stop = (e: React.SyntheticEvent) => e.stopPropagation();
+  return (
+    <div className="flex gap-1.5 shrink-0" onClick={stop}>
+      <a
+        href={tel}
+        aria-label={`Appeler ${lead.name}`}
+        className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-[#2b5a8f] text-white"
+      >
+        <Phone size={14} />
+      </a>
+      <a
+        href={wa}
+        target="_blank"
+        rel="noreferrer"
+        aria-label={`WhatsApp ${lead.name}`}
+        className="w-8 h-8 inline-flex items-center justify-center rounded-full bg-green-500 text-white"
+      >
+        <MessageCircle size={14} />
+      </a>
+    </div>
+  );
+};
+
+// ── Carte (liste et colonnes) ──────────────────────────────────────────────
+const LeadCard = ({
+  lead,
+  onOpen,
+  compact,
+  draggable,
+}: {
+  lead: Lead;
+  onOpen: () => void;
+  compact?: boolean;
+  draggable?: boolean;
+}) => (
+  <div
+    role="button"
+    tabIndex={0}
+    onClick={onOpen}
+    onKeyDown={(e) => e.key === "Enter" && onOpen()}
+    draggable={draggable}
+    onDragStart={(e) => e.dataTransfer.setData("text/lead-id", lead.id)}
+    className={`bg-white rounded-2xl border border-gray-100 shadow-sm text-left cursor-pointer hover:border-[#2b5a8f]/40 transition-colors ${
+      compact ? "p-3" : "p-4"
+    }`}
+  >
+    <div className="flex items-start justify-between gap-2">
+      <div className="min-w-0">
+        <p className="font-bold text-gray-900 truncate">{lead.name || "Sans nom"}</p>
+        <p className="text-xs text-gray-500 truncate">
+          {[lead.phone && formatPhone(lead.phone), lead.postalCode || lead.city]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      </div>
+      <QuickActions lead={lead} />
+    </div>
+    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+      {!compact && <StatusBadge status={lead.status} />}
+      <TypeBadge type={lead.type} />
+      <RappelTag lead={lead} />
+      <span className="ml-auto text-[11px] text-gray-400">
+        {formatShortDate(lead.createdAt)}
+      </span>
+    </div>
+  </div>
+);
+
+// ── Fiche lead ─────────────────────────────────────────────────────────────
+const inputCls =
+  "w-full text-sm bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#2b5a8f]";
+
+const Field = ({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) => (
+  <label className="block">
+    <span className="block text-xs font-semibold text-gray-600 mb-1">{label}</span>
+    {children}
+  </label>
+);
+
+// ── Envoi de mail / SMS (fonction sendLeadMessage) ─────────────────────────
+type MsgTemplate = { key: string; subject: string; sms: string };
+
+async function callFn<T>(name: string, data?: unknown): Promise<T> {
+  const app = await getEspaceProApp();
+  const { getFunctions, httpsCallable } = await import("firebase/functions");
+  const fn = httpsCallable(getFunctions(app, "europe-west9"), name);
+  return (await fn(data)).data as T;
+}
+
+const MessageSender = ({ lead }: { lead: Lead }) => {
+  const [templates, setTemplates] = useState<MsgTemplate[] | null>(null);
+  const [tplKey, setTplKey] = useState("");
+  const [sms, setSms] = useState("");
+  const [sending, setSending] = useState<"" | "mail" | "sms">("");
+  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    callFn<{ templates: MsgTemplate[] }>("listLeadTemplates")
+      .then((r) => setTemplates(r.templates))
+      .catch((e) => {
+        console.error(e);
+        setTemplates([]);
+        setFeedback({ ok: false, text: "Modèles indisponibles (fonction non déployée ?)." });
+      });
+  }, []);
+
+  const pick = (key: string) => {
+    setTplKey(key);
+    setFeedback(null);
+    const t = templates?.find((x) => x.key === key);
+    if (t) setSms(t.sms);
+  };
+
+  const send = async (channel: "mail" | "sms") => {
+    const what = channel === "mail" ? `le mail à ${lead.email}` : `le SMS au ${formatPhone(lead.phone)}`;
+    if (!confirm(`Envoyer ${what} ?`)) return;
+    setSending(channel);
+    setFeedback(null);
+    try {
+      await callFn("sendLeadMessage", {
+        leadId: lead.id,
+        channel,
+        template: tplKey || undefined,
+        text: channel === "sms" ? sms : undefined,
+      });
+      setFeedback({ ok: true, text: channel === "mail" ? "Mail envoyé." : "SMS envoyé." });
+    } catch (e: any) {
+      console.error(e);
+      setFeedback({ ok: false, text: e?.message || "Échec de l'envoi." });
+    } finally {
+      setSending("");
+    }
+  };
+
+  return (
+    <div className="pt-3 border-t border-gray-100 space-y-2">
+      <span className="block text-xs font-semibold text-gray-600">Envoyer un message</span>
+      <select value={tplKey} onChange={(e) => pick(e.target.value)} className={inputCls}>
+        <option value="">Modèle…</option>
+        {templates?.map((t) => (
+          <option key={t.key} value={t.key}>
+            {t.key}
+          </option>
+        ))}
+      </select>
+      <textarea
+        value={sms}
+        onChange={(e) => setSms(e.target.value)}
+        rows={3}
+        maxLength={480}
+        placeholder="Texte du SMS (choisissez un modèle ou écrivez un message libre)"
+        className={`${inputCls} resize-none`}
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => send("mail")}
+          disabled={!tplKey || !lead.email || !!sending}
+          title={!lead.email ? "Pas d'adresse e-mail" : undefined}
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-[#2b5a8f] disabled:bg-gray-300 rounded-xl py-2.5"
+        >
+          {sending === "mail" ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+          Envoyer le mail
+        </button>
+        <button
+          onClick={() => send("sms")}
+          disabled={!sms.trim() || !lead.phone || !!sending}
+          title={!lead.phone ? "Pas de téléphone" : undefined}
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-green-600 disabled:bg-gray-300 rounded-xl py-2.5"
+        >
+          {sending === "sms" ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          Envoyer le SMS
+        </button>
+      </div>
+      {feedback && (
+        <p className={`text-sm ${feedback.ok ? "text-green-600" : "text-red-600"}`}>
+          {feedback.text}
+        </p>
+      )}
+    </div>
+  );
+};
+
+// ── Documents (Firebase Storage) ───────────────────────────────────────────
+// Dossier crm/leads/<id>/ : sous le préfixe crm/ déjà utilisé par l'onglet
+// Clients, donc couvert par les mêmes règles Storage. Chaque fichier est
+// préfixé par l'horodatage pour que deux envois du même nom ne s'écrasent pas.
+type StoredDoc = { path: string; label: string; url: string; size: number; at: number };
+
+const docLabel = (name: string) => name.replace(/^\d{13}_/, "");
+const formatSize = (b: number) =>
+  b > 1e6 ? `${(b / 1e6).toFixed(1)} Mo` : `${Math.max(1, Math.round(b / 1e3))} Ko`;
+
+const LeadDocuments = ({ lead, email }: { lead: Lead; email: string }) => {
+  const folder = `crm/leads/${lead.id}`;
+  const [docs, setDocs] = useState<StoredDoc[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const storage = async () => {
+    const app = await getEspaceProApp();
+    const m = await import("firebase/storage");
+    return { m, st: m.getStorage(app) };
+  };
+
+  const load = async () => {
+    try {
+      const { m, st } = await storage();
+      const res = await m.listAll(m.ref(st, folder));
+      const list = await Promise.all(
+        res.items.map(async (item) => {
+          const [url, meta] = await Promise.all([m.getDownloadURL(item), m.getMetadata(item)]);
+          return {
+            path: item.fullPath,
+            label: docLabel(item.name),
+            url,
+            size: meta.size,
+            at: Number(item.name.slice(0, 13)) || Date.parse(meta.timeCreated) || 0,
+          };
+        }),
+      );
+      setDocs(list.sort((a, b) => b.at - a.at));
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de charger les documents.");
+      setDocs([]);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead.id]);
+
+  const upload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setBusy(true);
+    setError("");
+    try {
+      const { m, st } = await storage();
+      const names: string[] = [];
+      for (const f of Array.from(files)) {
+        if (f.size > 25 * 1024 * 1024) throw new Error(`« ${f.name} » dépasse 25 Mo.`);
+        const safe = f.name.replace(/[^\w.\- ()àâäçéèêëîïôöùûüÿ]/gi, "_");
+        await m.uploadBytes(m.ref(st, `${folder}/${Date.now()}_${safe}`), f);
+        names.push(f.name);
+      }
+      await addLeadNote(lead.id, email, {
+        id: newId(),
+        text: `📎 Document ajouté : ${names.join(", ")}`,
+        by: email,
+        at: new Date().toISOString(),
+        kind: "statut",
+      });
+      await load();
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message?.startsWith("«") ? e.message : "Échec de l'envoi. Réessayez.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (d: StoredDoc) => {
+    if (!confirm(`Supprimer « ${d.label} » ?`)) return;
+    try {
+      const { m, st } = await storage();
+      await m.deleteObject(m.ref(st, d.path));
+      setDocs((prev) => prev?.filter((x) => x.path !== d.path) ?? null);
+    } catch (e) {
+      console.error(e);
+      setError("Échec de la suppression.");
+    }
+  };
+
+  return (
+    <div className="pt-3 border-t border-gray-100">
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 mb-2">
+        <Paperclip size={13} /> Documents
+      </span>
+      {docs === null && <p className="text-xs text-gray-400">Chargement…</p>}
+      {docs && docs.length === 0 && <p className="text-xs text-gray-400 mb-2">Aucun document.</p>}
+      {docs && docs.length > 0 && (
+        <ul className="space-y-1 mb-2">
+          {docs.map((d) => (
+            <li
+              key={d.path}
+              className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-2.5 py-1.5"
+            >
+              <a
+                href={d.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-[#2b5a8f]"
+              >
+                <FileText size={13} className="shrink-0" />
+                <span className="truncate">{d.label}</span>
+                <span className="text-gray-400 font-normal shrink-0">{formatSize(d.size)}</span>
+              </a>
+              <button
+                onClick={() => remove(d)}
+                className="text-gray-400 hover:text-red-600 shrink-0"
+                aria-label={`Supprimer ${d.label}`}
+              >
+                <Trash2 size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
+      <label className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2b5a8f] cursor-pointer">
+        {busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+        {busy ? "Envoi…" : "Ajouter des documents (PDF, photos…)"}
+        <input
+          type="file"
+          multiple
+          className="hidden"
+          disabled={busy}
+          onChange={(e) => {
+            upload(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </label>
+    </div>
+  );
+};
+
+type Draft = {
+  name: string;
+  phone: string;
+  email: string;
+  postalCode: string;
+  city: string;
+  type: LeadType;
+  projet: string;
+};
+
+const draftOf = (l?: Lead): Draft => ({
+  name: l?.name ?? "",
+  phone: l?.phone ?? "",
+  email: l?.email ?? "",
+  postalCode: l?.postalCode ?? "",
+  city: l?.city ?? "",
+  type: l?.type ?? "PAC",
+  projet: l?.projet ?? "",
+});
+
+const LeadSheet = ({
+  lead,
+  creating,
+  email,
+  onClose,
+}: {
+  lead: Lead | null;
+  creating: boolean;
+  email: string;
+  onClose: () => void;
+}) => {
+  const open = creating || !!lead;
+  const [draft, setDraft] = useState<Draft>(draftOf(lead ?? undefined));
+  const [noteText, setNoteText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+
+  // Recharge le brouillon quand on ouvre une autre fiche.
+  const leadId = lead?.id;
+  useEffect(() => {
+    setDraft(draftOf(lead ?? undefined));
+    setNoteText("");
+    setError("");
+    setSaved(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leadId, creating]);
+
+  const set = (k: keyof Draft) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setDraft((d) => ({ ...d, [k]: e.target.value }) as Draft);
+
+  const dirty = creating
+    ? true
+    : lead
+      ? (Object.keys(draft) as (keyof Draft)[]).some((k) => draft[k] !== draftOf(lead)[k])
+      : false;
+
+  const run = async (fn: () => Promise<void>, fail: string) => {
+    setBusy(true);
+    setError("");
+    try {
+      await fn();
+    } catch (e) {
+      console.error(e);
+      setError(fail);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveDraft = () =>
+    run(async () => {
+      if (!draft.name.trim() && !draft.phone.trim()) {
+        throw new Error("nom ou téléphone requis");
+      }
+      const clean = {
+        ...draft,
+        name: draft.name.trim(),
+        phone: draft.phone.trim(),
+        email: draft.email.trim(),
+        postalCode: draft.postalCode.trim(),
+        city: draft.city.trim(),
+        projet: draft.projet.trim(),
+      };
+      if (creating) {
+        const { m, db } = await fs();
+        await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
+          ...clean,
+          source: "saisie-manuelle",
+          status: "nouveau",
+          rappelLe: "",
+          details: {},
+          notes: [],
+          createdAt: m.serverTimestamp(),
+          updatedAt: m.serverTimestamp(),
+          updatedBy: email,
+        });
+        onClose();
+      } else if (lead) {
+        await patchLead(lead.id, email, clean);
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1500);
+      }
+    }, "Échec de l'enregistrement (nom ou téléphone requis). Réessayez.");
+
+  const changeStatus = (status: LeadStatus) => {
+    if (!lead || status === lead.status) return;
+    const trace: LeadNote = {
+      id: newId(),
+      text: `${statusInfo(lead.status).label} → ${statusInfo(status).label}`,
+      by: email,
+      at: new Date().toISOString(),
+      kind: "statut",
+    };
+    run(async () => {
+      const { m } = await fs();
+      await patchLead(lead.id, email, { status, notes: m.arrayUnion(trace) });
+    }, "Impossible de changer le statut.");
+  };
+
+  const changeRappel = (rappelLe: string) =>
+    lead && run(() => patchLead(lead.id, email, { rappelLe }), "Impossible d'enregistrer le rappel.");
+
+  const addNote = () => {
+    const text = noteText.trim();
+    if (!lead || !text) return;
+    run(async () => {
+      await addLeadNote(lead.id, email, {
+        id: newId(),
+        text,
+        by: email,
+        at: new Date().toISOString(),
+        kind: "note",
+      });
+      setNoteText("");
+    }, "Impossible d'ajouter la note.");
+  };
+
+  const tel = lead ? telHref(lead.phone) : "";
+  const detailEntries = lead ? Object.entries(lead.details).filter(([, v]) => v) : [];
+  const notes = lead ? [...lead.notes].sort((a, b) => (a.at < b.at ? 1 : -1)) : [];
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-md overflow-y-auto" dir="ltr">
+        <SheetHeader className="text-left">
+          <SheetTitle>{creating ? "Nouveau lead" : lead?.name || "Fiche lead"}</SheetTitle>
+          <SheetDescription>
+            {creating
+              ? "Saisie manuelle d'un contact."
+              : lead
+                ? `Reçu le ${formatDateTime(lead.createdAt)}${lead.source ? ` · ${lead.source}` : ""}`
+                : ""}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-4 space-y-4">
+          {lead && (
+            <div className="flex flex-wrap gap-2">
+              {tel && (
+                <a
+                  href={tel}
+                  className="inline-flex items-center gap-1.5 bg-[#2b5a8f] text-white text-sm font-bold px-4 py-2 rounded-full"
+                >
+                  <Phone size={14} /> Appeler
+                </a>
+              )}
+              {tel && (
+                <a
+                  href={whatsappHref(lead.phone)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-full"
+                >
+                  <MessageCircle size={14} /> WhatsApp
+                </a>
+              )}
+              {lead.email && (
+                <a
+                  href={`mailto:${lead.email}`}
+                  className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm font-bold px-4 py-2 rounded-full"
+                >
+                  <Mail size={14} /> Mail
+                </a>
+              )}
+            </div>
+          )}
+
+          {lead && (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Statut">
+                <select
+                  value={lead.status}
+                  disabled={busy}
+                  onChange={(e) => changeStatus(e.target.value as LeadStatus)}
+                  className={inputCls}
+                >
+                  {LEAD_STATUSES.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="À rappeler le">
+                <input
+                  type="date"
+                  value={lead.rappelLe}
+                  disabled={busy}
+                  onChange={(e) => changeRappel(e.target.value)}
+                  className={inputCls}
+                />
+              </Field>
+            </div>
+          )}
+
+          <div className="space-y-3">
+            <Field label="Nom">
+              <input value={draft.name} onChange={set("name")} className={inputCls} />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Téléphone">
+                <input
+                  type="tel"
+                  value={draft.phone}
+                  onChange={set("phone")}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="E-mail">
+                <input
+                  type="email"
+                  value={draft.email}
+                  onChange={set("email")}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Code postal">
+                <input
+                  value={draft.postalCode}
+                  onChange={set("postalCode")}
+                  className={inputCls}
+                />
+              </Field>
+              <Field label="Ville">
+                <input value={draft.city} onChange={set("city")} className={inputCls} />
+              </Field>
+              <Field label="Type de lead">
+                <select value={draft.type} onChange={set("type")} className={inputCls}>
+                  {LEAD_TYPES.map((t) => (
+                    <option key={t}>{t}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Projet">
+                <input value={draft.projet} onChange={set("projet")} className={inputCls} />
+              </Field>
+            </div>
+            <button
+              onClick={saveDraft}
+              disabled={!dirty || busy}
+              className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-[#2b5a8f] disabled:bg-gray-300 rounded-xl py-2.5"
+            >
+              {busy ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : saved ? (
+                <Check size={14} />
+              ) : null}
+              {creating ? "Créer le lead" : saved ? "Enregistré" : "Enregistrer les infos"}
+            </button>
+          </div>
+
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
+          {detailEntries.length > 0 && (
+            <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs bg-gray-50 rounded-xl p-3">
+              {detailEntries.map(([k, v]) => (
+                <div key={k}>
+                  <dt className="inline text-gray-400">{k} : </dt>
+                  <dd className="inline font-semibold text-gray-700">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          )}
+
+          {lead && <MessageSender key={lead.id} lead={lead} />}
+
+          {lead && <LeadDocuments lead={lead} email={email} />}
+
+          {lead && (
+            <div className="pt-3 border-t border-gray-100">
+              <span className="block text-xs font-semibold text-gray-600 mb-2">
+                Notes et historique
+              </span>
+              <textarea
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+                rows={3}
+                placeholder="Résumé de l'appel, prochaine étape…"
+                className={`${inputCls} resize-none`}
+              />
+              <button
+                onClick={addNote}
+                disabled={!noteText.trim() || busy}
+                className="mt-2 w-full text-sm font-bold text-[#2b5a8f] border-2 border-[#2b5a8f] disabled:opacity-40 rounded-xl py-2"
+              >
+                Ajouter la note
+              </button>
+              <ul className="mt-3 space-y-2">
+                {notes.length === 0 && (
+                  <li className="text-xs text-gray-400">Aucune note pour l'instant.</li>
+                )}
+                {notes.map((n) => (
+                  <li
+                    key={n.id}
+                    className={`rounded-xl px-3 py-2 text-sm ${
+                      n.kind === "statut"
+                        ? "bg-gray-50 text-gray-500 text-xs"
+                        : n.kind === "message"
+                          ? "bg-green-50 text-gray-700"
+                          : "bg-blue-50 text-gray-800"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{n.text}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">
+                      {formatDateTime(n.at)} · {n.by}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+};
+
+// ── Page ───────────────────────────────────────────────────────────────────
+export default function LeadsCRM({ email }: { email: string }) {
+  const [leads, setLeads] = useState<Lead[] | null>(null);
+  const [error, setError] = useState("");
+  const [view, setView] = useState<"tableau" | "liste" | "colonnes">(() => {
+    try {
+      const v = localStorage.getItem("crm-leads-view");
+      return v === "colonnes" || v === "liste" ? v : "tableau";
+    } catch {
+      return "tableau";
+    }
+  });
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"" | LeadStatus>("");
+  const [typeFilter, setTypeFilter] = useState<"" | LeadType>("");
+  const [sourceFilter, setSourceFilter] = useState("");
+  const [rappelsOnly, setRappelsOnly] = useState(false);
+  const [limit, setLimit] = useState(PAGE_SIZE);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [dropOver, setDropOver] = useState<string | null>(null);
+
+  // Abonnement temps réel : les nouveaux leads du site apparaissent seuls.
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { m, db } = await fs();
+        unsub = m.onSnapshot(
+          m.query(m.collection(db, CRM_LEADS_COLLECTION), m.orderBy("createdAt", "desc")),
+          (snap) => {
+            if (cancelled) return;
+            setLeads(snap.docs.map((d) => leadFromDoc(d.id, d.data())));
+            setError("");
+          },
+          (e) => {
+            console.error(e);
+            setError(
+              "Impossible de charger les leads. Vérifiez que vous êtes autorisé, puis rechargez la page.",
+            );
+          },
+        );
+      } catch (e) {
+        console.error(e);
+        setError("Impossible de se connecter à la base de données.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
+  }, []);
+
+  const setViewPersist = (v: "tableau" | "liste" | "colonnes") => {
+    setView(v);
+    try {
+      localStorage.setItem("crm-leads-view", v);
+    } catch {
+      /* préférence non essentielle */
+    }
+  };
+
+  const sources = useMemo(
+    () => Array.from(new Set((leads ?? []).map((l) => l.source).filter(Boolean))).sort(),
+    [leads],
+  );
+
+  // Filtres hors statut : le décompte par statut en dépend.
+  const baseFiltered = useMemo(() => {
+    if (!leads) return [];
+    const q = normalize(query.trim());
+    return leads.filter((l) => {
+      if (typeFilter && l.type !== typeFilter) return false;
+      if (sourceFilter && l.source !== sourceFilter) return false;
+      if (rappelsOnly && !isOverdue(l)) return false;
+      if (!q) return true;
+      const qDigits = phoneDigitsOf(q);
+      if (qDigits.length >= 3 && phoneDigitsOf(l.phone).includes(qDigits)) return true;
+      const hay = normalize(
+        [l.name, l.phone, phoneDigitsOf(l.phone), l.email, l.postalCode, l.city, l.projet, l.source]
+          .join(" "),
+      );
+      return hay.includes(q);
+    });
+  }, [leads, query, typeFilter, sourceFilter, rappelsOnly]);
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const l of baseFiltered) c[l.status] = (c[l.status] ?? 0) + 1;
+    return c;
+  }, [baseFiltered]);
+
+  const filtered = useMemo(
+    () => (statusFilter ? baseFiltered.filter((l) => l.status === statusFilter) : baseFiltered),
+    [baseFiltered, statusFilter],
+  );
+
+  // Retour en haut de liste quand un filtre change.
+  useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, typeFilter, sourceFilter, rappelsOnly]);
+
+  const rappelsCount = useMemo(() => (leads ?? []).filter(isOverdue).length, [leads]);
+  const openLead = leads?.find((l) => l.id === openId) ?? null;
+
+  const moveLead = async (id: string, status: LeadStatus) => {
+    const lead = leads?.find((l) => l.id === id);
+    if (!lead || lead.status === status) return;
+    try {
+      const { m } = await fs();
+      await patchLead(id, email, {
+        status,
+        notes: m.arrayUnion({
+          id: newId(),
+          text: `${statusInfo(lead.status).label} → ${statusInfo(status).label}`,
+          by: email,
+          at: new Date().toISOString(),
+          kind: "statut",
+        } satisfies LeadNote),
+      });
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de déplacer le lead. Réessayez.");
+    }
+  };
+
+  const patchFromTable = (id: string, patch: Record<string, unknown>) =>
+    patchLead(id, email, patch).catch((e) => {
+      console.error(e);
+      setError("Modification non enregistrée. Réessayez.");
+    });
+
+  const createFromTable = async (status: LeadStatus, name: string) => {
+    try {
+      const { m, db } = await fs();
+      await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
+        name,
+        phone: "",
+        email: "",
+        postalCode: "",
+        city: "",
+        type: "PAC",
+        source: "saisie-manuelle",
+        projet: "",
+        status,
+        rappelLe: "",
+        details: {},
+        notes: [],
+        createdAt: m.serverTimestamp(),
+        updatedAt: m.serverTimestamp(),
+        updatedBy: email,
+      });
+    } catch (e) {
+      console.error(e);
+      setError("Impossible d'ajouter le lead. Réessayez.");
+    }
+  };
+
+  const total = leads?.length ?? 0;
+
+  return (
+    <div>
+      {/* Barre d'outils */}
+      <div className="flex gap-2 mb-3">
+        <div className="relative flex-1">
+          <Search
+            size={16}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Rechercher (nom, téléphone, e-mail, ville…)"
+            className="w-full text-sm bg-white border-2 border-gray-200 rounded-2xl pl-10 pr-4 py-2.5 outline-none focus:border-[#2b5a8f]"
+          />
+        </div>
+        <button
+          onClick={() => setCreating(true)}
+          className="inline-flex items-center gap-1.5 bg-[#2b5a8f] text-white text-sm font-bold px-4 rounded-2xl"
+        >
+          <Plus size={16} /> <span className="hidden sm:inline">Nouveau</span>
+        </button>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="inline-flex rounded-full bg-gray-100 p-0.5">
+          {(
+            [
+              ["tableau", Table2, "Tableau"],
+              ["liste", List, "Liste"],
+              ["colonnes", Columns3, "Colonnes"],
+            ] as const
+          ).map(([k, Icon, label]) => (
+            <button
+              key={k}
+              onClick={() => setViewPersist(k)}
+              className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full ${
+                view === k ? "bg-white text-[#2b5a8f] shadow-sm" : "text-gray-500"
+              }`}
+            >
+              <Icon size={13} /> {label}
+            </button>
+          ))}
+        </div>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as "" | LeadType)}
+          className="text-xs font-semibold bg-white border border-gray-200 rounded-full px-3 py-1.5"
+        >
+          <option value="">Tous types</option>
+          {LEAD_TYPES.map((t) => (
+            <option key={t}>{t}</option>
+          ))}
+        </select>
+        <select
+          value={sourceFilter}
+          onChange={(e) => setSourceFilter(e.target.value)}
+          className="text-xs font-semibold bg-white border border-gray-200 rounded-full px-3 py-1.5 max-w-[10rem]"
+        >
+          <option value="">Toutes sources</option>
+          {sources.map((s) => (
+            <option key={s}>{s}</option>
+          ))}
+        </select>
+        <button
+          onClick={() => setRappelsOnly((v) => !v)}
+          className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border ${
+            rappelsOnly
+              ? "bg-red-100 text-red-700 border-red-200"
+              : "bg-white text-gray-600 border-gray-200"
+          }`}
+        >
+          <BellRing size={12} /> Rappels{rappelsCount ? ` (${rappelsCount})` : ""}
+        </button>
+        {(query || statusFilter || typeFilter || sourceFilter || rappelsOnly) && (
+          <button
+            onClick={() => {
+              setQuery("");
+              setStatusFilter("");
+              setTypeFilter("");
+              setSourceFilter("");
+              setRappelsOnly(false);
+            }}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500"
+          >
+            <X size={12} /> Effacer
+          </button>
+        )}
+      </div>
+
+      {/* Filtre par statut (vue liste) */}
+      {view === "liste" && (
+        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 -mx-1 px-1">
+          <button
+            onClick={() => setStatusFilter("")}
+            className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${
+              !statusFilter ? "bg-[#2b5a8f] text-white" : "bg-white text-gray-600 border border-gray-200"
+            }`}
+          >
+            Tous ({baseFiltered.length})
+          </button>
+          {LEAD_STATUSES.map((s) => (
+            <button
+              key={s.key}
+              onClick={() => setStatusFilter(statusFilter === s.key ? "" : s.key)}
+              className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${
+                statusFilter === s.key
+                  ? "bg-[#2b5a8f] text-white"
+                  : "bg-white text-gray-600 border border-gray-200"
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+              {s.label} ({counts[s.key] ?? 0})
+            </button>
+          ))}
+        </div>
+      )}
+
+      {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+
+      {!leads && !error && (
+        <div className="py-10 text-center text-gray-400">
+          <Loader2 className="animate-spin mx-auto mb-2" size={24} />
+          Chargement…
+        </div>
+      )}
+
+      {leads && total === 0 && view !== "tableau" && (
+        <p className="text-center text-gray-400 text-sm py-10">
+          Aucun lead pour l'instant. Les demandes du site arrivent ici automatiquement ;
+          vous pouvez aussi en ajouter un avec « Nouveau ».
+        </p>
+      )}
+
+      {/* Vue tableau façon Monday */}
+      {leads && view === "tableau" && (
+        <LeadsTable
+          leads={baseFiltered}
+          onOpen={setOpenId}
+          onStatus={moveLead}
+          onPatch={patchFromTable}
+          onCreate={createFromTable}
+        />
+      )}
+
+      {/* Vue liste */}
+      {leads && total > 0 && view === "liste" && (
+        <>
+          <p className="text-xs text-gray-400 mb-2">
+            {filtered.length} lead{filtered.length > 1 ? "s" : ""}
+          </p>
+          <div className="space-y-2.5">
+            {filtered.slice(0, limit).map((l) => (
+              <LeadCard key={l.id} lead={l} onOpen={() => setOpenId(l.id)} />
+            ))}
+            {filtered.length === 0 && (
+              <p className="text-center text-gray-400 text-sm py-8">
+                Aucun lead ne correspond aux filtres.
+              </p>
+            )}
+            {filtered.length > limit && (
+              <button
+                onClick={() => setLimit((n) => n + PAGE_SIZE)}
+                className="w-full text-sm font-bold text-[#2b5a8f] py-3"
+              >
+                Afficher plus ({filtered.length - limit} restants)
+              </button>
+            )}
+          </div>
+        </>
+      )}
+
+      {/* Vue colonnes : glisser-déposer pour changer de statut (ordinateur) */}
+      {leads && total > 0 && view === "colonnes" && (
+        <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 items-start snap-x">
+          {LEAD_STATUSES.map((s) => {
+            const col = baseFiltered.filter((l) => l.status === s.key);
+            return (
+              <div
+                key={s.key}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDropOver(s.key);
+                }}
+                onDragLeave={() => setDropOver((d) => (d === s.key ? null : d))}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDropOver(null);
+                  const id = e.dataTransfer.getData("text/lead-id");
+                  if (id) moveLead(id, s.key);
+                }}
+                className={`w-72 shrink-0 snap-start rounded-2xl p-2 ${
+                  dropOver === s.key ? "bg-blue-100" : "bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
+                  <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
+                  <span className="text-sm font-bold text-gray-800">{s.label}</span>
+                  <span className="ml-auto text-xs font-semibold text-gray-500">
+                    {col.length}
+                  </span>
+                </div>
+                <div className="space-y-2 max-h-[70vh] overflow-y-auto">
+                  {col.slice(0, COLUMN_SIZE).map((l) => (
+                    <LeadCard
+                      key={l.id}
+                      lead={l}
+                      compact
+                      draggable
+                      onOpen={() => setOpenId(l.id)}
+                    />
+                  ))}
+                  {col.length > COLUMN_SIZE && (
+                    <button
+                      onClick={() => {
+                        setStatusFilter(s.key);
+                        setViewPersist("liste");
+                      }}
+                      className="w-full text-xs font-bold text-[#2b5a8f] py-2"
+                    >
+                      Voir les {col.length - COLUMN_SIZE} autres
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <LeadSheet
+        lead={openLead}
+        creating={creating}
+        email={email}
+        onClose={() => {
+          setOpenId(null);
+          setCreating(false);
+        }}
+      />
+    </div>
+  );
+}
+
+// Chiffres seuls du téléphone, pour retrouver « 0612… » en tapant « 06 12… ».
+function phoneDigitsOf(p: string) {
+  return p.replace(/\D/g, "");
+}

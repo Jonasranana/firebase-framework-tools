@@ -1,0 +1,47 @@
+name: Import Monday vers CRM
+
+# Lancement manuel uniquement (onglet Actions > Run workflow).
+# Commencer par un essai à blanc (dry_run = true) pour vérifier le bilan,
+# puis relancer avec dry_run = false. Sans risque de doublon ni d'écrasement :
+# voir scripts/import-monday-to-crm-leads.mjs.
+on:
+  workflow_dispatch:
+    inputs:
+      cible:
+        description: "Que faut-il importer ?"
+        type: choice
+        options: [leads, artisans]
+        default: leads
+      dry_run:
+        description: "Essai à blanc (n'écrit rien)"
+        type: boolean
+        default: true
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Functions dependencies (firebase-admin)
+        run: npm ci --prefix functions
+
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+          python3 -m json.tool "$RUNNER_TEMP/sa.json" > /dev/null \
+            && echo "Service account JSON is valid." \
+            || { echo "::error::FIREBASE_SERVICE_ACCOUNT secret is not valid JSON even after sanitizing"; exit 1; }
+
+      - name: Import
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: node scripts/import-monday-to-crm-${{ inputs.cible }}.mjs

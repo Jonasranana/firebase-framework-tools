@@ -1,10 +1,10 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
 const { google } = require("googleapis");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
+const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
 
@@ -542,6 +542,77 @@ exports.syncLeadToMonday = onDocumentCreated(
   },
 );
 
+// CRM maison (onglet Leads de /admin) : chaque lead du site est copié dans
+// crm_leads avec le même identifiant que dans ip5_leads. Tourne en parallèle
+// de Monday pendant la période de transition ; une erreur ici ne doit jamais
+// toucher les autres déclencheurs (mails, Monday), d'où le try/catch.
+const crmTypeForSource = (f) => {
+  const s = `${f.source ?? ""} ${f.projectType ?? ""}`.toLowerCase();
+  if (s.includes("gonflage")) return "Gonflage";
+  if (s.includes("solaire")) return "Solaire";
+  if (s.includes("pac") || s.includes("pompe") || s.includes("chaleur")) return "PAC";
+  return "Autre";
+};
+
+exports.copyLeadToCrm = onDocumentCreated(
+  {
+    document: "ip5_leads/{leadId}",
+    region: "europe-west9",
+  },
+  async (event) => {
+    const f = event.data?.data();
+    const leadId = event.params.leadId;
+    if (!f) return;
+
+    const details = {
+      "Revenus": f.incomeBracket,
+      "Foyer": f.householdSize,
+      "Chauffage": f.currentHeating,
+      "Surface": f.surface ? `${f.surface} m²` : "",
+      "Logement": f.housingType,
+      "Propriétaire": f.ownerStatus,
+      "Échéance": f.projectTiming,
+      "Demande": f.requestType,
+      "Résultat simulation": f.simulationResult,
+      "Contact pro": f.contact,
+      "Type de site": f.typeSite,
+      "Véhicules": f.nbVehicules,
+      "Message": f.message,
+    };
+    for (const k of Object.keys(details)) {
+      const v = String(details[k] ?? "").trim();
+      if (v) details[k] = v;
+      else delete details[k];
+    }
+
+    try {
+      // create() échoue si la fiche existe déjà : pas d'écrasement des notes
+      // si l'événement est rejoué.
+      await db.doc(`crm_leads/${leadId}`).create({
+        name: String(f.name ?? "").trim(),
+        phone: String(f.phone ?? "").trim(),
+        email: String(f.email ?? "").trim(),
+        postalCode: String(f.postalCode ?? f.department ?? "").trim(),
+        city: "",
+        type: crmTypeForSource(f),
+        source: String(f.source ?? "site-internet"),
+        projet: String(f.projectType ?? ""),
+        status: "nouveau",
+        rappelLe: "",
+        details,
+        notes: [],
+        createdAt: f.createdAt ?? FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: "",
+      });
+      logger.info("Lead copié dans le CRM", { leadId });
+    } catch (err) {
+      if (err.code === 6) return; // ALREADY_EXISTS : déjà copié
+      logger.error("Échec de la copie du lead dans le CRM", { leadId, error: err.message });
+    }
+  },
+);
+
 // Coquille commune (logo, numéros de rappel, signature) pour les modèles
 // de mail déclenchés depuis Monday (voir sendMondayEmailTemplate). Reprend
 // le même habillage que l'e-mail de bienvenue lead, sans le dupliquer
@@ -956,6 +1027,7 @@ async function sendTwilioSms({ to, body, accountSid, authToken }) {
   if (!res.ok) {
     logger.error("Échec de l'envoi du SMS Twilio", { to, error: JSON.stringify(responseBody) });
   }
+  return res.ok;
 }
 
 // Signal visible sur l'item Monday (au lieu d'un simple log invisible côté
@@ -1171,6 +1243,121 @@ exports.sendMondayEmailTemplate = onRequest(
     }
   },
 );
+
+// ── CRM maison : envoi de mail / SMS depuis la fiche lead ────────────────
+// Réutilise les modèles de MONDAY_EMAIL_TEMPLATES. Appelable uniquement par
+// les comptes Google autorisés (même liste blanche que client/src/pages/
+// OutilDevis.tsx — à tenir à jour des deux côtés). L'envoi est tracé dans
+// les notes de la fiche.
+const CRM_ALLOWED_EMAILS = [
+  "jonassitbon8@gmail.com",
+  "alexis.sitbon@gmail.com",
+  "carol.sitbon05@gmail.com",
+];
+
+// Modèles proposés dans le CRM (clé = libellé Monday). « confirmation +
+// fiche technique » est exclu : il exige un reste à charge calculé.
+const crmTemplates = () =>
+  Object.entries(MONDAY_EMAIL_TEMPLATES)
+    .filter(([, t]) => !t.requiresResolvedRac)
+    .map(([key, t]) => ({ key, subject: t.subject, sms: t.buildSms ? t.buildSms({}) : "" }));
+
+exports.sendLeadMessage = onCall(
+  {
+    secrets: [
+      GMAIL_CLIENT_ID,
+      GMAIL_CLIENT_SECRET,
+      GMAIL_REFRESH_TOKEN,
+      GMAIL_SENDER_EMAIL,
+      TWILIO_ACCOUNT_SID,
+      TWILIO_AUTH_TOKEN,
+    ],
+    region: "europe-west9",
+  },
+  async (request) => {
+    const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+    if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const { leadId, channel, template, text } = request.data ?? {};
+    if (typeof leadId !== "string" || !leadId || !["mail", "sms"].includes(channel)) {
+      throw new HttpsError("invalid-argument", "Requête invalide.");
+    }
+    const ref = db.doc(`crm_leads/${leadId}`);
+    const snap = await ref.get();
+    if (!snap.exists) throw new HttpsError("not-found", "Lead introuvable.");
+    const lead = snap.data();
+    const nomComplet = String(lead.name ?? "").trim();
+    const tpl = template ? MONDAY_EMAIL_TEMPLATES[template] : undefined;
+    if (template && (!tpl || tpl.requiresResolvedRac)) {
+      throw new HttpsError("invalid-argument", "Modèle inconnu.");
+    }
+
+    let summary;
+    if (channel === "mail") {
+      const to = String(lead.email ?? "").trim();
+      if (!tpl) throw new HttpsError("invalid-argument", "Choisissez un modèle de mail.");
+      if (!to) throw new HttpsError("failed-precondition", "Ce lead n'a pas d'adresse e-mail.");
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const raw = buildRawMessageWithAttachment({
+        to,
+        from: GMAIL_SENDER_EMAIL.value(),
+        subject: tpl.subject,
+        html: tpl.buildHtml({ nomComplet, rac: undefined }),
+        attachments: tpl.attachments,
+      });
+      try {
+        await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+      } catch (err) {
+        logger.error("Échec de l'envoi du mail CRM", { leadId, error: err.message });
+        throw new HttpsError("internal", "Échec de l'envoi du mail (voir les journaux).");
+      }
+      summary = `✉️ Mail envoyé : « ${tpl.subject} »`;
+    } else {
+      const to = toE164French(lead.phone);
+      if (!to || !to.startsWith("+")) {
+        throw new HttpsError("failed-precondition", "Ce lead n'a pas de numéro valide.");
+      }
+      const body = String(text ?? (tpl?.buildSms ? tpl.buildSms({}) : "")).trim();
+      if (!body || body.length > 480) {
+        throw new HttpsError("invalid-argument", "Message vide ou trop long (480 caractères max).");
+      }
+      const ok = await sendTwilioSms({
+        to,
+        body,
+        accountSid: TWILIO_ACCOUNT_SID.value(),
+        authToken: TWILIO_AUTH_TOKEN.value(),
+      });
+      if (!ok) throw new HttpsError("internal", "Échec de l'envoi du SMS (voir les journaux).");
+      summary = `💬 SMS envoyé : « ${body} »`;
+    }
+
+    await ref.update({
+      notes: FieldValue.arrayUnion({
+        id: Math.random().toString(36).slice(2, 10),
+        text: summary,
+        by: caller,
+        at: new Date().toISOString(),
+        kind: "message",
+      }),
+      lastContactAt: new Date().toISOString(),
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: caller,
+    });
+    logger.info("Message CRM envoyé", { leadId, channel, template: template ?? null, by: caller });
+    return { ok: true };
+  },
+);
+
+exports.listLeadTemplates = onCall({ region: "europe-west9" }, async (request) => {
+  const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+  if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+    throw new HttpsError("permission-denied", "Accès refusé.");
+  }
+  return { templates: crmTemplates() };
+});
 
 exports.sendGonflageSignatureEmail = onDocumentCreated(
   {
@@ -1598,6 +1785,54 @@ exports.submitReview = onRequest(
   },
 );
 
+// Copie un lead Facebook dans le CRM maison (crm_leads). Utilisé par le
+// webhook Monday ci-dessous (intégration native Meta → Monday) et par le
+// webhook Meta direct (functions/metaLeads.js). Anti-doublon : un lead
+// Facebook de même téléphone déjà dans le CRM n'est pas recréé, ce qui évite
+// les doubles quand les deux circuits tournent en parallèle.
+const phoneKeyOf = (raw) => {
+  let d = String(raw ?? "").replace(/\D/g, "");
+  if (d.startsWith("33") && d.length === 11) d = "0" + d.slice(2);
+  return d;
+};
+
+async function createCrmFacebookLead({ docId, name, phone, email, postalCode, city, details, createdAt }) {
+  try {
+    const phoneKey = phoneKeyOf(phone);
+    if (phoneKey) {
+      const dup = await db
+        .collection("crm_leads")
+        .where("phoneKey", "==", phoneKey)
+        .where("source", "==", "formulaire-facebook")
+        .limit(1)
+        .get();
+      if (!dup.empty) return false;
+    }
+    await db.doc(`crm_leads/${docId}`).create({
+      name: String(name ?? "").trim(),
+      phone: String(phone ?? "").trim(),
+      phoneKey,
+      email: String(email ?? "").trim(),
+      postalCode: String(postalCode ?? "").trim(),
+      city: String(city ?? "").trim(),
+      type: "PAC",
+      source: "formulaire-facebook",
+      projet: "Pompe à chaleur",
+      status: "nouveau",
+      rappelLe: "",
+      details: details ?? {},
+      notes: [],
+      createdAt: createdAt ?? FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: "",
+    });
+    return true;
+  } catch (err) {
+    if (err.code !== 6) logger.error("Lead Facebook : copie CRM échouée", { docId, error: err.message });
+    return false;
+  }
+}
+
 // ─── Alerte mail pour les leads du formulaire Facebook ───────────────────
 // Les leads du formulaire instantané Meta arrivent dans Monday par
 // l'intégration native Meta → Monday, sans passer par Firestore : ils ne
@@ -1678,6 +1913,15 @@ exports.notifyMondayFacebookLead = onRequest(
         },
       }),
     }).catch((err) => logger.error("Lead Facebook : mise à jour Source/Type échouée", { pulseId, error: err.message }));
+
+    await createCrmFacebookLead({
+      docId: `monday_${pulseId}`,
+      name: item.name,
+      phone,
+      email,
+      postalCode: col[MONDAY_COL.codePostal],
+      createdAt: Timestamp.fromDate(new Date(item.created_at)),
+    });
 
     const data = {
       requestType: "Formulaire Facebook",
@@ -1980,6 +2224,143 @@ exports.sendRecruitmentEmail = onRequest(
   },
 );
 
+// ── CRM maison : artisans (collection crm_artisans) ─────────────────────
+// Étape de suivi CRM correspondant à l'étiquette Monday posée par un modèle.
+const CRM_ARTISAN_STATUS_BY_MONDAY = {
+  "Mail 1 envoye": "mail1",
+  "Relance envoyee": "relance",
+  "Dernier message envoye": "dernier",
+};
+
+// Enregistre une grille reçue dans le CRM : met à jour la fiche existante
+// (même e-mail, y compris importée de Monday) ou en crée une. Ne bloque
+// jamais la réponse à l'artisan : les erreurs sont seulement journalisées.
+async function upsertCrmArtisanGrid({ identity, prices, travel, comment, mondayItemId }) {
+  try {
+    const grille = { prices, travel, comment, submittedAt: new Date().toISOString() };
+    const note = {
+      id: Math.random().toString(36).slice(2, 10),
+      text: "🧰 Grille de prix de pose remplie sur ip5energie.fr/espace-pro",
+      by: "espace-pro",
+      at: new Date().toISOString(),
+      kind: "statut",
+    };
+    const found = await db.collection("crm_artisans").where("email", "==", identity.email).limit(1).get();
+    if (!found.empty) {
+      await found.docs[0].ref.update({
+        status: "grille",
+        grille,
+        siret: identity.siret,
+        ville: identity.ville,
+        ...(identity.telephone && !found.docs[0].get("telephone") ? { telephone: identity.telephone } : {}),
+        notes: FieldValue.arrayUnion(note),
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: "espace-pro",
+      });
+      return;
+    }
+    await db.doc(`crm_artisans/web_${emailKey(identity.email).slice(0, 20)}`).set({
+      name: `${identity.prenom} ${identity.nom}`.trim(),
+      email: identity.email,
+      telephone: identity.telephone,
+      siret: identity.siret,
+      ville: identity.ville,
+      zone: "",
+      status: "grille",
+      relanceLe: "",
+      rgeVerifie: false,
+      grille,
+      notes: [note],
+      source: "espace-pro",
+      mondayItemId: mondayItemId ? String(mondayItemId) : "",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: "espace-pro",
+    });
+  } catch (err) {
+    logger.error("Grille artisan : copie dans le CRM échouée", { error: err.message });
+  }
+}
+
+// Mails de recrutement envoyés depuis la fiche artisan du CRM (mêmes
+// modèles et même anti-doublon que sendRecruitmentEmail côté Monday).
+exports.sendArtisanMessage = onCall(
+  {
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+    region: "europe-west9",
+  },
+  async (request) => {
+    const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+    if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const { artisanId, template } = request.data ?? {};
+    const tplKey = normalizeLabel(template);
+    const tpl = RECRUIT_TEMPLATES[tplKey];
+    if (typeof artisanId !== "string" || !artisanId || !tpl) {
+      throw new HttpsError("invalid-argument", "Requête invalide.");
+    }
+    const ref = db.doc(`crm_artisans/${artisanId}`);
+    const snap = await ref.get();
+    if (!snap.exists) throw new HttpsError("not-found", "Artisan introuvable.");
+    const a = snap.data();
+    const email = String(a.email ?? "").trim();
+    if (!EMAIL_RE.test(email)) throw new HttpsError("failed-precondition", "Adresse e-mail manquante ou invalide.");
+    if (["dead", "signe"].includes(a.status)) {
+      throw new HttpsError("failed-precondition", "Artisan marqué Dead / Signé : envoi bloqué.");
+    }
+    if ((await db.doc(`email_optouts/${emailKey(email.toLowerCase())}`).get()).exists) {
+      throw new HttpsError("failed-precondition", "Cet artisan s'est désinscrit.");
+    }
+    const sendRef = db.doc(`recruit_sends/crm_${artisanId}_${tplKey.replace(/ /g, "_")}_${emailKey(email.toLowerCase()).slice(0, 16)}`);
+    try {
+      await sendRef.create({ at: FieldValue.serverTimestamp(), template: tplKey });
+    } catch {
+      throw new HttpsError("already-exists", "Ce modèle a déjà été envoyé à cette adresse.");
+    }
+    try {
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const subject = tpl.subject(String(a.zone ?? "").trim());
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: buildRawMessage({
+            to: email,
+            from: GMAIL_SENDER_EMAIL.value(),
+            subject,
+            html: buildBrandedEmailShell({ bodyHtml: tpl.body() + RECRUIT_STOP }),
+          }),
+        },
+      });
+      const patch = {
+        notes: FieldValue.arrayUnion({
+          id: Math.random().toString(36).slice(2, 10),
+          text: `✉️ Mail envoyé : « ${subject} »`,
+          by: caller,
+          at: new Date().toISOString(),
+          kind: "message",
+        }),
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: caller,
+      };
+      const newStatus = CRM_ARTISAN_STATUS_BY_MONDAY[tpl.statut];
+      if (newStatus && a.status !== "grille" && a.status !== "potentiel") patch.status = newStatus;
+      if (tpl.relanceInDays) {
+        patch.relanceLe = new Date(Date.now() + tpl.relanceInDays * 86400000).toISOString().slice(0, 10);
+      }
+      await ref.update(patch);
+      logger.info("Mail artisan CRM envoyé", { artisanId, template: tplKey, by: caller });
+      return { ok: true };
+    } catch (err) {
+      await sendRef.delete().catch(() => {});
+      logger.error("Échec du mail artisan CRM", { artisanId, error: err.message });
+      throw new HttpsError("internal", "Échec de l'envoi du mail (voir les journaux).");
+    }
+  },
+);
+
 // Recherche d'une fiche du tableau de recrutement par e-mail (toutes pages).
 async function findRecruitItemByEmail(email, token) {
   const fields = `cursor items { id name column_values(ids: ["${RECRUIT_COL.email}", "${RECRUIT_COL.zone}", "${RECRUIT_COL.telephone}"]) { id text value } }`;
@@ -2119,6 +2500,7 @@ exports.submitArtisanGrid = onRequest(
     } catch (err) {
       logger.error("Grille artisan : mise à jour Monday échouée", { error: err.message });
     }
+    await upsertCrmArtisanGrid({ identity, prices, travel, comment, mondayItemId: mondayItem?.id });
 
     try {
       const pdf = await buildArtisanGridPdf({ identity, prices, travel, comment, mondayName: mondayItem?.name, mondayZone: mondayItem?.zone });
@@ -2175,3 +2557,22 @@ exports.submitArtisanGrid = onRequest(
     res.status(200).send("ok");
   },
 );
+
+// ── Webhook Meta Lead Ads → CRM (étape 6) ────────────────────────────────
+// DÉSACTIVÉ tant que les 3 secrets META_* n'existent pas dans Secret
+// Manager (voir « Activer le webhook Meta » dans functions/README.md) :
+// décommenter alors le bloc ci-dessous.
+//
+// Object.assign(
+//   exports,
+//   require("./metaLeads")({
+//     createCrmFacebookLead,
+//     buildLeadNotificationEmailHtml,
+//     buildRawMessage,
+//     escapeHtmlText,
+//     GMAIL_CLIENT_ID,
+//     GMAIL_CLIENT_SECRET,
+//     GMAIL_REFRESH_TOKEN,
+//     GMAIL_SENDER_EMAIL,
+//   }),
+// );

@@ -15,6 +15,9 @@ import {
 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
 import ClientsCRM from "./ClientsCRM";
+import LeadsCRM from "./LeadsCRM";
+import ArtisansCRM from "./ArtisansCRM";
+import StatsCRM from "./StatsCRM";
 import GonflageCRM from "./GonflageCRM";
 import { useBrowserBackLevel } from "@/hooks/use-browser-back-level";
 
@@ -451,7 +454,7 @@ const Simulateur = ({
   onSignOut: () => void;
   onBack: () => void;
 }) => {
-  const [tab, setTab] = useState<"devis" | "marges" | "clients">("devis");
+  const [tab, setTab] = useState<"devis" | "marges" | "clients" | "leads" | "artisans" | "stats">("devis");
   const [clientMode, setClientMode] = useState(false);
   const [prixAchatPompe, setPrixAchatPompe] = useState("");
   const [pose, setPose] = useState("");
@@ -519,7 +522,7 @@ const Simulateur = ({
     <div className="min-h-screen bg-gray-50 pb-16" dir="ltr">
       {/* Barre du haut */}
       <header className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+        <div className={`${(tab === "leads" || tab === "artisans" || tab === "stats") ? "max-w-6xl" : "max-w-2xl"} mx-auto px-4 py-3 flex items-center justify-between gap-3`}>
           <div className="flex items-center gap-3">
             <button
               onClick={onBack}
@@ -553,10 +556,10 @@ const Simulateur = ({
             </button>
           </div>
         </div>
-        <div className="max-w-2xl mx-auto px-4 pb-2 flex gap-2">
+        <div className={`${(tab === "leads" || tab === "artisans" || tab === "stats") ? "max-w-6xl" : "max-w-2xl"} mx-auto px-4 pb-2 flex gap-2 overflow-x-auto`}>
           <button
             onClick={() => setTab("devis")}
-            className={`flex-1 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
               tab === "devis"
                 ? "bg-[#2b5a8f] text-white"
                 : "bg-gray-100 text-gray-500"
@@ -566,7 +569,7 @@ const Simulateur = ({
           </button>
           <button
             onClick={() => setTab("marges")}
-            className={`flex-1 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
               tab === "marges"
                 ? "bg-[#2b5a8f] text-white"
                 : "bg-gray-100 text-gray-500"
@@ -576,7 +579,7 @@ const Simulateur = ({
           </button>
           <button
             onClick={() => setTab("clients")}
-            className={`flex-1 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
               tab === "clients"
                 ? "bg-[#2b5a8f] text-white"
                 : "bg-gray-100 text-gray-500"
@@ -584,10 +587,40 @@ const Simulateur = ({
           >
             Clients
           </button>
+          <button
+            onClick={() => setTab("leads")}
+            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+              tab === "leads"
+                ? "bg-[#2b5a8f] text-white"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            Leads
+          </button>
+          <button
+            onClick={() => setTab("artisans")}
+            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+              tab === "artisans"
+                ? "bg-[#2b5a8f] text-white"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            Artisans
+          </button>
+          <button
+            onClick={() => setTab("stats")}
+            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+              tab === "stats"
+                ? "bg-[#2b5a8f] text-white"
+                : "bg-gray-100 text-gray-500"
+            }`}
+          >
+            Stats
+          </button>
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto px-4">
+      <div className={`${(tab === "leads" || tab === "artisans" || tab === "stats") ? "max-w-6xl" : "max-w-2xl"} mx-auto px-4`}>
         <div className="flex items-center gap-2 text-xs text-gray-400 mt-3 mb-4">
           <Lock size={13} /> Calculette IP5 Énergie — {email}
           {tab === "devis" && clientMode && (
@@ -600,6 +633,12 @@ const Simulateur = ({
         {tab === "marges" && <MargesPremi />}
 
         {tab === "clients" && <ClientsCRM email={email} />}
+
+        {tab === "leads" && <LeadsCRM email={email} />}
+
+        {tab === "artisans" && <ArtisansCRM email={email} />}
+
+        {tab === "stats" && <StatsCRM />}
 
         {tab === "devis" && (
           <>
