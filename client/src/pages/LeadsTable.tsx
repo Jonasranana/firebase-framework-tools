@@ -116,7 +116,7 @@ export const StatusCell = ({
           {s.label}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-48 p-2 space-y-1.5" align="start">
+      <PopoverContent className="w-48 p-2 space-y-1.5 bg-white text-gray-900 border border-gray-200 shadow-xl" align="start">
         {options.map((o) => (
           <button
             key={o.key}
@@ -144,7 +144,7 @@ const TypeCell = ({ type, onChange }: { type: Lead["type"]; onChange: (t: Lead["
         </span>
       </button>
     </PopoverTrigger>
-    <PopoverContent className="w-36 p-2 space-y-1" align="start">
+    <PopoverContent className="w-36 p-2 space-y-1 bg-white text-gray-900 border border-gray-200 shadow-xl" align="start">
       {LEAD_TYPES.map((t) => (
         <button
           key={t}
@@ -213,7 +213,7 @@ const GroupMenu = ({
           <MoreHorizontal size={16} />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-60 p-3 space-y-3" align="start">
+      <PopoverContent className="w-60 p-3 space-y-3 bg-white text-gray-900 border border-gray-200 shadow-xl" align="start">
         <div>
           <span className="block text-[11px] font-semibold text-gray-500 mb-1">Nom du groupe</span>
           <input
@@ -221,7 +221,7 @@ const GroupMenu = ({
             onChange={(e) => setTitle(e.target.value)}
             onBlur={() => title.trim() && title.trim() !== group.title && onChange({ title: title.trim() })}
             onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-            className="w-full text-sm border-2 border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-[#579bfc]"
+            className="w-full text-sm bg-white text-gray-900 border-2 border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-[#579bfc]"
           />
         </div>
         <div>
@@ -242,14 +242,14 @@ const GroupMenu = ({
           <button
             disabled={index === 0}
             onClick={() => onMove(-1)}
-            className="flex-1 inline-flex items-center justify-center gap-1 text-xs font-semibold border border-gray-200 rounded-lg py-1.5 disabled:opacity-30"
+            className="flex-1 inline-flex items-center justify-center gap-1 text-xs font-semibold bg-white text-gray-700 border border-gray-200 rounded-lg py-1.5 disabled:opacity-30"
           >
             <ArrowUp size={13} /> Monter
           </button>
           <button
             disabled={index === total - 1}
             onClick={() => onMove(1)}
-            className="flex-1 inline-flex items-center justify-center gap-1 text-xs font-semibold border border-gray-200 rounded-lg py-1.5 disabled:opacity-30"
+            className="flex-1 inline-flex items-center justify-center gap-1 text-xs font-semibold bg-white text-gray-700 border border-gray-200 rounded-lg py-1.5 disabled:opacity-30"
           >
             <ArrowDown size={13} /> Descendre
           </button>
@@ -262,7 +262,7 @@ const GroupMenu = ({
               : `Supprimer le groupe « ${group.title} » ?`;
             if (confirm(msg)) onDelete();
           }}
-          className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 border border-red-200 rounded-lg py-1.5 disabled:opacity-30"
+          className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-white text-red-600 border border-red-200 rounded-lg py-1.5 disabled:opacity-30"
         >
           <Trash2 size={13} /> Supprimer le groupe
         </button>
