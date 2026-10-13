@@ -139,3 +139,33 @@ compter quelques minutes de délai de propagation côté Google (le compte
 technique Eventarc vient d'être créé) : un simple nouvel essai suffit si
 le déploiement échoue une fois avec un message mentionnant l'Eventarc
 Service Agent.
+
+## Activer le webhook Meta (leads Facebook directement dans le CRM)
+
+Tant que ce webhook n'est pas activé, les leads du formulaire Facebook
+arrivent dans le CRM **via Monday** (la fonction `notifyMondayFacebookLead`
+les copie dans `crm_leads`). Il faut activer le webhook Meta avant de
+résilier Monday : l'intégration native Meta → Monday s'arrêtera avec lui.
+
+1. **Créer les 3 secrets** dans Secret Manager (projet `kachoto-7554c`) :
+   - `META_VERIFY_TOKEN` : une chaîne secrète au choix (ex. 30 caractères
+     aléatoires), à recopier à l'étape 3 ;
+   - `META_APP_SECRET` : « Clé secrète de l'application », dans
+     developers.facebook.com → votre app → Paramètres → Général ;
+   - `META_PAGE_TOKEN` : jeton d'accès de la Page Facebook (permission
+     `leads_retrieval`, idéalement un jeton longue durée / d'utilisateur
+     système depuis Meta Business Suite → Paramètres → Utilisateurs système).
+2. **Décommenter le bloc « Webhook Meta Lead Ads »** en bas de
+   `functions/index.js`, puis fusionner sur `main` (déploiement automatique).
+   Les secrets doivent exister AVANT, sinon le déploiement des fonctions
+   échoue en entier.
+3. **Configurer le webhook côté Meta** : app → Webhooks → objet « Page » →
+   URL de rappel = l'URL de la fonction `metaLeadWebhook` (affichée dans la
+   console Firebase), jeton de vérification = `META_VERIFY_TOKEN`, puis
+   s'abonner au champ `leadgen`. Abonner aussi la Page à l'app
+   (`subscribed_apps` avec le champ `leadgen`).
+4. **Tester** avec l'outil « Lead Ads Testing Tool » de Meta : le lead doit
+   apparaître dans l'onglet Leads de /admin, avec l'alerte mail habituelle.
+
+Pendant la période où Monday et le webhook tournent ensemble, un même lead
+n'est créé qu'une fois dans le CRM (anti-doublon par téléphone).

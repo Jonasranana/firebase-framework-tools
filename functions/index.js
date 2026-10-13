@@ -4,7 +4,7 @@ const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
 const { google } = require("googleapis");
 const { initializeApp } = require("firebase-admin/app");
-const { getFirestore } = require("firebase-admin/firestore");
+const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 const { readFileSync } = require("node:fs");
 const path = require("node:path");
 
@@ -1785,6 +1785,54 @@ exports.submitReview = onRequest(
   },
 );
 
+// Copie un lead Facebook dans le CRM maison (crm_leads). Utilisé par le
+// webhook Monday ci-dessous (intégration native Meta → Monday) et par le
+// webhook Meta direct (functions/metaLeads.js). Anti-doublon : un lead
+// Facebook de même téléphone déjà dans le CRM n'est pas recréé, ce qui évite
+// les doubles quand les deux circuits tournent en parallèle.
+const phoneKeyOf = (raw) => {
+  let d = String(raw ?? "").replace(/\D/g, "");
+  if (d.startsWith("33") && d.length === 11) d = "0" + d.slice(2);
+  return d;
+};
+
+async function createCrmFacebookLead({ docId, name, phone, email, postalCode, city, details, createdAt }) {
+  try {
+    const phoneKey = phoneKeyOf(phone);
+    if (phoneKey) {
+      const dup = await db
+        .collection("crm_leads")
+        .where("phoneKey", "==", phoneKey)
+        .where("source", "==", "formulaire-facebook")
+        .limit(1)
+        .get();
+      if (!dup.empty) return false;
+    }
+    await db.doc(`crm_leads/${docId}`).create({
+      name: String(name ?? "").trim(),
+      phone: String(phone ?? "").trim(),
+      phoneKey,
+      email: String(email ?? "").trim(),
+      postalCode: String(postalCode ?? "").trim(),
+      city: String(city ?? "").trim(),
+      type: "PAC",
+      source: "formulaire-facebook",
+      projet: "Pompe à chaleur",
+      status: "nouveau",
+      rappelLe: "",
+      details: details ?? {},
+      notes: [],
+      createdAt: createdAt ?? FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: "",
+    });
+    return true;
+  } catch (err) {
+    if (err.code !== 6) logger.error("Lead Facebook : copie CRM échouée", { docId, error: err.message });
+    return false;
+  }
+}
+
 // ─── Alerte mail pour les leads du formulaire Facebook ───────────────────
 // Les leads du formulaire instantané Meta arrivent dans Monday par
 // l'intégration native Meta → Monday, sans passer par Firestore : ils ne
@@ -1865,6 +1913,15 @@ exports.notifyMondayFacebookLead = onRequest(
         },
       }),
     }).catch((err) => logger.error("Lead Facebook : mise à jour Source/Type échouée", { pulseId, error: err.message }));
+
+    await createCrmFacebookLead({
+      docId: `monday_${pulseId}`,
+      name: item.name,
+      phone,
+      email,
+      postalCode: col[MONDAY_COL.codePostal],
+      createdAt: Timestamp.fromDate(new Date(item.created_at)),
+    });
 
     const data = {
       requestType: "Formulaire Facebook",
@@ -2500,3 +2557,22 @@ exports.submitArtisanGrid = onRequest(
     res.status(200).send("ok");
   },
 );
+
+// ── Webhook Meta Lead Ads → CRM (étape 6) ────────────────────────────────
+// DÉSACTIVÉ tant que les 3 secrets META_* n'existent pas dans Secret
+// Manager (voir « Activer le webhook Meta » dans functions/README.md) :
+// décommenter alors le bloc ci-dessous.
+//
+// Object.assign(
+//   exports,
+//   require("./metaLeads")({
+//     createCrmFacebookLead,
+//     buildLeadNotificationEmailHtml,
+//     buildRawMessage,
+//     escapeHtmlText,
+//     GMAIL_CLIENT_ID,
+//     GMAIL_CLIENT_SECRET,
+//     GMAIL_REFRESH_TOKEN,
+//     GMAIL_SENDER_EMAIL,
+//   }),
+// );
