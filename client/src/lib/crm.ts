@@ -42,7 +42,7 @@ export type LeadNote = {
   text: string;
   by: string;
   at: string; // ISO
-  kind?: "note" | "statut"; // « statut » = trace automatique d'un changement
+  kind?: "note" | "statut" | "message"; // « statut »/« message » = traces automatiques
 };
 
 export type Lead = {

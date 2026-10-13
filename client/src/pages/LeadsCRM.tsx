@@ -11,6 +11,7 @@ import {
   BellRing,
   Check,
   X,
+  Send,
 } from "lucide-react";
 import {
   Sheet,
@@ -205,6 +206,109 @@ const Field = ({
     {children}
   </label>
 );
+
+// ── Envoi de mail / SMS (fonction sendLeadMessage) ─────────────────────────
+type MsgTemplate = { key: string; subject: string; sms: string };
+
+async function callFn<T>(name: string, data?: unknown): Promise<T> {
+  const app = await getEspaceProApp();
+  const { getFunctions, httpsCallable } = await import("firebase/functions");
+  const fn = httpsCallable(getFunctions(app, "europe-west9"), name);
+  return (await fn(data)).data as T;
+}
+
+const MessageSender = ({ lead }: { lead: Lead }) => {
+  const [templates, setTemplates] = useState<MsgTemplate[] | null>(null);
+  const [tplKey, setTplKey] = useState("");
+  const [sms, setSms] = useState("");
+  const [sending, setSending] = useState<"" | "mail" | "sms">("");
+  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+
+  useEffect(() => {
+    callFn<{ templates: MsgTemplate[] }>("listLeadTemplates")
+      .then((r) => setTemplates(r.templates))
+      .catch((e) => {
+        console.error(e);
+        setTemplates([]);
+        setFeedback({ ok: false, text: "Modèles indisponibles (fonction non déployée ?)." });
+      });
+  }, []);
+
+  const pick = (key: string) => {
+    setTplKey(key);
+    setFeedback(null);
+    const t = templates?.find((x) => x.key === key);
+    if (t) setSms(t.sms);
+  };
+
+  const send = async (channel: "mail" | "sms") => {
+    const what = channel === "mail" ? `le mail à ${lead.email}` : `le SMS au ${formatPhone(lead.phone)}`;
+    if (!confirm(`Envoyer ${what} ?`)) return;
+    setSending(channel);
+    setFeedback(null);
+    try {
+      await callFn("sendLeadMessage", {
+        leadId: lead.id,
+        channel,
+        template: tplKey || undefined,
+        text: channel === "sms" ? sms : undefined,
+      });
+      setFeedback({ ok: true, text: channel === "mail" ? "Mail envoyé." : "SMS envoyé." });
+    } catch (e: any) {
+      console.error(e);
+      setFeedback({ ok: false, text: e?.message || "Échec de l'envoi." });
+    } finally {
+      setSending("");
+    }
+  };
+
+  return (
+    <div className="pt-3 border-t border-gray-100 space-y-2">
+      <span className="block text-xs font-semibold text-gray-600">Envoyer un message</span>
+      <select value={tplKey} onChange={(e) => pick(e.target.value)} className={inputCls}>
+        <option value="">Modèle…</option>
+        {templates?.map((t) => (
+          <option key={t.key} value={t.key}>
+            {t.key}
+          </option>
+        ))}
+      </select>
+      <textarea
+        value={sms}
+        onChange={(e) => setSms(e.target.value)}
+        rows={3}
+        maxLength={480}
+        placeholder="Texte du SMS (choisissez un modèle ou écrivez un message libre)"
+        className={`${inputCls} resize-none`}
+      />
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          onClick={() => send("mail")}
+          disabled={!tplKey || !lead.email || !!sending}
+          title={!lead.email ? "Pas d'adresse e-mail" : undefined}
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-[#2b5a8f] disabled:bg-gray-300 rounded-xl py-2.5"
+        >
+          {sending === "mail" ? <Loader2 size={14} className="animate-spin" /> : <Mail size={14} />}
+          Envoyer le mail
+        </button>
+        <button
+          onClick={() => send("sms")}
+          disabled={!sms.trim() || !lead.phone || !!sending}
+          title={!lead.phone ? "Pas de téléphone" : undefined}
+          className="inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white bg-green-600 disabled:bg-gray-300 rounded-xl py-2.5"
+        >
+          {sending === "sms" ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+          Envoyer le SMS
+        </button>
+      </div>
+      {feedback && (
+        <p className={`text-sm ${feedback.ok ? "text-green-600" : "text-red-600"}`}>
+          {feedback.text}
+        </p>
+      )}
+    </div>
+  );
+};
 
 type Draft = {
   name: string;
@@ -491,6 +595,8 @@ const LeadSheet = ({
             </dl>
           )}
 
+          {lead && <MessageSender key={lead.id} lead={lead} />}
+
           {lead && (
             <div className="pt-3 border-t border-gray-100">
               <span className="block text-xs font-semibold text-gray-600 mb-2">
@@ -520,7 +626,9 @@ const LeadSheet = ({
                     className={`rounded-xl px-3 py-2 text-sm ${
                       n.kind === "statut"
                         ? "bg-gray-50 text-gray-500 text-xs"
-                        : "bg-blue-50 text-gray-800"
+                        : n.kind === "message"
+                          ? "bg-green-50 text-gray-700"
+                          : "bg-blue-50 text-gray-800"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{n.text}</p>

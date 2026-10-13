@@ -1,5 +1,5 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
 const { google } = require("googleapis");
@@ -1027,6 +1027,7 @@ async function sendTwilioSms({ to, body, accountSid, authToken }) {
   if (!res.ok) {
     logger.error("Échec de l'envoi du SMS Twilio", { to, error: JSON.stringify(responseBody) });
   }
+  return res.ok;
 }
 
 // Signal visible sur l'item Monday (au lieu d'un simple log invisible côté
@@ -1242,6 +1243,121 @@ exports.sendMondayEmailTemplate = onRequest(
     }
   },
 );
+
+// ── CRM maison : envoi de mail / SMS depuis la fiche lead ────────────────
+// Réutilise les modèles de MONDAY_EMAIL_TEMPLATES. Appelable uniquement par
+// les comptes Google autorisés (même liste blanche que client/src/pages/
+// OutilDevis.tsx — à tenir à jour des deux côtés). L'envoi est tracé dans
+// les notes de la fiche.
+const CRM_ALLOWED_EMAILS = [
+  "jonassitbon8@gmail.com",
+  "alexis.sitbon@gmail.com",
+  "carol.sitbon05@gmail.com",
+];
+
+// Modèles proposés dans le CRM (clé = libellé Monday). « confirmation +
+// fiche technique » est exclu : il exige un reste à charge calculé.
+const crmTemplates = () =>
+  Object.entries(MONDAY_EMAIL_TEMPLATES)
+    .filter(([, t]) => !t.requiresResolvedRac)
+    .map(([key, t]) => ({ key, subject: t.subject, sms: t.buildSms ? t.buildSms({}) : "" }));
+
+exports.sendLeadMessage = onCall(
+  {
+    secrets: [
+      GMAIL_CLIENT_ID,
+      GMAIL_CLIENT_SECRET,
+      GMAIL_REFRESH_TOKEN,
+      GMAIL_SENDER_EMAIL,
+      TWILIO_ACCOUNT_SID,
+      TWILIO_AUTH_TOKEN,
+    ],
+    region: "europe-west9",
+  },
+  async (request) => {
+    const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+    if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const { leadId, channel, template, text } = request.data ?? {};
+    if (typeof leadId !== "string" || !leadId || !["mail", "sms"].includes(channel)) {
+      throw new HttpsError("invalid-argument", "Requête invalide.");
+    }
+    const ref = db.doc(`crm_leads/${leadId}`);
+    const snap = await ref.get();
+    if (!snap.exists) throw new HttpsError("not-found", "Lead introuvable.");
+    const lead = snap.data();
+    const nomComplet = String(lead.name ?? "").trim();
+    const tpl = template ? MONDAY_EMAIL_TEMPLATES[template] : undefined;
+    if (template && (!tpl || tpl.requiresResolvedRac)) {
+      throw new HttpsError("invalid-argument", "Modèle inconnu.");
+    }
+
+    let summary;
+    if (channel === "mail") {
+      const to = String(lead.email ?? "").trim();
+      if (!tpl) throw new HttpsError("invalid-argument", "Choisissez un modèle de mail.");
+      if (!to) throw new HttpsError("failed-precondition", "Ce lead n'a pas d'adresse e-mail.");
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const raw = buildRawMessageWithAttachment({
+        to,
+        from: GMAIL_SENDER_EMAIL.value(),
+        subject: tpl.subject,
+        html: tpl.buildHtml({ nomComplet, rac: undefined }),
+        attachments: tpl.attachments,
+      });
+      try {
+        await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+      } catch (err) {
+        logger.error("Échec de l'envoi du mail CRM", { leadId, error: err.message });
+        throw new HttpsError("internal", "Échec de l'envoi du mail (voir les journaux).");
+      }
+      summary = `✉️ Mail envoyé : « ${tpl.subject} »`;
+    } else {
+      const to = toE164French(lead.phone);
+      if (!to || !to.startsWith("+")) {
+        throw new HttpsError("failed-precondition", "Ce lead n'a pas de numéro valide.");
+      }
+      const body = String(text ?? (tpl?.buildSms ? tpl.buildSms({}) : "")).trim();
+      if (!body || body.length > 480) {
+        throw new HttpsError("invalid-argument", "Message vide ou trop long (480 caractères max).");
+      }
+      const ok = await sendTwilioSms({
+        to,
+        body,
+        accountSid: TWILIO_ACCOUNT_SID.value(),
+        authToken: TWILIO_AUTH_TOKEN.value(),
+      });
+      if (!ok) throw new HttpsError("internal", "Échec de l'envoi du SMS (voir les journaux).");
+      summary = `💬 SMS envoyé : « ${body} »`;
+    }
+
+    await ref.update({
+      notes: FieldValue.arrayUnion({
+        id: Math.random().toString(36).slice(2, 10),
+        text: summary,
+        by: caller,
+        at: new Date().toISOString(),
+        kind: "message",
+      }),
+      lastContactAt: new Date().toISOString(),
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: caller,
+    });
+    logger.info("Message CRM envoyé", { leadId, channel, template: template ?? null, by: caller });
+    return { ok: true };
+  },
+);
+
+exports.listLeadTemplates = onCall({ region: "europe-west9" }, async (request) => {
+  const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+  if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+    throw new HttpsError("permission-denied", "Accès refusé.");
+  }
+  return { templates: crmTemplates() };
+});
 
 exports.sendGonflageSignatureEmail = onDocumentCreated(
   {
