@@ -10,7 +10,7 @@ on:
       cible:
         description: "Que faut-il importer ?"
         type: choice
-        options: [leads, artisans]
+        options: [leads, artisans, fichiers]
         default: leads
       dry_run:
         description: "Essai à blanc (n'écrit rien)"
@@ -20,6 +20,7 @@ on:
 jobs:
   import:
     runs-on: ubuntu-latest
+    timeout-minutes: 350
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

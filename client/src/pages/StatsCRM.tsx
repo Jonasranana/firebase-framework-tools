@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
-import { getEspaceProApp } from "@/lib/espacePro";
+import { useArtisans, useLeads } from "@/lib/crmStore";
 import {
   ARTISAN_STATUSES,
   CRM_ARTISANS_COLLECTION,
@@ -44,24 +44,6 @@ const RANK: Record<string, number> = {
   dossier: 4,
   gagne: 5,
 };
-
-async function subscribe<T>(
-  collectionName: string,
-  map: (id: string, d: Record<string, any>) => T,
-  onData: (rows: T[]) => void,
-  onError: () => void,
-) {
-  const app = await getEspaceProApp();
-  const m = await import("firebase/firestore");
-  return m.onSnapshot(
-    m.collection(m.getFirestore(app), collectionName),
-    (snap) => onData(snap.docs.map((d) => map(d.id, d.data()))),
-    (e) => {
-      console.error(e);
-      onError();
-    },
-  );
-}
 
 const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
@@ -134,25 +116,11 @@ const Timeline = ({ buckets }: { buckets: { label: string; value: number }[] }) 
 const fmtDay = (d: Date) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 
 export default function StatsCRM() {
-  const [leads, setLeads] = useState<Lead[] | null>(null);
-  const [artisans, setArtisans] = useState<Artisan[] | null>(null);
-  const [error, setError] = useState("");
+  const { data: leads, error: leadsError } = useLeads();
+  const { data: artisans, error: artisansError } = useArtisans();
+  const error = leadsError || artisansError;
   const [period, setPeriod] = useState<PeriodKey>("30");
   const [type, setType] = useState("");
-
-  useEffect(() => {
-    const unsubs: (() => void)[] = [];
-    let cancelled = false;
-    const fail = () => setError("Impossible de charger les statistiques. Vérifiez que vous êtes autorisé.");
-    subscribe(CRM_LEADS_COLLECTION, leadFromDoc, setLeads, fail).then((u) => (cancelled ? u() : unsubs.push(u)));
-    subscribe(CRM_ARTISANS_COLLECTION, artisanFromDoc, setArtisans, fail).then((u) =>
-      cancelled ? u() : unsubs.push(u),
-    );
-    return () => {
-      cancelled = true;
-      unsubs.forEach((u) => u());
-    };
-  }, []);
 
   const days = PERIODS.find((p) => p.key === period)!.days;
 

@@ -25,8 +25,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
+import { useLeads } from "@/lib/crmStore";
 import LeadsTable from "./LeadsTable";
+import DocumentsPanel from "./DocumentsPanel";
 import {
   CRM_BOARDS_COLLECTION,
   CRM_LEADS_COLLECTION,
@@ -67,13 +70,7 @@ const newId = () => Math.random().toString(36).slice(2, 10);
 const normalize = (s: string) =>
   s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
 
-async function fs() {
-  const app = await getEspaceProApp();
-  return import("firebase/firestore").then((m) => ({
-    m,
-    db: m.getFirestore(app),
-  }));
-}
+const fs = crmFirestore;
 
 async function patchLead(
   id: string,
@@ -320,152 +317,6 @@ const MessageSender = ({ lead }: { lead: Lead }) => {
   );
 };
 
-// ── Documents (Firebase Storage) ───────────────────────────────────────────
-// Dossier crm/leads/<id>/ : sous le préfixe crm/ déjà utilisé par l'onglet
-// Clients, donc couvert par les mêmes règles Storage. Chaque fichier est
-// préfixé par l'horodatage pour que deux envois du même nom ne s'écrasent pas.
-type StoredDoc = { path: string; label: string; url: string; size: number; at: number };
-
-const docLabel = (name: string) => name.replace(/^\d{13}_/, "");
-const formatSize = (b: number) =>
-  b > 1e6 ? `${(b / 1e6).toFixed(1)} Mo` : `${Math.max(1, Math.round(b / 1e3))} Ko`;
-
-const LeadDocuments = ({ lead, email }: { lead: Lead; email: string }) => {
-  const folder = `crm/leads/${lead.id}`;
-  const [docs, setDocs] = useState<StoredDoc[] | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-
-  const storage = async () => {
-    const app = await getEspaceProApp();
-    const m = await import("firebase/storage");
-    return { m, st: m.getStorage(app) };
-  };
-
-  const load = async () => {
-    try {
-      const { m, st } = await storage();
-      const res = await m.listAll(m.ref(st, folder));
-      const list = await Promise.all(
-        res.items.map(async (item) => {
-          const [url, meta] = await Promise.all([m.getDownloadURL(item), m.getMetadata(item)]);
-          return {
-            path: item.fullPath,
-            label: docLabel(item.name),
-            url,
-            size: meta.size,
-            at: Number(item.name.slice(0, 13)) || Date.parse(meta.timeCreated) || 0,
-          };
-        }),
-      );
-      setDocs(list.sort((a, b) => b.at - a.at));
-    } catch (e) {
-      console.error(e);
-      setError("Impossible de charger les documents.");
-      setDocs([]);
-    }
-  };
-
-  useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lead.id]);
-
-  const upload = async (files: FileList | null) => {
-    if (!files || files.length === 0) return;
-    setBusy(true);
-    setError("");
-    try {
-      const { m, st } = await storage();
-      const names: string[] = [];
-      for (const f of Array.from(files)) {
-        if (f.size > 25 * 1024 * 1024) throw new Error(`« ${f.name} » dépasse 25 Mo.`);
-        const safe = f.name.replace(/[^\w.\- ()àâäçéèêëîïôöùûüÿ]/gi, "_");
-        await m.uploadBytes(m.ref(st, `${folder}/${Date.now()}_${safe}`), f);
-        names.push(f.name);
-      }
-      await addLeadNote(lead.id, email, {
-        id: newId(),
-        text: `📎 Document ajouté : ${names.join(", ")}`,
-        by: email,
-        at: new Date().toISOString(),
-        kind: "statut",
-      });
-      await load();
-    } catch (e: any) {
-      console.error(e);
-      setError(e?.message?.startsWith("«") ? e.message : "Échec de l'envoi. Réessayez.");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const remove = async (d: StoredDoc) => {
-    if (!confirm(`Supprimer « ${d.label} » ?`)) return;
-    try {
-      const { m, st } = await storage();
-      await m.deleteObject(m.ref(st, d.path));
-      setDocs((prev) => prev?.filter((x) => x.path !== d.path) ?? null);
-    } catch (e) {
-      console.error(e);
-      setError("Échec de la suppression.");
-    }
-  };
-
-  return (
-    <div className="pt-3 border-t border-gray-100">
-      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 mb-2">
-        <Paperclip size={13} /> Documents
-      </span>
-      {docs === null && <p className="text-xs text-gray-400">Chargement…</p>}
-      {docs && docs.length === 0 && <p className="text-xs text-gray-400 mb-2">Aucun document.</p>}
-      {docs && docs.length > 0 && (
-        <ul className="space-y-1 mb-2">
-          {docs.map((d) => (
-            <li
-              key={d.path}
-              className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-2.5 py-1.5"
-            >
-              <a
-                href={d.url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-[#2b5a8f]"
-              >
-                <FileText size={13} className="shrink-0" />
-                <span className="truncate">{d.label}</span>
-                <span className="text-gray-400 font-normal shrink-0">{formatSize(d.size)}</span>
-              </a>
-              <button
-                onClick={() => remove(d)}
-                className="text-gray-400 hover:text-red-600 shrink-0"
-                aria-label={`Supprimer ${d.label}`}
-              >
-                <Trash2 size={14} />
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
-      <label className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2b5a8f] cursor-pointer">
-        {busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-        {busy ? "Envoi…" : "Ajouter des documents (PDF, photos…)"}
-        <input
-          type="file"
-          multiple
-          className="hidden"
-          disabled={busy}
-          onChange={(e) => {
-            upload(e.target.files);
-            e.target.value = "";
-          }}
-        />
-      </label>
-    </div>
-  );
-};
-
 type Draft = {
   name: string;
   phone: string;
@@ -503,6 +354,12 @@ const LeadSheet = ({
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  // Ouvrir la fiche = lire le mail reçu : le repère disparaît du tableau.
+  useEffect(() => {
+    if (lead?.mailNonLu) patchLead(lead.id, email, { mailNonLu: false }).catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead?.id, lead?.mailNonLu]);
 
   // Recharge le brouillon quand on ouvre une autre fiche.
   const leadId = lead?.id;
@@ -545,7 +402,7 @@ const LeadSheet = ({
         ...draft,
         name: draft.name.trim(),
         phone: draft.phone.trim(),
-        email: draft.email.trim(),
+        email: draft.email.trim().toLowerCase(),
         postalCode: draft.postalCode.trim(),
         city: draft.city.trim(),
         projet: draft.projet.trim(),
@@ -754,7 +611,17 @@ const LeadSheet = ({
 
           {lead && <MessageSender key={lead.id} lead={lead} />}
 
-          {lead && <LeadDocuments lead={lead} email={email} />}
+          {lead && (
+            <DocumentsPanel
+              key={lead.id}
+              ownerType="lead"
+              ownerId={lead.id}
+              ownerName={lead.name}
+              email={email}
+              stored={{ docCount: lead.docCount, docCats: lead.docCats }}
+              onSummary={(sm) => patchLead(lead.id, email, sm).catch(console.error)}
+            />
+          )}
 
           {lead && (
             <div className="pt-3 border-t border-gray-100">
@@ -787,7 +654,9 @@ const LeadSheet = ({
                         ? "bg-gray-50 text-gray-500 text-xs"
                         : n.kind === "message"
                           ? "bg-green-50 text-gray-700"
-                          : "bg-blue-50 text-gray-800"
+                          : n.kind === "mail"
+                            ? "bg-indigo-50 text-gray-800 border-l-4 border-indigo-300"
+                            : "bg-blue-50 text-gray-800"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{n.text}</p>
@@ -807,8 +676,9 @@ const LeadSheet = ({
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function LeadsCRM({ email }: { email: string }) {
-  const [leads, setLeads] = useState<Lead[] | null>(null);
-  const [error, setError] = useState("");
+  const { data: leads, error: storeError } = useLeads();
+  const [localError, setError] = useState("");
+  const error = localError || storeError;
   const [view, setView] = useState<"tableau" | "liste" | "colonnes">(() => {
     try {
       const v = localStorage.getItem("crm-leads-view");
@@ -826,38 +696,6 @@ export default function LeadsCRM({ email }: { email: string }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dropOver, setDropOver] = useState<string | null>(null);
-
-  // Abonnement temps réel : les nouveaux leads du site apparaissent seuls.
-  useEffect(() => {
-    let unsub: (() => void) | undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { m, db } = await fs();
-        unsub = m.onSnapshot(
-          m.query(m.collection(db, CRM_LEADS_COLLECTION), m.orderBy("createdAt", "desc")),
-          (snap) => {
-            if (cancelled) return;
-            setLeads(snap.docs.map((d) => leadFromDoc(d.id, d.data())));
-            setError("");
-          },
-          (e) => {
-            console.error(e);
-            setError(
-              "Impossible de charger les leads. Vérifiez que vous êtes autorisé, puis rechargez la page.",
-            );
-          },
-        );
-      } catch (e) {
-        console.error(e);
-        setError("Impossible de se connecter à la base de données.");
-      }
-    })();
-    return () => {
-      cancelled = true;
-      unsub?.();
-    };
-  }, []);
 
   const setViewPersist = (v: "tableau" | "liste" | "colonnes") => {
     setView(v);

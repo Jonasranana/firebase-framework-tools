@@ -233,7 +233,7 @@ function convert(item) {
     data: {
       name: item.name.trim(),
       phone: t(C.tel),
-      email,
+      email: email.toLowerCase(),
       postalCode: t(C.cp),
       city: t(C.ville),
       type,

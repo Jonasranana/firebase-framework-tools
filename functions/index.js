@@ -591,7 +591,7 @@ exports.copyLeadToCrm = onDocumentCreated(
       await db.doc(`crm_leads/${leadId}`).create({
         name: String(f.name ?? "").trim(),
         phone: String(f.phone ?? "").trim(),
-        email: String(f.email ?? "").trim(),
+        email: String(f.email ?? "").trim().toLowerCase(),
         postalCode: String(f.postalCode ?? f.department ?? "").trim(),
         city: "",
         type: crmTypeForSource(f),
@@ -1813,7 +1813,7 @@ async function createCrmFacebookLead({ docId, name, phone, email, postalCode, ci
       name: String(name ?? "").trim(),
       phone: String(phone ?? "").trim(),
       phoneKey,
-      email: String(email ?? "").trim(),
+      email: String(email ?? "").trim().toLowerCase(),
       postalCode: String(postalCode ?? "").trim(),
       city: String(city ?? "").trim(),
       type: "PAC",
@@ -2578,3 +2578,22 @@ exports.submitArtisanGrid = onRequest(
 //     GMAIL_SENDER_EMAIL,
 //   }),
 // );
+
+// ── Boîte mail contact@ ↔ CRM ────────────────────────────────────────────
+// Range les mails reçus/envoyés (et leurs pièces jointes) dans la fiche du
+// lead ou de l'artisan correspondant. Voir functions/crmMail.js.
+Object.assign(
+  exports,
+  require("./crmMail")({
+    db,
+    logger,
+    google,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+    getStorage: require("firebase-admin/storage").getStorage,
+    onDocumentCreated,
+    GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET,
+    GMAIL_REFRESH_TOKEN,
+    GMAIL_SENDER_EMAIL,
+  }),
+);
