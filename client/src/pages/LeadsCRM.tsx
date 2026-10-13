@@ -28,7 +28,8 @@ import {
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
-import LeadsTable from "./LeadsTable";
+import { LEAD_COLUMNS, cellValue, formulaValue } from "@/lib/crmColumns";
+import LeadsTable, { ColumnsMenu, useVisibleColumns } from "./LeadsTable";
 import DocumentsPanel from "./DocumentsPanel";
 import {
   CRM_BOARDS_COLLECTION,
@@ -45,6 +46,7 @@ import {
   formatYmd,
   leadFromDoc,
   statusInfo,
+  isClosedStatus,
   telHref,
   todayYmd,
   whatsappHref,
@@ -95,9 +97,10 @@ const StatusBadge = ({ status }: { status: LeadStatus }) => {
   const s = statusInfo(status);
   return (
     <span
-      className={`text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${s.badge}`}
+      className="text-[11px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap text-white"
+      style={{ background: s.hex }}
     >
-      {s.label}
+      {s.label || "—"}
     </span>
   );
 };
@@ -111,7 +114,7 @@ const TypeBadge = ({ type }: { type: LeadType }) => (
 );
 
 const isOverdue = (l: Lead) =>
-  !!l.rappelLe && l.rappelLe <= todayYmd() && !["gagne", "perdu"].includes(l.status);
+  !!l.rappelLe && l.rappelLe <= todayYmd() && !isClosedStatus(l.status);
 
 const RappelTag = ({ lead }: { lead: Lead }) =>
   lead.rappelLe ? (
@@ -412,7 +415,7 @@ const LeadSheet = ({
         await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
           ...clean,
           source: "saisie-manuelle",
-          status: "nouveau",
+          status: "nouveau_lead",
           group: DEFAULT_LEAD_GROUPS[0].id,
           rappelLe: "",
           details: {},
@@ -523,7 +526,7 @@ const LeadSheet = ({
                 >
                   {LEAD_STATUSES.map((s) => (
                     <option key={s.key} value={s.key}>
-                      {s.label}
+                      {s.label || "(vide)"}
                     </option>
                   ))}
                 </select>
@@ -597,6 +600,23 @@ const LeadSheet = ({
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
+
+          {lead && (
+            <details className="bg-gray-50 rounded-xl p-3 text-xs">
+              <summary className="font-semibold text-gray-600 cursor-pointer">Toutes les colonnes (comme Monday)</summary>
+              <dl className="mt-2 space-y-1">
+                {LEAD_COLUMNS.filter((c) => !["name", "files", "autodate"].includes(c.type)).map((c) => {
+                  const v = c.type === "formula" ? formulaValue(lead, c) : c.key === "status" ? statusInfo(lead.status).label : cellValue(lead, c);
+                  return v ? (
+                    <div key={c.key} className="flex justify-between gap-3">
+                      <dt className="text-gray-400">{c.title}</dt>
+                      <dd className="font-semibold text-gray-700 text-right">{v}</dd>
+                    </div>
+                  ) : null;
+                })}
+              </dl>
+            </details>
+          )}
 
           {detailEntries.length > 0 && (
             <dl className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs bg-gray-50 rounded-xl p-3">
@@ -696,6 +716,7 @@ export default function LeadsCRM({ email }: { email: string }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dropOver, setDropOver] = useState<string | null>(null);
+  const [visibleCols, setVisibleCols] = useVisibleColumns();
 
   const setViewPersist = (v: "tableau" | "liste" | "colonnes") => {
     setView(v);
@@ -856,7 +877,7 @@ export default function LeadsCRM({ email }: { email: string }) {
         type: "PAC",
         source: "saisie-manuelle",
         projet: "",
-        status: "nouveau",
+        status: "nouveau_lead",
         group: groupId,
         rappelLe: "",
         details: {},
@@ -948,6 +969,7 @@ export default function LeadsCRM({ email }: { email: string }) {
         >
           <BellRing size={12} /> Rappels{rappelsCount ? ` (${rappelsCount})` : ""}
         </button>
+        {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
         {(query || statusFilter || typeFilter || sourceFilter || rappelsOnly) && (
           <button
             onClick={() => {
@@ -985,8 +1007,8 @@ export default function LeadsCRM({ email }: { email: string }) {
                   : "bg-white text-gray-600 border border-gray-200"
               }`}
             >
-              <span className={`w-2 h-2 rounded-full ${s.dot}`} />
-              {s.label} ({counts[s.key] ?? 0})
+              <span className="w-2 h-2 rounded-full" style={{ background: s.hex }} />
+              {s.label || "(sans statut)"} ({counts[s.key] ?? 0})
             </button>
           ))}
         </div>
@@ -1013,6 +1035,8 @@ export default function LeadsCRM({ email }: { email: string }) {
         <LeadsTable
           leads={filtered}
           groups={groups}
+          visible={visibleCols}
+          setVisible={setVisibleCols}
           onGroupsChange={saveGroups}
           onGroup={moveToGroup}
           onOpen={setOpenId}
@@ -1073,7 +1097,7 @@ export default function LeadsCRM({ email }: { email: string }) {
                 }`}
               >
                 <div className="flex items-center gap-2 px-2 py-1.5 mb-1">
-                  <span className={`w-2.5 h-2.5 rounded-full ${s.dot}`} />
+                  <span className="w-2.5 h-2.5 rounded-full" style={{ background: s.hex }} />
                   <span className="text-sm font-bold text-gray-800">{s.label}</span>
                   <span className="ml-auto text-xs font-semibold text-gray-500">
                     {col.length}

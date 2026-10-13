@@ -25,6 +25,10 @@ const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 
 const BOARD_ID = "18410104402";
 const DRY_RUN = process.env.DRY_RUN === "1";
+// MODE=refresh : remet à jour les fiches DÉJÀ importées (statut, groupe, colonnes)
+// sans toucher à leurs notes, et seulement si personne ne les a modifiées dans
+// le CRM depuis l'import (updatedBy = « import Monday »).
+const REFRESH = process.env.MODE === "refresh";
 const token = process.env.MONDAY_API_TOKEN;
 if (!token) {
   console.error("MONDAY_API_TOKEN manquant");
@@ -42,10 +46,16 @@ const C = {
   tel: "phone_mm2qnqr2",
   precarite: "color_mm7eq7pm",
   marque: "color_mm7enw6k",
+  zone: "color_mm7eccnx",
+  mailAuto: "color_mm7ensy9",
+  dernierMail: "date_mm7ed3c9",
+  racMesure: "numeric_mm7er35c",
   email: "email_mm2qmb9n",
   cp: "text_mm2qf4s7",
   tranche: "text_mm6zss8",
-  foyer: "text_mm747bpc",
+  revenuFiscal: "numeric_mm2qa489",
+  foyerCalc: "numeric_mm2q9m35",
+  foyerSite: "text_mm747bpc",
   chauffageSite: "text_mm747sr4",
   chauffage: "dropdown_mm2qdqfm",
   surface: "numeric_mm2q4jsz",
@@ -55,49 +65,60 @@ const C = {
   source: "text_mm76vm3v",
   typeDemande: "color_mm7m3q82",
   typeLead: "color_mm79bwsw",
+  personnes: "multiple_person_mm3f2ah2",
+  statutLed: "text_mm6vbefs",
+  villeChantier: "text_mm6vvkpp",
+  premierContact: "date_mm6vw6b2",
+  appelsMois: "numeric_mm6zcp55",
   poseur: "color_mm79nd1k",
   dateVt: "date_mm7993h4",
   datePose: "date_mm79d6a9",
   montant: "numeric_mm7928z9",
-  ville: "text_mm6vvkpp",
-  premierContact: "date_mm6vw6b2",
   ressenti: "color_mm791txe",
 };
 
-// Statut Appel Monday → étape du CRM (clés de client/src/lib/crm.ts).
-const STATUS_MAP = {
-  "": "nouveau",
-  "🆕 nouveau lead": "nouveau",
-  "à appeler": "a_rappeler",
-  "rappel demandé": "a_rappeler",
-  "a relancer": "a_rappeler",
-  "me rapelle": "a_rappeler",
-  "panneau solaire": "a_rappeler",
-  nrp: "injoignable",
-  "nrp 2": "injoignable",
+// Colonnes « fields » du CRM (clé de colonne CRM → clé Monday ci-dessus), copiées
+// telles quelles (texte Monday). Voir client/src/lib/crmColumns.ts.
+const FIELD_COLUMNS = [
+  "pipeline", "commercial", "precarite", "marque", "zone", "mailAuto", "dernierMail", "racMesure",
+  "tranche", "revenuFiscal", "foyerCalc", "foyerSite", "chauffageSite", "chauffage", "surface",
+  "notesRapides", "resume", "typeDemande", "personnes", "statutLed", "villeChantier",
+  "premierContact", "appelsMois", "poseur", "dateVt", "datePose", "montant", "ressenti",
+];
+
+// Statut Appel Monday (libellé en minuscules) → clé du CRM (client/src/lib/crm.ts).
+const STATUS_KEY = {
+  "à appeler": "a_appeler",
+  "rappel demandé": "rappel_demande",
   "intéressé": "interesse",
-  "manque les revenu": "interesse",
-  "manque les info": "interesse",
-  "attente revenus": "interesse",
-  "whattapp envoyé": "interesse",
-  "compliqué": "interesse",
-  "en cours": "interesse",
-  "proposition envoyer": "interesse",
-  "propal praimy a  faire": "interesse",
-  "propal recu": "interesse",
-  "rdv pris": "rdv",
-  "docs recu": "dossier",
-  "attente docs": "dossier",
-  "en cours chez bets": "dossier",
-  "vt faite par bets": "dossier",
-  "installer bets": "dossier",
-  "instal prevu": "dossier",
-  "pas intéressé": "perdu",
-  "mauvais numéro": "perdu",
-  "pas éligible revenu": "perdu",
-  "pas eligible a la pac": "perdu",
-  "pas adapté": "perdu",
-  "pas bon": "perdu",
+  "rdv pris": "rdv_pris",
+  "vt faite par bets": "vt_faite_bets",
+  "en cours chez bets": "en_cours_bets",
+  "en cours": "en_cours",
+  "attente docs": "attente_docs",
+  "docs recu": "docs_recu",
+  "a relancer": "a_relancer",
+  "manque les revenu": "manque_revenu",
+  "manque les info": "manque_info",
+  nrp: "nrp",
+  "nrp 2": "nrp2",
+  "mauvais numéro": "mauvais_numero",
+  "pas intéressé": "pas_interesse",
+  "pas éligible revenu": "pas_eligible_revenu",
+  "pas eligible a la pac": "pas_eligible_pac",
+  "panneau solaire": "panneau_solaire",
+  "proposition envoyer": "proposition_envoyee",
+  "me rapelle": "me_rappelle",
+  "instal prevu": "instal_prevu",
+  "propal praimy a  faire": "propal_praimy",
+  "🆕 nouveau lead": "nouveau_lead",
+  "compliqué": "complique",
+  "pas adapté": "pas_adapte",
+  "propal recu": "propal_recu",
+  "installer bets": "installer_bets",
+  "pas bon": "pas_bon",
+  "whattapp envoyé": "whatsapp_envoye",
+  "attente revenus": "attente_revenus",
 };
 
 // Groupe Monday → groupe du tableau CRM (identifiants de DEFAULT_LEAD_GROUPS
@@ -173,40 +194,26 @@ function convert(item) {
   }
 
   const statutMonday = t(C.statut);
-  let status = STATUS_MAP[statutMonday.toLowerCase()] ?? "interesse";
+  const status = STATUS_KEY[statutMonday.toLowerCase()] ?? "vide";
   const pipeline = t(C.pipeline);
-  if (pipeline === "Installé") status = "gagne";
-  else if (pipeline === "Pas bon") status = "perdu";
-  else if (pipeline && !["perdu", "gagne"].includes(status)) status = "dossier";
 
   const typeLeadLabel = t(C.typeLead);
   const projet = t(C.projet);
   let type;
   if (/gonflage/i.test(typeLeadLabel) || /gonflage/i.test(projet)) type = "Gonflage";
+  else if (/sms/i.test(typeLeadLabel)) type = "SMS";
   else if (/solaire/i.test(typeLeadLabel) || /solaire|panneau/i.test(projet) || /panneau solaire/i.test(statutMonday)) type = "Solaire";
   else if (/autre/i.test(typeLeadLabel)) type = "Autre";
   else type = "PAC";
 
-  const raw = {
-    "Statut Monday": statutMonday,
-    "Groupe Monday": item.group?.title,
-    "Étape dossier": pipeline,
-    Commercial: t(C.commercial),
-    Poseur: t(C.poseur),
-    Revenus: t(C.tranche),
-    "Précarité Prémi": t(C.precarite),
-    Marque: t(C.marque),
-    Foyer: t(C.foyer),
-    Chauffage: t(C.chauffageSite) || t(C.chauffage),
-    Surface: t(C.surface) ? `${t(C.surface)} m²` : "",
-    "Type de demande": t(C.typeDemande),
-    Ressenti: t(C.ressenti),
-    "Date VT": t(C.dateVt),
-    "Date pose": t(C.datePose),
-    Montant: t(C.montant) ? `${t(C.montant)} €` : "",
-    "Lien Monday": item.url,
-  };
-  const details = Object.fromEntries(Object.entries(raw).filter(([, v]) => v));
+  // Colonnes Monday reprises à l'identique (valeurs texte), sans les vides.
+  const fields = {};
+  for (const k of FIELD_COLUMNS) {
+    const v = t(C[k]);
+    if (v) fields[k] = v;
+  }
+  const details = { "Groupe Monday": item.group?.title, "Lien Monday": item.url };
+  for (const k of Object.keys(details)) if (!details[k]) delete details[k];
 
   const importedAt = new Date().toISOString();
   const notes = [];
@@ -235,11 +242,12 @@ function convert(item) {
       phone: t(C.tel),
       email: email.toLowerCase(),
       postalCode: t(C.cp),
-      city: t(C.ville),
+      city: t(C.villeChantier),
       type,
       source: t(C.source) || "monday",
       projet,
       status,
+      fields,
       group: GROUP_MAP[String(item.group?.title ?? "").trim().toLowerCase()] ?? "contacts",
       rappelLe: t(C.rappel),
       details,
@@ -269,9 +277,32 @@ writer.onWriteError((err) => {
   return err.failedAttempts < 5;
 });
 
+const refreshable = new Set();
+if (REFRESH) {
+  const all = await db.collection("crm_leads").select("updatedBy").get();
+  for (const d of all.docs) if (d.id.startsWith("monday_") && d.get("updatedBy") === "import Monday") refreshable.add(d.id);
+  console.log(`${refreshable.size} fiches importées non modifiées, à rafraîchir.`);
+}
+
 for await (const item of fetchItems()) {
   stats.lus++;
   const lead = convert(item);
+  if (REFRESH) {
+    if (!refreshable.has(lead.id)) {
+      stats.deja_la++;
+      continue;
+    }
+    byStatus[lead.data.status] = (byStatus[lead.data.status] ?? 0) + 1;
+    stats.importes++;
+    if (!DRY_RUN) {
+      const { notes, createdAt, ...rest } = lead.data;
+      writer.update(db.doc(`crm_leads/${lead.id}`), { ...rest, updatedBy: "import Monday" }).catch((e) => {
+        stats.erreurs++;
+        console.error(`ÉCHEC ${lead.id}: ${e.message}`);
+      });
+    }
+    continue;
+  }
   if (lead.phoneDigits && existing.has(`${lead.phoneDigits}|${lead.day}`)) {
     stats.doublons_site++;
     continue;
@@ -295,7 +326,7 @@ for await (const item of fetchItems()) {
 }
 await writer.close();
 
-console.log(DRY_RUN ? "ESSAI À BLANC (rien d'écrit)" : "IMPORT TERMINÉ");
+console.log(DRY_RUN ? "ESSAI À BLANC (rien d'écrit)" : REFRESH ? "RAFRAÎCHISSEMENT TERMINÉ" : "IMPORT TERMINÉ");
 console.log(stats);
 console.log("Répartition par étape CRM :", byStatus);
 if (stats.erreurs > 0) process.exit(1);
