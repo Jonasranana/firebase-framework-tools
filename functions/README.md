@@ -169,3 +169,34 @@ résilier Monday : l'intégration native Meta → Monday s'arrêtera avec lui.
 
 Pendant la période où Monday et le webhook tournent ensemble, un même lead
 n'est créé qu'une fois dans le CRM (anti-doublon par téléphone).
+
+## Connecter la lecture de la boîte mail contact@ (CRM)
+
+La fonction `syncMailbox` (functions/crmMail.js) range les mails de contact@
+dans les fiches du CRM. Elle a besoin d'un jeton Gmail qui a, en plus de
+l'envoi, le droit de **lecture** de la boîte. Tant que ce n'est pas fait, la
+pastille « Boîte contact@ » de /admin est rouge (« non connectée ») et rien
+d'autre n'est affecté (l'envoi de mails continue de fonctionner).
+
+1. Ouvrir https://developers.google.com/oauthplayground, cliquer sur l'icône
+   ⚙️, cocher « Use your own OAuth credentials » et coller `GMAIL_CLIENT_ID` /
+   `GMAIL_CLIENT_SECRET` (les mêmes que pour l'envoi).
+2. Dans « Input your own scopes », saisir les deux scopes séparés par une
+   espace : `https://www.googleapis.com/auth/gmail.send https://www.googleapis.com/auth/gmail.readonly`
+   puis « Authorize APIs » et se connecter avec **contact@ip5energie.com**.
+3. « Exchange authorization code for tokens » → copier le **Refresh token**.
+4. Google Cloud Console → Secret Manager → `GMAIL_REFRESH_TOKEN` →
+   « Nouvelle version » → coller le jeton → Ajouter.
+5. Relancer le déploiement (Actions → « Deploy to Firebase Hosting » → Run
+   workflow) pour que les fonctions prennent le nouveau jeton.
+6. Dans /admin, cliquer sur ↻ à côté de « Boîte contact@ » : la pastille doit
+   passer au gris avec « à l'instant ».
+
+À refaire (étapes 1 à 5) à chaque changement de mot de passe de contact@,
+comme pour l'envoi.
+
+La synchronisation est demandée toutes les 15 minutes (de 6 h à 22 h environ)
+par `.github/workflows/sync-mailbox.yml`, et à la demande par le bouton ↻.
+Seuls les mails dont l'expéditeur (ou le destinataire, pour un mail envoyé)
+a la même adresse qu'une fiche lead ou artisan sont rangés ; les mails
+automatiques (no-reply, newsletters) sont ignorés.

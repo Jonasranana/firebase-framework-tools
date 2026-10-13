@@ -13,6 +13,7 @@ import ClientsCRM from "./ClientsCRM";
 import LeadsCRM from "./LeadsCRM";
 import ArtisansCRM from "./ArtisansCRM";
 import StatsCRM from "./StatsCRM";
+import DocumentsPage from "./DocumentsPage";
 import GonflageCRM from "./GonflageCRM";
 import AdminShell, { initialPage, rememberPage, type AdminPage } from "./AdminShell";
 
@@ -775,6 +776,9 @@ export default function OutilDevis() {
         if (!mail) {
           setStatus("signed-out");
         } else if (ALLOWED_EMAILS.includes(mail)) {
+          // Prépare tout de suite la base du CRM (cache local) pour que les
+          // tableaux s'affichent sans attendre.
+          import("@/lib/crmDb").then((m) => m.crmFirestore()).catch(() => {});
           setEmail(mail);
           setStatus("authorized");
         } else {
@@ -825,6 +829,7 @@ export default function OutilDevis() {
         {page === "leads" && <LeadsCRM email={email} />}
         {page === "artisans" && <ArtisansCRM email={email} />}
         {page === "stats" && <StatsCRM />}
+        {page === "documents" && <DocumentsPage />}
         {page === "devis" && <DevisPAC email={email} />}
         {page === "marges" && narrow(<MargesPremi />)}
         {page === "clients" && narrow(<ClientsCRM email={email} />)}

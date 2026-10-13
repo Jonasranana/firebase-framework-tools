@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, GripVertical, MessageCircle, Phone, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, Mail, MessageCircle, Paperclip, Phone, Plus } from "lucide-react";
 import {
   ARTISAN_STATUSES,
   formatShortDate,
@@ -14,8 +14,8 @@ import { EditableCell, StatusCell } from "./LeadsTable";
 // Vue « Tableau » façon Monday pour les artisans : même principe que
 // LeadsTable (groupes par étape, cellules modifiables, glisser-déposer).
 
-const COLS = "minmax(230px,2.2fr) 170px 175px 220px 130px 140px 60px 130px 100px";
-const HEADERS = ["Nom", "Étape", "Téléphone", "E-mail", "Ville", "Zone", "RGE", "Relance", "Ajouté le"];
+const COLS = "minmax(230px,2.2fr) 170px 175px 220px 130px 140px 60px 130px 80px 100px";
+const HEADERS = ["Nom", "Étape", "Téléphone", "E-mail", "Ville", "Zone", "RGE", "Relance", "Docs", "Ajouté le"];
 const GROUP_PAGE = 40;
 
 export default function ArtisansTable({
@@ -39,7 +39,7 @@ export default function ArtisansTable({
 
   return (
     <div className="overflow-x-auto pb-4">
-      <div className="min-w-[1385px] space-y-6">
+      <div className="min-w-[1465px] space-y-6">
         {ARTISAN_STATUSES.map((st) => {
           const rows = artisans.filter((a) => a.status === st.key);
           const isCollapsed = collapsed[st.key];
@@ -118,6 +118,15 @@ export default function ArtisansTable({
                         <div className="flex-1 min-w-0 h-full">
                           <EditableCell value={a.name} placeholder="Sans nom" onSave={(v) => onPatch(a.id, { name: v })} />
                         </div>
+                        {a.mailNonLu && (
+                          <button
+                            onClick={() => onOpen(a.id)}
+                            title="L'artisan a répondu par mail : cliquez pour lire"
+                            className="shrink-0 text-[#579bfc]"
+                          >
+                            <Mail size={15} />
+                          </button>
+                        )}
                         <button
                           onClick={() => onOpen(a.id)}
                           className="shrink-0 text-[11px] font-semibold text-[#579bfc] border border-[#579bfc]/40 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100"
@@ -173,6 +182,15 @@ export default function ArtisansTable({
                                 : "text-gray-600"
                           }`}
                         />
+                      </div>
+                      <div className="border-l border-gray-100 flex items-center px-2 text-xs" title={a.docCats.join(", ")}>
+                        {a.docCount > 0 ? (
+                          <span className="inline-flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600">
+                            <Paperclip size={11} /> {a.docCount}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
                       </div>
                       <div className="border-l border-gray-100 flex items-center px-2 text-xs text-gray-500">
                         {formatShortDate(a.createdAt)}

@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  FolderOpen,
   Gauge,
   Globe,
   HardHat,
@@ -17,6 +18,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LogoIP5 } from "./site-chrome";
+import MailSyncStatus from "./MailSyncStatus";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Coquille de /admin façon Monday : menu à gauche (groupes repliables, un
@@ -29,6 +31,7 @@ export type AdminPage =
   | "leads"
   | "artisans"
   | "stats"
+  | "documents"
   | "devis"
   | "marges"
   | "gonflage"
@@ -47,6 +50,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
     items: [
       { key: "leads", label: "Leads", icon: Users },
       { key: "artisans", label: "Artisans", icon: HardHat },
+      { key: "documents", label: "Documents", icon: FolderOpen },
       { key: "stats", label: "Statistiques", icon: BarChart3 },
     ],
   },
@@ -74,6 +78,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   leads: "Leads",
   artisans: "Artisans",
   stats: "Statistiques",
+  documents: "Documents",
   devis: "Devis PAC",
   marges: "Marges Prémi",
   gonflage: "Station de gonflage",
@@ -279,6 +284,7 @@ export default function AdminShell({
             <Menu size={22} />
           </button>
           <h1 className="text-lg font-bold text-gray-900">{PAGE_TITLES[page]}</h1>
+          <MailSyncStatus email={email} />
         </header>
         <main className="flex-1 min-w-0 p-4 md:p-6">{children}</main>
       </div>

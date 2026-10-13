@@ -42,7 +42,7 @@ export type LeadNote = {
   text: string;
   by: string;
   at: string; // ISO
-  kind?: "note" | "statut" | "message"; // « statut »/« message » = traces automatiques
+  kind?: "note" | "statut" | "message" | "mail"; // « statut »/« message »/« mail » = traces automatiques
 };
 
 export type Lead = {
@@ -60,6 +60,11 @@ export type Lead = {
   group: string;
   // Date de rappel prévue (AAAA-MM-JJ), vide si aucune.
   rappelLe: string;
+  // Boîte mail : un client a répondu et personne n'a encore ouvert la fiche.
+  mailNonLu: boolean;
+  // Documents rangés dans la fiche (tenus à jour à chaque ajout/suppression).
+  docCount: number;
+  docCats: string[];
   // Informations de qualification (revenus, chauffage…) : libellé → valeur.
   details: Record<string, string>;
   notes: LeadNote[];
@@ -93,6 +98,9 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     status,
     group: String(d.group ?? ""),
     rappelLe: String(d.rappelLe ?? ""),
+    mailNonLu: !!d.mailNonLu,
+    docCount: Number(d.docCount ?? 0),
+    docCats: Array.isArray(d.docCats) ? d.docCats : [],
     details: d.details && typeof d.details === "object" ? d.details : {},
     notes: Array.isArray(d.notes) ? d.notes : [],
     createdAt: toIso(d.createdAt),
@@ -201,6 +209,9 @@ export type Artisan = {
   status: ArtisanStatus;
   relanceLe: string;
   rgeVerifie: boolean;
+  mailNonLu: boolean;
+  docCount: number;
+  docCats: string[];
   grille: {
     prices: Record<string, string>;
     travel: Record<string, string>;
@@ -226,6 +237,9 @@ export function artisanFromDoc(id: string, d: Record<string, any>): Artisan {
     status: ARTISAN_STATUSES.some((s) => s.key === d.status) ? d.status : "a_contacter",
     relanceLe: String(d.relanceLe ?? ""),
     rgeVerifie: !!d.rgeVerifie,
+    mailNonLu: !!d.mailNonLu,
+    docCount: Number(d.docCount ?? 0),
+    docCats: Array.isArray(d.docCats) ? d.docCats : [],
     grille: d.grille && typeof d.grille === "object" ? d.grille : null,
     notes: Array.isArray(d.notes) ? d.notes : [],
     source: String(d.source ?? ""),

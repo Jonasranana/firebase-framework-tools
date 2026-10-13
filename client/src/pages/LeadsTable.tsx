@@ -5,12 +5,15 @@ import {
   ChevronDown,
   ChevronRight,
   GripVertical,
+  Mail,
   MessageCircle,
   MoreHorizontal,
+  Paperclip,
   Phone,
   Plus,
   Trash2,
 } from "lucide-react";
+import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   GROUP_COLORS,
@@ -36,8 +39,8 @@ import {
 // ─────────────────────────────────────────────────────────────────────────
 
 const COLS =
-  "minmax(230px,2.2fr) 150px 175px 220px 90px 110px 150px 130px 100px";
-const HEADERS = ["Nom", "Statut", "Téléphone", "E-mail", "CP", "Type", "Source", "Rappel", "Reçu le"];
+  "minmax(230px,2.2fr) 150px 175px 220px 90px 110px 150px 130px 80px 100px";
+const HEADERS = ["Nom", "Statut", "Téléphone", "E-mail", "CP", "Type", "Source", "Rappel", "Docs", "Reçu le"];
 const GROUP_PAGE = 40;
 
 // Cellule texte : s'édite au clic, Entrée ou clic ailleurs enregistre, Échap annule.
@@ -305,7 +308,7 @@ export default function LeadsTable({
 
   return (
     <div className="overflow-x-auto pb-4">
-      <div className="min-w-[1255px] space-y-6">
+      <div className="min-w-[1335px] space-y-6">
         {groups.map((st, gi) => {
           const rows = leads.filter((l) => groupOf(l, groups).id === st.id);
           const isCollapsed = collapsed[st.id];
@@ -397,6 +400,15 @@ export default function LeadsTable({
                         <div className="flex-1 min-w-0 h-full">
                           <EditableCell value={l.name} placeholder="Sans nom" onSave={(v) => onPatch(l.id, { name: v })} />
                         </div>
+                        {l.mailNonLu && (
+                          <button
+                            onClick={() => onOpen(l.id)}
+                            title="Le client a répondu par mail : cliquez pour lire"
+                            className="shrink-0 text-[#579bfc]"
+                          >
+                            <Mail size={15} />
+                          </button>
+                        )}
                         <button
                           onClick={() => onOpen(l.id)}
                           className="shrink-0 text-[11px] font-semibold text-[#579bfc] border border-[#579bfc]/40 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100"
@@ -423,7 +435,7 @@ export default function LeadsTable({
                         )}
                       </div>
                       <div className="border-l border-gray-100">
-                        <EditableCell value={l.email} type="email" onSave={(v) => onPatch(l.id, { email: v })} />
+                        <EditableCell value={l.email} type="email" onSave={(v) => onPatch(l.id, { email: v.toLowerCase() })} />
                       </div>
                       <div className="border-l border-gray-100">
                         <EditableCell value={l.postalCode} onSave={(v) => onPatch(l.id, { postalCode: v })} />
@@ -447,6 +459,24 @@ export default function LeadsTable({
                                 : "text-gray-600"
                           }`}
                         />
+                      </div>
+                      <div
+                        className="border-l border-gray-100 flex items-center gap-1 px-2 text-xs"
+                        title={l.docCats.length ? l.docCats.join(", ") : "Aucun document"}
+                      >
+                        {l.docCount > 0 ? (
+                          <span
+                            className={`inline-flex items-center gap-1 font-semibold px-1.5 py-0.5 rounded-full ${
+                              REQUIRED_LEAD_DOCS.every((c) => l.docCats.includes(c))
+                                ? "bg-green-100 text-green-700"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            <Paperclip size={11} /> {l.docCount}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
                       </div>
                       <div className="border-l border-gray-100 flex items-center px-2 text-xs text-gray-500">
                         {formatShortDate(l.createdAt || isoToYmd(l.updatedAt))}

@@ -22,8 +22,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { crmFirestore } from "@/lib/crmDb";
+import { useArtisans } from "@/lib/crmStore";
 import { getEspaceProApp } from "@/lib/espacePro";
 import ArtisansTable from "./ArtisansTable";
+import DocumentsPanel from "./DocumentsPanel";
 import { ARTISAN_GRID_SECTIONS, TRAVEL_FIELDS } from "@/lib/artisanGrid";
 import {
   ARTISAN_STATUSES,
@@ -61,11 +64,7 @@ const MAIL_TEMPLATES = [
   { key: "mail apres appel", label: "Mail après appel" },
 ] as const;
 
-async function fs() {
-  const app = await getEspaceProApp();
-  const m = await import("firebase/firestore");
-  return { m, db: m.getFirestore(app) };
-}
+const fs = crmFirestore;
 
 async function patchArtisan(id: string, email: string, patch: Record<string, unknown>) {
   const { m, db } = await fs();
@@ -225,6 +224,11 @@ const ArtisanSheet = ({
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (artisan?.mailNonLu) patchArtisan(artisan.id, email, { mailNonLu: false }).catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [artisan?.id, artisan?.mailNonLu]);
 
   const id = artisan?.id;
   useEffect(() => {
@@ -440,6 +444,18 @@ const ArtisanSheet = ({
           {artisan && <MailSender key={artisan.id} artisan={artisan} />}
 
           {artisan && (
+            <DocumentsPanel
+              key={artisan.id}
+              ownerType="artisan"
+              ownerId={artisan.id}
+              ownerName={artisan.name}
+              email={email}
+              stored={{ docCount: artisan.docCount, docCats: artisan.docCats }}
+              onSummary={(sm) => patchArtisan(artisan.id, email, sm).catch(console.error)}
+            />
+          )}
+
+          {artisan && (
             <div className="pt-3 border-t border-gray-100">
               <span className="block text-xs font-semibold text-gray-600 mb-2">Notes et historique</span>
               <textarea
@@ -466,7 +482,9 @@ const ArtisanSheet = ({
                         ? "bg-gray-50 text-gray-500 text-xs"
                         : n.kind === "message"
                           ? "bg-green-50 text-gray-700"
-                          : "bg-blue-50 text-gray-800"
+                          : n.kind === "mail"
+                            ? "bg-indigo-50 text-gray-800 border-l-4 border-indigo-300"
+                            : "bg-blue-50 text-gray-800"
                     }`}
                   >
                     <p className="whitespace-pre-wrap">{n.text}</p>
@@ -486,8 +504,9 @@ const ArtisanSheet = ({
 
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function ArtisansCRM({ email }: { email: string }) {
-  const [artisans, setArtisans] = useState<Artisan[] | null>(null);
-  const [error, setError] = useState("");
+  const { data: artisans, error: storeError } = useArtisans();
+  const [localError, setError] = useState("");
+  const error = localError || storeError;
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | ArtisanStatus>("");
   const [zoneFilter, setZoneFilter] = useState("");
@@ -509,35 +528,6 @@ export default function ArtisansCRM({ email }: { email: string }) {
       /* préférence non essentielle */
     }
   };
-
-  useEffect(() => {
-    let unsub: (() => void) | undefined;
-    let cancelled = false;
-    (async () => {
-      try {
-        const { m, db } = await fs();
-        unsub = m.onSnapshot(
-          m.query(m.collection(db, CRM_ARTISANS_COLLECTION), m.orderBy("createdAt", "desc")),
-          (snap) => {
-            if (cancelled) return;
-            setArtisans(snap.docs.map((d) => artisanFromDoc(d.id, d.data())));
-            setError("");
-          },
-          (e) => {
-            console.error(e);
-            setError("Impossible de charger les artisans. Vérifiez que vous êtes autorisé, puis rechargez la page.");
-          },
-        );
-      } catch (e) {
-        console.error(e);
-        setError("Impossible de se connecter à la base de données.");
-      }
-    })();
-    return () => {
-      cancelled = true;
-      unsub?.();
-    };
-  }, []);
 
   const zones = useMemo(
     () => Array.from(new Set((artisans ?? []).map((a) => a.zone).filter(Boolean))).sort(),
