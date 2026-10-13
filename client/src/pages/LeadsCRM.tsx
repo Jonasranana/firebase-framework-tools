@@ -12,6 +12,10 @@ import {
   Check,
   X,
   Send,
+  Paperclip,
+  Trash2,
+  Upload,
+  FileText,
 } from "lucide-react";
 import {
   Sheet,
@@ -310,6 +314,152 @@ const MessageSender = ({ lead }: { lead: Lead }) => {
   );
 };
 
+// ── Documents (Firebase Storage) ───────────────────────────────────────────
+// Dossier crm/leads/<id>/ : sous le préfixe crm/ déjà utilisé par l'onglet
+// Clients, donc couvert par les mêmes règles Storage. Chaque fichier est
+// préfixé par l'horodatage pour que deux envois du même nom ne s'écrasent pas.
+type StoredDoc = { path: string; label: string; url: string; size: number; at: number };
+
+const docLabel = (name: string) => name.replace(/^\d{13}_/, "");
+const formatSize = (b: number) =>
+  b > 1e6 ? `${(b / 1e6).toFixed(1)} Mo` : `${Math.max(1, Math.round(b / 1e3))} Ko`;
+
+const LeadDocuments = ({ lead, email }: { lead: Lead; email: string }) => {
+  const folder = `crm/leads/${lead.id}`;
+  const [docs, setDocs] = useState<StoredDoc[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const storage = async () => {
+    const app = await getEspaceProApp();
+    const m = await import("firebase/storage");
+    return { m, st: m.getStorage(app) };
+  };
+
+  const load = async () => {
+    try {
+      const { m, st } = await storage();
+      const res = await m.listAll(m.ref(st, folder));
+      const list = await Promise.all(
+        res.items.map(async (item) => {
+          const [url, meta] = await Promise.all([m.getDownloadURL(item), m.getMetadata(item)]);
+          return {
+            path: item.fullPath,
+            label: docLabel(item.name),
+            url,
+            size: meta.size,
+            at: Number(item.name.slice(0, 13)) || Date.parse(meta.timeCreated) || 0,
+          };
+        }),
+      );
+      setDocs(list.sort((a, b) => b.at - a.at));
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de charger les documents.");
+      setDocs([]);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead.id]);
+
+  const upload = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setBusy(true);
+    setError("");
+    try {
+      const { m, st } = await storage();
+      const names: string[] = [];
+      for (const f of Array.from(files)) {
+        if (f.size > 25 * 1024 * 1024) throw new Error(`« ${f.name} » dépasse 25 Mo.`);
+        const safe = f.name.replace(/[^\w.\- ()àâäçéèêëîïôöùûüÿ]/gi, "_");
+        await m.uploadBytes(m.ref(st, `${folder}/${Date.now()}_${safe}`), f);
+        names.push(f.name);
+      }
+      await addLeadNote(lead.id, email, {
+        id: newId(),
+        text: `📎 Document ajouté : ${names.join(", ")}`,
+        by: email,
+        at: new Date().toISOString(),
+        kind: "statut",
+      });
+      await load();
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message?.startsWith("«") ? e.message : "Échec de l'envoi. Réessayez.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const remove = async (d: StoredDoc) => {
+    if (!confirm(`Supprimer « ${d.label} » ?`)) return;
+    try {
+      const { m, st } = await storage();
+      await m.deleteObject(m.ref(st, d.path));
+      setDocs((prev) => prev?.filter((x) => x.path !== d.path) ?? null);
+    } catch (e) {
+      console.error(e);
+      setError("Échec de la suppression.");
+    }
+  };
+
+  return (
+    <div className="pt-3 border-t border-gray-100">
+      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 mb-2">
+        <Paperclip size={13} /> Documents
+      </span>
+      {docs === null && <p className="text-xs text-gray-400">Chargement…</p>}
+      {docs && docs.length === 0 && <p className="text-xs text-gray-400 mb-2">Aucun document.</p>}
+      {docs && docs.length > 0 && (
+        <ul className="space-y-1 mb-2">
+          {docs.map((d) => (
+            <li
+              key={d.path}
+              className="flex items-center justify-between gap-2 bg-gray-50 rounded-lg px-2.5 py-1.5"
+            >
+              <a
+                href={d.url}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 min-w-0 text-xs font-semibold text-[#2b5a8f]"
+              >
+                <FileText size={13} className="shrink-0" />
+                <span className="truncate">{d.label}</span>
+                <span className="text-gray-400 font-normal shrink-0">{formatSize(d.size)}</span>
+              </a>
+              <button
+                onClick={() => remove(d)}
+                className="text-gray-400 hover:text-red-600 shrink-0"
+                aria-label={`Supprimer ${d.label}`}
+              >
+                <Trash2 size={14} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {error && <p className="text-xs text-red-600 mb-2">{error}</p>}
+      <label className="inline-flex items-center gap-1.5 text-xs font-bold text-[#2b5a8f] cursor-pointer">
+        {busy ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+        {busy ? "Envoi…" : "Ajouter des documents (PDF, photos…)"}
+        <input
+          type="file"
+          multiple
+          className="hidden"
+          disabled={busy}
+          onChange={(e) => {
+            upload(e.target.files);
+            e.target.value = "";
+          }}
+        />
+      </label>
+    </div>
+  );
+};
+
 type Draft = {
   name: string;
   phone: string;
@@ -596,6 +746,8 @@ const LeadSheet = ({
           )}
 
           {lead && <MessageSender key={lead.id} lead={lead} />}
+
+          {lead && <LeadDocuments lead={lead} email={email} />}
 
           {lead && (
             <div className="pt-3 border-t border-gray-100">
