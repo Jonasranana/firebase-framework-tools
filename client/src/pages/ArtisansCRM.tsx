@@ -12,6 +12,8 @@ import {
   Send,
   ShieldCheck,
   ChevronDown,
+  Table2,
+  List,
 } from "lucide-react";
 import {
   Sheet,
@@ -21,6 +23,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { getEspaceProApp } from "@/lib/espacePro";
+import ArtisansTable from "./ArtisansTable";
 import { ARTISAN_GRID_SECTIONS, TRAVEL_FIELDS } from "@/lib/artisanGrid";
 import {
   ARTISAN_STATUSES,
@@ -491,6 +494,21 @@ export default function ArtisansCRM({ email }: { email: string }) {
   const [relancesOnly, setRelancesOnly] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
+  const [view, setView] = useState<"tableau" | "liste">(() => {
+    try {
+      return localStorage.getItem("crm-artisans-view") === "liste" ? "liste" : "tableau";
+    } catch {
+      return "tableau";
+    }
+  });
+  const setViewPersist = (v: "tableau" | "liste") => {
+    setView(v);
+    try {
+      localStorage.setItem("crm-artisans-view", v);
+    } catch {
+      /* préférence non essentielle */
+    }
+  };
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -548,6 +566,59 @@ export default function ArtisansCRM({ email }: { email: string }) {
   const dueCount = useMemo(() => (artisans ?? []).filter(isDue).length, [artisans]);
   const open = artisans?.find((a) => a.id === openId) ?? null;
 
+  const moveArtisan = async (id: string, status: ArtisanStatus) => {
+    const a = artisans?.find((x) => x.id === id);
+    if (!a || a.status === status) return;
+    try {
+      const { m } = await fs();
+      await patchArtisan(id, email, {
+        status,
+        notes: m.arrayUnion({
+          id: newId(),
+          text: `${artisanStatusInfo(a.status).label} → ${artisanStatusInfo(status).label}`,
+          by: email,
+          at: new Date().toISOString(),
+          kind: "statut",
+        } satisfies LeadNote),
+      });
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de changer l'étape. Réessayez.");
+    }
+  };
+
+  const patchFromTable = (id: string, patch: Record<string, unknown>) =>
+    patchArtisan(id, email, patch).catch((e) => {
+      console.error(e);
+      setError("Modification non enregistrée. Réessayez.");
+    });
+
+  const createFromTable = async (status: ArtisanStatus, name: string) => {
+    try {
+      const { m, db } = await fs();
+      await m.addDoc(m.collection(db, CRM_ARTISANS_COLLECTION), {
+        name,
+        email: "",
+        telephone: "",
+        siret: "",
+        ville: "",
+        zone: "",
+        status,
+        relanceLe: "",
+        rgeVerifie: false,
+        grille: null,
+        notes: [],
+        source: "saisie-manuelle",
+        createdAt: m.serverTimestamp(),
+        updatedAt: m.serverTimestamp(),
+        updatedBy: email,
+      });
+    } catch (e) {
+      console.error(e);
+      setError("Impossible d'ajouter l'artisan. Réessayez.");
+    }
+  };
+
   return (
     <div>
       <div className="flex gap-2 mb-3">
@@ -570,6 +641,24 @@ export default function ArtisansCRM({ email }: { email: string }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2 mb-3">
+        <div className="inline-flex rounded-full bg-gray-100 p-0.5">
+          {(
+            [
+              ["tableau", Table2, "Tableau"],
+              ["liste", List, "Liste"],
+            ] as const
+          ).map(([k, Icon, label]) => (
+            <button
+              key={k}
+              onClick={() => setViewPersist(k)}
+              className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full ${
+                view === k ? "bg-white text-[#2b5a8f] shadow-sm" : "text-gray-500"
+              }`}
+            >
+              <Icon size={13} /> {label}
+            </button>
+          ))}
+        </div>
         <select
           value={zoneFilter}
           onChange={(e) => setZoneFilter(e.target.value)}
@@ -603,7 +692,7 @@ export default function ArtisansCRM({ email }: { email: string }) {
         )}
       </div>
 
-      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 -mx-1 px-1">
+      <div className={`${view === "liste" ? "flex" : "hidden"} gap-1.5 overflow-x-auto pb-2 mb-2 -mx-1 px-1`}>
         <button
           onClick={() => setStatusFilter("")}
           className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${
@@ -633,13 +722,23 @@ export default function ArtisansCRM({ email }: { email: string }) {
           Chargement…
         </div>
       )}
-      {artisans && artisans.length === 0 && (
+      {artisans && artisans.length === 0 && view === "liste" && (
         <p className="text-center text-gray-400 text-sm py-10">
           Aucun artisan pour l'instant. Importez ceux de Monday, ou ajoutez-en un avec « Nouveau ».
         </p>
       )}
 
-      <div className="grid gap-2.5 md:grid-cols-2">
+      {artisans && view === "tableau" && (
+        <ArtisansTable
+          artisans={baseFiltered}
+          onOpen={setOpenId}
+          onStatus={moveArtisan}
+          onPatch={patchFromTable}
+          onCreate={createFromTable}
+        />
+      )}
+
+      <div className={`${view === "liste" ? "grid" : "hidden"} gap-2.5 md:grid-cols-2`}>
         {filtered.map((a) => (
           <div
             key={a.id}

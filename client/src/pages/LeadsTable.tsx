@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, MessageCircle, Phone, Plus } from "lucide-react";
+import { ChevronDown, ChevronRight, GripVertical, MessageCircle, Phone, Plus } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   LEAD_STATUSES,
@@ -8,7 +8,6 @@ import {
   formatPhone,
   formatShortDate,
   isoToYmd,
-  statusInfo,
   telHref,
   todayYmd,
   whatsappHref,
@@ -28,7 +27,7 @@ const HEADERS = ["Nom", "Statut", "Téléphone", "E-mail", "CP", "Type", "Source
 const GROUP_PAGE = 40;
 
 // Cellule texte : s'édite au clic, Entrée ou clic ailleurs enregistre, Échap annule.
-const EditableCell = ({
+export const EditableCell = ({
   value,
   onSave,
   type = "text",
@@ -80,9 +79,19 @@ const EditableCell = ({
   );
 };
 
-const StatusCell = ({ status, onChange }: { status: LeadStatus; onChange: (s: LeadStatus) => void }) => {
+export type StatusOption = { key: string; label: string; hex: string };
+
+export const StatusCell = ({
+  status,
+  options,
+  onChange,
+}: {
+  status: string;
+  options: readonly StatusOption[];
+  onChange: (s: string) => void;
+}) => {
   const [open, setOpen] = useState(false);
-  const s = statusInfo(status);
+  const s = options.find((o) => o.key === status) ?? options[0];
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -93,8 +102,8 @@ const StatusCell = ({ status, onChange }: { status: LeadStatus; onChange: (s: Le
           {s.label}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-44 p-2 space-y-1.5" align="start">
-        {LEAD_STATUSES.map((o) => (
+      <PopoverContent className="w-48 p-2 space-y-1.5" align="start">
+        {options.map((o) => (
           <button
             key={o.key}
             onClick={() => {
@@ -174,6 +183,7 @@ export default function LeadsTable({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [limits, setLimits] = useState<Record<string, number>>({});
   const today = todayYmd();
+  const [dropOver, setDropOver] = useState<string | null>(null);
 
   return (
     <div className="overflow-x-auto pb-4">
@@ -183,7 +193,24 @@ export default function LeadsTable({
           const isCollapsed = collapsed[st.key];
           const limit = limits[st.key] ?? GROUP_PAGE;
           return (
-            <section key={st.key}>
+            <section
+              key={st.key}
+              onDragOver={(e) => {
+                if (!e.dataTransfer.types.includes("text/lead-id")) return;
+                e.preventDefault();
+                setDropOver(st.key);
+              }}
+              onDragLeave={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropOver(null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDropOver(null);
+                const id = e.dataTransfer.getData("text/lead-id");
+                if (id) onStatus(id, st.key);
+              }}
+              className={`rounded-lg transition-colors ${dropOver === st.key ? "bg-blue-50 ring-2 ring-[#579bfc]" : ""}`}
+            >
               <button
                 onClick={() => setCollapsed((c) => ({ ...c, [st.key]: !c[st.key] }))}
                 className="flex items-center gap-2 mb-1 px-1"
@@ -225,6 +252,19 @@ export default function LeadsTable({
                         className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 flex items-center gap-1 pr-1"
                         style={{ borderLeft: `6px solid ${st.hex}` }}
                       >
+                        <span
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.setData("text/lead-id", l.id);
+                            e.dataTransfer.effectAllowed = "move";
+                            const row = (e.currentTarget as HTMLElement).closest(".group");
+                            if (row) e.dataTransfer.setDragImage(row, 20, 16);
+                          }}
+                          title="Glisser vers un autre groupe"
+                          className="shrink-0 cursor-grab text-gray-300 hover:text-gray-500 pl-0.5"
+                        >
+                          <GripVertical size={14} />
+                        </span>
                         <div className="flex-1 min-w-0 h-full">
                           <EditableCell value={l.name} placeholder="Sans nom" onSave={(v) => onPatch(l.id, { name: v })} />
                         </div>
@@ -236,7 +276,7 @@ export default function LeadsTable({
                         </button>
                       </div>
                       <div className="border-l border-gray-100">
-                        <StatusCell status={l.status} onChange={(s) => onStatus(l.id, s)} />
+                        <StatusCell status={l.status} options={LEAD_STATUSES} onChange={(s) => onStatus(l.id, s as LeadStatus)} />
                       </div>
                       <div className="border-l border-gray-100 flex items-center min-w-0">
                         <div className="flex-1 min-w-0 h-full">
