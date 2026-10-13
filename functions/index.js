@@ -2167,6 +2167,143 @@ exports.sendRecruitmentEmail = onRequest(
   },
 );
 
+// ── CRM maison : artisans (collection crm_artisans) ─────────────────────
+// Étape de suivi CRM correspondant à l'étiquette Monday posée par un modèle.
+const CRM_ARTISAN_STATUS_BY_MONDAY = {
+  "Mail 1 envoye": "mail1",
+  "Relance envoyee": "relance",
+  "Dernier message envoye": "dernier",
+};
+
+// Enregistre une grille reçue dans le CRM : met à jour la fiche existante
+// (même e-mail, y compris importée de Monday) ou en crée une. Ne bloque
+// jamais la réponse à l'artisan : les erreurs sont seulement journalisées.
+async function upsertCrmArtisanGrid({ identity, prices, travel, comment, mondayItemId }) {
+  try {
+    const grille = { prices, travel, comment, submittedAt: new Date().toISOString() };
+    const note = {
+      id: Math.random().toString(36).slice(2, 10),
+      text: "🧰 Grille de prix de pose remplie sur ip5energie.fr/espace-pro",
+      by: "espace-pro",
+      at: new Date().toISOString(),
+      kind: "statut",
+    };
+    const found = await db.collection("crm_artisans").where("email", "==", identity.email).limit(1).get();
+    if (!found.empty) {
+      await found.docs[0].ref.update({
+        status: "grille",
+        grille,
+        siret: identity.siret,
+        ville: identity.ville,
+        ...(identity.telephone && !found.docs[0].get("telephone") ? { telephone: identity.telephone } : {}),
+        notes: FieldValue.arrayUnion(note),
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: "espace-pro",
+      });
+      return;
+    }
+    await db.doc(`crm_artisans/web_${emailKey(identity.email).slice(0, 20)}`).set({
+      name: `${identity.prenom} ${identity.nom}`.trim(),
+      email: identity.email,
+      telephone: identity.telephone,
+      siret: identity.siret,
+      ville: identity.ville,
+      zone: "",
+      status: "grille",
+      relanceLe: "",
+      rgeVerifie: false,
+      grille,
+      notes: [note],
+      source: "espace-pro",
+      mondayItemId: mondayItemId ? String(mondayItemId) : "",
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      updatedBy: "espace-pro",
+    });
+  } catch (err) {
+    logger.error("Grille artisan : copie dans le CRM échouée", { error: err.message });
+  }
+}
+
+// Mails de recrutement envoyés depuis la fiche artisan du CRM (mêmes
+// modèles et même anti-doublon que sendRecruitmentEmail côté Monday).
+exports.sendArtisanMessage = onCall(
+  {
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+    region: "europe-west9",
+  },
+  async (request) => {
+    const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+    if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const { artisanId, template } = request.data ?? {};
+    const tplKey = normalizeLabel(template);
+    const tpl = RECRUIT_TEMPLATES[tplKey];
+    if (typeof artisanId !== "string" || !artisanId || !tpl) {
+      throw new HttpsError("invalid-argument", "Requête invalide.");
+    }
+    const ref = db.doc(`crm_artisans/${artisanId}`);
+    const snap = await ref.get();
+    if (!snap.exists) throw new HttpsError("not-found", "Artisan introuvable.");
+    const a = snap.data();
+    const email = String(a.email ?? "").trim();
+    if (!EMAIL_RE.test(email)) throw new HttpsError("failed-precondition", "Adresse e-mail manquante ou invalide.");
+    if (["dead", "signe"].includes(a.status)) {
+      throw new HttpsError("failed-precondition", "Artisan marqué Dead / Signé : envoi bloqué.");
+    }
+    if ((await db.doc(`email_optouts/${emailKey(email.toLowerCase())}`).get()).exists) {
+      throw new HttpsError("failed-precondition", "Cet artisan s'est désinscrit.");
+    }
+    const sendRef = db.doc(`recruit_sends/crm_${artisanId}_${tplKey.replace(/ /g, "_")}_${emailKey(email.toLowerCase()).slice(0, 16)}`);
+    try {
+      await sendRef.create({ at: FieldValue.serverTimestamp(), template: tplKey });
+    } catch {
+      throw new HttpsError("already-exists", "Ce modèle a déjà été envoyé à cette adresse.");
+    }
+    try {
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const subject = tpl.subject(String(a.zone ?? "").trim());
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: buildRawMessage({
+            to: email,
+            from: GMAIL_SENDER_EMAIL.value(),
+            subject,
+            html: buildBrandedEmailShell({ bodyHtml: tpl.body() + RECRUIT_STOP }),
+          }),
+        },
+      });
+      const patch = {
+        notes: FieldValue.arrayUnion({
+          id: Math.random().toString(36).slice(2, 10),
+          text: `✉️ Mail envoyé : « ${subject} »`,
+          by: caller,
+          at: new Date().toISOString(),
+          kind: "message",
+        }),
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: caller,
+      };
+      const newStatus = CRM_ARTISAN_STATUS_BY_MONDAY[tpl.statut];
+      if (newStatus && a.status !== "grille" && a.status !== "potentiel") patch.status = newStatus;
+      if (tpl.relanceInDays) {
+        patch.relanceLe = new Date(Date.now() + tpl.relanceInDays * 86400000).toISOString().slice(0, 10);
+      }
+      await ref.update(patch);
+      logger.info("Mail artisan CRM envoyé", { artisanId, template: tplKey, by: caller });
+      return { ok: true };
+    } catch (err) {
+      await sendRef.delete().catch(() => {});
+      logger.error("Échec du mail artisan CRM", { artisanId, error: err.message });
+      throw new HttpsError("internal", "Échec de l'envoi du mail (voir les journaux).");
+    }
+  },
+);
+
 // Recherche d'une fiche du tableau de recrutement par e-mail (toutes pages).
 async function findRecruitItemByEmail(email, token) {
   const fields = `cursor items { id name column_values(ids: ["${RECRUIT_COL.email}", "${RECRUIT_COL.zone}", "${RECRUIT_COL.telephone}"]) { id text value } }`;
@@ -2306,6 +2443,7 @@ exports.submitArtisanGrid = onRequest(
     } catch (err) {
       logger.error("Grille artisan : mise à jour Monday échouée", { error: err.message });
     }
+    await upsertCrmArtisanGrid({ identity, prices, travel, comment, mondayItemId: mondayItem?.id });
 
     try {
       const pdf = await buildArtisanGridPdf({ identity, prices, travel, comment, mondayName: mondayItem?.name, mondayZone: mondayItem?.zone });

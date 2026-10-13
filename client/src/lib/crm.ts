@@ -161,3 +161,73 @@ export const formatYmd = (ymd: string) => {
   const [y, m, d] = ymd.split("-");
   return y && m && d ? `${d}/${m}/${y}` : ymd;
 };
+
+// ─────────────────────────────────────────────────────────────────────────
+// Artisans partenaires (collection crm_artisans) — pipeline de recrutement
+// des poseurs RGE QualiPAC, repris du tableau Monday « Recrutement
+// sous-traitants PAC ».
+// ─────────────────────────────────────────────────────────────────────────
+export const CRM_ARTISANS_COLLECTION = "crm_artisans";
+
+export const ARTISAN_STATUSES = [
+  { key: "a_contacter", label: "À contacter", badge: "bg-gray-100 text-gray-600", dot: "bg-gray-400" },
+  { key: "mail1", label: "Proposition envoyée", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-500" },
+  { key: "relance", label: "Relancé", badge: "bg-cyan-100 text-cyan-700", dot: "bg-cyan-500" },
+  { key: "dernier", label: "Dernier message", badge: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
+  { key: "a_rappeler", label: "À rappeler", badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
+  { key: "nrp", label: "Injoignable", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
+  { key: "potentiel", label: "Potentiel", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
+  { key: "grille", label: "Grille remplie", badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
+  { key: "signe", label: "Signé", badge: "bg-green-100 text-green-700", dot: "bg-green-600" },
+  { key: "dead", label: "Abandonné", badge: "bg-gray-200 text-gray-500", dot: "bg-gray-300" },
+] as const;
+
+export type ArtisanStatus = (typeof ARTISAN_STATUSES)[number]["key"];
+
+export const artisanStatusInfo = (key: string) =>
+  ARTISAN_STATUSES.find((s) => s.key === key) ?? ARTISAN_STATUSES[0];
+
+export type Artisan = {
+  id: string;
+  name: string;
+  email: string;
+  telephone: string;
+  siret: string;
+  ville: string;
+  zone: string;
+  status: ArtisanStatus;
+  relanceLe: string;
+  rgeVerifie: boolean;
+  grille: {
+    prices: Record<string, string>;
+    travel: Record<string, string>;
+    comment: string;
+    submittedAt: string;
+  } | null;
+  notes: LeadNote[];
+  source: string;
+  mondayUrl: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export function artisanFromDoc(id: string, d: Record<string, any>): Artisan {
+  return {
+    id,
+    name: String(d.name ?? ""),
+    email: String(d.email ?? ""),
+    telephone: String(d.telephone ?? ""),
+    siret: String(d.siret ?? ""),
+    ville: String(d.ville ?? ""),
+    zone: String(d.zone ?? ""),
+    status: ARTISAN_STATUSES.some((s) => s.key === d.status) ? d.status : "a_contacter",
+    relanceLe: String(d.relanceLe ?? ""),
+    rgeVerifie: !!d.rgeVerifie,
+    grille: d.grille && typeof d.grille === "object" ? d.grille : null,
+    notes: Array.isArray(d.notes) ? d.notes : [],
+    source: String(d.source ?? ""),
+    mondayUrl: String(d.mondayUrl ?? ""),
+    createdAt: toIso(d.createdAt),
+    updatedAt: toIso(d.updatedAt),
+  };
+}

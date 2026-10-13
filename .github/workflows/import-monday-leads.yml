@@ -7,6 +7,11 @@ name: Import Monday vers CRM
 on:
   workflow_dispatch:
     inputs:
+      cible:
+        description: "Que faut-il importer ?"
+        type: choice
+        options: [leads, artisans]
+        default: leads
       dry_run:
         description: "Essai à blanc (n'écrit rien)"
         type: boolean
@@ -39,4 +44,4 @@ jobs:
           GCLOUD_PROJECT: kachoto-7554c
           MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
-        run: node scripts/import-monday-to-crm-leads.mjs
+        run: node scripts/import-monday-to-crm-${{ inputs.cible }}.mjs
