@@ -100,6 +100,21 @@ const STATUS_MAP = {
   "pas bon": "perdu",
 };
 
+// Groupe Monday → groupe du tableau CRM (identifiants de DEFAULT_LEAD_GROUPS
+// dans client/src/lib/crm.ts). Groupe inconnu : « contacts ».
+const GROUP_MAP = {
+  "📥 nouveaux leads du site internet": "nouveaux",
+  "0/ contacts": "contacts",
+  "1/leads mebarek": "mebarek",
+  "rdv pris par mebarek": "rdv_mebarek",
+  "2/ docs demandés": "docs_demandes",
+  "3/ docs reçues": "docs_recus",
+  "4/ accord previsite": "previsite",
+  "5/ date d'installation": "installation",
+  nrp: "nrp",
+  "pas eligibile": "pas_eligible",
+};
+
 async function monday(query, variables) {
   for (let attempt = 1; ; attempt++) {
     const res = await fetch("https://api.monday.com/v2", {
@@ -225,6 +240,7 @@ function convert(item) {
       source: t(C.source) || "monday",
       projet,
       status,
+      group: GROUP_MAP[String(item.group?.title ?? "").trim().toLowerCase()] ?? "contacts",
       rappelLe: t(C.rappel),
       details,
       notes,

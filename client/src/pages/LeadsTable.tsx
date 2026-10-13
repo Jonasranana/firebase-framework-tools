@@ -1,10 +1,24 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, ChevronRight, GripVertical, MessageCircle, Phone, Plus } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronRight,
+  GripVertical,
+  MessageCircle,
+  MoreHorizontal,
+  Phone,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
+  GROUP_COLORS,
   LEAD_STATUSES,
   LEAD_TYPES,
   TYPE_BADGE,
+  groupOf,
+  type LeadGroup,
   formatPhone,
   formatShortDate,
   isoToYmd,
@@ -167,38 +181,142 @@ const AddRow = ({ color, onAdd }: { color: string; onAdd: (name: string) => void
   );
 };
 
+const newGroupId = () => `g_${Math.random().toString(36).slice(2, 8)}`;
+
+// Menu d'un groupe : renommer, colorer, déplacer, supprimer.
+const GroupMenu = ({
+  group,
+  index,
+  total,
+  count,
+  onChange,
+  onMove,
+  onDelete,
+}: {
+  group: LeadGroup;
+  index: number;
+  total: number;
+  count: number;
+  onChange: (patch: Partial<LeadGroup>) => void;
+  onMove: (dir: -1 | 1) => void;
+  onDelete: () => void;
+}) => {
+  const [title, setTitle] = useState(group.title);
+  useEffect(() => setTitle(group.title), [group.title]);
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          aria-label="Options du groupe"
+          className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover/head:opacity-100 focus:opacity-100"
+        >
+          <MoreHorizontal size={16} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-60 p-3 space-y-3" align="start">
+        <div>
+          <span className="block text-[11px] font-semibold text-gray-500 mb-1">Nom du groupe</span>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => title.trim() && title.trim() !== group.title && onChange({ title: title.trim() })}
+            onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+            className="w-full text-sm border-2 border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-[#579bfc]"
+          />
+        </div>
+        <div>
+          <span className="block text-[11px] font-semibold text-gray-500 mb-1">Couleur</span>
+          <div className="grid grid-cols-6 gap-1.5">
+            {GROUP_COLORS.map((c) => (
+              <button
+                key={c}
+                onClick={() => onChange({ color: c })}
+                aria-label={`Couleur ${c}`}
+                className={`h-6 rounded ${group.color === c ? "ring-2 ring-offset-1 ring-gray-700" : ""}`}
+                style={{ background: c }}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button
+            disabled={index === 0}
+            onClick={() => onMove(-1)}
+            className="flex-1 inline-flex items-center justify-center gap-1 text-xs font-semibold border border-gray-200 rounded-lg py-1.5 disabled:opacity-30"
+          >
+            <ArrowUp size={13} /> Monter
+          </button>
+          <button
+            disabled={index === total - 1}
+            onClick={() => onMove(1)}
+            className="flex-1 inline-flex items-center justify-center gap-1 text-xs font-semibold border border-gray-200 rounded-lg py-1.5 disabled:opacity-30"
+          >
+            <ArrowDown size={13} /> Descendre
+          </button>
+        </div>
+        <button
+          disabled={total <= 1}
+          onClick={() => {
+            const msg = count
+              ? `Supprimer « ${group.title} » ? Ses ${count} lead${count > 1 ? "s" : ""} passeront dans le premier groupe.`
+              : `Supprimer le groupe « ${group.title} » ?`;
+            if (confirm(msg)) onDelete();
+          }}
+          className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-red-600 border border-red-200 rounded-lg py-1.5 disabled:opacity-30"
+        >
+          <Trash2 size={13} /> Supprimer le groupe
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
 export default function LeadsTable({
   leads,
+  groups,
+  onGroupsChange,
   onOpen,
   onStatus,
+  onGroup,
   onPatch,
   onCreate,
 }: {
   leads: Lead[];
+  groups: LeadGroup[];
+  onGroupsChange: (groups: LeadGroup[]) => void;
   onOpen: (id: string) => void;
   onStatus: (id: string, status: LeadStatus) => void;
+  onGroup: (id: string, groupId: string) => void;
   onPatch: (id: string, patch: Record<string, unknown>) => void;
-  onCreate: (status: LeadStatus, name: string) => void;
+  onCreate: (groupId: string, name: string) => void;
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [limits, setLimits] = useState<Record<string, number>>({});
   const today = todayYmd();
   const [dropOver, setDropOver] = useState<string | null>(null);
 
+  const patchGroup = (id: string, patch: Partial<LeadGroup>) =>
+    onGroupsChange(groups.map((g) => (g.id === id ? { ...g, ...patch } : g)));
+  const moveGroup = (i: number, dir: -1 | 1) => {
+    const next = [...groups];
+    [next[i], next[i + dir]] = [next[i + dir], next[i]];
+    onGroupsChange(next);
+  };
+
   return (
     <div className="overflow-x-auto pb-4">
       <div className="min-w-[1255px] space-y-6">
-        {LEAD_STATUSES.map((st) => {
-          const rows = leads.filter((l) => l.status === st.key);
-          const isCollapsed = collapsed[st.key];
-          const limit = limits[st.key] ?? GROUP_PAGE;
+        {groups.map((st, gi) => {
+          const rows = leads.filter((l) => groupOf(l, groups).id === st.id);
+          const isCollapsed = collapsed[st.id];
+          const limit = limits[st.id] ?? GROUP_PAGE;
           return (
             <section
-              key={st.key}
+              key={st.id}
               onDragOver={(e) => {
                 if (!e.dataTransfer.types.includes("text/lead-id")) return;
                 e.preventDefault();
-                setDropOver(st.key);
+                setDropOver(st.id);
               }}
               onDragLeave={(e) => {
                 if (!e.currentTarget.contains(e.relatedTarget as Node)) setDropOver(null);
@@ -207,21 +325,32 @@ export default function LeadsTable({
                 e.preventDefault();
                 setDropOver(null);
                 const id = e.dataTransfer.getData("text/lead-id");
-                if (id) onStatus(id, st.key);
+                if (id) onGroup(id, st.id);
               }}
-              className={`rounded-lg transition-colors ${dropOver === st.key ? "bg-blue-50 ring-2 ring-[#579bfc]" : ""}`}
+              className={`rounded-lg transition-colors ${dropOver === st.id ? "bg-blue-50 ring-2 ring-[#579bfc]" : ""}`}
             >
-              <button
-                onClick={() => setCollapsed((c) => ({ ...c, [st.key]: !c[st.key] }))}
-                className="flex items-center gap-2 mb-1 px-1"
-                style={{ color: st.hex }}
-              >
-                {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
-                <span className="text-lg font-bold">{st.label}</span>
-                <span className="text-xs font-normal text-gray-400">
-                  {rows.length} lead{rows.length > 1 ? "s" : ""}
-                </span>
-              </button>
+              <div className="group/head flex items-center gap-1 mb-1 px-1">
+                <button
+                  onClick={() => setCollapsed((c) => ({ ...c, [st.id]: !c[st.id] }))}
+                  className="flex items-center gap-2"
+                  style={{ color: st.color }}
+                >
+                  {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
+                  <span className="text-lg font-bold">{st.title}</span>
+                  <span className="text-xs font-normal text-gray-400">
+                    {rows.length} lead{rows.length > 1 ? "s" : ""}
+                  </span>
+                </button>
+                <GroupMenu
+                  group={st}
+                  index={gi}
+                  total={groups.length}
+                  count={rows.length}
+                  onChange={(patch) => patchGroup(st.id, patch)}
+                  onMove={(dir) => moveGroup(gi, dir)}
+                  onDelete={() => onGroupsChange(groups.filter((g) => g.id !== st.id))}
+                />
+              </div>
 
               {!isCollapsed && (
                 <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -235,7 +364,7 @@ export default function LeadsTable({
                         className={`px-2 border-l border-gray-100 first:border-l-0 ${
                           i === 0 ? "sticky left-0 z-10 bg-white" : ""
                         }`}
-                        style={i === 0 ? { borderLeft: `6px solid ${st.hex}` } : undefined}
+                        style={i === 0 ? { borderLeft: `6px solid ${st.color}` } : undefined}
                       >
                         {h}
                       </div>
@@ -250,7 +379,7 @@ export default function LeadsTable({
                     >
                       <div
                         className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 flex items-center gap-1 pr-1"
-                        style={{ borderLeft: `6px solid ${st.hex}` }}
+                        style={{ borderLeft: `6px solid ${st.color}` }}
                       >
                         <span
                           draggable
@@ -280,11 +409,7 @@ export default function LeadsTable({
                       </div>
                       <div className="border-l border-gray-100 flex items-center min-w-0">
                         <div className="flex-1 min-w-0 h-full">
-                          <EditableCell
-                            value={l.phone}
-                            type="tel"
-                            onSave={(v) => onPatch(l.id, { phone: v })}
-                          />
+                          <EditableCell value={l.phone} type="tel" onSave={(v) => onPatch(l.id, { phone: v })} />
                         </div>
                         {telHref(l.phone) && (
                           <span className="flex gap-1 pr-1 shrink-0 opacity-0 group-hover:opacity-100">
@@ -331,19 +456,31 @@ export default function LeadsTable({
 
                   {rows.length > limit && (
                     <button
-                      onClick={() => setLimits((m) => ({ ...m, [st.key]: limit + GROUP_PAGE }))}
+                      onClick={() => setLimits((m) => ({ ...m, [st.id]: limit + GROUP_PAGE }))}
                       className="w-full text-xs font-semibold text-[#579bfc] py-2 border-b border-gray-100"
                     >
                       Afficher plus ({rows.length - limit} restants)
                     </button>
                   )}
 
-                  <AddRow color={st.hex} onAdd={(name) => onCreate(st.key, name)} />
+                  <AddRow color={st.color} onAdd={(name) => onCreate(st.id, name)} />
                 </div>
               )}
             </section>
           );
         })}
+
+        <button
+          onClick={() =>
+            onGroupsChange([
+              ...groups,
+              { id: newGroupId(), title: "Nouveau groupe", color: GROUP_COLORS[groups.length % GROUP_COLORS.length] },
+            ])
+          }
+          className="inline-flex items-center gap-1.5 text-sm font-bold text-[#579bfc] border-2 border-dashed border-[#579bfc]/40 rounded-lg px-4 py-2 hover:bg-blue-50"
+        >
+          <Plus size={16} /> Ajouter un groupe
+        </button>
       </div>
     </div>
   );
