@@ -7,6 +7,7 @@ import {
   Plus,
   List,
   Columns3,
+  Table2,
   Loader2,
   BellRing,
   Check,
@@ -25,6 +26,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { getEspaceProApp } from "@/lib/espacePro";
+import LeadsTable from "./LeadsTable";
 import {
   CRM_LEADS_COLLECTION,
   LEAD_STATUSES,
@@ -802,11 +804,12 @@ const LeadSheet = ({
 export default function LeadsCRM({ email }: { email: string }) {
   const [leads, setLeads] = useState<Lead[] | null>(null);
   const [error, setError] = useState("");
-  const [view, setView] = useState<"liste" | "colonnes">(() => {
+  const [view, setView] = useState<"tableau" | "liste" | "colonnes">(() => {
     try {
-      return localStorage.getItem("crm-leads-view") === "colonnes" ? "colonnes" : "liste";
+      const v = localStorage.getItem("crm-leads-view");
+      return v === "colonnes" || v === "liste" ? v : "tableau";
     } catch {
-      return "liste";
+      return "tableau";
     }
   });
   const [query, setQuery] = useState("");
@@ -851,7 +854,7 @@ export default function LeadsCRM({ email }: { email: string }) {
     };
   }, []);
 
-  const setViewPersist = (v: "liste" | "colonnes") => {
+  const setViewPersist = (v: "tableau" | "liste" | "colonnes") => {
     setView(v);
     try {
       localStorage.setItem("crm-leads-view", v);
@@ -922,6 +925,38 @@ export default function LeadsCRM({ email }: { email: string }) {
     }
   };
 
+  const patchFromTable = (id: string, patch: Record<string, unknown>) =>
+    patchLead(id, email, patch).catch((e) => {
+      console.error(e);
+      setError("Modification non enregistrée. Réessayez.");
+    });
+
+  const createFromTable = async (status: LeadStatus, name: string) => {
+    try {
+      const { m, db } = await fs();
+      await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
+        name,
+        phone: "",
+        email: "",
+        postalCode: "",
+        city: "",
+        type: "PAC",
+        source: "saisie-manuelle",
+        projet: "",
+        status,
+        rappelLe: "",
+        details: {},
+        notes: [],
+        createdAt: m.serverTimestamp(),
+        updatedAt: m.serverTimestamp(),
+        updatedBy: email,
+      });
+    } catch (e) {
+      console.error(e);
+      setError("Impossible d'ajouter le lead. Réessayez.");
+    }
+  };
+
   const total = leads?.length ?? 0;
 
   return (
@@ -953,6 +988,7 @@ export default function LeadsCRM({ email }: { email: string }) {
         <div className="inline-flex rounded-full bg-gray-100 p-0.5">
           {(
             [
+              ["tableau", Table2, "Tableau"],
               ["liste", List, "Liste"],
               ["colonnes", Columns3, "Colonnes"],
             ] as const
@@ -1051,11 +1087,22 @@ export default function LeadsCRM({ email }: { email: string }) {
         </div>
       )}
 
-      {leads && total === 0 && (
+      {leads && total === 0 && view !== "tableau" && (
         <p className="text-center text-gray-400 text-sm py-10">
           Aucun lead pour l'instant. Les demandes du site arrivent ici automatiquement ;
           vous pouvez aussi en ajouter un avec « Nouveau ».
         </p>
+      )}
+
+      {/* Vue tableau façon Monday */}
+      {leads && view === "tableau" && (
+        <LeadsTable
+          leads={baseFiltered}
+          onOpen={setOpenId}
+          onStatus={moveLead}
+          onPatch={patchFromTable}
+          onCreate={createFromTable}
+        />
       )}
 
       {/* Vue liste */}

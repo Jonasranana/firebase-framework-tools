@@ -11,14 +11,14 @@ export const CRM_LEADS_COLLECTION = "crm_leads";
 // Étapes du suivi, dans l'ordre du tableau. Pour renommer/ajouter une étape,
 // il suffit de modifier cette liste (la clé est ce qui est stocké en base).
 export const LEAD_STATUSES = [
-  { key: "nouveau", label: "Nouveau", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-500" },
-  { key: "a_rappeler", label: "À rappeler", badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
-  { key: "injoignable", label: "Injoignable", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
-  { key: "interesse", label: "Intéressé", badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
-  { key: "rdv", label: "RDV pris", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-500" },
-  { key: "dossier", label: "Dossier en cours", badge: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
-  { key: "gagne", label: "Gagné", badge: "bg-green-100 text-green-700", dot: "bg-green-500" },
-  { key: "perdu", label: "Perdu", badge: "bg-gray-200 text-gray-600", dot: "bg-gray-400" },
+  { key: "nouveau", hex: "#579bfc", label: "Nouveau", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-500" },
+  { key: "a_rappeler", hex: "#9d50dd", label: "À rappeler", badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
+  { key: "injoignable", hex: "#cab641", label: "Injoignable", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
+  { key: "interesse", hex: "#00c875", label: "Intéressé", badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
+  { key: "rdv", hex: "#007eb5", label: "RDV pris", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-500" },
+  { key: "dossier", hex: "#ff642e", label: "Dossier en cours", badge: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
+  { key: "gagne", hex: "#037f4c", label: "Gagné", badge: "bg-green-100 text-green-700", dot: "bg-green-500" },
+  { key: "perdu", hex: "#7f8794", label: "Perdu", badge: "bg-gray-200 text-gray-600", dot: "bg-gray-400" },
 ] as const;
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number]["key"];
@@ -170,16 +170,16 @@ export const formatYmd = (ymd: string) => {
 export const CRM_ARTISANS_COLLECTION = "crm_artisans";
 
 export const ARTISAN_STATUSES = [
-  { key: "a_contacter", label: "À contacter", badge: "bg-gray-100 text-gray-600", dot: "bg-gray-400" },
-  { key: "mail1", label: "Proposition envoyée", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-500" },
-  { key: "relance", label: "Relancé", badge: "bg-cyan-100 text-cyan-700", dot: "bg-cyan-500" },
-  { key: "dernier", label: "Dernier message", badge: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
-  { key: "a_rappeler", label: "À rappeler", badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
-  { key: "nrp", label: "Injoignable", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
-  { key: "potentiel", label: "Potentiel", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
-  { key: "grille", label: "Grille remplie", badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
-  { key: "signe", label: "Signé", badge: "bg-green-100 text-green-700", dot: "bg-green-600" },
-  { key: "dead", label: "Abandonné", badge: "bg-gray-200 text-gray-500", dot: "bg-gray-300" },
+  { key: "a_contacter", hex: "#7f8794", label: "À contacter", badge: "bg-gray-100 text-gray-600", dot: "bg-gray-400" },
+  { key: "mail1", hex: "#579bfc", label: "Proposition envoyée", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-500" },
+  { key: "relance", hex: "#66ccff", label: "Relancé", badge: "bg-cyan-100 text-cyan-700", dot: "bg-cyan-500" },
+  { key: "dernier", hex: "#fdab3d", label: "Dernier message", badge: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
+  { key: "a_rappeler", hex: "#9d50dd", label: "À rappeler", badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
+  { key: "nrp", hex: "#cab641", label: "Injoignable", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
+  { key: "potentiel", hex: "#00c875", label: "Potentiel", badge: "bg-emerald-100 text-emerald-700", dot: "bg-emerald-500" },
+  { key: "grille", hex: "#007eb5", label: "Grille remplie", badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
+  { key: "signe", hex: "#037f4c", label: "Signé", badge: "bg-green-100 text-green-700", dot: "bg-green-600" },
+  { key: "dead", hex: "#333333", label: "Abandonné", badge: "bg-gray-200 text-gray-500", dot: "bg-gray-300" },
 ] as const;
 
 export type ArtisanStatus = (typeof ARTISAN_STATUSES)[number]["key"];
@@ -231,3 +231,5 @@ export function artisanFromDoc(id: string, d: Record<string, any>): Artisan {
     updatedAt: toIso(d.updatedAt),
   };
 }
+
+export const isoToYmd = (iso: string) => (iso ? iso.slice(0, 10) : "");
