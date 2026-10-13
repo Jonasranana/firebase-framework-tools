@@ -542,6 +542,77 @@ exports.syncLeadToMonday = onDocumentCreated(
   },
 );
 
+// CRM maison (onglet Leads de /admin) : chaque lead du site est copié dans
+// crm_leads avec le même identifiant que dans ip5_leads. Tourne en parallèle
+// de Monday pendant la période de transition ; une erreur ici ne doit jamais
+// toucher les autres déclencheurs (mails, Monday), d'où le try/catch.
+const crmTypeForSource = (f) => {
+  const s = `${f.source ?? ""} ${f.projectType ?? ""}`.toLowerCase();
+  if (s.includes("gonflage")) return "Gonflage";
+  if (s.includes("solaire")) return "Solaire";
+  if (s.includes("pac") || s.includes("pompe") || s.includes("chaleur")) return "PAC";
+  return "Autre";
+};
+
+exports.copyLeadToCrm = onDocumentCreated(
+  {
+    document: "ip5_leads/{leadId}",
+    region: "europe-west9",
+  },
+  async (event) => {
+    const f = event.data?.data();
+    const leadId = event.params.leadId;
+    if (!f) return;
+
+    const details = {
+      "Revenus": f.incomeBracket,
+      "Foyer": f.householdSize,
+      "Chauffage": f.currentHeating,
+      "Surface": f.surface ? `${f.surface} m²` : "",
+      "Logement": f.housingType,
+      "Propriétaire": f.ownerStatus,
+      "Échéance": f.projectTiming,
+      "Demande": f.requestType,
+      "Résultat simulation": f.simulationResult,
+      "Contact pro": f.contact,
+      "Type de site": f.typeSite,
+      "Véhicules": f.nbVehicules,
+      "Message": f.message,
+    };
+    for (const k of Object.keys(details)) {
+      const v = String(details[k] ?? "").trim();
+      if (v) details[k] = v;
+      else delete details[k];
+    }
+
+    try {
+      // create() échoue si la fiche existe déjà : pas d'écrasement des notes
+      // si l'événement est rejoué.
+      await db.doc(`crm_leads/${leadId}`).create({
+        name: String(f.name ?? "").trim(),
+        phone: String(f.phone ?? "").trim(),
+        email: String(f.email ?? "").trim(),
+        postalCode: String(f.postalCode ?? f.department ?? "").trim(),
+        city: "",
+        type: crmTypeForSource(f),
+        source: String(f.source ?? "site-internet"),
+        projet: String(f.projectType ?? ""),
+        status: "nouveau",
+        rappelLe: "",
+        details,
+        notes: [],
+        createdAt: f.createdAt ?? FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+        updatedBy: "",
+      });
+      logger.info("Lead copié dans le CRM", { leadId });
+    } catch (err) {
+      if (err.code === 6) return; // ALREADY_EXISTS : déjà copié
+      logger.error("Échec de la copie du lead dans le CRM", { leadId, error: err.message });
+    }
+  },
+);
+
 // Coquille commune (logo, numéros de rappel, signature) pour les modèles
 // de mail déclenchés depuis Monday (voir sendMondayEmailTemplate). Reprend
 // le même habillage que l'e-mail de bienvenue lead, sans le dupliquer
