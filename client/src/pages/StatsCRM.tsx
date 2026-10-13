@@ -6,6 +6,9 @@ import {
   CRM_ARTISANS_COLLECTION,
   CRM_LEADS_COLLECTION,
   LEAD_STATUSES,
+  LOST_STATUSES,
+  STATUS_RANK,
+  isClosedStatus,
   LEAD_TYPES,
   artisanFromDoc,
   leadFromDoc,
@@ -33,18 +36,6 @@ type PeriodKey = (typeof PERIODS)[number]["key"];
 const DAY = 86400000;
 const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)} %` : "—");
 
-// Rang d'avancement d'un lead (d'après son statut actuel).
-const RANK: Record<string, number> = {
-  nouveau: 0,
-  a_rappeler: 1,
-  injoignable: 1,
-  perdu: 1,
-  interesse: 2,
-  rdv: 3,
-  dossier: 4,
-  gagne: 5,
-};
-
 const Tile = ({ label, value, sub }: { label: string; value: string | number; sub?: string }) => (
   <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
     <p className="text-xs font-semibold text-gray-500">{label}</p>
@@ -65,7 +56,7 @@ const BarList = ({
   rows,
   empty = "Aucune donnée sur la période.",
 }: {
-  rows: { label: string; value: number; color?: string }[];
+  rows: { label: string; value: number; color?: string; hex?: string }[];
   empty?: string;
 }) => {
   const max = Math.max(1, ...rows.map((r) => r.value));
@@ -79,8 +70,8 @@ const BarList = ({
           </span>
           <span className="flex-1 h-4 bg-gray-100 rounded-full overflow-hidden">
             <span
-              className={`block h-full rounded-full ${r.color ?? "bg-[#2b5a8f]"}`}
-              style={{ width: `${(r.value / max) * 100}%` }}
+              className={`block h-full rounded-full ${r.hex ? "" : r.color ?? "bg-[#2b5a8f]"}`}
+              style={{ width: `${(r.value / max) * 100}%`, background: r.hex }}
             />
           </span>
           <span className="w-9 text-right font-bold text-gray-800">{r.value}</span>
@@ -132,14 +123,14 @@ export default function StatsCRM() {
   }, [leads, days, type]);
 
   const funnel = useMemo(() => {
-    const count = (min: number) => inPeriod.filter((l) => (RANK[l.status] ?? 0) >= min).length;
+    const count = (min: number) => inPeriod.filter((l) => (STATUS_RANK[l.status] ?? 0) >= min).length;
     return {
       recus: inPeriod.length,
-      traites: inPeriod.filter((l) => l.status !== "nouveau").length,
+      traites: inPeriod.filter((l) => (STATUS_RANK[l.status] ?? 0) >= 1).length,
       interesses: count(2),
       rdv: count(3),
       gagnes: count(5),
-      perdus: inPeriod.filter((l) => l.status === "perdu").length,
+      perdus: inPeriod.filter((l) => LOST_STATUSES.includes(l.status)).length,
     };
   }, [inPeriod]);
 
@@ -180,7 +171,7 @@ export default function StatsCRM() {
   }, [inPeriod]);
 
   const retards = useMemo(
-    () => (leads ?? []).filter((l) => l.rappelLe && l.rappelLe <= todayYmd() && !["gagne", "perdu"].includes(l.status)).length,
+    () => (leads ?? []).filter((l) => l.rappelLe && l.rappelLe <= todayYmd() && !isClosedStatus(l.status)).length,
     [leads],
   );
 
@@ -263,10 +254,12 @@ export default function StatsCRM() {
         <Card title="Répartition par statut">
           <BarList
             rows={LEAD_STATUSES.map((s) => ({
-              label: s.label,
+              label: s.label || "(sans statut)",
               value: inPeriod.filter((l) => l.status === s.key).length,
-              color: s.dot,
-            }))}
+              hex: s.hex,
+            }))
+              .filter((r) => r.value > 0)
+              .sort((a, b) => b.value - a.value)}
           />
         </Card>
         <Card title="Leads par source">

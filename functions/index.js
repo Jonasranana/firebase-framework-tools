@@ -549,6 +549,7 @@ exports.syncLeadToMonday = onDocumentCreated(
 const crmTypeForSource = (f) => {
   const s = `${f.source ?? ""} ${f.projectType ?? ""}`.toLowerCase();
   if (s.includes("gonflage")) return "Gonflage";
+  if (s.includes("sms")) return "SMS";
   if (s.includes("solaire")) return "Solaire";
   if (s.includes("pac") || s.includes("pompe") || s.includes("chaleur")) return "PAC";
   return "Autre";
@@ -597,7 +598,7 @@ exports.copyLeadToCrm = onDocumentCreated(
         type: crmTypeForSource(f),
         source: String(f.source ?? "site-internet"),
         projet: String(f.projectType ?? ""),
-        status: "nouveau",
+        status: "nouveau_lead",
         group: "nouveaux",
         rappelLe: "",
         details,
@@ -1819,7 +1820,7 @@ async function createCrmFacebookLead({ docId, name, phone, email, postalCode, ci
       type: "PAC",
       source: "formulaire-facebook",
       projet: "Pompe à chaleur",
-      status: "nouveau",
+      status: "nouveau_lead",
       group: "nouveaux",
       rappelLe: "",
       details: details ?? {},

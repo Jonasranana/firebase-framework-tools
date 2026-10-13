@@ -12,6 +12,11 @@ on:
         type: choice
         options: [leads, artisans, fichiers]
         default: leads
+      mode:
+        description: "Leads : create (nouvelles fiches) ou refresh (met à jour les fiches importées non modifiées)"
+        type: choice
+        options: [create, refresh]
+        default: create
       dry_run:
         description: "Essai à blanc (n'écrit rien)"
         type: boolean
@@ -45,4 +50,5 @@ jobs:
           GCLOUD_PROJECT: kachoto-7554c
           MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+          MODE: ${{ inputs.mode }}
         run: node scripts/import-monday-to-crm-${{ inputs.cible }}.mjs

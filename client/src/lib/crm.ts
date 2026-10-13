@@ -8,31 +8,95 @@
 
 export const CRM_LEADS_COLLECTION = "crm_leads";
 
-// Étapes du suivi, dans l'ordre du tableau. Pour renommer/ajouter une étape,
-// il suffit de modifier cette liste (la clé est ce qui est stocké en base).
+// Statuts « 📞 Statut Appel » : exactement ceux du tableau Monday « Pac Pac »
+// (mêmes libellés, même ordre, mêmes couleurs). La clé est ce qui est stocké.
+export type Opt = { key: string; label: string; hex: string };
+
 export const LEAD_STATUSES = [
-  { key: "nouveau", hex: "#579bfc", label: "Nouveau", badge: "bg-sky-100 text-sky-700", dot: "bg-sky-500" },
-  { key: "a_rappeler", hex: "#9d50dd", label: "À rappeler", badge: "bg-indigo-100 text-indigo-700", dot: "bg-indigo-500" },
-  { key: "injoignable", hex: "#cab641", label: "Injoignable", badge: "bg-amber-100 text-amber-700", dot: "bg-amber-500" },
-  { key: "interesse", hex: "#00c875", label: "Intéressé", badge: "bg-blue-100 text-blue-700", dot: "bg-blue-500" },
-  { key: "rdv", hex: "#007eb5", label: "RDV pris", badge: "bg-violet-100 text-violet-700", dot: "bg-violet-500" },
-  { key: "dossier", hex: "#ff642e", label: "Dossier en cours", badge: "bg-orange-100 text-orange-700", dot: "bg-orange-500" },
-  { key: "gagne", hex: "#037f4c", label: "Gagné", badge: "bg-green-100 text-green-700", dot: "bg-green-500" },
-  { key: "perdu", hex: "#7f8794", label: "Perdu", badge: "bg-gray-200 text-gray-600", dot: "bg-gray-400" },
-] as const;
+  { key: "a_appeler", label: "À appeler", hex: "#225091" },
+  { key: "rappel_demande", label: "Rappel demandé", hex: "#9d50dd" },
+  { key: "interesse", label: "Intéressé", hex: "#037f4c" },
+  { key: "rdv_pris", label: "RDV pris", hex: "#007eb5" },
+  { key: "vt_faite_bets", label: "VT faite par bets", hex: "#216edf" },
+  { key: "en_cours_bets", label: "En cours chez BETS", hex: "#66ccff" },
+  { key: "en_cours", label: "en cours", hex: "#fdab3d" },
+  { key: "attente_docs", label: "Attente docs", hex: "#579bfc" },
+  { key: "docs_recu", label: "Docs recu", hex: "#00c875" },
+  { key: "a_relancer", label: "A Relancer", hex: "#ff5ac4" },
+  { key: "manque_revenu", label: "Manque les Revenu", hex: "#175a63" },
+  { key: "manque_info", label: "Manque les info", hex: "#9d99b9" },
+  { key: "nrp", label: "NRP", hex: "#cab641" },
+  { key: "nrp2", label: "NRP 2", hex: "#cd9282" },
+  { key: "mauvais_numero", label: "Mauvais numéro", hex: "#784bd1" },
+  { key: "pas_interesse", label: "Pas intéressé", hex: "#bb3354" },
+  { key: "pas_eligible_revenu", label: "Pas éligible revenu", hex: "#563e3e" },
+  { key: "pas_eligible_pac", label: "Pas eligible a la Pac", hex: "#401694" },
+  { key: "panneau_solaire", label: "Panneau solaire", hex: "#ff7575" },
+  { key: "proposition_envoyee", label: "Proposition envoyer", hex: "#bda8f9" },
+  { key: "me_rappelle", label: "ME RAPELLE", hex: "#ffadad" },
+  { key: "instal_prevu", label: "Instal Prevu", hex: "#9cd326" },
+  { key: "propal_praimy", label: "PROPAL PRAIMY A  FAIRE", hex: "#74afcc" },
+  { key: "nouveau_lead", label: "🆕 Nouveau lead", hex: "#ff6d3b" },
+  { key: "complique", label: "Compliqué", hex: "#5559df" },
+  { key: "pas_adapte", label: "Pas adapté", hex: "#e484bd" },
+  { key: "propal_recu", label: "PROPAL RECU", hex: "#4eccc6" },
+  { key: "installer_bets", label: "installer bets", hex: "#9aadbd" },
+  { key: "pas_bon", label: "PAS BON", hex: "#a9bee8" },
+  { key: "whatsapp_envoye", label: "whattapp envoyé", hex: "#a1e3f6" },
+  { key: "attente_revenus", label: "Attente revenus", hex: "#bca58a" },
+  { key: "vide", label: "", hex: "#c4c4c4" },
+] as const satisfies readonly Opt[];
 
 export type LeadStatus = (typeof LEAD_STATUSES)[number]["key"];
 
-export const statusInfo = (key: string) =>
-  LEAD_STATUSES.find((s) => s.key === key) ?? LEAD_STATUSES[0];
+export const statusInfo = (key: string): Opt =>
+  LEAD_STATUSES.find((s) => s.key === key) ?? LEAD_STATUSES[LEAD_STATUSES.length - 1];
+
+// Ancien jeu de statuts (avant l'alignement sur Monday) → équivalent.
+const LEGACY_STATUS: Record<string, LeadStatus> = {
+  nouveau: "nouveau_lead",
+  a_rappeler: "a_appeler",
+  injoignable: "nrp",
+  interesse: "interesse",
+  rdv: "rdv_pris",
+  dossier: "en_cours",
+  gagne: "instal_prevu",
+  perdu: "pas_interesse",
+};
+
+// Statuts « dossier clos / perdu » : plus de rappel à faire.
+export const CLOSED_STATUSES: string[] = [
+  "pas_interesse",
+  "mauvais_numero",
+  "pas_eligible_revenu",
+  "pas_eligible_pac",
+  "pas_adapte",
+  "pas_bon",
+  "instal_prevu",
+  "installer_bets",
+];
+export const isClosedStatus = (k: string) => CLOSED_STATUSES.includes(k);
+export const LOST_STATUSES = ["pas_interesse", "mauvais_numero", "pas_eligible_revenu", "pas_eligible_pac", "pas_adapte", "pas_bon"];
+// Avancement d'un lead d'après son statut (pour les statistiques).
+export const STATUS_RANK: Record<string, number> = {
+  nouveau_lead: 0, vide: 0, a_appeler: 0,
+  rappel_demande: 1, a_relancer: 1, me_rappelle: 1, nrp: 1, nrp2: 1, whatsapp_envoye: 1,
+  mauvais_numero: 1, pas_interesse: 1, pas_eligible_revenu: 1, pas_eligible_pac: 1, pas_adapte: 1, pas_bon: 1,
+  interesse: 2, manque_revenu: 2, manque_info: 2, attente_revenus: 2, complique: 2, en_cours: 2,
+  proposition_envoyee: 2, propal_praimy: 2, propal_recu: 2, panneau_solaire: 2,
+  rdv_pris: 3,
+  attente_docs: 4, docs_recu: 4, en_cours_bets: 4, vt_faite_bets: 4,
+  installer_bets: 5, instal_prevu: 5,
+};
 
 // Types de lead (le produit visé), déduits de la source pour les leads du site.
-export const LEAD_TYPES = ["PAC", "Solaire", "Gonflage", "Autre"] as const;
+export const LEAD_TYPES = ["PAC", "Solaire", "SMS", "Gonflage", "Autre"] as const;
 export type LeadType = (typeof LEAD_TYPES)[number];
 
 export const TYPE_BADGE: Record<string, string> = {
   PAC: "bg-orange-100 text-orange-700",
   Solaire: "bg-yellow-100 text-yellow-700",
+  SMS: "bg-blue-100 text-blue-700",
   Gonflage: "bg-purple-100 text-purple-700",
   Autre: "bg-gray-100 text-gray-600",
 };
@@ -56,6 +120,8 @@ export type Lead = {
   source: string;
   projet: string;
   status: LeadStatus;
+  // Autres colonnes du tableau (clé de colonne → valeur), voir LEAD_COLUMNS.
+  fields: Record<string, string>;
   // Groupe du tableau (identifiant d'un LeadGroup), comme les groupes Monday.
   group: string;
   // Date de rappel prévue (AAAA-MM-JJ), vide si aucune.
@@ -84,7 +150,9 @@ export function toIso(v: unknown): string {
 
 // Normalise un document Firestore en Lead (tolérant aux champs manquants).
 export function leadFromDoc(id: string, d: Record<string, any>): Lead {
-  const status = LEAD_STATUSES.some((s) => s.key === d.status) ? d.status : "nouveau";
+  const status: LeadStatus = LEAD_STATUSES.some((s) => s.key === d.status)
+    ? d.status
+    : LEGACY_STATUS[d.status] ?? "vide";
   return {
     id,
     name: String(d.name ?? ""),
@@ -97,6 +165,7 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     projet: String(d.projet ?? ""),
     status,
     group: String(d.group ?? ""),
+    fields: d.fields && typeof d.fields === "object" ? d.fields : {},
     rappelLe: String(d.rappelLe ?? ""),
     mailNonLu: !!d.mailNonLu,
     docCount: Number(d.docCount ?? 0),
