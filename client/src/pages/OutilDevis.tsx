@@ -7,11 +7,6 @@ import {
   Calculator,
   ShieldAlert,
   Loader2,
-  Flame,
-  Sun,
-  Gauge,
-  ArrowLeft,
-  Construction,
 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
 import ClientsCRM from "./ClientsCRM";
@@ -19,7 +14,7 @@ import LeadsCRM from "./LeadsCRM";
 import ArtisansCRM from "./ArtisansCRM";
 import StatsCRM from "./StatsCRM";
 import GonflageCRM from "./GonflageCRM";
-import { useBrowserBackLevel } from "@/hooks/use-browser-back-level";
+import AdminShell, { initialPage, rememberPage, type AdminPage } from "./AdminShell";
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -444,17 +439,8 @@ export const MargesPremi = () => {
   );
 };
 
-// ── Le simulateur (affiché seulement une fois autorisé) ────────────────────
-const Simulateur = ({
-  email,
-  onSignOut,
-  onBack,
-}: {
-  email: string;
-  onSignOut: () => void;
-  onBack: () => void;
-}) => {
-  const [tab, setTab] = useState<"devis" | "marges" | "clients" | "leads" | "artisans" | "stats">("devis");
+// ── Calculette de devis PAC (affichée seulement une fois autorisé) ─────────
+const DevisPAC = ({ email }: { email: string }) => {
   const [clientMode, setClientMode] = useState(false);
   const [prixAchatPompe, setPrixAchatPompe] = useState("");
   const [pose, setPose] = useState("");
@@ -519,129 +505,23 @@ const Simulateur = ({
         : "text-red-600";
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-16" dir="ltr">
-      {/* Barre du haut */}
-      <header className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
-        <div className={`${(tab === "leads" || tab === "artisans" || tab === "stats") ? "max-w-6xl" : "max-w-2xl"} mx-auto px-4 py-3 flex items-center justify-between gap-3`}>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onBack}
-              aria-label="Retour aux métiers"
-              className="p-1.5 -ml-1.5 text-gray-400 hover:text-gray-700 transition-colors"
-            >
-              <ArrowLeft size={20} />
-            </button>
-            <LogoIP5 className="h-9 md:h-9" />
-          </div>
-          <div className="flex items-center gap-2">
-            {tab === "devis" && (
-              <button
-                onClick={() => setClientMode((v) => !v)}
-                className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
-                  clientMode
-                    ? "bg-green-100 text-green-700"
-                    : "bg-blue-50 text-[#2b5a8f]"
-                }`}
-              >
-                {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
-                {clientMode ? "Mode client" : "Mode interne"}
-              </button>
-            )}
-            <button
-              onClick={onSignOut}
-              aria-label="Se déconnecter"
-              className="p-2 text-gray-400 hover:text-gray-700 transition-colors"
-            >
-              <LogOut size={18} />
-            </button>
-          </div>
-        </div>
-        <div className={`${(tab === "leads" || tab === "artisans" || tab === "stats") ? "max-w-6xl" : "max-w-2xl"} mx-auto px-4 pb-2 flex gap-2 overflow-x-auto`}>
-          <button
-            onClick={() => setTab("devis")}
-            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
-              tab === "devis"
-                ? "bg-[#2b5a8f] text-white"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            Devis PAC
-          </button>
-          <button
-            onClick={() => setTab("marges")}
-            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
-              tab === "marges"
-                ? "bg-[#2b5a8f] text-white"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            Marges Prémi
-          </button>
-          <button
-            onClick={() => setTab("clients")}
-            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
-              tab === "clients"
-                ? "bg-[#2b5a8f] text-white"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            Clients
-          </button>
-          <button
-            onClick={() => setTab("leads")}
-            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
-              tab === "leads"
-                ? "bg-[#2b5a8f] text-white"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            Leads
-          </button>
-          <button
-            onClick={() => setTab("artisans")}
-            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
-              tab === "artisans"
-                ? "bg-[#2b5a8f] text-white"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            Artisans
-          </button>
-          <button
-            onClick={() => setTab("stats")}
-            className={`flex-1 whitespace-nowrap text-sm font-bold px-3 py-2 rounded-full transition-colors ${
-              tab === "stats"
-                ? "bg-[#2b5a8f] text-white"
-                : "bg-gray-100 text-gray-500"
-            }`}
-          >
-            Stats
-          </button>
-        </div>
-      </header>
-
-      <div className={`${(tab === "leads" || tab === "artisans" || tab === "stats") ? "max-w-6xl" : "max-w-2xl"} mx-auto px-4`}>
-        <div className="flex items-center gap-2 text-xs text-gray-400 mt-3 mb-4">
-          <Lock size={13} /> Calculette IP5 Énergie — {email}
-          {tab === "devis" && clientMode && (
-            <span className="ml-auto text-green-600 font-semibold">
-              Coûts &amp; marge masqués
-            </span>
-          )}
-        </div>
-
-        {tab === "marges" && <MargesPremi />}
-
-        {tab === "clients" && <ClientsCRM email={email} />}
-
-        {tab === "leads" && <LeadsCRM email={email} />}
-
-        {tab === "artisans" && <ArtisansCRM email={email} />}
-
-        {tab === "stats" && <StatsCRM />}
-
-        {tab === "devis" && (
-          <>
+    <div className="max-w-2xl mx-auto pb-16">
+      <div className="flex items-center gap-2 text-xs text-gray-400 mb-4">
+        <Lock size={13} /> Calculette IP5 Énergie — {email}
+        <button
+          onClick={() => setClientMode((v) => !v)}
+          className={`ml-auto inline-flex items-center gap-1.5 text-sm font-bold px-3 py-2 rounded-full transition-colors ${
+            clientMode ? "bg-green-100 text-green-700" : "bg-blue-50 text-[#2b5a8f]"
+          }`}
+        >
+          {clientMode ? <EyeOff size={16} /> : <Eye size={16} />}
+          {clientMode ? "Mode client" : "Mode interne"}
+        </button>
+      </div>
+      {clientMode && (
+        <p className="text-green-600 text-xs font-semibold mb-3">Coûts &amp; marge masqués</p>
+      )}
+      <>
         {/* NOS COÛTS — masqués en mode client */}
         {!clientMode && (
           <section className="bg-white rounded-3xl border border-gray-100 shadow-sm p-5 mb-4">
@@ -839,97 +719,7 @@ const Simulateur = ({
           <p>La prime CEE varie selon le fournisseur.</p>
           <p>Montants définitifs confirmés au montage du dossier.</p>
         </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-};
-
-type ProCategory = "pac" | "solaire" | "gonflage";
-
-const PRO_CATEGORIES: {
-  key: ProCategory;
-  label: string;
-  icon: typeof Flame;
-  color: string;
-}[] = [
-  { key: "pac", label: "Pompe à chaleur", icon: Flame, color: "text-orange-500 bg-orange-50" },
-  { key: "solaire", label: "Solaire", icon: Sun, color: "text-yellow-500 bg-yellow-50" },
-  { key: "gonflage", label: "Station de gonflage", icon: Gauge, color: "text-purple-500 bg-purple-50" },
-];
-
-// ── Écran d'accueil de l'Espace Pro : choix du métier ───────────────────────
-const CategoryPicker = ({
-  email,
-  onSelect,
-  onSignOut,
-}: {
-  email: string;
-  onSelect: (c: ProCategory) => void;
-  onSignOut: () => void;
-}) => (
-  <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4 py-12" dir="ltr">
-    <LogoIP5 className="h-10 mb-8" />
-    <h1 className="text-xl font-bold text-gray-900 mb-1 text-center">
-      Espace Pro
-    </h1>
-    <p className="text-sm text-gray-400 mb-8 text-center">
-      Choisissez un métier pour continuer
-    </p>
-    <div className="w-full max-w-sm space-y-3">
-      {PRO_CATEGORIES.map(({ key, label, icon: Icon, color }) => (
-        <button
-          key={key}
-          onClick={() => onSelect(key)}
-          className="w-full flex items-center gap-4 bg-white rounded-3xl border border-gray-100 shadow-sm p-5 text-left hover:border-[#2b5a8f] transition-colors"
-        >
-          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${color}`}>
-            <Icon size={24} />
-          </div>
-          <span className="font-bold text-gray-900 flex-1">{label}</span>
-        </button>
-      ))}
-    </div>
-    <div className="mt-10 flex items-center gap-2 text-xs text-gray-400">
-      <Lock size={13} /> {email}
-      <button
-        onClick={onSignOut}
-        aria-label="Se déconnecter"
-        className="ml-2 text-gray-400 hover:text-gray-700 transition-colors"
-      >
-        <LogOut size={15} />
-      </button>
-    </div>
-  </div>
-);
-
-// ── Placeholder pour les métiers pas encore outillés (Solaire, Gonflage) ───
-const ComingSoon = ({
-  category,
-  onBack,
-}: {
-  category: ProCategory;
-  onBack: () => void;
-}) => {
-  const meta = PRO_CATEGORIES.find((c) => c.key === category)!;
-  return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center px-4" dir="ltr">
-      <div className="max-w-sm w-full bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 ${meta.color}`}>
-          <Construction size={26} />
-        </div>
-        <h1 className="text-xl font-bold text-gray-900 mb-2">{meta.label}</h1>
-        <p className="text-sm text-gray-500 mb-6">
-          Les outils pour ce métier arrivent bientôt.
-        </p>
-        <button
-          onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-sm font-bold text-[#2b5a8f]"
-        >
-          <ArrowLeft size={16} /> Retour
-        </button>
-      </div>
+      </>
     </div>
   );
 };
@@ -954,10 +744,11 @@ export default function OutilDevis() {
   const [email, setEmail] = useState("");
   const [authApi, setAuthApi] = useState<any>(null);
   const [error, setError] = useState("");
-  const [category, setCategory] = useState<ProCategory | null>(null);
-  // Le bouton "précédent" du navigateur referme le métier ouvert au lieu de
-  // quitter l'Espace Pro.
-  useBrowserBackLevel(category !== null, () => setCategory(null));
+  const [page, setPage] = useState<AdminPage>(initialPage);
+  const navigate = (p: AdminPage) => {
+    setPage(p);
+    rememberPage(p);
+  };
 
   useEffect(() => {
     let unsub = () => {};
@@ -1023,29 +814,21 @@ export default function OutilDevis() {
   };
 
   if (status === "authorized") {
-    if (!category) {
-      return (
-        <CategoryPicker
-          email={email}
-          onSelect={setCategory}
-          onSignOut={signOut}
-        />
-      );
+    // La station de gonflage a sa propre mise en page plein écran : le menu
+    // n'y est pas affiché, le bouton retour ramène aux leads.
+    if (page === "gonflage") {
+      return <GonflageCRM email={email} onBack={() => navigate("leads")} />;
     }
-    if (category === "pac") {
-      return (
-        <Simulateur
-          email={email}
-          onSignOut={signOut}
-          onBack={() => setCategory(null)}
-        />
-      );
-    }
-    if (category === "gonflage") {
-      return <GonflageCRM email={email} onBack={() => setCategory(null)} />;
-    }
+    const narrow = (node: React.ReactNode) => <div className="max-w-2xl mx-auto">{node}</div>;
     return (
-      <ComingSoon category={category} onBack={() => setCategory(null)} />
+      <AdminShell email={email} page={page} onNavigate={navigate} onSignOut={signOut}>
+        {page === "leads" && <LeadsCRM email={email} />}
+        {page === "artisans" && <ArtisansCRM email={email} />}
+        {page === "stats" && <StatsCRM />}
+        {page === "devis" && <DevisPAC email={email} />}
+        {page === "marges" && narrow(<MargesPremi />)}
+        {page === "clients" && narrow(<ClientsCRM email={email} />)}
+      </AdminShell>
     );
   }
 
