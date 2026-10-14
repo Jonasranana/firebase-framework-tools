@@ -146,7 +146,7 @@ export const SiteHeader = () => {
               <LogoIP5 />
             </a>
           </div>
-          <div className="hidden lg:flex space-x-5 xl:space-x-8 items-center">
+          <div className="hidden lg:flex space-x-5 xl:space-x-8 items-center lg:ml-8 xl:ml-12">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
