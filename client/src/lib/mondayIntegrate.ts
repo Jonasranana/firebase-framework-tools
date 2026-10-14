@@ -171,8 +171,8 @@ export async function integrateMondayBoard(
     .sort((a, b) => Number(a.position ?? 0) - Number(b.position ?? 0))
     .map((g) => ({ id: g.id, title: g.title, color: g.color && g.color.startsWith("#") ? g.color : "#579bfc" }));
   if (!groups.length) groups.push({ id: "nouveaux", title: "Éléments", color: "#579bfc" });
-  await m.setDoc(m.doc(db, "crm_boards", boardId), { groups, updatedAt: m.serverTimestamp(), updatedBy: email, mondayBoardId: board.id });
-  await m.setDoc(m.doc(db, "crm_boards", `${boardId}_columns`), { config: buildColumnsConfig(board, mapped), updatedAt: m.serverTimestamp(), updatedBy: email });
+  await m.setDoc(m.doc(db, "crm_boards", boardId), { groups: JSON.parse(JSON.stringify(groups)), updatedAt: m.serverTimestamp(), updatedBy: email, mondayBoardId: board.id });
+  await m.setDoc(m.doc(db, "crm_boards", `${boardId}_columns`), { config: JSON.parse(JSON.stringify(buildColumnsConfig(board, mapped))), updatedAt: m.serverTimestamp(), updatedBy: email });
 
   let done = 0;
   for (let i = 0; i < items.length; i += 400) {
