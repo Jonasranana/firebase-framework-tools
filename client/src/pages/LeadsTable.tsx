@@ -586,6 +586,48 @@ export const ColumnsMenu = ({ visible, onChange }: { visible: string[]; onChange
   </Popover>
 );
 
+// Bandeau bien visible sous les lignes d'un groupe : il reste des leads à afficher.
+// Les lignes suivantes se chargent aussi toutes seules quand on arrive en bas.
+const MoreRows = ({
+  shown,
+  total,
+  color,
+  onMore,
+  onAll,
+}: {
+  shown: number;
+  total: number;
+  color: string;
+  onMore: () => void;
+  onAll: () => void;
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver((e) => e[0].isIntersecting && onMore(), { rootMargin: "200px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div
+      ref={ref}
+      className="sticky left-0 flex flex-wrap items-center justify-center gap-3 px-3 py-3 border-y-2"
+      style={{ background: `${color}22`, borderColor: color }}
+    >
+      <span className="text-sm font-bold text-gray-900">
+        ⬇ {shown} leads affichés sur {total} — il en reste {total - shown} dans ce groupe
+      </span>
+      <button onClick={onMore} className="text-sm font-bold text-white rounded-md px-4 py-1.5 shadow-sm hover:brightness-95" style={{ background: color }}>
+        Afficher 300 de plus
+      </button>
+      <button onClick={onAll} className="text-sm font-bold rounded-md px-4 py-1.5 bg-white border-2 hover:bg-gray-50" style={{ color, borderColor: color }}>
+        Tout afficher ({total})
+      </button>
+    </div>
+  );
+};
+
 const today = todayYmd();
 
 function Cell({
@@ -1025,13 +1067,13 @@ export default function LeadsTable({
                   ))}
 
                   {rows.length > limit && (
-                    <div className="sticky left-0 flex items-center gap-4 px-3 py-2 border-b border-gray-100 text-xs font-semibold text-[#579bfc]">
-                      <span className="text-gray-500 font-normal">
-                        {limit} affichés sur {rows.length}
-                      </span>
-                      <button onClick={() => setLimits((m) => ({ ...m, [st.id]: limit + 300 }))}>Afficher 300 de plus</button>
-                      <button onClick={() => setLimits((m) => ({ ...m, [st.id]: rows.length }))}>Tout afficher ({rows.length})</button>
-                    </div>
+                    <MoreRows
+                      shown={limit}
+                      total={rows.length}
+                      color={st.color}
+                      onMore={() => setLimits((m) => ({ ...m, [st.id]: limit + 300 }))}
+                      onAll={() => setLimits((m) => ({ ...m, [st.id]: rows.length }))}
+                    />
                   )}
 
                   {!readOnlyGroups && <AddRow color={st.color} focus={focusAdd === st.id} onAdd={(name) => onCreate(st.id, name)} />}
