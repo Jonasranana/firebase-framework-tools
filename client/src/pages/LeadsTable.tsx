@@ -52,6 +52,8 @@ import {
   type Lead,
 } from "@/lib/crm";
 import {
+  APPEL_SLOTS,
+  COMMERCIAL,
   DEFAULT_VISIBLE,
   LEAD_COLUMNS,
   cellPatch,
@@ -414,6 +416,53 @@ const GroupMenu = ({
   );
 };
 
+
+// Colonne « Appels » : une seule colonne qui montre qui a fait le 1er, le 2e, le 3e appel,
+// et où l'on peut choisir ou corriger chaque personne.
+const AppelsCell = ({ lead, onPatch }: { lead: Lead; onPatch: (id: string, patch: Record<string, unknown>) => void }) => {
+  const filled = APPEL_SLOTS.filter((s) => lead.fields[s.key]);
+  const colorOf = (name: string) => COMMERCIAL.find((o) => o.key === name)?.hex ?? "#9aa3b2";
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="w-full h-full px-2 flex items-center gap-1 hover:bg-gray-100 overflow-hidden">
+          {filled.length === 0 && <span className="text-gray-300 text-sm">—</span>}
+          {filled.map((s) => (
+            <span
+              key={s.key}
+              className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-white rounded-full pl-1.5 pr-2 py-0.5"
+              style={{ background: colorOf(lead.fields[s.key]) }}
+              title={`${s.label} : ${lead.fields[s.key]}`}
+            >
+              <span className="opacity-80">{s.short}</span>
+              {lead.fields[s.key]}
+            </span>
+          ))}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-3 space-y-2 bg-white text-gray-900 border border-gray-200 shadow-xl">
+        <p className="text-xs font-bold text-gray-500">Qui a appelé ce client ?</p>
+        {APPEL_SLOTS.map((s) => (
+          <label key={s.key} className="flex items-center gap-2 text-sm">
+            <span className="w-16 shrink-0 font-semibold text-gray-700">{s.label}</span>
+            <select
+              value={lead.fields[s.key] ?? ""}
+              onChange={(e) => onPatch(lead.id, { [`fields.${s.key}`]: e.target.value })}
+              className="flex-1 text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2 py-1"
+            >
+              <option value="">—</option>
+              {COMMERCIAL.map((o) => (
+                <option key={o.key} value={o.key}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 // ── Types de colonnes ajoutées : Personnes, Échéances, Hashtags ───────────
 const PeopleCell = ({ value, onSave }: { value: string; onSave: (v: string) => void }) => {
@@ -909,6 +958,8 @@ function Cell({
       return <TimelineCell value={v} onSave={save} />;
     case "tags":
       return <TagsCell value={v} onSave={save} />;
+    case "appels":
+      return <AppelsCell lead={lead} onPatch={onPatch} />;
     case "email":
       return <EditableCell value={v} type="email" onSave={(x) => save(x.toLowerCase())} />;
     case "number":

@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { crmFirestore } from "@/lib/crmDb";
 import { LEAD_COLUMNS } from "@/lib/crmColumns";
 import { useCallTracking } from "@/lib/crmCalls";
-import AutomationAssistant, { fetchAiStatus, saveAiKey, type AiStatus } from "./AutomationAssistant";
+import AutomationAssistant from "./AutomationAssistant";
 import type { AutoDraft } from "@/lib/crmAutomationParse";
 import type { LeadGroup } from "@/lib/crm";
 
@@ -113,12 +113,6 @@ export default function AutomationsDialog({
 }) {
   const [editing, setEditing] = useState(false);
   const [assistant, setAssistant] = useState(false);
-  const [ai, setAi] = useState<AiStatus | null>(null);
-  const [keyDraft, setKeyDraft] = useState("");
-  const [keyMsg, setKeyMsg] = useState("");
-  useEffect(() => {
-    if (open) fetchAiStatus().then(setAi).catch(() => setAi(null));
-  }, [open]);
   const [tracking, setTracking] = useCallTracking();
   const [name, setName] = useState("");
   const [trigger, setTrigger] = useState<Trigger>({ type: "column_changes", col: "status", value: "" });
@@ -235,7 +229,7 @@ export default function AutomationsDialog({
               <div>
                 <div className="text-sm font-semibold">📞 Suivi automatique des appels</div>
                 <div className="text-xs text-gray-600">
-                  À chaque changement du « Statut Appel », le CRM note qui a appelé et le range dans « 1er appel », « 2e appel », « 3e appel » (si quelqu'un d'autre rappelle). « Commercial » reste celui du premier appel. Vous pouvez toujours corriger les colonnes à la main.</div>
+                  À chaque changement du « Statut Appel », le CRM note qui a appelé dans la colonne « 📞 Appels » (1er, 2e, 3e appel : une nouvelle personne remplit l'appel suivant). « Commercial » reste celui du premier appel. Vous pouvez corriger à la main en cliquant dans la colonne.</div>
               </div>
             </label>
             {list.length === 0 && <p className="text-sm text-gray-500">Aucune automatisation pour l'instant.</p>}
@@ -253,58 +247,11 @@ export default function AutomationsDialog({
               </div>
             ))}
             <button
-              onClick={() => (ai?.canUse ? setAssistant(true) : setEditing(true))}
+              onClick={() => setAssistant(true)}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-[#0073ea] hover:bg-[#0060c2] rounded-md px-3 py-2"
             >
               <Plus size={15} /> Nouvelle automatisation
             </button>
-            {ai?.canConfigure && (
-              <div className="rounded-lg border border-gray-200 p-3 space-y-2">
-                <div className="text-sm font-semibold">🤖 Assistant IA (créer une automatisation en parlant)</div>
-                <div className="text-xs text-gray-600">
-                  {ai.configured ? "L'IA est activée. Vous seul (Jonas) pouvez l'utiliser et la configurer." : "Pas encore activée : l'assistant fonctionne en « mode simple ». Collez ici la clé de l'IA (elle commence par sk-ant-) pour l'activer."}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="password"
-                    value={keyDraft}
-                    onChange={(e) => setKeyDraft(e.target.value)}
-                    placeholder={ai.configured ? "Remplacer la clé…" : "sk-ant-…"}
-                    autoComplete="off"
-                    className={`${field} flex-1`}
-                  />
-                  <button
-                    onClick={async () => {
-                      setKeyMsg("");
-                      try {
-                        setAi(await saveAiKey(keyDraft.trim()));
-                        setKeyDraft("");
-                        setKeyMsg("✓ Enregistrée");
-                      } catch (e: any) {
-                        setKeyMsg(String(e?.message ?? "Échec"));
-                      }
-                    }}
-                    disabled={!keyDraft.trim()}
-                    className="text-sm font-semibold border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40"
-                  >
-                    Enregistrer
-                  </button>
-                  {ai.configured && (
-                    <button
-                      onClick={async () => {
-                        if (!window.confirm("Désactiver l'IA ? (la clé sera effacée)")) return;
-                        setAi(await saveAiKey(""));
-                        setKeyMsg("IA désactivée");
-                      }}
-                      className="text-sm text-gray-500 px-2"
-                    >
-                      Désactiver
-                    </button>
-                  )}
-                </div>
-                {keyMsg && <div className="text-xs text-gray-600">{keyMsg}</div>}
-              </div>
-            )}
           </div>
         )}
 

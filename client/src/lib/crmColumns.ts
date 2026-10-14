@@ -21,7 +21,8 @@ export type ColType =
   | "autodate"
   | "people"
   | "timeline"
-  | "tags";
+  | "tags"
+  | "appels";
 
 export type LeadColumn = {
   key: string;
@@ -107,9 +108,7 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "rappel", title: "Rappel", type: "date", width: 130, core: "rappelLe" },
   { key: "pipeline", title: "🔧 Pipeline", type: "status", width: 150, options: PIPELINE },
   { key: "commercial", title: "👤 Commercial", type: "status", width: 130, options: COMMERCIAL },
-  { key: "premierAppel", title: "📞 1er appel", type: "status", width: 120, options: COMMERCIAL },
-  { key: "deuxiemeAppel", title: "📞 2e appel", type: "status", width: 120, options: COMMERCIAL },
-  { key: "troisiemeAppel", title: "📞 3e appel", type: "status", width: 120, options: COMMERCIAL },
+  { key: "appels", title: "📞 Appels (qui a appelé)", type: "appels", width: 250 },
   { key: "phone", title: "📞 Téléphone", type: "phone", width: 175, core: "phone" },
   { key: "precarite", title: "🏷️ Précarité (Prémi)", type: "status", width: 140, options: PRECARITE },
   { key: "marque", title: "🔧 Marque PAC", type: "status", width: 120, options: MARQUE },
@@ -205,7 +204,15 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined) {
 }
 
 // ── Lecture / écriture d'une cellule ───────────────────────────────────────
+// Colonne « Appels » : qui a fait le 1er, le 2e, le 3e appel (stocké dans fields.premierAppel…).
+export const APPEL_SLOTS = [
+  { key: "premierAppel", label: "1er appel", short: "1er" },
+  { key: "deuxiemeAppel", label: "2e appel", short: "2e" },
+  { key: "troisiemeAppel", label: "3e appel", short: "3e" },
+] as const;
+
 export function cellValue(l: Lead, c: LeadColumn): string {
+  if (c.type === "appels") return APPEL_SLOTS.filter((s) => l.fields[s.key]).map((s) => `${s.short} : ${l.fields[s.key]}`).join(" | ");
   if (c.core) return String((l as any)[c.core] ?? "");
   return String(l.fields[c.key] ?? "");
 }
