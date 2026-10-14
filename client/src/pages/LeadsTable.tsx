@@ -61,7 +61,7 @@ import {
 // « Colonnes » pour afficher/masquer. Le nom reste collé à gauche.
 // ─────────────────────────────────────────────────────────────────────────
 
-const GROUP_PAGE = 40;
+const GROUP_PAGE = 100;
 const COLS_STORAGE = "crm-leads-columns";
 
 // Cellule texte : s'édite au clic, Entrée ou clic ailleurs enregistre, Échap annule.
@@ -1025,12 +1025,13 @@ export default function LeadsTable({
                   ))}
 
                   {rows.length > limit && (
-                    <button
-                      onClick={() => setLimits((m) => ({ ...m, [st.id]: limit + GROUP_PAGE }))}
-                      className="w-full text-xs font-semibold text-[#579bfc] py-2 border-b border-gray-100 sticky left-0"
-                    >
-                      Afficher plus ({rows.length - limit} restants)
-                    </button>
+                    <div className="sticky left-0 flex items-center gap-4 px-3 py-2 border-b border-gray-100 text-xs font-semibold text-[#579bfc]">
+                      <span className="text-gray-500 font-normal">
+                        {limit} affichés sur {rows.length}
+                      </span>
+                      <button onClick={() => setLimits((m) => ({ ...m, [st.id]: limit + 300 }))}>Afficher 300 de plus</button>
+                      <button onClick={() => setLimits((m) => ({ ...m, [st.id]: rows.length }))}>Tout afficher ({rows.length})</button>
+                    </div>
                   )}
 
                   {!readOnlyGroups && <AddRow color={st.color} focus={focusAdd === st.id} onAdd={(name) => onCreate(st.id, name)} />}
