@@ -347,6 +347,59 @@ exports.sendLeadWelcomeEmail = onDocumentCreated(
   },
 );
 
+// SMS de confirmation envoyé dès qu'une demande arrive du site (en plus du mail de
+// bienvenue). Un seul SMS par demande, même si la fonction est rejouée : un document
+// repère « lead_sms_sent/<id> » est créé avant l'envoi (create() échoue s'il existe).
+exports.sendLeadWelcomeSms = onDocumentCreated(
+  {
+    document: "ip5_leads/{leadId}",
+    secrets: [TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN],
+    region: "europe-west9",
+  },
+  async (event) => {
+    const data = event.data?.data();
+    const leadId = event.params.leadId;
+    if (!data) return;
+    // Campagnes de réactivation (anciens contacts relancés) : pas de SMS de bienvenue.
+    if (String(data.source ?? "").startsWith("reactivation")) return;
+    const to = toE164French(data.phone);
+    if (!to || !to.startsWith("+")) {
+      logger.info("Lead sans numéro valide, SMS de confirmation ignoré", { leadId });
+      return;
+    }
+    const marker = db.doc(`lead_sms_sent/${leadId}`);
+    try {
+      await marker.create({ at: new Date().toISOString(), to });
+    } catch (err) {
+      if (err.code === 6) return; // déjà envoyé
+      throw err;
+    }
+    const prenom = String(data.firstName ?? String(data.name ?? "").split(/\s+/)[0] ?? "").trim();
+    const body = `IP5 Énergie : ${prenom ? `bonjour ${prenom}, ` : ""}nous avons bien reçu votre demande. Un conseiller va vous rappeler. Pour nous joindre : ${SMS_PHONE_NUMBERS}.`;
+    const ok = await sendTwilioSms({ to, body, accountSid: TWILIO_ACCOUNT_SID.value(), authToken: TWILIO_AUTH_TOKEN.value() });
+    if (!ok) {
+      await marker.delete().catch(() => {});
+      logger.error("SMS de confirmation non envoyé", { leadId });
+      return;
+    }
+    logger.info("SMS de confirmation lead envoyé", { leadId });
+    // Trace dans le chat de la fiche CRM (si la fiche existe déjà ; jamais de création ici).
+    try {
+      await db.doc(`crm_leads/${leadId}`).update({
+        notes: FieldValue.arrayUnion({
+          id: Math.random().toString(36).slice(2, 10),
+          text: `💬 SMS envoyé : « ${body} »`,
+          by: "automation",
+          at: new Date().toISOString(),
+          kind: "message",
+        }),
+      });
+    } catch {
+      /* la fiche CRM n'est pas encore créée : pas de trace, sans importance */
+    }
+  },
+);
+
 exports.notifyNewLead = onDocumentCreated(
   {
     document: "ip5_leads/{leadId}",
