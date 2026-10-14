@@ -56,6 +56,7 @@ export const COMMERCIAL: Opt[] = [
   o("Julien", "#579bfc"),
   o("Carole", "#9d50dd"),
   o("Alexis", "#ff6d3b"),
+  o("Jonas", "#00c875"),
 ];
 export const PRECARITE: Opt[] = [o("Bleu", "#007eb5"), o("Jaune", "#ffcb00"), o("Violet", "#784bd1")];
 export const MARQUE: Opt[] = [o("Atlantis", "#a9bee8"), o("Chappée", "#bca58a")];
@@ -106,6 +107,8 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "rappel", title: "Rappel", type: "date", width: 130, core: "rappelLe" },
   { key: "pipeline", title: "🔧 Pipeline", type: "status", width: 150, options: PIPELINE },
   { key: "commercial", title: "👤 Commercial", type: "status", width: 130, options: COMMERCIAL },
+  { key: "premierAppel", title: "📞 1er appel par", type: "text", width: 140 },
+  { key: "nbAppels", title: "🔢 Nb d'appels", type: "number", width: 100 },
   { key: "phone", title: "📞 Téléphone", type: "phone", width: 175, core: "phone" },
   { key: "precarite", title: "🏷️ Précarité (Prémi)", type: "status", width: 140, options: PRECARITE },
   { key: "marque", title: "🔧 Marque PAC", type: "status", width: 120, options: MARQUE },

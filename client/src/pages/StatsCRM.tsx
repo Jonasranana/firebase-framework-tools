@@ -262,6 +262,43 @@ export default function StatsCRM() {
               .sort((a, b) => b.value - a.value)}
           />
         </Card>
+        <Card title="Comptes : qui a pris les leads (1er appel par)">
+          {(() => {
+            const fb = (l: Lead) => /facebook|meta|\bfb\b|insta/i.test(l.source);
+            const by = new Map<string, { total: number; fb: number; rdv: number }>();
+            for (const l of inPeriod) {
+              const who = l.fields.premierAppel || "(pas encore appelé / non renseigné)";
+              const r = by.get(who) ?? { total: 0, fb: 0, rdv: 0 };
+              r.total++;
+              if (fb(l)) r.fb++;
+              if ((STATUS_RANK[l.status] ?? 0) >= 3) r.rdv++;
+              by.set(who, r);
+            }
+            const rows = Array.from(by.entries()).sort((a, b) => b[1].total - a[1].total);
+            return (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500">
+                    <th className="py-1">Personne</th>
+                    <th className="text-right">Leads</th>
+                    <th className="text-right">dont Facebook</th>
+                    <th className="text-right">RDV et plus</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(([who, r]) => (
+                    <tr key={who} className="border-t border-gray-100">
+                      <td className="py-1.5">{who}</td>
+                      <td className="text-right font-semibold">{r.total}</td>
+                      <td className="text-right">{r.fb}</td>
+                      <td className="text-right">{r.rdv}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            );
+          })()}
+        </Card>
         <Card title="Leads par source">
           <BarList rows={bySource} />
         </Card>
