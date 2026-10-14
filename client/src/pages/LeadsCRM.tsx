@@ -25,6 +25,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import LeadChat from "./LeadChat";
+import ClientSpaceDashboard from "./ClientSpaceDashboard";
+import { buildClientView } from "@/lib/clientSpace";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
@@ -367,6 +370,7 @@ const LeadSheet = ({
   const [noteText, setNoteText] = useState("");
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [previewSpace, setPreviewSpace] = useState(false);
   const [error, setError] = useState("");
 
   // Ouverte depuis la bulle de la ligne : on descend directement aux mises à jour.
@@ -667,6 +671,28 @@ const LeadSheet = ({
                 </div>
               ))}
             </dl>
+          )}
+
+          {lead && (
+            <div className="pt-3 border-t border-gray-100">
+              <button
+                onClick={() => setPreviewSpace(true)}
+                className="w-full text-sm font-bold text-[#2b5a8f] border-2 border-[#2b5a8f]/40 hover:bg-blue-50 rounded-xl py-2"
+              >
+                👁 Aperçu de l'espace client (ce que verra ce client)
+              </button>
+              {previewSpace && (
+                <Dialog open onOpenChange={(o) => !o && setPreviewSpace(false)}>
+                  <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto bg-slate-50 text-slate-900">
+                    <DialogTitle className="sr-only">Aperçu de l'espace client</DialogTitle>
+                    <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5">
+                      Aperçu interne : l'espace client n'est pas encore ouvert aux clients.
+                    </p>
+                    <ClientSpaceDashboard view={buildClientView(lead)} />
+                  </DialogContent>
+                </Dialog>
+              )}
+            </div>
           )}
 
           {lead && <MessageSender key={lead.id} lead={lead} />}

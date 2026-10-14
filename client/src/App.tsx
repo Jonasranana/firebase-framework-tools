@@ -28,6 +28,10 @@ const Confidentialite = lazy(() =>
 // d'emblée ; les pages intérieures sont chargées à la demande.
 const PompeAChaleur = lazy(() => import("@/pages/PompeAChaleur"));
 const PacVille = lazy(() => import("@/pages/PacVille"));
+const ClientSpace = lazy(() => import("@/pages/ClientSpace"));
+// Espace client : construit mais PAS publié. Passer à true le jour où il est mis en service
+// (et activer crm_settings/client_space côté serveur).
+const CLIENT_SPACE_PUBLIC = false;
 // Landing pages dédiées aux campagnes publicitaires Meta (Facebook / Instagram).
 const CampagnePAC = lazy(() => import("@/pages/CampagnePAC"));
 const Desinscription = lazy(() => import("@/pages/Desinscription"));
@@ -79,6 +83,7 @@ function Router() {
         <Route path="/ip5-energie" component={IP5Energie} />
         <Route path="/pompe-a-chaleur" component={PompeAChaleur} />
         <Route path="/pompe-a-chaleur/:ville" component={PacVille} />
+        {CLIENT_SPACE_PUBLIC && <Route path="/mon-espace" component={ClientSpace} />}
         {/* Landing pubs Meta : /pac (URL courte pour les annonces) + alias */}
         <Route path="/pac" component={CampagnePAC} />
         <Route path="/simulateur-pac" component={CampagnePAC} />
