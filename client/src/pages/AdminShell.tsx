@@ -5,8 +5,8 @@ import {
   BarChart3,
   Calculator,
   ChevronDown,
-  ChevronLeft,
-  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
   FolderOpen,
   Gauge,
   Globe,
@@ -21,6 +21,19 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LogoIP5 } from "./site-chrome";
+import { LOGO_FULL_D } from "./ip5-logo";
+
+// Petit logo : seulement les vagues (sans le texte), pour le menu réduit.
+const LogoMark = ({ className = "" }: { className?: string }) => (
+  <svg viewBox="0 0 352 387" className={className} xmlns="http://www.w3.org/2000/svg" role="img" aria-label="IP5 Énergie">
+    <defs>
+      <clipPath id="ip5-mark">
+        <polygon points="0,0 352,0 352,200 318,200 318,387 0,387" />
+      </clipPath>
+    </defs>
+    <path d={LOGO_FULL_D} fill="currentColor" fillRule="evenodd" clipPath="url(#ip5-mark)" />
+  </svg>
+);
 import MailSyncStatus from "./MailSyncStatus";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTeam } from "@/lib/crmTeam";
@@ -295,15 +308,6 @@ export default function AdminShell({
           compact ? "w-16" : "w-64"
         }`}
       >
-        {/* Bouton rond sur le bord du menu : réduire / agrandir, bien visible dans les deux états. */}
-        <button
-          onClick={() => setCompact((v) => !v)}
-          aria-label={compact ? "Agrandir le menu" : "Réduire le menu"}
-          title={compact ? "Agrandir le menu" : "Réduire le menu"}
-          className="absolute -right-3.5 top-[26px] z-30 w-7 h-7 rounded-full bg-white text-[#1f4f8f] border border-gray-200 shadow-md flex items-center justify-center hover:bg-[#1f4f8f] hover:text-white transition-colors"
-        >
-          {compact ? <ChevronRight size={16} strokeWidth={2.5} /> : <ChevronLeft size={16} strokeWidth={2.5} />}
-        </button>
         {/* En-tête de marque : logo IP5 Énergie en blanc sur un bandeau dégradé (comme Monday). */}
         <div
           className={`relative flex items-center h-20 text-white overflow-hidden ${compact ? "justify-center" : "pl-5 pr-2 justify-between"}`}
@@ -317,12 +321,31 @@ export default function AdminShell({
               <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/90 bg-white/15 rounded-full px-2 py-0.5">CRM</span>
             </div>
           ) : (
-            <button onClick={() => setCompact(false)} aria-label="Agrandir le menu" className="relative w-10 h-10 rounded-xl bg-white/15 text-white text-sm font-extrabold tracking-tight flex items-center justify-center">
-              IP5
-            </button>
+            <a href="/admin" aria-label="IP5 Énergie" className="relative flex items-center justify-center">
+              <LogoMark className="h-11 w-auto text-white drop-shadow-sm" />
+            </a>
           )}
           <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ff9f1c,#ff5ac4,#9d50dd,#579bfc)" }} />
         </div>
+        {/* Réduire / agrandir : grand bouton franc, bien visible dans les deux états. */}
+        <button
+          onClick={() => setCompact((v) => !v)}
+          aria-label={compact ? "Agrandir le menu" : "Réduire le menu"}
+          title={compact ? "Agrandir le menu" : "Réduire le menu"}
+          className={`shrink-0 flex items-center gap-2 border-b border-gray-100 text-[#1f4f8f] font-bold text-xs hover:bg-blue-50 transition-colors ${
+            compact ? "justify-center h-11" : "px-4 h-10"
+          }`}
+        >
+          {compact ? (
+            <span className="w-8 h-8 rounded-lg bg-[#1f4f8f] text-white flex items-center justify-center shadow-sm">
+              <ChevronsRight size={18} strokeWidth={2.5} />
+            </span>
+          ) : (
+            <>
+              <ChevronsLeft size={18} strokeWidth={2.5} /> Réduire le menu
+            </>
+          )}
+        </button>
         <div className="flex-1 min-h-0">{body(compact)}</div>
       </aside>
 
