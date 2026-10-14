@@ -93,7 +93,7 @@ const TYPE_LEAD_OPTS: Opt[] = [
 ];
 
 export const LEAD_COLUMNS: LeadColumn[] = [
-  { key: "name", title: "Nom", type: "name", width: 240, core: "name" },
+  { key: "name", title: "Noms sociétés", type: "name", width: 240, core: "name" },
   { key: "status", title: "📞 Statut Appel", type: "status", width: 170, core: "status", options: LEAD_STATUSES },
   { key: "rappel", title: "Rappel", type: "date", width: 130, core: "rappelLe" },
   { key: "pipeline", title: "🔧 Pipeline", type: "status", width: 150, options: PIPELINE },

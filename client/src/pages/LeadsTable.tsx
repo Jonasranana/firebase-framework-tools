@@ -11,6 +11,7 @@ import {
   ChevronsUpDown,
   Columns3,
   Copy,
+  EyeOff,
   FolderPlus,
   MessageSquare,
   MoveVertical,
@@ -401,8 +402,12 @@ function useVisibleColumns() {
 export const ColumnsMenu = ({ visible, onChange }: { visible: string[]; onChange: (v: string[]) => void }) => (
   <Popover>
     <PopoverTrigger asChild>
-      <button className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-200">
-        <Columns3 size={13} /> Colonnes ({visible.length}/{LEAD_COLUMNS.length})
+      <button
+        className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md hover:bg-gray-100 data-[state=open]:bg-gray-100 ${
+          visible.length < LEAD_COLUMNS.length ? "bg-[#e5efff] text-[#1f4f8f]" : "text-gray-700"
+        }`}
+      >
+        <EyeOff size={15} /> Masquer{visible.length < LEAD_COLUMNS.length ? ` / ${LEAD_COLUMNS.length - visible.length}` : ""}
       </button>
     </PopoverTrigger>
     <PopoverContent className="w-64 p-2 max-h-96 overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-xl" align="start">
@@ -540,9 +545,14 @@ export default function LeadsTable({
   onPatch,
   onCreate,
   onDuplicateLeads,
+  groupKeyOf,
+  readOnlyGroups,
   visible,
   setVisible,
 }: {
+  // Groupement automatique par une colonne (sinon : groupes personnalisés).
+  groupKeyOf?: (l: Lead) => string;
+  readOnlyGroups?: boolean;
   leads: Lead[];
   groups: LeadGroup[];
   onGroupsChange: (groups: LeadGroup[]) => void;
@@ -641,7 +651,7 @@ export default function LeadsTable({
           )}
         </div>
         {visibleGroups.map((st, gi) => {
-          const rows = leads.filter((l) => groupOf(l, groups).id === st.id);
+          const rows = leads.filter((l) => (groupKeyOf ? groupKeyOf(l) : groupOf(l, groups).id) === st.id);
           const isCollapsed = collapsed[st.id];
           const limit = limits[st.id] ?? GROUP_PAGE;
           return (
@@ -675,6 +685,7 @@ export default function LeadsTable({
                     {rows.length} lead{rows.length > 1 ? "s" : ""}
                   </span>
                 </button>
+                {!readOnlyGroups && (
                 <GroupMenu
                   group={st}
                   index={gi}
@@ -696,6 +707,7 @@ export default function LeadsTable({
                   onDelete={() => onGroupsChange(groups.filter((g) => g.id !== st.id))}
                   onArchive={() => patchGroup(st.id, { archived: true })}
                 />
+                )}
               </div>
 
               {!isCollapsed && (
@@ -730,7 +742,7 @@ export default function LeadsTable({
                             style={{ borderLeft: `6px solid ${st.color}` }}
                           >
                             <span
-                              draggable
+                              draggable={!readOnlyGroups}
                               onDragStart={(e) => {
                                 e.dataTransfer.setData("text/lead-id", l.id);
                                 e.dataTransfer.effectAllowed = "move";
@@ -812,13 +824,14 @@ export default function LeadsTable({
                     </button>
                   )}
 
-                  <AddRow color={st.color} focus={focusAdd === st.id} onAdd={(name) => onCreate(st.id, name)} />
+                  {!readOnlyGroups && <AddRow color={st.color} focus={focusAdd === st.id} onAdd={(name) => onCreate(st.id, name)} />}
                 </div>
               )}
             </section>
           );
         })}
 
+        {!readOnlyGroups && (
         <button
           onClick={() =>
             onGroupsChange([
@@ -830,6 +843,7 @@ export default function LeadsTable({
         >
           <Plus size={16} /> Ajouter un groupe
         </button>
+        )}
       </div>
     </div>
   );

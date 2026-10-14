@@ -29,8 +29,9 @@ import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
 import { LEAD_COLUMNS, cellValue, formulaValue } from "@/lib/crmColumns";
-import { FilterMenu, PersonBar } from "./LeadsFilter";
-import { applyFilters, leadMatchesPerson, type LeadFilter, type Person } from "@/lib/crmFilters";
+import { PersonBar } from "./LeadsFilter";
+import { AddSplit, GroupByMenu, MoreMenu, QuickFilter, SearchToggle, SortMenu } from "./LeadsToolbar";
+import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
 import { ROOT_ADMINS, memberName } from "@/lib/crmTeam";
 import LeadsTable, { ColumnsMenu, useVisibleColumns } from "./LeadsTable";
 import DocumentsPanel from "./DocumentsPanel";
@@ -726,6 +727,8 @@ export default function LeadsCRM({ email }: { email: string }) {
   }, []);
   const [filters, setFilters] = useState<LeadFilter[]>([]);
   const [personKey, setPersonKey] = useState("");
+  const [sorts, setSorts] = useState<LeadSort[]>([]);
+  const [groupBy, setGroupBy] = useState("");
   const [rappelsOnly, setRappelsOnly] = useState(false);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -777,9 +780,12 @@ export default function LeadsCRM({ email }: { email: string }) {
   }, [baseFiltered]);
 
   const filtered = useMemo(
-    () => (statusFilter ? baseFiltered.filter((l) => l.status === statusFilter) : baseFiltered),
-    [baseFiltered, statusFilter],
+    () => sortLeads(statusFilter ? baseFiltered.filter((l) => l.status === statusFilter) : baseFiltered, sorts),
+    [baseFiltered, statusFilter, sorts],
   );
+
+  // Groupement automatique par une colonne (sinon : groupes personnalisés).
+  const grouping = useMemo(() => (groupBy ? groupByColumn(filtered, groupBy) : null), [groupBy, filtered]);
 
   // Retour en haut de liste quand un filtre change.
   useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, filters, personKey, rappelsOnly]);
@@ -834,6 +840,60 @@ export default function LeadsCRM({ email }: { email: string }) {
       unsub?.();
     };
   }, []);
+
+  // Affichages enregistrés (filtres + tri + groupement + colonnes), partagés.
+  type SavedView = { id: string; name: string; filters: LeadFilter[]; sorts: LeadSort[]; groupBy: string; personKey: string; visible: string[] };
+  const [views, setViews] = useState<SavedView[]>([]);
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { m, db } = await fs();
+        unsub = m.onSnapshot(
+          m.doc(db, CRM_BOARDS_COLLECTION, "leads_views"),
+          (snap) => !cancelled && setViews((snap.data()?.views as SavedView[]) ?? []),
+          () => {},
+        );
+      } catch {
+        /* affichages indisponibles : le reste fonctionne */
+      }
+    })();
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
+  }, []);
+  const persistViews = async (next: SavedView[]) => {
+    setViews(next);
+    try {
+      const { m, db } = await fs();
+      await m.setDoc(m.doc(db, CRM_BOARDS_COLLECTION, "leads_views"), { views: next, updatedAt: m.serverTimestamp(), updatedBy: email });
+    } catch (e) {
+      console.error(e);
+      setError("Impossible d'enregistrer l'affichage (règle Firestore crm_boards ?).");
+    }
+  };
+  const saveView = (name: string) =>
+    persistViews([...views, { id: newId(), name, filters, sorts, groupBy, personKey, visible: visibleCols }]);
+  const applyView = (v: SavedView) => {
+    setFilters(v.filters ?? []);
+    setSorts(v.sorts ?? []);
+    setGroupBy(v.groupBy ?? "");
+    setPersonKey(v.personKey ?? "");
+    if (v.visible?.length) setVisibleCols(v.visible);
+  };
+
+  const exportCsv = () => {
+    const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
+    const blob = new Blob([leadsToCsv(filtered, cols)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads-ip5-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const saveGroups = async (next: LeadGroup[]) => {
     const previous = groups;
@@ -955,31 +1015,53 @@ export default function LeadsCRM({ email }: { email: string }) {
 
   return (
     <div>
-      {/* Barre d'outils */}
-      <div className="flex gap-2 mb-3">
-        <div className="relative flex-1">
-          <Search
-            size={16}
-            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
-          />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher (nom, téléphone, e-mail, ville…)"
-            className="w-full text-sm bg-white border-2 border-gray-200 rounded-2xl pl-10 pr-4 py-2.5 outline-none focus:border-[#2b5a8f]"
-          />
-        </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-1.5 bg-[#2b5a8f] text-white text-sm font-bold px-4 rounded-2xl"
-        >
-          <Plus size={16} /> <span className="hidden sm:inline">Nouveau</span>
-        </button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-2 mb-3">
-        <div className="inline-flex rounded-full bg-gray-100 p-0.5">
+      {/* Barre d'outils façon Monday */}
+      <div className="flex flex-wrap items-center gap-1 mb-2">
+        <AddSplit
+          onAddLead={() => setCreating(true)}
+          onAddGroup={() => saveGroups([...groups, { id: `g_${newId()}`, title: "Nouveau groupe", color: "#579bfc" }])}
+        />
+        <SearchToggle value={query} onChange={setQuery} />
+        <PersonBar people={people} selected={personKey} onSelect={setPersonKey} meKey={email.toLowerCase()} />
+        <QuickFilter leads={leads ?? []} filters={filters} onFilters={setFilters} onSaveView={saveView} />
+        <SortMenu sorts={sorts} onChange={setSorts} />
+        {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
+        <GroupByMenu value={groupBy} onChange={setGroupBy} />
+        <MoreMenu onExport={exportCsv} count={filtered.length} />
+        {views.length > 0 && (
+          <select
+            value=""
+            onChange={(e) => {
+              const v = views.find((x) => x.id === e.target.value);
+              if (v) applyView(v);
+            }}
+            className="text-sm font-semibold text-gray-700 bg-transparent border border-gray-200 rounded-md px-2 py-1.5"
+          >
+            <option value="">Affichages…</option>
+            {views.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+              </option>
+            ))}
+          </select>
+        )}
+        {(query || statusFilter || filters.length > 0 || personKey || rappelsOnly || sorts.length > 0 || groupBy) && (
+          <button
+            onClick={() => {
+              setQuery("");
+              setStatusFilter("");
+              setFilters([]);
+              setPersonKey("");
+              setRappelsOnly(false);
+              setSorts([]);
+              setGroupBy("");
+            }}
+            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500 px-2"
+          >
+            <X size={12} /> Tout enlever
+          </button>
+        )}
+        <div className="ml-auto inline-flex rounded-md bg-gray-100 p-0.5">
           {(
             [
               ["tableau", Table2, "Tableau"],
@@ -990,41 +1072,27 @@ export default function LeadsCRM({ email }: { email: string }) {
             <button
               key={k}
               onClick={() => setViewPersist(k)}
-              className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full ${
-                view === k ? "bg-white text-[#2b5a8f] shadow-sm" : "text-gray-500"
+              className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded ${
+                view === k ? "bg-white text-[#0073ea] shadow-sm" : "text-gray-500"
               }`}
             >
               <Icon size={13} /> {label}
             </button>
           ))}
         </div>
-        <FilterMenu filters={filters} onChange={setFilters} />
-        <PersonBar people={people} selected={personKey} onSelect={setPersonKey} meKey={email.toLowerCase()} />
+      </div>
+      <div className="flex items-center gap-2 mb-3">
         <button
           onClick={() => setRappelsOnly((v) => !v)}
           className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border ${
-            rappelsOnly
-              ? "bg-red-100 text-red-700 border-red-200"
-              : "bg-white text-gray-600 border-gray-200"
+            rappelsOnly ? "bg-red-100 text-red-700 border-red-200" : "bg-white text-gray-600 border-gray-200"
           }`}
         >
           <BellRing size={12} /> Rappels{rappelsCount ? ` (${rappelsCount})` : ""}
         </button>
-        {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
-        {(query || statusFilter || filters.length > 0 || personKey || rappelsOnly) && (
-          <button
-            onClick={() => {
-              setQuery("");
-              setStatusFilter("");
-              setFilters([]);
-              setPersonKey("");
-              setRappelsOnly(false);
-            }}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500"
-          >
-            <X size={12} /> Effacer
-          </button>
-        )}
+        <span className="text-xs text-gray-400">
+          {filtered.length} sur {leads?.length ?? 0} noms sociétés
+        </span>
       </div>
 
       {/* Filtre par statut (vues tableau et liste) */}
@@ -1075,7 +1143,9 @@ export default function LeadsCRM({ email }: { email: string }) {
       {leads && view === "tableau" && (
         <LeadsTable
           leads={filtered}
-          groups={groups}
+          groups={grouping ? grouping.groups : groups}
+          groupKeyOf={grouping?.keyOf}
+          readOnlyGroups={!!grouping}
           visible={visibleCols}
           setVisible={setVisibleCols}
           onGroupsChange={saveGroups}
