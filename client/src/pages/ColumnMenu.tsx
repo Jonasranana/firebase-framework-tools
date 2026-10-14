@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   ArrowDownAZ,
+  ArrowLeft,
   ArrowRight,
   ArrowUpAZ,
   Check,
@@ -89,6 +90,7 @@ export default function ColumnMenu({
     setType: (key: string, type: ColType) => void;
     setOptions: (key: string, options: Opt[]) => void;
     remove: (key: string) => void;
+    moveBy: (key: string, delta: number) => void;
   };
   onDuplicate: (col: LeadColumn) => void;
 }) {
@@ -146,6 +148,9 @@ export default function ColumnMenu({
             <Entry icon={ChevronsLeftRight} label={col.collapsed ? "Étendre" : "Réduire"} onClick={() => { close(); api.setCollapsed(col.key, !col.collapsed); }} />
             <Entry icon={WrapText} label="Retour à la ligne" checked={!!col.wrap} onClick={() => api.setWrap(col.key, !col.wrap)} />
             <Entry icon={Layers} label="Grouper par" disabled={!groupable} onClick={() => { close(); onGroupBy(groupBy === col.key ? "" : col.key); }} checked={groupBy === col.key} />
+            <Sep />
+            <Entry icon={ArrowLeft} label="Déplacer à gauche" disabled={col.key === "name"} onClick={() => api.moveBy(col.key, -1)} />
+            <Entry icon={ArrowRight} label="Déplacer à droite" disabled={col.key === "name"} onClick={() => api.moveBy(col.key, 1)} />
             <Sep />
             <Entry icon={Copy} label="Dupliquer la colonne" disabled={!duplicable} onClick={() => { close(); onDuplicate(col); }} />
             <Entry icon={Plus} label="Ajouter une colonne à droite" more onClick={() => setPanel("add")} />

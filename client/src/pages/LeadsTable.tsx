@@ -1374,6 +1374,7 @@ export default function LeadsTable({
                             startPointerDrag(e, {
                               label: c.title,
                               scrollEl: scrollRef.current,
+                              leftInset: () => scrollRef.current?.querySelector('[data-colkey="name"]')?.getBoundingClientRect().width ?? 0,
                               hit: (el) => {
                                 const k = el?.closest("[data-colkey]")?.getAttribute("data-colkey") ?? null;
                                 return k && k !== "name" ? k : null;
@@ -1387,7 +1388,7 @@ export default function LeadsTable({
                               },
                             });
                           }}
-                          className={`group/col px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""} ${movable ? "cursor-grab" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
+                          className={`group/col relative px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""} ${movable ? "cursor-grab" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
                           style={{
                             ...(i === 0 ? { borderLeft: `6px solid ${st.color}` } : {}),
                             ...(overCol === c.key && dragCol !== c.key ? { boxShadow: "inset 3px 0 0 #0073ea", background: "#eef5ff" } : {}),
@@ -1400,6 +1401,16 @@ export default function LeadsTable({
                               checked={rows.length > 0 && rows.every((r) => sel.has(r.id))}
                               onChange={(v) => toggleSel(rows.map((r) => r.id), v)}
                             />
+                          )}
+                          {movable && (
+                            <>
+                              {/* Bande d'attrape tout en haut de l'en-tête, comme sur Monday : la main apparaît ici. */}
+                              <div
+                                className="absolute inset-x-0 top-0 h-2.5 cursor-grab opacity-0 group-hover/col:opacity-100 bg-[#0073ea]/25 hover:bg-[#0073ea]/50 transition-opacity"
+                                title="Attrapez ici pour déplacer la colonne"
+                              />
+                              <GripVertical size={12} className="shrink-0 -ml-1 text-gray-300 opacity-0 group-hover/col:opacity-100 pointer-events-none" />
+                            </>
                           )}
                           {renaming === `${st.id}|${c.key}` ? (
                             <input
