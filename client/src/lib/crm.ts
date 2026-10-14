@@ -141,6 +141,8 @@ export type Lead = {
   deletedAt: string;
   deletedBy: string;
   mergedInto: string;
+  // Appels suivis automatiquement (qui a appelé, quand, avec quel statut).
+  calls: { n: number; by: string; name: string; at: string; status: string }[];
 };
 
 // Convertit un Timestamp Firestore (ou une chaîne) en ISO.
@@ -182,6 +184,7 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     deletedAt: toIso(d.deletedAt),
     deletedBy: String(d.deletedBy ?? ""),
     mergedInto: String(d.mergedInto ?? ""),
+    calls: Array.isArray(d.calls) ? d.calls : [],
   };
 }
 
