@@ -708,20 +708,19 @@ const DossierDetail = ({
     if (next !== "annule") setActiveStep(next);
   };
 
+  // Jamais d'effacement : le dossier (et ses signatures) est mis de côté, récupérable via la sauvegarde.
   const handleDelete = async () => {
-    if (!confirm(`Supprimer définitivement le dossier "${d.raisonSociale}" ? Cette action est irréversible.`)) return;
+    if (!confirm(`Retirer le dossier "${d.raisonSociale}" de la liste ?\n\nIl n'est pas détruit : il est mis de côté et reste récupérable (sauvegardes quotidiennes).`)) return;
     setDeleting(true);
     try {
       const app = await getEspaceProApp();
-      const { getFirestore, doc, deleteDoc } = await import("firebase/firestore");
+      const { getFirestore, doc, updateDoc } = await import("firebase/firestore");
       const db = getFirestore(app);
-      await deleteDoc(doc(db, "gonflage_dossiers", d.id));
-      if (d.preDevisToken) await deleteDoc(doc(db, "gonflage_signatures", d.preDevisToken)).catch(() => {});
-      if (d.contratToken) await deleteDoc(doc(db, "gonflage_signatures", d.contratToken)).catch(() => {});
+      await updateDoc(doc(db, "gonflage_dossiers", d.id), { deletedAt: new Date().toISOString() });
       onDeleted();
     } catch (e) {
       console.error(e);
-      alert("Échec de la suppression. Réessayez.");
+      alert("Échec. Réessayez.");
       setDeleting(false);
     }
   };
@@ -1820,10 +1819,12 @@ export default function GonflageCRM({ email, onBack }: { email: string; onBack: 
       const { getFirestore, collection, getDocs } = await import("firebase/firestore");
       const db = getFirestore(app);
       const snap = await getDocs(collection(db, "gonflage_dossiers"));
-      const list = snap.docs.map((d) => {
-        const data = d.data() as Omit<Dossier, "id">;
-        return { id: d.id, ...data, createdAt: tsToIso(data.createdAt) };
-      });
+      const list = snap.docs
+        .filter((d) => !(d.data() as any).deletedAt)
+        .map((d) => {
+          const data = d.data() as Omit<Dossier, "id">;
+          return { id: d.id, ...data, createdAt: tsToIso(data.createdAt) };
+        });
       list.sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
       setDossiers(list);
     } catch (e) {
