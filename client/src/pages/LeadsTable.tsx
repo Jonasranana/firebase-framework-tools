@@ -917,6 +917,53 @@ const MoreRows = ({
 
 const today = todayYmd();
 
+// Cellule date : un clic ouvre le calendrier (un champ date natif ne s'ouvrait pas au clic), × pour effacer.
+const DateCell = ({ value, overdue, onSave }: { value: string; overdue: boolean; onSave: (v: string) => void }) => {
+  const ref = useRef<HTMLInputElement>(null);
+  const open = () => {
+    const el = ref.current;
+    if (!el) return;
+    try {
+      el.showPicker();
+    } catch {
+      el.focus();
+      el.click();
+    }
+  };
+  const label = value ? new Date(value + "T12:00:00").toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" }) : "";
+  return (
+    <div className="relative group/date w-full h-full flex items-center">
+      <button
+        onClick={open}
+        className={`relative z-[5] flex-1 h-full px-2 text-left text-xs hover:bg-gray-100 ${
+          !value ? "text-gray-300" : overdue ? "text-red-600 font-semibold" : "text-gray-600"
+        }`}
+        title="Choisir une date de rappel"
+      >
+        {label || "—"}
+      </button>
+      {value && (
+        <button
+          onClick={() => onSave("")}
+          aria-label="Effacer la date"
+          className="absolute right-1 z-10 text-gray-300 hover:text-red-500 opacity-0 group-hover/date:opacity-100 px-1"
+        >
+          ×
+        </button>
+      )}
+      <input
+        ref={ref}
+        type="date"
+        value={value}
+        onChange={(e) => onSave(e.target.value)}
+        tabIndex={-1}
+        aria-hidden="true"
+        className="absolute inset-0 w-full h-full opacity-0 pointer-events-none"
+      />
+    </div>
+  );
+};
+
 function Cell({
   lead,
   col,
@@ -967,20 +1014,7 @@ function Cell({
       );
     case "date": {
       const overdue = col.key === "rappel" && v && v <= today && !isClosedStatus(lead.status);
-      return (
-        <input
-          type="date"
-          value={v}
-          onChange={(e) => save(e.target.value)}
-          className={`w-full h-full px-2 text-xs bg-transparent outline-none cursor-pointer ${
-            !v
-              ? "text-transparent hover:text-gray-400 focus:text-gray-600"
-              : overdue
-                ? "text-red-600 font-semibold"
-                : "text-gray-600"
-          }`}
-        />
-      );
+      return <DateCell value={v} overdue={!!overdue} onSave={save} />;
     }
     case "formula": {
       const f = formulaValue(lead, col);
