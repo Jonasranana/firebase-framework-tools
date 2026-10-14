@@ -51,18 +51,25 @@ export function useCallTracking(): [boolean, (v: boolean) => void] {
   return [on, set];
 }
 
+// Colonnes « 1er / 2e / 3e appel » : chacune reçoit la personne qui a appelé.
+const SLOTS = ["premierAppel", "deuxiemeAppel", "troisiemeAppel"] as const;
+
 // Champs à écrire en plus du nouveau statut. arrayUnion vient du module Firestore.
 export function callPatch(lead: Lead, newStatus: string, email: string, arrayUnion: (...v: any[]) => any): Record<string, unknown> {
   if (!enabled || !newStatus || newStatus === lead.status || ["vide", "nouveau_lead"].includes(newStatus)) return {};
   const name = memberName(email, email.split("@")[0]);
   const first = name.split(/\s+/)[0].toLowerCase();
-  const n = (Number(lead.fields.nbAppels) || lead.calls.length) + 1;
   const patch: Record<string, unknown> = {
-    "fields.nbAppels": String(n),
-    calls: arrayUnion({ n, by: email, name, at: new Date().toISOString(), status: newStatus } satisfies CallEntry),
+    calls: arrayUnion({ n: lead.calls.length + 1, by: email, name, at: new Date().toISOString(), status: newStatus } satisfies CallEntry),
   };
-  if (!lead.fields.premierAppel) patch["fields.premierAppel"] = name;
   const opt = COMMERCIAL.find((o) => o.key.toLowerCase() === first);
-  if (opt) patch["fields.commercial"] = opt.key;
+  if (!opt) return patch; // personne absente de la liste : l'appel est noté dans la fiche seulement
+  // Colonne Commercial : celui qui a appelé en premier.
+  if (!lead.fields.commercial) patch["fields.commercial"] = opt.key;
+  // Prochain appel libre, seulement si ce n'est pas la même personne que le dernier appel noté.
+  const filled = SLOTS.filter((k) => lead.fields[k]);
+  const last = filled.length ? lead.fields[filled[filled.length - 1]] : "";
+  const next = SLOTS.find((k) => !lead.fields[k]);
+  if (next && last !== opt.key) patch[`fields.${next}`] = opt.key;
   return patch;
 }

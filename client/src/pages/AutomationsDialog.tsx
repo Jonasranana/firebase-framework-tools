@@ -177,8 +177,7 @@ export default function AutomationsDialog({
               <div>
                 <div className="text-sm font-semibold">📞 Suivi automatique des appels</div>
                 <div className="text-xs text-gray-600">
-                  À chaque changement du « Statut Appel », le CRM note qui a appelé le client (1er appel, 2e, 3e…), garde « 1er appel par » (l'origine du lead pour les comptes) et met la colonne « Commercial » au nom de la personne qui s'occupe du dossier.
-                </div>
+                  À chaque changement du « Statut Appel », le CRM note qui a appelé et le range dans « 1er appel », « 2e appel », « 3e appel » (si quelqu'un d'autre rappelle). « Commercial » reste celui du premier appel. Vous pouvez toujours corriger les colonnes à la main.</div>
               </div>
             </label>
             {list.length === 0 && <p className="text-sm text-gray-500">Aucune automatisation pour l'instant.</p>}
