@@ -21,7 +21,9 @@ const bucket = getStorage().bucket();
 
 const today = new Date().toISOString().slice(0, 10);
 const day = new Date().getUTCDate();
-const COLLECTIONS = ["crm_leads", "crm_artisans", "crm_documents", "crm_boards", "crm_team", "crm_profiles", "crm_automations", "crm_clients", "crm_mail_state"];
+const COLLECTIONS = ["crm_leads", "crm_artisans", "crm_documents", "crm_boards", "crm_team", "crm_profiles", "crm_automations", "crm_clients", "crm_mail_state", "crm_mail_seen",
+  // Autres données de l'entreprise : leads du site, station de gonflage (devis, contrats signés), grilles artisans, désinscriptions.
+  "ip5_leads", "gonflage_dossiers", "gonflage_signatures", "artisan_grids", "artisan_grid_sends", "artisan_submissions", "email_optouts", "recruit_sends", "campaign_runs", "campaign_sends"];
 if (day === 1 || day === 15 || process.env.WITH_MONDAY === "1") COLLECTIONS.push("monday_boards", "monday_items", "monday_updates", "monday_meta");
 
 // Valeurs Firestore → JSON réversible.
