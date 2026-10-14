@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Send, ExternalLink, Mail, MessageCircle, X, Paperclip } from "lucide-react";
+import { Send, ExternalLink, X, Paperclip } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APPEL_SLOTS } from "@/lib/crmColumns";
 import { formatDateTime, formatPhone, statusInfo, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
@@ -11,6 +11,23 @@ const authorName = (by: string) => {
   const local = by.split("@")[0].split(/[._-]/)[0];
   return local ? local[0].toUpperCase() + local.slice(1) : by;
 };
+
+const GmailLogo = ({ size = 16 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <path fill="#4285F4" d="M2 7.2V17.5C2 18.3 2.7 19 3.5 19H6.5V10.4L2 7.2Z" />
+    <path fill="#34A853" d="M17.5 19H20.5C21.3 19 22 18.3 22 17.5V7.2L17.5 10.4V19Z" />
+    <path fill="#FBBC04" d="M17.5 5.8V10.4L22 7.2V6C22 4.5 20.3 3.7 19.1 4.5L17.5 5.8Z" />
+    <path fill="#EA4335" d="M6.5 10.4V5.8L12 9.9L17.5 5.8V10.4L12 14.5L6.5 10.4Z" />
+    <path fill="#C5221F" d="M2 6V7.2L6.5 10.4V5.8L4.9 4.5C3.7 3.7 2 4.5 2 6Z" />
+  </svg>
+);
+
+const WhatsAppLogo = ({ size = 16, white = false }: { size?: number; white?: boolean }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true">
+    <path fill={white ? "#fff" : "#25D366"} d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Z" />
+    <path fill={white ? "#16a34a" : "#fff"} d="M8.6 7.3c-.2-.4-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.3.3-1 1-1 2.4s1 2.8 1.2 3c.1.2 2 3.1 4.9 4.3 2.4.9 2.9.7 3.4.7.5 0 1.6-.7 1.9-1.3.2-.6.2-1.2.2-1.3-.1-.1-.3-.2-.6-.3l-1.9-.9c-.3-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.6.1-.3-.1-1.2-.5-2.3-1.4-.8-.8-1.400-1.7-1.500-2-.2-.3 0-.4.100-.6l.4-.5c.1-.1.2-.3.3-.5.1-.2 0-.4 0-.5l-.8-2Z" />
+  </svg>
+);
 
 export type MailFile = { name: string; type: string; data: string; size: number };
 const MAX_TOTAL = 6 * 1024 * 1024;
@@ -262,20 +279,20 @@ export default function LeadChat({
             <button
               onClick={() => setMailOpen((o) => !o)}
               className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border ${
-                mailOpen ? "bg-[#2b5a8f] text-white border-[#2b5a8f]" : "text-[#2b5a8f] border-[#2b5a8f]/40 hover:bg-blue-50"
+                mailOpen ? "bg-blue-50 text-[#2b5a8f] border-[#2b5a8f]" : "text-[#2b5a8f] border-[#2b5a8f]/40 hover:bg-blue-50"
               }`}
             >
-              <Mail size={14} /> Mail
+              <GmailLogo size={16} /> Gmail
             </button>
             <button
               onClick={() => setWaOpen((o) => !o)}
               disabled={!lead || !whatsappHref(lead.phone)}
               title={lead && whatsappHref(lead.phone) ? undefined : "Pas de numéro"}
               className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border disabled:text-gray-300 disabled:border-gray-200 ${
-                waOpen ? "bg-green-600 text-white border-green-600" : "border-green-600/40 text-green-700 hover:bg-green-50"
+                waOpen ? "bg-green-50 text-green-700 border-green-600" : "border-green-600/40 text-green-700 hover:bg-green-50"
               }`}
             >
-              <MessageCircle size={14} /> WhatsApp
+              <WhatsAppLogo size={16} /> WhatsApp
             </button>
             <div className="ml-auto inline-flex rounded-lg bg-gray-100 p-0.5 text-[11px] font-semibold">
               {([["tout", "Tout"], ["messages", "Messages"], ["mouvements", "Mouvements"]] as const).map(([k, l]) => (
