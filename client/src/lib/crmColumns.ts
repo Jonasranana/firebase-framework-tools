@@ -159,6 +159,8 @@ export type ColumnsConfig = {
   deleted?: string[];
   // Étiquettes modifiées d'une colonne de statut (clé de colonne → options).
   options?: Record<string, Opt[]>;
+  // Tableau à part (ex. intégré depuis Monday) : seules ces colonnes d'origine sont gardées, le reste vient de « custom ».
+  baseOnly?: string[];
 };
 
 const BASE_STATUSES: Opt[] = LEAD_STATUSES.map((x) => ({ ...x }));
@@ -171,7 +173,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined) {
   st.length = 0;
   st.push(...(c.options?.status ?? BASE_STATUSES).map((x) => ({ ...x })));
   const deleted = new Set(c.deleted ?? []);
-  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key)), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
+  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
   const byKey = new Map(all.map((x) => [x.key, x]));
   const ordered: LeadColumn[] = [];
   for (const k of c.order ?? []) {

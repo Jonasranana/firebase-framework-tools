@@ -304,7 +304,7 @@ export default function LeadChat({
           </div>
           {/* Petit résumé en lecture seule : on ne modifie rien depuis ici. */}
           <div className="flex flex-wrap gap-1.5">
-            {st && (
+            {st && (!lead?.board || lead.board === "leads") && (
               <span className="text-[11px] font-bold text-white rounded-full px-2 py-0.5" style={{ background: st.hex }}>
                 {st.label}
               </span>
