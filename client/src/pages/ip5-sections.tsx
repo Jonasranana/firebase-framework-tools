@@ -280,8 +280,6 @@ type SimulatorData = {
   phone: string;
   email: string;
   consent: boolean;
-  // Moment de rappel souhaité (facultatif) : « Dès que possible », « Matin »…
-  callbackSlot: string;
   company: string; // honeypot anti-spam : doit rester vide
 };
 
@@ -300,7 +298,6 @@ const INITIAL_DATA: SimulatorData = {
   phone: "",
   email: "",
   consent: false,
-  callbackSlot: "",
   company: "",
 };
 
@@ -1135,24 +1132,6 @@ export const Simulator = ({
                 {errors.email && (
                   <p className="text-red-600 text-xs mt-1">{errors.email}</p>
                 )}
-              </div>
-
-              <div>
-                <label htmlFor="lead-slot" className="block text-xs font-semibold text-gray-500 mb-1">
-                  Quand préférez-vous être rappelé(e) ? (facultatif)
-                </label>
-                <select
-                  id="lead-slot"
-                  value={formData.callbackSlot}
-                  onChange={(e) => setFormData({ ...formData, callbackSlot: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900"
-                >
-                  <option value="">Peu importe</option>
-                  <option value="Dès que possible">Dès que possible</option>
-                  <option value="Le matin">Le matin</option>
-                  <option value="L'après-midi">L'après-midi</option>
-                  <option value="En fin de journée">En fin de journée</option>
-                </select>
               </div>
 
               {/* Honeypot anti-spam : caché aux humains, rempli par les bots */}
