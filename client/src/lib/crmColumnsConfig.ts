@@ -109,6 +109,17 @@ export function useColumnsConfig(email: string) {
       // Le nom reste toujours la première colonne.
       save({ ...ref.current, order: ["name", ...order.filter((k) => k !== "name")] });
     },
+    // Décale une colonne d'un cran vers la gauche (-1) ou la droite (+1).
+    moveBy(key: string, delta: number) {
+      if (key === "name") return;
+      const order = currentOrder();
+      const from = order.indexOf(key);
+      const to = Math.max(1, Math.min(order.length - 1, from + delta));
+      if (from < 0 || to === from) return;
+      order.splice(from, 1);
+      order.splice(to, 0, key);
+      save({ ...ref.current, order: ["name", ...order.filter((k) => k !== "name")] });
+    },
     rename(key: string, title: string) {
       const custom = (ref.current.custom ?? []).map((c) => (c.key === key ? { ...c, title } : c));
       save({ ...ref.current, custom, titles: { ...(ref.current.titles ?? {}), [key]: title } });
