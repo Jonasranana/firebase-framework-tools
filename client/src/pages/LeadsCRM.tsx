@@ -7,6 +7,8 @@ import {
   Plus,
   List,
   Columns3,
+  ZoomIn,
+  ZoomOut,
   Table2,
   Loader2,
   BellRing,
@@ -28,7 +30,9 @@ import {
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
-import { LEAD_COLUMNS, cellValue, formulaValue } from "@/lib/crmColumns";
+import { LEAD_COLUMNS, cellValue, formulaValue, type ColType, type LeadColumn } from "@/lib/crmColumns";
+import { useColumnsConfig } from "@/lib/crmColumnsConfig";
+import ColumnMenu from "./ColumnMenu";
 import { PersonBar } from "./LeadsFilter";
 import { AddSplit, GroupByMenu, MoreMenu, QuickFilter, SearchToggle, SortMenu } from "./LeadsToolbar";
 import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
@@ -744,7 +748,26 @@ export default function LeadsCRM({
   const [focusUpdates, setFocusUpdates] = useState(false);
   const [creating, setCreating] = useState(false);
   const [dropOver, setDropOver] = useState<string | null>(null);
-  const [visibleCols, setVisibleCols] = useVisibleColumns();
+  const { version: columnsVersion, api: columnsApi, error: columnsError } = useColumnsConfig(email);
+  const [visibleCols, setVisibleCols] = useVisibleColumns(columnsVersion);
+  // Zoom du tableau (70 % à 140 %), mémorisé sur l'appareil.
+  const [zoom, setZoom] = useState(() => {
+    try {
+      const z = parseFloat(localStorage.getItem("crm-table-zoom") ?? "1");
+      return z >= 0.6 && z <= 1.5 ? z : 1;
+    } catch {
+      return 1;
+    }
+  });
+  const changeZoom = (z: number) => {
+    const v = Math.min(1.4, Math.max(0.6, Math.round(z * 100) / 100));
+    setZoom(v);
+    try {
+      localStorage.setItem("crm-table-zoom", String(v));
+    } catch {
+      /* non essentiel */
+    }
+  };
 
   const setViewPersist = (v: "tableau" | "liste" | "colonnes") => {
     setView(v);
@@ -1003,6 +1026,26 @@ export default function LeadsCRM({
     }
   };
 
+  // Dupliquer une colonne : nouvelle colonne ajoutée à droite, avec les mêmes valeurs.
+  const duplicateColumn = async (col: LeadColumn) => {
+    const type: ColType =
+      col.type === "status" ? "status" : col.type === "number" ? "number" : col.type === "date" ? "date" : col.type === "people" || col.type === "timeline" || col.type === "tags" ? col.type : "text";
+    const created = columnsApi.addAfter(col.key, type, `${col.title} (copie)`);
+    if (col.options) columnsApi.setOptions(created.key, col.options.map((o) => ({ ...o })));
+    try {
+      const { m, db } = await fs();
+      const src = (leads ?? []).map((l) => ({ id: l.id, v: col.type === "formula" ? formulaValue(l, col) : cellValue(l, col) })).filter((x) => x.v);
+      for (let i = 0; i < src.length; i += 400) {
+        const batch = m.writeBatch(db);
+        for (const x of src.slice(i, i + 400)) batch.update(m.doc(db, CRM_LEADS_COLLECTION, x.id), { [`fields.${created.key}`]: x.v });
+        await batch.commit();
+      }
+    } catch (e) {
+      console.error(e);
+      setError("La copie des valeurs a échoué (la colonne a bien été créée).");
+    }
+  };
+
   const patchFromTable = (id: string, patch: Record<string, unknown>) =>
     patchLead(id, email, patch).catch((e) => {
       console.error(e);
@@ -1086,7 +1129,18 @@ export default function LeadsCRM({
             <X size={12} /> Tout enlever
           </button>
         )}
-        <div className="ml-auto inline-flex rounded-md bg-gray-100 p-0.5">
+        <div className="ml-auto inline-flex items-center rounded-md border border-gray-200 bg-white" title="Zoom du tableau">
+          <button onClick={() => changeZoom(zoom - 0.1)} aria-label="Dézoomer" className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md">
+            <ZoomOut size={15} />
+          </button>
+          <button onClick={() => changeZoom(1)} className="px-1.5 text-xs font-semibold text-gray-600 w-11 hover:bg-gray-100 py-1.5">
+            {Math.round(zoom * 100)} %
+          </button>
+          <button onClick={() => changeZoom(zoom + 0.1)} aria-label="Zoomer" className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-r-md">
+            <ZoomIn size={15} />
+          </button>
+        </div>
+        <div className="inline-flex rounded-md bg-gray-100 p-0.5">
           {(
             [
               ["tableau", Table2, "Tableau"],
@@ -1138,11 +1192,31 @@ export default function LeadsCRM({
 
       {/* Vue tableau façon Monday */}
       {leads && view === "tableau" && (
+        <div style={{ zoom }}>
         <LeadsTable
           leads={filtered}
           groups={grouping ? grouping.groups : groups}
           groupKeyOf={grouping?.keyOf}
           readOnlyGroups={!!grouping}
+          columnsVersion={columnsVersion}
+          columnMenu={(c) => (
+            <ColumnMenu
+              col={c}
+              leads={leads ?? []}
+              filters={filters}
+              onFilters={setFilters}
+              sorts={sorts}
+              onSorts={setSorts}
+              groupBy={groupBy}
+              onGroupBy={setGroupBy}
+              api={columnsApi}
+              onDuplicate={duplicateColumn}
+            />
+          )}
+          onAddColumn={(t) => {
+            const last = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key)).slice(-1)[0];
+            columnsApi.addAfter(last?.key ?? "name", t);
+          }}
           visible={visibleCols}
           setVisible={setVisibleCols}
           onGroupsChange={saveGroups}
@@ -1156,6 +1230,7 @@ export default function LeadsCRM({
           onPatch={patchFromTable}
           onCreate={createFromTable}
         />
+        </div>
       )}
 
       {/* Vue liste */}

@@ -129,7 +129,7 @@ export function QuickFilter({
   // Valeurs et compteurs de chaque colonne (calculés à l'ouverture du panneau).
   const columns = useMemo(() => {
     if (!open) return [];
-    return QUICK_COLS.map((k) => LEAD_COLUMNS.find((c) => c.key === k)!)
+    return [...QUICK_COLS.map((k) => LEAD_COLUMNS.find((c) => c.key === k)!), ...LEAD_COLUMNS.filter((c) => c.custom && c.type !== "timeline")]
       .filter(Boolean)
       .map((c) => {
         if (c.type === "date") {
@@ -336,7 +336,7 @@ export function SortMenu({ sorts, onChange }: { sorts: LeadSort[]; onChange: (s:
 
 // ── Grouper par ────────────────────────────────────────────────────────────
 export function GroupByMenu({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const cols = GROUPABLE.map((k) => LEAD_COLUMNS.find((c) => c.key === k)!).filter(Boolean);
+  const cols = [...GROUPABLE.map((k) => LEAD_COLUMNS.find((c) => c.key === k)!), ...LEAD_COLUMNS.filter((c) => c.custom && c.type === "status")].filter(Boolean);
   const label = value ? cols.find((c) => c.key === value)?.title : "";
   return (
     <Popover>

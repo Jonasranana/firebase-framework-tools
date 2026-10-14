@@ -18,7 +18,10 @@ export type ColType =
   | "email"
   | "formula"
   | "files"
-  | "autodate";
+  | "autodate"
+  | "people"
+  | "timeline"
+  | "tags";
 
 export type LeadColumn = {
   key: string;
@@ -28,6 +31,11 @@ export type LeadColumn = {
   core?: "name" | "status" | "phone" | "email" | "postalCode" | "rappelLe" | "type" | "source" | "projet";
   options?: readonly Opt[];
   unit?: string;
+  // Colonne ajoutée depuis le menu de la colonne (valeur dans fields.<key>).
+  custom?: boolean;
+  // Retour à la ligne dans les cellules / colonne réduite.
+  wrap?: boolean;
+  collapsed?: boolean;
 };
 
 const o = (key: string, hex: string, label = key): Opt => ({ key, label, hex });
@@ -92,7 +100,7 @@ const TYPE_LEAD_OPTS: Opt[] = [
   o("Autre", "#757575"),
 ];
 
-export const LEAD_COLUMNS: LeadColumn[] = [
+export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "name", title: "Noms sociétés", type: "name", width: 240, core: "name" },
   { key: "status", title: "📞 Statut Appel", type: "status", width: 170, core: "status", options: LEAD_STATUSES },
   { key: "rappel", title: "Rappel", type: "date", width: 130, core: "rappelLe" },
@@ -139,6 +147,48 @@ export const LEAD_COLUMNS: LeadColumn[] = [
   { key: "region", title: "🗺️ Région", type: "formula", width: 140 },
   { key: "ressenti", title: "🎭 Ressenti de l'appel", type: "status", width: 160, options: RESSENTI },
 ];
+
+// Colonnes affichées = colonnes d'origine + colonnes ajoutées, dans l'ordre choisi
+// (voir lib/crmColumnsConfig.ts). Tableau modifié « en place » à chaque changement
+// de configuration, pour que tout le CRM (filtres, tri, export…) voie les mêmes colonnes.
+export const LEAD_COLUMNS: LeadColumn[] = [...BASE_LEAD_COLUMNS];
+
+export type ColumnsConfig = {
+  custom?: LeadColumn[];
+  order?: string[];
+  titles?: Record<string, string>;
+  widths?: Record<string, number>;
+  wrap?: Record<string, boolean>;
+  collapsed?: Record<string, boolean>;
+  deleted?: string[];
+};
+
+export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined) {
+  const c = cfg ?? {};
+  const deleted = new Set(c.deleted ?? []);
+  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key)), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
+  const byKey = new Map(all.map((x) => [x.key, x]));
+  const ordered: LeadColumn[] = [];
+  for (const k of c.order ?? []) {
+    const col = byKey.get(k);
+    if (col) {
+      ordered.push(col);
+      byKey.delete(k);
+    }
+  }
+  for (const col of Array.from(byKey.values())) ordered.push(col);
+  // Le nom reste toujours la première colonne.
+  ordered.sort((a, b) => (a.key === "name" ? -1 : b.key === "name" ? 1 : 0));
+  const next = ordered.map((col) => ({
+    ...col,
+    title: c.titles?.[col.key] ?? col.title,
+    width: c.collapsed?.[col.key] ? 52 : c.widths?.[col.key] ?? col.width,
+    wrap: !!c.wrap?.[col.key],
+    collapsed: !!c.collapsed?.[col.key],
+  }));
+  LEAD_COLUMNS.length = 0;
+  LEAD_COLUMNS.push(...next);
+}
 
 // ── Lecture / écriture d'une cellule ───────────────────────────────────────
 export function cellValue(l: Lead, c: LeadColumn): string {
@@ -228,5 +278,5 @@ export function formulaValue(l: Lead, c: LeadColumn): string {
   }
 }
 
-export const DEFAULT_VISIBLE = LEAD_COLUMNS.map((c) => c.key);
+export const DEFAULT_VISIBLE = BASE_LEAD_COLUMNS.map((c) => c.key);
 export { LEAD_TYPES };
