@@ -445,7 +445,19 @@ const LeadSheet = ({
         });
         onClose();
       } else if (lead) {
-        await patchLead(lead.id, email, clean);
+        const { m } = await fs();
+        const before = draftOf(lead);
+        const labels: Record<string, string> = { name: "Nom", phone: "Téléphone", email: "E-mail", postalCode: "Code postal", city: "Ville", type: "Type", projet: "Projet" };
+        const traces = (Object.keys(labels) as (keyof Draft)[])
+          .filter((k) => String(before[k] ?? "") !== String(clean[k] ?? ""))
+          .map((k) => ({
+            id: newId(),
+            text: `${labels[k]} : ${before[k] || "vide"} → ${clean[k] || "vide"}`,
+            by: email,
+            at: new Date().toISOString(),
+            kind: "statut" as const,
+          }));
+        await patchLead(lead.id, email, traces.length ? { ...clean, notes: m.arrayUnion(...traces) } : clean);
         setSaved(true);
         setTimeout(() => setSaved(false), 1500);
       }
@@ -467,7 +479,20 @@ const LeadSheet = ({
   };
 
   const changeRappel = (rappelLe: string) =>
-    lead && run(() => patchLead(lead.id, email, { rappelLe }), "Impossible d'enregistrer le rappel.");
+    lead &&
+    run(async () => {
+      const { m } = await fs();
+      await patchLead(lead.id, email, {
+        rappelLe,
+        notes: m.arrayUnion({
+          id: newId(),
+          text: `Rappel : ${lead.rappelLe || "vide"} → ${rappelLe || "vide"}`,
+          by: email,
+          at: new Date().toISOString(),
+          kind: "statut",
+        } satisfies LeadNote),
+      });
+    }, "Impossible d'enregistrer le rappel.");
 
   const addNote = () => {
     const text = noteText.trim();
@@ -1422,6 +1447,10 @@ export default function LeadsCRM({
         onSend={async (id, text) => {
           await callFn("postUpdate", { kind: "lead", id, text });
         }}
+        onSendMail={async (id, mail) => {
+          await callFn("sendLeadMessage", { leadId: id, channel: "mail", template: mail.template, subject: mail.subject, body: mail.body });
+        }}
+        onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string }[] }>("listLeadTemplates")).templates}
         onOpenFiche={(id) => {
           setChatId(null);
           setOpenId(id);

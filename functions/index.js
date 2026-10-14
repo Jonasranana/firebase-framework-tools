@@ -1286,7 +1286,7 @@ exports.sendLeadMessage = onCall(
     if (!isCrmMember(request)) {
       throw new HttpsError("permission-denied", "Accès refusé.");
     }
-    const { leadId, channel, template, text } = request.data ?? {};
+    const { leadId, channel, template, text, subject: freeSubject, body: freeBody } = request.data ?? {};
     if (typeof leadId !== "string" || !leadId || !["mail", "sms"].includes(channel)) {
       throw new HttpsError("invalid-argument", "Requête invalide.");
     }
@@ -1303,25 +1303,38 @@ exports.sendLeadMessage = onCall(
     let summary;
     if (channel === "mail") {
       const to = String(lead.email ?? "").trim();
-      if (!tpl) throw new HttpsError("invalid-argument", "Choisissez un modèle de mail.");
+      const customSubject = String(freeSubject ?? "").trim().slice(0, 150);
+      const customBody = String(freeBody ?? "").trim().slice(0, 5000);
+      if (!tpl && (!customSubject || !customBody)) {
+        throw new HttpsError("invalid-argument", "Choisissez un modèle ou écrivez un objet et un message.");
+      }
       if (!to) throw new HttpsError("failed-precondition", "Ce lead n'a pas d'adresse e-mail.");
       const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
       oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
       const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-      const raw = buildRawMessageWithAttachment({
-        to,
-        from: GMAIL_SENDER_EMAIL.value(),
-        subject: tpl.subject,
-        html: tpl.buildHtml({ nomComplet, rac: undefined }),
-        attachments: tpl.attachments,
-      });
+      const raw = tpl
+        ? buildRawMessageWithAttachment({
+            to,
+            from: GMAIL_SENDER_EMAIL.value(),
+            subject: tpl.subject,
+            html: tpl.buildHtml({ nomComplet, rac: undefined }),
+            attachments: tpl.attachments,
+          })
+        : buildRawMessage({
+            to,
+            from: GMAIL_SENDER_EMAIL.value(),
+            subject: customSubject,
+            html: buildBrandedEmailShell({
+              bodyHtml: `<div style="white-space:pre-wrap; line-height:1.55;">${escapeHtmlText(customBody)}</div>`,
+            }),
+          });
       try {
         await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
       } catch (err) {
         logger.error("Échec de l'envoi du mail CRM", { leadId, error: err.message });
         throw new HttpsError("internal", "Échec de l'envoi du mail (voir les journaux).");
       }
-      summary = `✉️ Mail envoyé : « ${tpl.subject} »`;
+      summary = `✉️ Mail envoyé : « ${tpl ? tpl.subject : customSubject} »`;
     } else {
       const to = toE164French(lead.phone);
       if (!to || !to.startsWith("+")) {
