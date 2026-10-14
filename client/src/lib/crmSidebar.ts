@@ -9,13 +9,12 @@ import type { LeadFilter, LeadSort } from "@/lib/crmFilters";
 // configuration est partagée par toute l'équipe : Firestore crm_boards/sidebar.
 // ─────────────────────────────────────────────────────────────────────────
 export type AdminPageKey =
-  | "accueil"
   | "leads"
   | "artisans"
   | "stats"
   | "documents"
-  | "doublons"
   | "corbeille"
+  | "bareme"
   | "equipe"
   | "devis"
   | "marges"
@@ -70,14 +69,12 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       title: "CRM IP5",
       color: "#fb275d",
       items: [
-        item("accueil", "Accueil"),
         item("leads", "Leads"),
         item("artisans", "Artisans"),
         item("documents", "Documents"),
         item("stats", "Statistiques"),
-        item("doublons", "Doublons"),
-        item("corbeille", "Corbeille"),
-        item("equipe", "Équipe"),
+        item("bareme", "Barème"),
+        item("corbeille", "Corbeille et doublons"),
       ],
     },
     { id: "f_pac", title: "Outils pompe à chaleur", color: "#fdab3d", items: [item("devis", "Devis PAC"), item("marges", "Marges Prémi")] },
@@ -97,7 +94,14 @@ export const newId = (p: string) => `${p}_${Math.random().toString(36).slice(2, 
 // depuis (une nouvelle page du CRM apparaît seule dans son dossier d'origine).
 export function normalizeConfig(c: Partial<SideConfig> | null | undefined): SideConfig {
   if (!c || !Array.isArray(c.folders) || c.folders.length === 0) return DEFAULT_SIDEBAR;
-  const folders: SideFolder[] = c.folders.map((f) => ({ ...f, items: Array.isArray(f.items) ? f.items : [] }));
+  // Pages retirées du menu (l'équipe est dans la pastille en haut à droite, doublons dans la corbeille).
+  const REMOVED = ["accueil", "doublons", "equipe"];
+  const folders: SideFolder[] = c.folders.map((f) => ({
+    ...f,
+    items: (Array.isArray(f.items) ? f.items : [])
+      .filter((i) => !(i.core && REMOVED.includes(i.page as string)))
+      .map((i) => (i.core && i.page === "corbeille" && i.title === "Corbeille" ? { ...i, title: "Corbeille et doublons" } : i)),
+  }));
   const present = new Set(folders.flatMap((f) => f.items.filter((i) => i.core).map((i) => i.page)));
   for (const df of DEFAULT_SIDEBAR.folders) {
     for (const di of df.items) {

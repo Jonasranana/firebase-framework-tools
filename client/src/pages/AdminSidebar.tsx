@@ -45,12 +45,11 @@ import {
 // Menu de gauche façon Monday : espace de travail, favoris, dossiers colorés,
 // tableaux. Chaque dossier et chaque tableau a son menu « ⋯ ».
 const ICONS: Record<AdminPageKey, typeof Users> = {
-  accueil: Home,
   leads: Users,
   artisans: HardHat,
   documents: FolderOpen,
-  doublons: Copy,
   corbeille: Trash2,
+  bareme: Percent,
   stats: BarChart3,
   equipe: UserPlus,
   devis: Calculator,

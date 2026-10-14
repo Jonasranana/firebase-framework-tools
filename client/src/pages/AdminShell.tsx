@@ -37,13 +37,12 @@ import { allItems, useSidebar, type SideConfig, type SideItem } from "@/lib/crmS
 // ─────────────────────────────────────────────────────────────────────────
 
 export type AdminPage =
-  | "accueil"
   | "leads"
   | "artisans"
   | "stats"
   | "documents"
-  | "doublons"
   | "corbeille"
+  | "bareme"
   | "equipe"
   | "devis"
   | "marges"
@@ -52,13 +51,12 @@ export type AdminPage =
   | "archives";
 
 export const PAGE_TITLES: Record<AdminPage, string> = {
-  accueil: "Accueil",
   leads: "Leads",
   artisans: "Artisans",
   stats: "Statistiques",
   documents: "Documents",
-  doublons: "Doublons",
-  corbeille: "Corbeille",
+  corbeille: "Corbeille et doublons",
+  bareme: "Barème",
   equipe: "Équipe",
   devis: "Devis PAC",
   marges: "Marges Prémi",

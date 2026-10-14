@@ -1,6 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import StatusLabelEditor from "./StatusLabelEditor";
 import {
+  Check,
+  X,
+  Download,
+  FolderInput,
+  ListChecks,
   Archive,
   ArrowDown,
   ArrowUp,
@@ -586,6 +591,118 @@ export const ColumnsMenu = ({ visible, onChange }: { visible: string[]; onChange
   </Popover>
 );
 
+// Case à cocher moderne (à la place de la case noire du navigateur).
+const RowCheck = ({ checked, onChange, label, className = "" }: { checked: boolean; onChange: (v: boolean) => void; label: string; className?: string }) => (
+  <button
+    type="button"
+    role="checkbox"
+    aria-checked={checked}
+    aria-label={label}
+    onClick={(e) => {
+      e.stopPropagation();
+      onChange(!checked);
+    }}
+    className={`shrink-0 w-[18px] h-[18px] rounded-[5px] border-2 flex items-center justify-center transition-colors ${
+      checked ? "bg-[#0073ea] border-[#0073ea] text-white" : "bg-white border-gray-300 hover:border-[#0073ea]"
+    } ${className}`}
+  >
+    {checked && <Check size={12} strokeWidth={3.5} />}
+  </button>
+);
+
+// Barre d'actions en bas de l'écran quand des lignes sont cochées.
+const BulkBar = ({
+  ids,
+  groups,
+  bulk,
+  onClear,
+}: {
+  ids: string[];
+  groups: LeadGroup[];
+  bulk: { setStatus: (ids: string[], s: string) => void; moveGroup: (ids: string[], g: string) => void; remove: (ids: string[]) => void; exportCsv: (ids: string[]) => void };
+  onClear: () => void;
+}) => {
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [groupOpen, setGroupOpen] = useState(false);
+  const btn = "inline-flex items-center gap-2 text-sm font-semibold text-gray-700 rounded-lg px-3 py-2 hover:bg-gray-100 transition-colors";
+  const pop = "bg-white text-gray-900 border border-gray-200 shadow-xl rounded-xl";
+  return (
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 rounded-2xl bg-white text-gray-900 border border-gray-200 shadow-[0_12px_40px_rgba(0,0,0,0.22)] pl-1.5 pr-2 py-1.5 max-w-[96vw]">
+      <div className="flex items-center gap-2 pl-2 pr-3 mr-1 border-r border-gray-200">
+        <span className="min-w-[26px] h-[26px] px-1.5 rounded-full bg-[#0073ea] text-white text-sm font-bold flex items-center justify-center">{ids.length}</span>
+        <span className="text-sm font-semibold text-gray-700">sélectionné{ids.length > 1 ? "s" : ""}</span>
+      </div>
+
+      <Popover open={statusOpen} onOpenChange={setStatusOpen}>
+        <PopoverTrigger asChild>
+          <button className={btn}>
+            <ListChecks size={16} className="text-gray-500" /> Statut
+          </button>
+        </PopoverTrigger>
+        <PopoverContent side="top" align="center" sideOffset={12} className={`${pop} w-[min(640px,92vw)] max-h-80 overflow-y-auto p-3`}>
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
+            {LEAD_STATUSES.filter((x) => x.label !== "").map((x) => (
+              <button
+                key={x.key}
+                onClick={() => {
+                  setStatusOpen(false);
+                  bulk.setStatus(ids, x.key);
+                }}
+                className="text-sm font-semibold text-white py-1.5 px-2 rounded truncate hover:brightness-95"
+                style={{ background: x.hex }}
+                title={x.label}
+              >
+                {x.label}
+              </button>
+            ))}
+          </div>
+        </PopoverContent>
+      </Popover>
+
+      <Popover open={groupOpen} onOpenChange={setGroupOpen}>
+        <PopoverTrigger asChild>
+          <button className={btn}>
+            <FolderInput size={16} className="text-gray-500" /> Déplacer
+          </button>
+        </PopoverTrigger>
+        <PopoverContent side="top" align="center" sideOffset={12} className={`${pop} w-64 max-h-80 overflow-y-auto p-1.5`}>
+          {groups.map((g) => (
+            <button
+              key={g.id}
+              onClick={() => {
+                setGroupOpen(false);
+                bulk.moveGroup(ids, g.id);
+              }}
+              className="w-full flex items-center gap-2.5 text-sm text-left rounded-lg px-2.5 py-2 hover:bg-gray-100"
+            >
+              <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: g.color }} />
+              <span className="truncate">{g.title}</span>
+            </button>
+          ))}
+        </PopoverContent>
+      </Popover>
+
+      <button onClick={() => bulk.exportCsv(ids)} className={btn}>
+        <Download size={16} className="text-gray-500" /> Exporter
+      </button>
+      <button
+        onClick={() => {
+          if (window.confirm(`Mettre ${ids.length} lead${ids.length > 1 ? "s" : ""} à la corbeille ?\n\nIls restent récupérables pendant 30 jours.`)) {
+            bulk.remove(ids);
+            onClear();
+          }
+        }}
+        className="inline-flex items-center gap-2 text-sm font-semibold text-[#d83a52] rounded-lg px-3 py-2 hover:bg-red-50 transition-colors"
+      >
+        <Trash2 size={16} /> Corbeille
+      </button>
+      <button onClick={onClear} aria-label="Tout désélectionner" className="ml-1 p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700">
+        <X size={16} />
+      </button>
+    </div>
+  );
+};
+
 // Bandeau bien visible sous les lignes d'un groupe : il reste des leads à afficher.
 // Les lignes suivantes se chargent aussi toutes seules quand on arrive en bas.
 const MoreRows = ({
@@ -746,7 +863,10 @@ export default function LeadsTable({
   visible,
   setVisible,
   bulk,
+  scrollMaxHeight,
 }: {
+  // Hauteur max du tableau : la barre de défilement horizontale reste visible en bas de l'écran.
+  scrollMaxHeight?: string;
   // Actions groupées sur les lignes cochées (barre en bas).
   bulk?: {
     setStatus: (ids: string[], status: string) => void;
@@ -827,7 +947,7 @@ export default function LeadsTable({
   };
 
   return (
-    <div className="overflow-x-auto pb-4">
+    <div className="overflow-auto pb-2" style={scrollMaxHeight ? { maxHeight: scrollMaxHeight } : undefined}>
       <div style={{ minWidth: totalWidth }} className="space-y-6">
         <div className="sticky left-0 flex flex-wrap items-center gap-2">
           <button
@@ -940,12 +1060,10 @@ export default function LeadsTable({
                         title={c.title}
                       >
                         {i === 0 && bulk && (
-                          <input
-                            type="checkbox"
-                            aria-label="Tout sélectionner dans ce groupe"
-                            className="h-3.5 w-3.5 shrink-0 cursor-pointer"
+                          <RowCheck
+                            label="Tout sélectionner dans ce groupe"
                             checked={rows.length > 0 && rows.every((r) => sel.has(r.id))}
-                            onChange={(e) => toggleSel(rows.map((r) => r.id), e.target.checked)}
+                            onChange={(v) => toggleSel(rows.map((r) => r.id), v)}
                           />
                         )}
                         <span className="truncate flex-1">{c.title}</span>
@@ -983,12 +1101,11 @@ export default function LeadsTable({
                             style={{ borderLeft: `6px solid ${st.color}` }}
                           >
                             {bulk && (
-                              <input
-                                type="checkbox"
-                                aria-label="Sélectionner"
-                                className={`h-3.5 w-3.5 shrink-0 cursor-pointer ${sel.has(l.id) ? "" : "opacity-0 group-hover:opacity-100"}`}
+                              <RowCheck
+                                label="Sélectionner"
+                                className={sel.has(l.id) ? "" : "opacity-0 group-hover:opacity-100 focus:opacity-100"}
                                 checked={sel.has(l.id)}
-                                onChange={(e) => toggleSel([l.id], e.target.checked)}
+                                onChange={(v) => toggleSel([l.id], v)}
                               />
                             )}
                             <span
@@ -1097,56 +1214,7 @@ export default function LeadsTable({
         </button>
         )}
       </div>
-      {bulk && selIds.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-2 rounded-xl bg-white text-gray-900 border border-gray-200 shadow-2xl px-4 py-2.5 max-w-[95vw]">
-          <span className="text-sm font-bold">{selIds.length} sélectionné{selIds.length > 1 ? "s" : ""}</span>
-          <select
-            className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1"
-            value=""
-            onChange={(e) => {
-              if (e.target.value) bulk.setStatus(selIds, e.target.value);
-            }}
-          >
-            <option value="">Changer le statut…</option>
-            {LEAD_STATUSES.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </select>
-          <select
-            className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1"
-            value=""
-            onChange={(e) => {
-              if (e.target.value) bulk.moveGroup(selIds, e.target.value);
-            }}
-          >
-            <option value="">Déplacer vers…</option>
-            {visibleGroups.map((g) => (
-              <option key={g.id} value={g.id}>
-                {g.title}
-              </option>
-            ))}
-          </select>
-          <button onClick={() => bulk.exportCsv(selIds)} className="text-sm font-semibold border border-gray-300 rounded-md px-2.5 py-1 hover:bg-gray-100">
-            Exporter
-          </button>
-          <button
-            onClick={() => {
-              if (window.confirm(`Mettre ${selIds.length} lead${selIds.length > 1 ? "s" : ""} à la corbeille ? (récupérables pendant 30 jours)`)) {
-                bulk.remove(selIds);
-                setSel(new Set());
-              }
-            }}
-            className="text-sm font-semibold text-red-600 border border-red-200 rounded-md px-2.5 py-1 hover:bg-red-50"
-          >
-            Corbeille
-          </button>
-          <button onClick={() => setSel(new Set())} className="text-sm text-gray-500 px-1" aria-label="Désélectionner">
-            ✕
-          </button>
-        </div>
-      )}
+      {bulk && selIds.length > 0 && <BulkBar ids={selIds} groups={visibleGroups} bulk={bulk} onClear={() => setSel(new Set())} />}
     </div>
   );
 }
