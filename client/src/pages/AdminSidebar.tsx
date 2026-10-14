@@ -16,7 +16,6 @@ import {
   Pencil,
   PanelTop,
   Percent,
-  Plus,
   Repeat,
   Settings2,
   Star,
@@ -245,7 +244,8 @@ const FolderMenu = ({ f, index, ctx }: { f: SideFolder; index: number; ctx: Ctx 
               <Entry icon={Palette} label="Modifier la couleur" more onClick={() => setPanel("color")} />
               <Sep />
               <Entry icon={ArrowRight} label="Déplacer vers" more onClick={() => setPanel("move")} />
-              <Entry icon={Plus} label="Créer dans un dossier" more onClick={() => setPanel("create")} />
+              <Entry icon={Table2} label="Ajouter un tableau" onClick={() => { close(); addBoard(f.id); }} />
+              <Entry icon={FolderPlus} label="Ajouter un dossier (en dessous)" onClick={() => { close(); addFolder(f.id); }} />
               <Sep />
               <Entry icon={ChevronsDownUp} label="Réduire tous les dossiers" onClick={() => { close(); collapseAll(true); }} />
               <Entry
