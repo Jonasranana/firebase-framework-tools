@@ -1,8 +1,7 @@
 // Nettoie ce que l'ancien « suivi automatique des appels » avait écrit tout seul dans les fiches :
 // historique `calls`, anciennes colonnes 1er/2e/3e appel et nombre d'appels, et la colonne Commercial
-// quand elle n'a été remplie que par cet automatisme (fiches créées hors import Monday).
-// Pour les fiches importées de Monday, la colonne Commercial n'est PAS touchée (elle peut venir de Monday) :
-// elles sont seulement listées. Essai à blanc par défaut (DRY_RUN=1) : n'écrit rien.
+// quand elle porte le nom du premier appelant automatique.
+// Essai à blanc par défaut (DRY_RUN=1) : n'écrit rien.
 import { createRequire } from "node:module";
 const require = createRequire(new URL("../functions/package.json", import.meta.url));
 const { initializeApp } = require("firebase-admin/app");
@@ -20,10 +19,12 @@ for (const d of touched) {
   const f = d.get("fields") ?? {};
   const calls = d.get("calls");
   const first = String(calls[0]?.name ?? "").split(/\s+/)[0].toLowerCase();
-  const commercialAuto = f.commercial && String(f.commercial).toLowerCase() === first && !d.id.startsWith("monday_");
+  // L'ancien suivi n'écrivait « Commercial » que si la case était vide : si elle porte le nom du
+  // premier appelant, c'est lui qui l'a mis (cas vérifié à l'écran pour l'unique fiche concernée).
+  const commercialAuto = f.commercial && String(f.commercial).toLowerCase() === first;
   const monday = d.id.startsWith("monday_");
   console.log(
-    `- ${d.get("name") || d.id} | appels=${calls.length} | 1er=${f.premierAppel ?? ""} 2e=${f.deuxiemeAppel ?? ""} 3e=${f.troisiemeAppel ?? ""} | commercial=${f.commercial ?? ""}${commercialAuto ? " (sera vidé)" : monday && f.commercial ? " (fiche Monday : conservé)" : ""}`,
+    `- ${d.get("name") || d.id} | appels=${calls.length} | 1er=${f.premierAppel ?? ""} 2e=${f.deuxiemeAppel ?? ""} 3e=${f.troisiemeAppel ?? ""} | commercial=${f.commercial ?? ""}${commercialAuto ? " (sera vidé)" : monday && f.commercial ? " (conservé)" : ""}`,
   );
   if (DRY_RUN) continue;
   const patch = {

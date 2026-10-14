@@ -108,7 +108,7 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "rappel", title: "Rappel", type: "date", width: 130, core: "rappelLe" },
   { key: "pipeline", title: "🔧 Pipeline", type: "status", width: 150, options: PIPELINE },
   { key: "commercial", title: "👤 Commercial", type: "status", width: 130, options: COMMERCIAL },
-  { key: "appels", title: "📞 Appels (qui a appelé)", type: "appels", width: 250 },
+  { key: "appels", title: "📞 Appels", type: "appels", width: 150 },
   { key: "phone", title: "📞 Téléphone", type: "phone", width: 175, core: "phone" },
   { key: "precarite", title: "🏷️ Précarité (Prémi)", type: "status", width: 140, options: PRECARITE },
   { key: "marque", title: "🔧 Marque PAC", type: "status", width: 120, options: MARQUE },

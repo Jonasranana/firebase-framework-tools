@@ -1,6 +1,7 @@
-name: Nettoyer le suivi automatique des appels
+name: Nettoyer les appels et fusionner Commercial dans Appels
 
-# Retire ce que l'ancien suivi automatique des appels avait écrit tout seul dans les fiches.
+# 1) Retire ce que l'ancien suivi automatique des appels avait écrit tout seul dans les fiches.
+# 2) Recopie la colonne Commercial dans « 1er appel » (colonne Appels).
 # Essai à blanc par défaut : liste les fiches concernées sans rien modifier.
 on:
   workflow_dispatch:
@@ -29,4 +30,6 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
           DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
-        run: node scripts/clean-auto-calls.mjs
+        run: |
+          node scripts/clean-auto-calls.mjs
+          node scripts/merge-commercial-into-appels.mjs
