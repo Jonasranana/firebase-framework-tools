@@ -331,7 +331,7 @@ const QuickStart = ({ source }: { source: string }) => {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#2b5a8f] to-cyan-500 text-white py-4 rounded-full font-bold text-lg shadow-lg disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 bg-[#173a5e] hover:bg-[#122f4d] text-white py-4 rounded-lg font-semibold text-lg shadow-md transition-colors disabled:opacity-60"
           >
             {submitting ? "Envoi…" : "Être rappelé(e)"}
           </button>
@@ -481,21 +481,19 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       hideFloatingWhileVisible="simulateur"
     >
       {/* ── HERO calé sur l'annonce : angle AIDES + ÉLIGIBILITÉ ── */}
-      <section className="relative pt-24 pb-16 lg:pt-40 lg:pb-28 overflow-hidden bg-white dark:bg-slate-950">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] rounded-full bg-blue-50 dark:bg-blue-900/20 blur-3xl opacity-70"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-green-50 dark:bg-green-900/20 blur-3xl opacity-70"></div>
+      <section className="relative pt-24 pb-16 lg:pt-40 lg:pb-28 overflow-hidden bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Mobile : la question rapide en tout premier, puis le titre et le
               texte. Ordinateur : texte à gauche, question à droite. */}
           <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:gap-x-16 lg:gap-y-0">
             <div className="order-2 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-1 lg:self-end text-center lg:text-left">
-              <div className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-bold text-sm mb-6 border border-green-100 dark:border-green-900 shadow-sm">
+              <div className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-md bg-white dark:bg-slate-900 text-[#173a5e] dark:text-blue-200 font-semibold text-sm mb-6 border border-slate-200 dark:border-slate-700">
                 <Gift size={16} /> Aides 2026 ouvertes — vérifiez votre montant
               </div>
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight lg:mb-6 text-gray-900 dark:text-white">
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[1.12] lg:mb-6 text-[#0f2a47] dark:text-white">
                 Jusqu'à{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
+                <span className="text-[#2b5a8f] dark:text-blue-300">
                   100% d'aides
                 </span>{" "}
                 pour votre pompe à chaleur
@@ -503,7 +501,6 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
             </div>
 
             <div id="simulateur" className="order-1 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 lg:self-center relative scroll-mt-28">
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-green-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
               <div className="relative">
                 <QuickStart source={source} />
               </div>
@@ -521,7 +518,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
                 <a
                   href="#simulateur"
                   onClick={scrollToSimulateur}
-                  className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#2b5a8f] to-cyan-500 text-white px-9 py-4 rounded-full font-bold text-lg shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 hover:scale-[1.03] transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-3 bg-[#173a5e] hover:bg-[#122f4d] text-white px-8 py-4 rounded-lg font-semibold text-lg shadow-md transition-colors"
                 >
                   <Sparkles size={22} fill="currentColor" /> Vérifier mes aides
                   gratuitement
