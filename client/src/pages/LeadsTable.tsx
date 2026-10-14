@@ -824,32 +824,26 @@ const LeadRow = memo(function LeadRow({
             <div className="flex-1 min-w-0 h-full">
               <EditableCell value={l.name} placeholder="Sans nom" onSave={(v) => onPatch(l.id, { name: v })} />
             </div>
-            {/* Mises à jour (commentaires de l'équipe) : pastille discrète, bleue quand il y en a. */}
-            <button
-              onClick={() => onOpen(l.id, "updates")}
-              title={notes ? `${notes} mise${notes > 1 ? "s" : ""} à jour : cliquez pour lire ou écrire` : "Ajouter une mise à jour"}
-              className={`shrink-0 inline-flex items-center gap-1 h-6 rounded-full px-2 text-xs font-semibold transition-colors ${
-                notes ? "bg-[#e6f0ff] text-[#0b63ce] hover:bg-[#d3e5ff]" : "text-gray-300 hover:bg-gray-100 hover:text-gray-500"
-              }`}
-            >
-              <MessageSquare size={13} />
-              {notes > 0 && <span>{notes > 99 ? "99+" : notes}</span>}
-            </button>
             {/* Le client a répondu par mail et personne n'a encore ouvert la fiche. */}
             {l.mailNonLu && (
               <button
-                onClick={() => onOpen(l.id)}
+                onClick={() => onOpen(l.id, "updates")}
                 title="Le client a répondu par mail : cliquez pour lire sa réponse"
                 className="shrink-0 inline-flex items-center gap-1 h-6 rounded-full px-2 text-[11px] font-bold bg-[#fff1d6] text-[#a35b00] hover:bg-[#ffe6b3]"
               >
                 <Mail size={12} /> Réponse
               </button>
             )}
+            {/* Mises à jour (commentaires de l'équipe) : pastille discrète, bleue quand il y en a. */}
             <button
-              onClick={() => onOpen(l.id)}
-              className="shrink-0 text-[11px] font-semibold text-[#579bfc] border border-[#579bfc]/40 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100"
+              onClick={() => onOpen(l.id, "updates")}
+              title={notes ? `${notes} mise${notes > 1 ? "s" : ""} à jour : cliquez pour lire ou écrire` : "Ajouter une mise à jour"}
+              className={`shrink-0 ml-auto mr-1 inline-flex items-center gap-1 h-6 rounded-full px-2 text-xs font-semibold transition-colors ${
+                notes ? "bg-[#e6f0ff] text-[#0b63ce] hover:bg-[#d3e5ff]" : "text-gray-300 hover:bg-gray-100 hover:text-gray-500"
+              }`}
             >
-              Ouvrir
+              <MessageSquare size={13} />
+              {notes > 0 && <span>{notes > 99 ? "99+" : notes}</span>}
             </button>
           </div>
         ) : c.type === "phone" ? (
