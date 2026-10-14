@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Download, FileText, Loader2, Search } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { crmFirestore } from "@/lib/crmDb";
+import { useSidebar } from "@/lib/crmSidebar";
+import { boardIdFor, integrateMondayBoard } from "@/lib/mondayIntegrate";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Archives Monday : copie en lecture seule de tous les tableaux Monday
@@ -163,7 +165,44 @@ function ItemDialog({ item, board, onClose }: { item: MItem; board: MBoard; onCl
   );
 }
 
-function BoardView({ board, onBack }: { board: MBoard; onBack: () => void }) {
+function IntegrateButton({ board, email }: { board: MBoard; email: string }) {
+  const sidebar = useSidebar(email);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [done, setDone] = useState(false);
+  const already = sidebar.config.folders.some((f) => f.items.some((i) => i.board === boardIdFor(board.id)));
+  const run = async () => {
+    if (!board.complete && !confirm("La copie de ce tableau n'est pas terminée : seules les lignes déjà archivées seront intégrées. Continuer ?")) return;
+    if (!confirm(`Intégrer « ${board.name} » dans le dossier « Tableau IP5 » ? Un nouveau tableau est créé avec les mêmes colonnes, groupes, lignes et commentaires. L'archive n'est pas modifiée.`)) return;
+    setBusy(true);
+    setMsg("");
+    try {
+      const r = await integrateMondayBoard(board, email, sidebar, setMsg);
+      setMsg(`Terminé : ${r.items} lignes intégrées. Le tableau est dans le menu, dossier « Tableau IP5 ».`);
+      setDone(true);
+    } catch (e: any) {
+      console.error(e);
+      setMsg(`Échec de l'intégration : ${e?.message ?? "erreur inconnue"}. Rien n'a été supprimé, vous pouvez réessayer.`);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <button
+        onClick={run}
+        disabled={busy}
+        className="inline-flex items-center gap-1.5 text-sm font-bold text-white bg-[#0073ea] hover:bg-[#0060c2] disabled:opacity-60 rounded-md px-3 py-2"
+      >
+        {busy ? <Loader2 size={14} className="animate-spin" /> : null}
+        {already || done ? "Mettre à jour dans Tableau IP5" : "Intégrer dans Tableau IP5"}
+      </button>
+      {msg && <span className={`text-xs ${msg.startsWith("Échec") ? "text-red-600" : "text-gray-600"}`}>{msg}</span>}
+    </div>
+  );
+}
+
+function BoardView({ board, onBack, email }: { board: MBoard; onBack: () => void; email: string }) {
   const [items, setItems] = useState<MItem[]>([]);
   const [last, setLast] = useState<any>(null);
   const [more, setMore] = useState(true);
@@ -213,6 +252,7 @@ function BoardView({ board, onBack }: { board: MBoard; onBack: () => void }) {
         <span className="text-xs text-gray-400">
           {board.itemsArchived ?? board.itemsCount} lignes · {board.filesCount ?? 0} fichiers · {STATE_LABEL[board.state] ?? board.state}
         </span>
+        <div className="basis-full order-last"><IntegrateButton board={board} email={email} /></div>
         <div className="ml-auto relative">
           <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher dans ce tableau…" className="pl-8 pr-3 py-2 text-sm bg-white border border-gray-300 rounded-md w-64" />
@@ -264,7 +304,7 @@ function BoardView({ board, onBack }: { board: MBoard; onBack: () => void }) {
   );
 }
 
-export default function ArchivesMonday() {
+export default function ArchivesMonday({ email = "" }: { email?: string }) {
   const [boards, setBoards] = useState<MBoard[] | null>(null);
   const [current, setCurrent] = useState<MBoard | null>(null);
   const [q, setQ] = useState("");
@@ -300,7 +340,7 @@ export default function ArchivesMonday() {
   };
 
   if (!boards) return <Loader2 className="animate-spin text-gray-400 mx-auto my-10" />;
-  if (current) return <BoardView board={current} onBack={() => setCurrent(null)} />;
+  if (current) return <BoardView board={current} onBack={() => setCurrent(null)} email={email} />;
 
   const states = ["active", "archived", "deleted"];
   return (
