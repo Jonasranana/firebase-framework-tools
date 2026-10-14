@@ -5,11 +5,8 @@ import {
   Mail,
   Search,
   Plus,
-  List,
-  Columns3,
   ZoomIn,
   ZoomOut,
-  Table2,
   Loader2,
   BellRing,
   Check,
@@ -768,14 +765,8 @@ export default function LeadsCRM({
   }, []);
   const [localError, setError] = useState("");
   const error = localError || storeError;
-  const [view, setView] = useState<"tableau" | "liste" | "colonnes">(() => {
-    try {
-      const v = localStorage.getItem("crm-leads-view");
-      return v === "colonnes" || v === "liste" ? v : "tableau";
-    } catch {
-      return "tableau";
-    }
-  });
+  // Une seule présentation : le tableau (les vues Liste et Colonnes ne sont plus proposées).
+  const [view, setView] = useState<"tableau" | "liste" | "colonnes">("tableau");
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | LeadStatus>("");
   // Personnes proposées dans le filtre « Personne » : l'équipe + les commerciaux de Monday.
@@ -795,7 +786,7 @@ export default function LeadsCRM({
   const [chatId, setChatId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dropOver, setDropOver] = useState<string | null>(null);
-  const { version: columnsVersion, api: columnsApi, error: columnsError } = useColumnsConfig(email);
+  const { version: columnsVersion, api: columnsApi, error: columnsError } = useColumnsConfig(email, boardId);
   // Valeur stable pour le contexte des étiquettes (sinon toutes les lignes se redessinent à chaque rendu).
   const columnsApiRef = useRef(columnsApi);
   columnsApiRef.current = columnsApi;
@@ -1265,31 +1256,12 @@ export default function LeadsCRM({
           <button onClick={() => changeZoom(zoom - 0.1)} aria-label="Dézoomer" className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md">
             <ZoomOut size={15} />
           </button>
-          <button onClick={() => changeZoom(1)} className="px-1.5 text-xs font-semibold text-gray-600 w-11 hover:bg-gray-100 py-1.5">
-            {Math.round(zoom * 100)} %
+          <button onClick={() => changeZoom(1)} className="px-2 text-xs font-semibold text-gray-600 min-w-[3.25rem] whitespace-nowrap hover:bg-gray-100 py-1.5">
+            {Math.round(zoom * 100)}%
           </button>
           <button onClick={() => changeZoom(zoom + 0.1)} aria-label="Zoomer" className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-r-md">
             <ZoomIn size={15} />
           </button>
-        </div>
-        <div className="inline-flex rounded-md bg-gray-100 p-0.5">
-          {(
-            [
-              ["tableau", Table2, "Tableau"],
-              ["liste", List, "Liste"],
-              ["colonnes", Columns3, "Colonnes"],
-            ] as const
-          ).map(([k, Icon, label]) => (
-            <button
-              key={k}
-              onClick={() => setViewPersist(k)}
-              className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1.5 rounded ${
-                view === k ? "bg-white text-[#0073ea] shadow-sm" : "text-gray-500"
-              }`}
-            >
-              <Icon size={13} /> {label}
-            </button>
-          ))}
         </div>
       </div>
       <div className="flex items-center gap-2 mb-3">

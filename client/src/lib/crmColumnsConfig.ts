@@ -27,7 +27,10 @@ const WIDTHS: Partial<Record<ColType, number>> = { status: 150, text: 180, peopl
 
 export const CUSTOM_TYPES: ColType[] = ["status", "text", "people", "timeline", "date", "tags", "number"];
 
-export function useColumnsConfig(email: string) {
+// Pac Pac garde son document d'origine ; chaque autre tableau a le sien (crm_boards/<tableau>_columns).
+const columnsDocId = (boardId: string) => (boardId === "leads" ? "leads_columns" : `${boardId}_columns`);
+
+export function useColumnsConfig(email: string, boardId = "leads") {
   const [config, setConfig] = useState<ColumnsConfig>({});
   const [version, setVersion] = useState(0);
   const [error, setError] = useState("");
@@ -41,7 +44,7 @@ export function useColumnsConfig(email: string) {
       try {
         const { m, db } = await crmFirestore();
         unsub = m.onSnapshot(
-          m.doc(db, "crm_boards", "leads_columns"),
+          m.doc(db, "crm_boards", columnsDocId(boardId)),
           (snap) => {
             if (cancelled) return;
             const c = (snap.data()?.config as ColumnsConfig | undefined) ?? {};
@@ -59,7 +62,7 @@ export function useColumnsConfig(email: string) {
       cancelled = true;
       unsub?.();
     };
-  }, []);
+  }, [boardId]);
 
   const save = async (next: ColumnsConfig) => {
     const previous = ref.current;
@@ -68,7 +71,7 @@ export function useColumnsConfig(email: string) {
     setVersion((v) => v + 1);
     try {
       const { m, db } = await crmFirestore();
-      await m.setDoc(m.doc(db, "crm_boards", "leads_columns"), { config: next, updatedAt: m.serverTimestamp(), updatedBy: email });
+      await m.setDoc(m.doc(db, "crm_boards", columnsDocId(boardId)), { config: next, updatedAt: m.serverTimestamp(), updatedBy: email });
       setError("");
     } catch (e) {
       console.error(e);
