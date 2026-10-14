@@ -1554,6 +1554,26 @@ exports.listLeadTemplates = onCall({ region: "europe-west9" }, async (request) =
   return { templates: crmTemplates() };
 });
 
+// Espace client (désactivé tant que le document crm_settings/client_space n'a pas { enabled: true }).
+// Le client connecté (e-mail VÉRIFIÉ) ne voit que son propre dossier, sous forme d'étapes :
+// jamais de notes internes ni d'autres clients.
+exports.getClientSpace = onCall({ region: "europe-west9" }, async (request) => {
+  const flag = await db.doc("crm_settings/client_space").get();
+  if (!flag.exists || flag.get("enabled") !== true) return { enabled: false };
+  const t = request.auth?.token;
+  if (!t?.email || !t.email_verified) {
+    throw new HttpsError("unauthenticated", "Connectez-vous avec une adresse e-mail vérifiée.");
+  }
+  const email = String(t.email).toLowerCase();
+  const snap = await db.collection("crm_leads").where("email", "==", email).limit(10).get();
+  const lead = snap.docs
+    .map((d) => d.data())
+    .filter((d) => !d.deletedAt && (!d.board || d.board === "leads"))
+    .sort((a, b) => Number(b.createdAt?.toMillis?.() ?? 0) - Number(a.createdAt?.toMillis?.() ?? 0))[0];
+  if (!lead) return { enabled: true, view: null };
+  return { enabled: true, view: require("./clientSpace").buildClientView(lead) };
+});
+
 // Solde du compte Twilio (crédits restants), affiché dans le chat du CRM.
 exports.getTwilioBalance = onCall(
   { secrets: [TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN], region: "europe-west9" },
