@@ -4,6 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { crmFirestore } from "@/lib/crmDb";
 import { LEAD_COLUMNS } from "@/lib/crmColumns";
 import { useCallTracking } from "@/lib/crmCalls";
+import AutomationAssistant, { fetchAiStatus, saveAiKey, type AiStatus } from "./AutomationAssistant";
+import type { AutoDraft } from "@/lib/crmAutomationParse";
 import type { LeadGroup } from "@/lib/crm";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -12,12 +14,14 @@ import type { LeadGroup } from "@/lib/crm";
 // runAutomations (serveur) qui les exécute à chaque modification d'un lead.
 // ─────────────────────────────────────────────────────────────────────────
 type Action = {
-  type: "notify_team" | "send_template" | "send_sms" | "move_group" | "set_column" | "set_date" | "add_note";
+  type: "notify_team" | "send_template" | "send_email" | "send_sms" | "move_group" | "set_column" | "set_date" | "add_note";
   message?: string;
   template?: string;
   mail?: boolean;
   sms?: boolean;
   text?: string;
+  subject?: string;
+  body?: string;
   groupId?: string;
   col?: string;
   value?: string;
@@ -39,6 +43,7 @@ const TEMPLATES = [
 const ACTION_LABEL: Record<Action["type"], string> = {
   notify_team: "Prévenir l'équipe par e-mail",
   send_template: "Envoyer un modèle Mail + SMS au lead",
+  send_email: "Envoyer un e-mail libre au lead (depuis contact@)",
   send_sms: "Envoyer un SMS libre au lead",
   move_group: "Déplacer dans un groupe",
   set_column: "Changer la valeur d'une colonne",
@@ -86,6 +91,8 @@ function describe(a: Automation, groups: LeadGroup[]) {
   const then = a.actions.map((x) => {
     if (x.type === "move_group") return `déplacer vers « ${groups.find((g) => g.id === x.groupId)?.title ?? "?"} »`;
     if (x.type === "send_template") return `envoyer « ${x.template} »`;
+    if (x.type === "send_email") return `envoyer un e-mail « ${x.subject || "IP5 Énergie"} »`;
+    if (x.type === "send_sms") return `envoyer un SMS « ${(x.text ?? "").slice(0, 60)} »`;
     return ACTION_LABEL[x.type].toLowerCase();
   });
   return `${when}, alors ${then.join(" + ") || "…"}`;
@@ -105,6 +112,13 @@ export default function AutomationsDialog({
   email: string;
 }) {
   const [editing, setEditing] = useState(false);
+  const [assistant, setAssistant] = useState(false);
+  const [ai, setAi] = useState<AiStatus | null>(null);
+  const [keyDraft, setKeyDraft] = useState("");
+  const [keyMsg, setKeyMsg] = useState("");
+  useEffect(() => {
+    if (open) fetchAiStatus().then(setAi).catch(() => setAi(null));
+  }, [open]);
   const [tracking, setTracking] = useCallTracking();
   const [name, setName] = useState("");
   const [trigger, setTrigger] = useState<Trigger>({ type: "column_changes", col: "status", value: "" });
@@ -116,10 +130,35 @@ export default function AutomationsDialog({
 
   const reset = () => {
     setEditing(false);
+    setAssistant(false);
     setName("");
     setTrigger({ type: "column_changes", col: "status", value: "" });
     setActions([{ type: "notify_team" }]);
     setError("");
+  };
+
+  const createFromDraft = async (d: AutoDraft) => {
+    setBusy(true);
+    try {
+      const { m, db } = await crmFirestore();
+      const clean = d.actions.map((a: any) => Object.fromEntries(Object.entries(a).filter(([, v]) => v !== undefined)));
+      await m.addDoc(m.collection(db, "crm_automations"), {
+        name: d.name?.trim() || describe({ id: "", name: "", enabled: true, trigger: d.trigger as Trigger, actions: d.actions }, groups),
+        enabled: true,
+        trigger: d.trigger,
+        actions: clean,
+        runs: 0,
+        createdBy: email,
+        createdAt: m.serverTimestamp(),
+        via: "assistant",
+      });
+      reset();
+    } catch (e) {
+      console.error(e);
+      window.alert("Impossible d'enregistrer l'automatisation. Réessayez.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   const save = async () => {
@@ -170,7 +209,26 @@ export default function AutomationsDialog({
           <DialogDescription>« Quand il se passe ceci, alors fais cela » — exécuté automatiquement, même si personne n'est connecté.</DialogDescription>
         </DialogHeader>
 
-        {!editing && (
+        {assistant && (
+          <AutomationAssistant
+            groups={groups}
+            templates={TEMPLATES}
+            busy={busy}
+            describeDraft={(d) => describe({ id: "", name: "", enabled: true, trigger: d.trigger as Trigger, actions: d.actions }, groups)}
+            onCreate={createFromDraft}
+            onManual={(d) => {
+              if (d) {
+                setName(d.name ?? "");
+                setTrigger(d.trigger as Trigger);
+                setActions(d.actions as Action[]);
+              }
+              setAssistant(false);
+              setEditing(true);
+            }}
+          />
+        )}
+
+        {!editing && !assistant && (
           <div className="space-y-3">
             <label className="flex items-start gap-3 rounded-lg border border-[#0073ea]/30 bg-blue-50 p-3 cursor-pointer">
               <input type="checkbox" checked={tracking} onChange={(e) => setTracking(e.target.checked)} className="mt-1 h-4 w-4" />
@@ -195,11 +253,58 @@ export default function AutomationsDialog({
               </div>
             ))}
             <button
-              onClick={() => setEditing(true)}
+              onClick={() => (ai?.canUse ? setAssistant(true) : setEditing(true))}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-white bg-[#0073ea] hover:bg-[#0060c2] rounded-md px-3 py-2"
             >
               <Plus size={15} /> Nouvelle automatisation
             </button>
+            {ai?.canConfigure && (
+              <div className="rounded-lg border border-gray-200 p-3 space-y-2">
+                <div className="text-sm font-semibold">🤖 Assistant IA (créer une automatisation en parlant)</div>
+                <div className="text-xs text-gray-600">
+                  {ai.configured ? "L'IA est activée. Vous seul (Jonas) pouvez l'utiliser et la configurer." : "Pas encore activée : l'assistant fonctionne en « mode simple ». Collez ici la clé de l'IA (elle commence par sk-ant-) pour l'activer."}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={keyDraft}
+                    onChange={(e) => setKeyDraft(e.target.value)}
+                    placeholder={ai.configured ? "Remplacer la clé…" : "sk-ant-…"}
+                    autoComplete="off"
+                    className={`${field} flex-1`}
+                  />
+                  <button
+                    onClick={async () => {
+                      setKeyMsg("");
+                      try {
+                        setAi(await saveAiKey(keyDraft.trim()));
+                        setKeyDraft("");
+                        setKeyMsg("✓ Enregistrée");
+                      } catch (e: any) {
+                        setKeyMsg(String(e?.message ?? "Échec"));
+                      }
+                    }}
+                    disabled={!keyDraft.trim()}
+                    className="text-sm font-semibold border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 disabled:opacity-40"
+                  >
+                    Enregistrer
+                  </button>
+                  {ai.configured && (
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm("Désactiver l'IA ? (la clé sera effacée)")) return;
+                        setAi(await saveAiKey(""));
+                        setKeyMsg("IA désactivée");
+                      }}
+                      className="text-sm text-gray-500 px-2"
+                    >
+                      Désactiver
+                    </button>
+                  )}
+                </div>
+                {keyMsg && <div className="text-xs text-gray-600">{keyMsg}</div>}
+              </div>
+            )}
           </div>
         )}
 
@@ -277,6 +382,12 @@ export default function AutomationsDialog({
                         <label className="text-sm flex items-center gap-1">
                           <input type="checkbox" checked={a.sms !== false} onChange={(e) => setAction(i, { sms: e.target.checked })} /> SMS
                         </label>
+                      </div>
+                    )}
+                    {a.type === "send_email" && (
+                      <div className="space-y-2">
+                        <input className={`${field} w-full`} placeholder="Objet du mail" value={a.subject ?? ""} onChange={(e) => setAction(i, { subject: e.target.value })} />
+                        <textarea className={`${field} w-full`} rows={4} placeholder="Texte du mail — {nom}, {telephone}, {ville}" value={a.body ?? ""} onChange={(e) => setAction(i, { body: e.target.value })} />
                       </div>
                     )}
                     {(a.type === "send_sms" || a.type === "add_note") && (

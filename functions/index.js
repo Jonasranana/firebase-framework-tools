@@ -2658,3 +2658,17 @@ Object.assign(
     normalizeLabel,
   }),
 );
+
+// ── Automatisations en langage naturel (functions/crmAiAutomation.js) ────
+// Réservé à jonassitbon8@gmail.com ; la clé de l'IA est enregistrée côté serveur.
+Object.assign(
+  exports,
+  require("./crmAiAutomation")({
+    db,
+    logger,
+    onCall,
+    HttpsError,
+    isCrmMember,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+  }),
+);
