@@ -42,6 +42,8 @@ export type SideItem = {
   core?: boolean;
   archived?: boolean;
   view?: BoardView;
+  // Tableau de leads à part (créé depuis le menu) : identifiant du tableau, ses leads et ses groupes lui sont propres.
+  board?: string;
 };
 
 export type SideFolder = {

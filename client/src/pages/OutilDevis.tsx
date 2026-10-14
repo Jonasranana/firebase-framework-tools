@@ -869,6 +869,7 @@ export default function OutilDevis() {
             key={item?.id ?? "leads"}
             email={email}
             boardView={item?.kind === "view" ? item.view : undefined}
+            boardId={item?.kind === "view" ? item.board : undefined}
             onBoardViewChange={item?.kind === "view" ? (v) => tools.updateItem(item.id, { view: v }) : undefined}
           />
         )}

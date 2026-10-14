@@ -124,6 +124,8 @@ export type Lead = {
   fields: Record<string, string>;
   // Groupe du tableau (identifiant d'un LeadGroup), comme les groupes Monday.
   group: string;
+  // Tableau auquel appartient le lead (« leads » = Pac Pac, par défaut ; sinon identifiant d'un tableau créé dans le menu).
+  board: string;
   // Date de rappel prévue (AAAA-MM-JJ), vide si aucune.
   rappelLe: string;
   // Boîte mail : un client a répondu et personne n'a encore ouvert la fiche.
@@ -171,6 +173,7 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     projet: String(d.projet ?? ""),
     status,
     group: String(d.group ?? ""),
+    board: String(d.board || LEADS_BOARD_ID),
     fields: d.fields && typeof d.fields === "object" ? d.fields : {},
     rappelLe: String(d.rappelLe ?? ""),
     mailNonLu: !!d.mailNonLu,
