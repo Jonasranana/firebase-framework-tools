@@ -724,6 +724,16 @@ export default function LeadsCRM({
   const { data: leads, error: storeError } = useLeads();
   const automations = useAutomationsCount();
   const [autoOpen, setAutoOpen] = useState(false);
+  // Ouverture d'une fiche demandée depuis l'Accueil.
+  useEffect(() => {
+    try {
+      const id = sessionStorage.getItem("crm-open-lead");
+      if (id) {
+        sessionStorage.removeItem("crm-open-lead");
+        setTimeout(() => setOpenId(id), 0);
+      }
+    } catch {}
+  }, []);
   const [localError, setError] = useState("");
   const error = localError || storeError;
   const [view, setView] = useState<"tableau" | "liste" | "colonnes">(() => {

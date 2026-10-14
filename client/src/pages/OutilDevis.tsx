@@ -13,6 +13,7 @@ import ClientsCRM from "./ClientsCRM";
 import LeadsCRM from "./LeadsCRM";
 import ArtisansCRM from "./ArtisansCRM";
 import StatsCRM from "./StatsCRM";
+import AccueilCRM from "./AccueilCRM";
 import DocumentsPage from "./DocumentsPage";
 import TeamPage from "./TeamPage";
 import { memberName } from "@/lib/crmTeam";
@@ -868,6 +869,16 @@ export default function OutilDevis() {
           />
         )}
         {p === "artisans" && <ArtisansCRM email={email} />}
+        {p === "accueil" && (
+          <AccueilCRM
+            onOpenLead={(id) => {
+              try {
+                sessionStorage.setItem("crm-open-lead", id);
+              } catch {}
+              navigate("leads");
+            }}
+          />
+        )}
         {p === "stats" && <StatsCRM />}
         {p === "documents" && <DocumentsPage />}
         {p === "equipe" && narrow(<TeamPage email={email} />)}

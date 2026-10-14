@@ -9,6 +9,7 @@ import type { LeadFilter, LeadSort } from "@/lib/crmFilters";
 // configuration est partagée par toute l'équipe : Firestore crm_boards/sidebar.
 // ─────────────────────────────────────────────────────────────────────────
 export type AdminPageKey =
+  | "accueil"
   | "leads"
   | "artisans"
   | "stats"
@@ -66,6 +67,7 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       title: "CRM IP5",
       color: "#fb275d",
       items: [
+        item("accueil", "Accueil"),
         item("leads", "Leads"),
         item("artisans", "Artisans"),
         item("documents", "Documents"),
