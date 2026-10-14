@@ -1257,6 +1257,14 @@ const CRM_ALLOWED_EMAILS = [
   "carol.sitbon05@gmail.com",
 ];
 
+// Membre du CRM : administrateur d'origine (liste ci-dessus) ou personne
+// ajoutée depuis la page « Équipe » (revendication crm sur son compte).
+const isCrmMember = (request) => {
+  const t = request.auth?.token;
+  if (!t?.email_verified) return false;
+  return CRM_ALLOWED_EMAILS.includes(String(t.email ?? "").toLowerCase()) || t.crm === true;
+};
+
 // Modèles proposés dans le CRM (clé = libellé Monday). « confirmation +
 // fiche technique » est exclu : il exige un reste à charge calculé.
 const crmTemplates = () =>
@@ -1278,7 +1286,7 @@ exports.sendLeadMessage = onCall(
   },
   async (request) => {
     const caller = String(request.auth?.token?.email ?? "").toLowerCase();
-    if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+    if (!isCrmMember(request)) {
       throw new HttpsError("permission-denied", "Accès refusé.");
     }
     const { leadId, channel, template, text } = request.data ?? {};
@@ -1355,7 +1363,7 @@ exports.sendLeadMessage = onCall(
 
 exports.listLeadTemplates = onCall({ region: "europe-west9" }, async (request) => {
   const caller = String(request.auth?.token?.email ?? "").toLowerCase();
-  if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+  if (!isCrmMember(request)) {
     throw new HttpsError("permission-denied", "Accès refusé.");
   }
   return { templates: crmTemplates() };
@@ -2294,7 +2302,7 @@ exports.sendArtisanMessage = onCall(
   },
   async (request) => {
     const caller = String(request.auth?.token?.email ?? "").toLowerCase();
-    if (!request.auth?.token?.email_verified || !CRM_ALLOWED_EMAILS.includes(caller)) {
+    if (!isCrmMember(request)) {
       throw new HttpsError("permission-denied", "Accès refusé.");
     }
     const { artisanId, template } = request.data ?? {};
@@ -2592,6 +2600,30 @@ Object.assign(
     FieldValue: require("firebase-admin/firestore").FieldValue,
     getStorage: require("firebase-admin/storage").getStorage,
     onDocumentCreated,
+    GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET,
+    GMAIL_REFRESH_TOKEN,
+    GMAIL_SENDER_EMAIL,
+  }),
+);
+
+// ── Équipe du CRM et mises à jour des fiches (functions/crmTeam.js) ──────
+Object.assign(
+  exports,
+  require("./crmTeam")({
+    db,
+    logger,
+    google,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+    getAuth: require("firebase-admin/auth").getAuth,
+    onCall,
+    HttpsError,
+    CRM_ALLOWED_EMAILS,
+    isCrmMember,
+    buildRawMessage,
+    buildBrandedEmailShell,
+    escapeHtmlText,
+    SITE_URL,
     GMAIL_CLIENT_ID,
     GMAIL_CLIENT_SECRET,
     GMAIL_REFRESH_TOKEN,

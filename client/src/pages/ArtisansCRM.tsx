@@ -311,12 +311,11 @@ const ArtisanSheet = ({
     const text = noteText.trim();
     if (!artisan || !text) return;
     run(async () => {
-      const { m } = await fs();
-      await patchArtisan(artisan.id, email, {
-        notes: m.arrayUnion({ id: newId(), text, by: email, at: new Date().toISOString(), kind: "note" } satisfies LeadNote),
-      });
+      const app = await getEspaceProApp();
+      const { getFunctions, httpsCallable } = await import("firebase/functions");
+      await httpsCallable(getFunctions(app, "europe-west9"), "postUpdate")({ kind: "artisan", id: artisan.id, text });
       setNoteText("");
-    }, "Impossible d'ajouter la note.");
+    }, "Impossible d'ajouter la mise à jour.");
   };
 
   const tel = artisan ? telHref(artisan.telephone) : "";
@@ -457,7 +456,7 @@ const ArtisanSheet = ({
 
           {artisan && (
             <div className="pt-3 border-t border-gray-100">
-              <span className="block text-xs font-semibold text-gray-600 mb-2">Notes et historique</span>
+              <span className="block text-xs font-semibold text-gray-600 mb-2">Mises à jour et historique (toute l'équipe est prévenue par e-mail)</span>
               <textarea
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
