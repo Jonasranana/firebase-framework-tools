@@ -14,6 +14,7 @@ import {
   UserPlus,
   LogOut,
   Menu,
+  Moon,
   Percent,
   Sun,
   Users,
@@ -27,6 +28,7 @@ import Avatar from "@/components/Avatar";
 import ProfileDialog from "./ProfileDialog";
 import AdminSidebar from "./AdminSidebar";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useAdminTheme } from "@/lib/crmTheme";
 import { allItems, useSidebar, type SideConfig, type SideItem } from "@/lib/crmSidebar";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -228,6 +230,7 @@ export default function AdminShell({
       return false;
     }
   });
+  const [theme, setTheme] = useAdminTheme();
   const [drawer, setDrawer] = useState(false);
   const [overlay, setOverlay] = useState<SideItem | null>(null);
   const { config, save, loaded, error } = useSidebar(email);
@@ -358,6 +361,14 @@ export default function AdminShell({
           <h1 className="text-lg font-bold text-gray-900 truncate">{title}</h1>
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              aria-label={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
+              title={theme === "dark" ? "Mode clair" : "Mode sombre"}
+              className="h-9 w-9 rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 flex items-center justify-center transition-colors"
+            >
+              {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
+            </button>
             <MailSyncStatus email={email} />
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
           </div>

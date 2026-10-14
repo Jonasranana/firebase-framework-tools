@@ -6,13 +6,13 @@ import { Calculator } from "lucide-react";
 // avec un calculateur : nombre de personnes + revenu fiscal de référence
 // (avis d'imposition) → profil bleu / jaune / violet / rose.
 // ─────────────────────────────────────────────────────────────────────────
-type Prof = { key: "bleu" | "jaune" | "violet" | "rose"; label: string; sub: string; main: string; soft: string };
+type Prof = { key: "bleu" | "jaune" | "violet" | "rose"; label: string; sub: string; main: string; soft: string; dark: string };
 
 const PROFILS: Prof[] = [
-  { key: "bleu", label: "Profil bleu", sub: "très modeste", main: "#3fa5e5", soft: "#e7f3fc" },
-  { key: "jaune", label: "Profil jaune", sub: "modeste", main: "#f0bf2e", soft: "#fdf4d8" },
-  { key: "violet", label: "Profil violet", sub: "intermédiaire", main: "#8b7fbd", soft: "#eeebf7" },
-  { key: "rose", label: "Profil rose", sub: "aisé", main: "#e8838f", soft: "#fcebee" },
+  { key: "bleu", label: "Profil bleu", sub: "très modeste", main: "#3fa5e5", soft: "#e7f3fc", dark: "#12304d" },
+  { key: "jaune", label: "Profil jaune", sub: "modeste", main: "#f0bf2e", soft: "#fdf4d8", dark: "#3a3210" },
+  { key: "violet", label: "Profil violet", sub: "intermédiaire", main: "#8b7fbd", soft: "#eeebf7", dark: "#2a2645" },
+  { key: "rose", label: "Profil rose", sub: "aisé", main: "#e8838f", soft: "#fcebee", dark: "#3d1f2a" },
 ];
 
 type Region = "idf" | "hors";
@@ -91,8 +91,8 @@ function Table({ region, n, hit }: { region: Region; n: number; hit: number }) {
                   return (
                     <td
                       key={p.key}
-                      className="px-3 py-4 border-t border-gray-200 text-sm font-bold text-[#1e2a44] leading-snug"
-                      style={{ background: on ? p.main : p.soft, color: on ? "#fff" : undefined, boxShadow: on ? "inset 0 0 0 3px rgba(255,255,255,.55)" : undefined }}
+                      className={`px-3 py-4 border-t border-gray-200 text-sm font-bold text-[#1e2a44] leading-snug ${on ? "" : "crm-soft"}`}
+                      style={{ ["--soft-dark" as any]: p.dark, background: on ? p.main : p.soft, color: on ? "#fff" : undefined, boxShadow: on ? "inset 0 0 0 3px rgba(255,255,255,.55)" : undefined }}
                     >
                       <div>{g.top}</div>
                       <div>{g.bottom}</div>
@@ -104,7 +104,7 @@ function Table({ region, n, hit }: { region: Region; n: number; hit: number }) {
             <tr>
               <th className="text-sm font-bold text-[#1e2a44] px-3 py-3.5 border-t border-gray-200 rounded-bl-2xl bg-white">Par personne en plus</th>
               {PROFILS.map((p, i) => (
-                <td key={p.key} className={`px-3 py-3.5 border-t border-gray-200 text-sm font-bold text-[#1e2a44] ${i === 3 ? "rounded-br-2xl" : ""}`} style={{ background: p.soft }}>
+                <td key={p.key} className={`crm-soft px-3 py-3.5 border-t border-gray-200 text-sm font-bold text-[#1e2a44] ${i === 3 ? "rounded-br-2xl" : ""}`} style={{ ["--soft-dark" as any]: p.dark, background: p.soft }}>
                   + {eur(plus[Math.min(i, 2)])}
                 </td>
               ))}
