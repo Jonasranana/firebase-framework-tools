@@ -863,10 +863,10 @@ export default function LeadsTable({
   visible,
   setVisible,
   bulk,
-  scrollMaxHeight,
+  fitZoom,
 }: {
-  // Hauteur max du tableau : la barre de défilement horizontale reste visible en bas de l'écran.
-  scrollMaxHeight?: string;
+  // Le tableau descend jusqu'en bas de la fenêtre : la barre de défilement horizontale est collée au bas de l'écran.
+  fitZoom?: number;
   // Actions groupées sur les lignes cochées (barre en bas).
   bulk?: {
     setStatus: (ids: string[], status: string) => void;
@@ -897,6 +897,24 @@ export default function LeadsTable({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [limits, setLimits] = useState<Record<string, number>>({});
   const [dropOver, setDropOver] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [maxH, setMaxH] = useState<number | null>(null);
+  useEffect(() => {
+    if (!fitZoom) return;
+    const fit = () => {
+      const el = scrollRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      setMaxH(Math.max(240, Math.floor((window.innerHeight - top) / fitZoom)));
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    const t = setTimeout(fit, 300); // après la mise en place de la barre d'outils
+    return () => {
+      window.removeEventListener("resize", fit);
+      clearTimeout(t);
+    };
+  }, [fitZoom, leads.length]);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const toggleSel = (ids: string[], on: boolean) =>
     setSel((prev) => {
@@ -947,7 +965,7 @@ export default function LeadsTable({
   };
 
   return (
-    <div className="overflow-auto pb-2" style={scrollMaxHeight ? { maxHeight: scrollMaxHeight } : undefined}>
+    <div ref={scrollRef} className="crm-scroll overflow-auto" style={maxH ? { maxHeight: maxH, marginBottom: -((typeof window !== "undefined" && window.innerWidth >= 768 ? 24 : 16) / (fitZoom || 1)) } : undefined}>
       <div style={{ minWidth: totalWidth }} className="space-y-6">
         <div className="sticky left-0 flex flex-wrap items-center gap-2">
           <button
