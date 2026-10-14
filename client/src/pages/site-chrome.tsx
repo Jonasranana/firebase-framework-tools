@@ -130,7 +130,7 @@ export const SiteHeader = () => {
     href === "/" ? location === "/" : location.startsWith(href);
 
   return (
-    <nav className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md fixed w-full z-50 top-0 border-b border-gray-100 dark:border-slate-800">
+    <nav className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md fixed w-full z-50 top-0 border-b border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center gap-3">
@@ -138,7 +138,7 @@ export const SiteHeader = () => {
               onClick={() => setIsMobileMenuOpen((v) => !v)}
               aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
               aria-expanded={isMobileMenuOpen}
-              className="lg:hidden text-gray-700 dark:text-slate-200 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors p-1 -ml-1"
+              className="lg:hidden text-[#173a5e] dark:text-slate-200 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors p-1 -ml-1"
             >
               {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
@@ -152,10 +152,10 @@ export const SiteHeader = () => {
                 key={link.href}
                 href={link.href}
                 aria-current={isActive(link.href) ? "page" : undefined}
-                className={`font-medium whitespace-nowrap transition-colors ${
+                className={`relative py-7 text-[15px] font-medium whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors ${
                   isActive(link.href)
-                    ? "text-[#2b5a8f] dark:text-blue-400 font-semibold"
-                    : "text-gray-600 dark:text-slate-300 hover:text-[#2b5a8f] dark:hover:text-blue-400"
+                    ? "text-[#173a5e] dark:text-white font-semibold after:bg-[#173a5e] dark:after:bg-blue-300"
+                    : "text-slate-600 dark:text-slate-300 hover:text-[#173a5e] dark:hover:text-white after:bg-transparent hover:after:bg-slate-300 dark:hover:after:bg-slate-600"
                 }`}
               >
                 {link.label}
@@ -166,7 +166,7 @@ export const SiteHeader = () => {
             {/* Accès des artisans partenaires (création de compte + grille de pose) */}
             <a
               href="/espace-pro"
-              className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-slate-300 hover:text-[#2b5a8f] dark:hover:text-blue-400 border border-gray-200 dark:border-slate-700 rounded-full px-2.5 py-1.5 transition-colors whitespace-nowrap"
+              className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-[#173a5e] hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 transition-colors whitespace-nowrap"
               aria-label="Accès artisan : espace des artisans partenaires"
             >
               <Briefcase size={16} />
@@ -186,7 +186,7 @@ export const SiteHeader = () => {
             </a>
             <a
               href="tel:+33749525267"
-              className="flex items-center gap-2 text-[#2b5a8f] dark:text-blue-400 font-bold hover:text-blue-800 dark:hover:text-blue-300 transition-colors whitespace-nowrap"
+              className="flex items-center gap-2 text-[#173a5e] dark:text-blue-300 font-semibold hover:text-[#2b5a8f] dark:hover:text-blue-200 transition-colors whitespace-nowrap"
               aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
             >
               <Phone size={18} />
@@ -194,7 +194,7 @@ export const SiteHeader = () => {
             </a>
             <a
               href="/contact"
-              className="hidden 2xl:inline-flex items-center gap-2 bg-[#2b5a8f] text-white px-5 py-2.5 rounded-full font-semibold text-sm hover:bg-blue-800 transition-colors shadow-md"
+              className="hidden 2xl:inline-flex items-center gap-2 bg-[#173a5e] text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#122f4d] transition-colors shadow-sm"
             >
               Devis gratuit
             </a>
@@ -204,7 +204,7 @@ export const SiteHeader = () => {
 
       {/* Menu déroulant mobile */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="px-4 py-3 flex flex-col">
             {NAV_LINKS.map((link) => (
               <a
@@ -212,10 +212,10 @@ export const SiteHeader = () => {
                 href={link.href}
                 onClick={() => setIsMobileMenuOpen(false)}
                 aria-current={isActive(link.href) ? "page" : undefined}
-                className={`py-3 font-medium border-b border-gray-50 dark:border-slate-800 last:border-0 transition-colors ${
+                className={`py-3.5 pl-3 font-medium border-b border-slate-100 dark:border-slate-800 border-l-2 transition-colors ${
                   isActive(link.href)
-                    ? "text-[#2b5a8f] dark:text-blue-400 font-semibold"
-                    : "text-gray-700 dark:text-slate-200 hover:text-[#2b5a8f] dark:hover:text-blue-400"
+                    ? "text-[#173a5e] dark:text-white font-semibold border-l-[#173a5e] dark:border-l-blue-300"
+                    : "text-slate-700 dark:text-slate-200 border-l-transparent hover:text-[#173a5e] dark:hover:text-white"
                 }`}
               >
                 {link.label}
@@ -224,14 +224,14 @@ export const SiteHeader = () => {
             <a
               href="tel:+33749525267"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-2 py-3 text-[#2b5a8f] dark:text-blue-400 font-bold border-b border-gray-50 dark:border-slate-800"
+              className="mt-4 flex items-center justify-center gap-2 py-3.5 rounded-lg bg-[#173a5e] hover:bg-[#122f4d] text-white font-semibold transition-colors"
             >
-              <Phone size={18} /> 07 49 52 52 67
+              <Phone size={18} /> Appeler le 07 49 52 52 67
             </a>
             <a
               href="/espace-pro"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-2 py-3 text-gray-700 dark:text-slate-200 font-medium border-b border-gray-50 dark:border-slate-800"
+              className="mt-2 flex items-center justify-center gap-2 py-3 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 font-medium"
             >
               <Briefcase size={18} /> Accès artisan
             </a>
@@ -240,7 +240,7 @@ export const SiteHeader = () => {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => setIsMobileMenuOpen(false)}
-              className="flex items-center gap-2 py-3 text-gray-600 dark:text-slate-300 font-medium"
+              className="mt-1 flex items-center justify-center gap-2 py-3 text-sm text-slate-500 dark:text-slate-400 font-medium"
             >
               <Facebook size={18} /> Suivez-nous sur Facebook
             </a>
