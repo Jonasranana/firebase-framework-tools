@@ -356,7 +356,9 @@ const LeadSheet = ({
   email,
   onClose,
   focusUpdates,
+  boardId = LEADS_BOARD_ID,
 }: {
+  boardId?: string;
   focusUpdates?: boolean;
   lead: Lead | null;
   creating: boolean;
@@ -433,6 +435,7 @@ const LeadSheet = ({
         const { m, db } = await fs();
         await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
           ...clean,
+          board: boardId,
           source: "saisie-manuelle",
           status: "nouveau_lead",
           group: DEFAULT_LEAD_GROUPS[0].id,
@@ -738,14 +741,21 @@ const LeadSheet = ({
 export default function LeadsCRM({
   email,
   boardView,
+  boardId = LEADS_BOARD_ID,
   onBoardViewChange,
 }: {
+  // Tableau de leads à part (créé depuis le menu) ; par défaut Pac Pac.
+  boardId?: string;
   email: string;
   // Tableau « vue » ouvert depuis le menu : filtres, tri, groupement et colonnes enregistrés.
   boardView?: { filters: LeadFilter[]; sorts: LeadSort[]; groupBy: string; personKey: string; visible: string[] };
   onBoardViewChange?: (v: { filters: LeadFilter[]; sorts: LeadSort[]; groupBy: string; personKey: string; visible: string[] }) => void;
 }) {
-  const { data: leads, error: storeError } = useLeads();
+  const { data: allLeads, error: storeError } = useLeads();
+  const leads = useMemo(
+    () => (allLeads ? allLeads.filter((l) => (l.board || LEADS_BOARD_ID) === boardId) : allLeads),
+    [allLeads, boardId],
+  );
   // Ouverture d'une fiche demandée depuis l'Accueil.
   useEffect(() => {
     try {
@@ -895,7 +905,9 @@ export default function LeadsCRM({
 
   // Groupes du tableau : lus en direct dans crm_boards/leads ; valeurs par
   // défaut tant que la liste n'a jamais été modifiée (ou illisible).
-  const [groups, setGroups] = useState<LeadGroup[]>(DEFAULT_LEAD_GROUPS);
+  const [groups, setGroups] = useState<LeadGroup[]>(
+    boardId === LEADS_BOARD_ID ? DEFAULT_LEAD_GROUPS : [{ id: "nouveaux", title: "Nouveau groupe", color: "#579bfc" }],
+  );
   useEffect(() => {
     let unsub: (() => void) | undefined;
     let cancelled = false;
@@ -903,7 +915,7 @@ export default function LeadsCRM({
       try {
         const { m, db } = await fs();
         unsub = m.onSnapshot(
-          m.doc(db, CRM_BOARDS_COLLECTION, LEADS_BOARD_ID),
+          m.doc(db, CRM_BOARDS_COLLECTION, boardId),
           (snap) => {
             const g = snap.data()?.groups;
             if (!cancelled && Array.isArray(g) && g.length) setGroups(g as LeadGroup[]);
@@ -1037,7 +1049,7 @@ export default function LeadsCRM({
     setGroups(next); // affichage immédiat, annulé si l'enregistrement échoue
     try {
       const { m, db } = await fs();
-      await m.setDoc(m.doc(db, CRM_BOARDS_COLLECTION, LEADS_BOARD_ID), {
+      await m.setDoc(m.doc(db, CRM_BOARDS_COLLECTION, boardId), {
         groups: next,
         updatedAt: m.serverTimestamp(),
         updatedBy: email,
@@ -1095,6 +1107,7 @@ export default function LeadsCRM({
             projet: l.projet,
             status: l.status,
             group: toGroupId,
+            board: boardId,
             rappelLe: l.rappelLe,
             fields: l.fields,
             details: l.details,
@@ -1180,6 +1193,7 @@ export default function LeadsCRM({
         postalCode: "",
         city: "",
         type: "PAC",
+        board: boardId,
         source: "saisie-manuelle",
         projet: "",
         status: "nouveau_lead",
@@ -1481,6 +1495,7 @@ export default function LeadsCRM({
       />
 
       <LeadSheet
+        boardId={boardId}
         focusUpdates={focusUpdates}
         lead={openLead}
         creating={creating}

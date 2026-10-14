@@ -389,7 +389,8 @@ export default function AdminSidebar({
   const toggleFav = (id: string) =>
     save({ ...config, favorites: config.favorites.includes(id) ? config.favorites.filter((x) => x !== id) : [...config.favorites, id] });
   const addBoard = (folderId: string) => {
-    const it: SideItem = { id: newId("i"), kind: "view", page: "leads", title: "Nouveau tableau", view: { filters: [], sorts: [], groupBy: "", personKey: "", visible: [] } };
+    const id = newId("i");
+    const it: SideItem = { id, kind: "view", page: "leads", title: "Nouveau tableau", board: `board_${id}`, view: { filters: [], sorts: [], groupBy: "", personKey: "", visible: [] } };
     save({ ...config, folders: config.folders.map((f) => (f.id === folderId ? { ...f, collapsed: false, items: [...f.items, it] } : f)) });
     start(it.id, it.title);
   };
