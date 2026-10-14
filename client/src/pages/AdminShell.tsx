@@ -25,6 +25,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useTeam } from "@/lib/crmTeam";
 import Avatar from "@/components/Avatar";
 import ProfileDialog from "./ProfileDialog";
+import AdminSidebar from "./AdminSidebar";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { allItems, useSidebar, type SideConfig, type SideItem } from "@/lib/crmSidebar";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Coquille de /admin façon Monday : menu à gauche (groupes repliables, un
@@ -43,44 +46,6 @@ export type AdminPage =
   | "marges"
   | "gonflage"
   | "clients";
-
-type NavItem = {
-  key: AdminPage | "solaire";
-  label: string;
-  icon: typeof Users;
-  soon?: boolean;
-};
-
-const NAV: { title: string; items: NavItem[] }[] = [
-  {
-    title: "CRM IP5",
-    items: [
-      { key: "leads", label: "Leads", icon: Users },
-      { key: "artisans", label: "Artisans", icon: HardHat },
-      { key: "documents", label: "Documents", icon: FolderOpen },
-      { key: "stats", label: "Statistiques", icon: BarChart3 },
-      { key: "equipe", label: "Équipe", icon: UserPlus },
-    ],
-  },
-  {
-    title: "Outils pompe à chaleur",
-    items: [
-      { key: "devis", label: "Devis PAC", icon: Calculator },
-      { key: "marges", label: "Marges Prémi", icon: Percent },
-    ],
-  },
-  {
-    title: "Autres métiers",
-    items: [
-      { key: "gonflage", label: "Station de gonflage", icon: Gauge },
-      { key: "solaire", label: "Solaire", icon: Sun, soon: true },
-    ],
-  },
-  {
-    title: "Archives Monday",
-    items: [{ key: "clients", label: "Clients (copie Monday)", icon: Archive }],
-  },
-];
 
 export const PAGE_TITLES: Record<AdminPage, string> = {
   leads: "Leads",
@@ -109,113 +74,18 @@ export function initialPage(): AdminPage {
   return "leads";
 }
 
-export function rememberPage(p: AdminPage) {
+export function rememberPage(p: AdminPage, item?: SideItem | null) {
   try {
     localStorage.setItem("admin-page", p);
-    window.history.replaceState(null, "", `#${p}`);
+    window.history.replaceState(null, "", item?.kind === "view" ? `#view-${item.id}` : `#${p}`);
   } catch {
     /* non essentiel */
   }
 }
 
-const Menu_ = ({
-  page,
-  onNavigate,
-  compact,
-  email,
-  onSignOut,
-}: {
-  page: AdminPage;
-  onNavigate: (p: AdminPage) => void;
-  compact: boolean;
-  email: string;
-  onSignOut: () => void;
-}) => {
-  const [closed, setClosed] = useState<Record<string, boolean>>({});
-  return (
-    <div className="flex flex-col h-full">
-      <nav className="flex-1 overflow-y-auto py-3">
-        {NAV.map((g) => (
-          <div key={g.title} className="mb-3">
-            {!compact && (
-              <button
-                onClick={() => setClosed((c) => ({ ...c, [g.title]: !c[g.title] }))}
-                className="w-full flex items-center gap-1 px-4 py-1 text-[11px] font-bold uppercase tracking-wider text-gray-400 hover:text-gray-600"
-              >
-                {closed[g.title] ? <ChevronRight size={12} /> : <ChevronDown size={12} />}
-                {g.title}
-              </button>
-            )}
-            {(compact || !closed[g.title]) && (
-              <ul className="mt-0.5 px-2 space-y-0.5">
-                {g.items.map((it) => {
-                  const Icon = it.icon;
-                  const active = it.key === page;
-                  return (
-                    <li key={it.key}>
-                      <button
-                        disabled={it.soon}
-                        onClick={() => it.key !== "solaire" && onNavigate(it.key)}
-                        title={compact ? it.label : undefined}
-                        className={`w-full flex items-center gap-3 rounded-lg text-sm font-semibold transition-colors ${
-                          compact ? "justify-center px-0 py-2.5" : "px-3 py-2"
-                        } ${
-                          active
-                            ? "bg-[#e5efff] text-[#1f4f8f]"
-                            : it.soon
-                              ? "text-gray-300 cursor-not-allowed"
-                              : "text-gray-600 hover:bg-gray-100"
-                        }`}
-                      >
-                        <Icon size={18} className="shrink-0" />
-                        {!compact && (
-                          <>
-                            <span className="truncate text-left">{it.label}</span>
-                            {it.soon && (
-                              <span className="ml-auto text-[10px] font-bold text-gray-300">bientôt</span>
-                            )}
-                          </>
-                        )}
-                      </button>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-          </div>
-        ))}
-      </nav>
-
-      <div className="border-t border-gray-100 p-2 space-y-0.5">
-        <a
-          href="/"
-          title="Voir le site"
-          className={`flex items-center gap-3 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-100 ${
-            compact ? "justify-center py-2.5" : "px-3 py-2"
-          }`}
-        >
-          <Globe size={18} className="shrink-0" />
-          {!compact && "Voir le site"}
-        </a>
-        <button
-          onClick={onSignOut}
-          title="Se déconnecter"
-          className={`w-full flex items-center gap-3 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-100 ${
-            compact ? "justify-center py-2.5" : "px-3 py-2"
-          }`}
-        >
-          <LogOut size={18} className="shrink-0" />
-          {!compact && "Se déconnecter"}
-        </button>
-        {!compact && <p className="px-3 pt-1 text-[11px] text-gray-400 truncate">{email}</p>}
-      </div>
-    </div>
-  );
-};
-
 // Pastille « Connecté en tant que … » (barre du haut) : photo de profil, nom,
 // poste, et menu (modifier mon profil, équipe et accès, déconnexion).
-const UserChip = ({ name, email, onNavigate, onSignOut }: { name: string; email: string; onNavigate: (p: AdminPage) => void; onSignOut: () => void }) => {
+const UserChip = ({ name, email, onNavigate, onSignOut }: { name: string; email: string; onNavigate: (p: AdminPage, item?: SideItem) => void; onSignOut: () => void }) => {
   const team = useTeam();
   const me = team?.find((m) => m.email === email.toLowerCase());
   const shownName = me?.name || name;
@@ -273,20 +143,77 @@ const UserChip = ({ name, email, onNavigate, onSignOut }: { name: string; email:
   );
 };
 
+export type PageTools = { updateItem: (id: string, patch: Partial<SideItem>) => void };
+
+// Corps du menu de gauche : espace de travail, dossiers, pied de page.
+const SidebarBody = ({
+  config,
+  save,
+  error,
+  activeId,
+  onSelect,
+  onOverlay,
+  onManage,
+  compact,
+  email,
+  onSignOut,
+}: {
+  config: SideConfig;
+  save: (c: SideConfig) => void;
+  error: string;
+  activeId: string;
+  onSelect: (it: SideItem) => void;
+  onOverlay: (it: SideItem) => void;
+  onManage: () => void;
+  compact: boolean;
+  email: string;
+  onSignOut: () => void;
+}) => (
+  <div className="flex flex-col h-full">
+    <div className="flex-1 min-h-0">
+      <AdminSidebar config={config} save={save} activeId={activeId} onSelect={onSelect} onOverlay={onOverlay} compact={compact} onManage={onManage} />
+    </div>
+    {error && !compact && <p className="px-3 py-1 text-[11px] text-red-600">{error}</p>}
+    <div className="border-t border-gray-100 p-2 space-y-0.5">
+      <a
+        href="/"
+        title="Voir le site"
+        className={`flex items-center gap-3 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-100 ${compact ? "justify-center py-2.5" : "px-3 py-2"}`}
+      >
+        <Globe size={18} className="shrink-0" />
+        {!compact && "Voir le site"}
+      </a>
+      <button
+        onClick={onSignOut}
+        title="Se déconnecter"
+        className={`w-full flex items-center gap-3 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-100 ${compact ? "justify-center py-2.5" : "px-3 py-2"}`}
+      >
+        <LogOut size={18} className="shrink-0" />
+        {!compact && "Se déconnecter"}
+      </button>
+      {!compact && <p className="px-3 pt-1 text-[11px] text-gray-400 truncate">{email}</p>}
+    </div>
+  </div>
+);
+
 export default function AdminShell({
   email,
   userName,
   page,
+  activeItem,
   onNavigate,
   onSignOut,
-  children,
+  renderPage,
+  headerExtra,
 }: {
   email: string;
   userName: string;
   page: AdminPage;
-  onNavigate: (p: AdminPage) => void;
+  activeItem: SideItem | null;
+  onNavigate: (p: AdminPage, item?: SideItem) => void;
   onSignOut: () => void;
-  children: React.ReactNode;
+  renderPage: (page: AdminPage, item: SideItem | null, tools: PageTools) => React.ReactNode;
+  headerExtra?: React.ReactNode;
 }) {
   const [compact, setCompact] = useState(() => {
     try {
@@ -296,6 +223,8 @@ export default function AdminShell({
     }
   });
   const [drawer, setDrawer] = useState(false);
+  const [overlay, setOverlay] = useState<SideItem | null>(null);
+  const { config, save, loaded, error } = useSidebar(email);
   useEffect(() => {
     try {
       localStorage.setItem("admin-menu-compact", compact ? "1" : "0");
@@ -304,10 +233,50 @@ export default function AdminShell({
     }
   }, [compact]);
 
-  const go = (p: AdminPage) => {
-    setDrawer(false);
-    onNavigate(p);
+  const items = allItems(config);
+  // Outils donnés aux pages : un tableau « vue » enregistre ses filtres/tri/groupement dans le menu.
+  const tools: PageTools = {
+    updateItem: (id, patch) =>
+      save({ ...config, folders: config.folders.map((f) => ({ ...f, items: f.items.map((i) => (i.id === id ? { ...i, ...patch } : i)) })) }),
   };
+  const activeId = activeItem?.id ?? items.find((i) => i.kind === "page" && i.page === page)?.id ?? "";
+  const title = activeItem?.title ?? items.find((i) => i.kind === "page" && i.page === page)?.title ?? PAGE_TITLES[page];
+
+  // Lien direct vers un tableau « vue » (#view-<id>) : ouvert quand le menu est chargé.
+  useEffect(() => {
+    if (!loaded) return;
+    const h = window.location.hash;
+    if (h.startsWith("#view-")) {
+      const it = items.find((i) => i.id === h.slice(6));
+      if (it && it.id !== activeItem?.id) onNavigate(it.page, it);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded]);
+
+  const select = (it: SideItem) => {
+    setDrawer(false);
+    onNavigate(it.page, it);
+  };
+  const body = (c: boolean) => (
+    <SidebarBody
+      config={config}
+      save={save}
+      error={error}
+      activeId={activeId}
+      onSelect={select}
+      onOverlay={(it) => {
+        setDrawer(false);
+        setOverlay(it);
+      }}
+      onManage={() => {
+        setDrawer(false);
+        onNavigate("equipe");
+      }}
+      compact={c}
+      email={email}
+      onSignOut={onSignOut}
+    />
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 flex" dir="ltr">
@@ -327,9 +296,7 @@ export default function AdminShell({
             {compact ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
         </div>
-        <div className="flex-1 min-h-0">
-          <Menu_ page={page} onNavigate={go} compact={compact} email={email} onSignOut={onSignOut} />
-        </div>
+        <div className="flex-1 min-h-0">{body(compact)}</div>
       </aside>
 
       {/* Menu tiroir (téléphone) */}
@@ -339,11 +306,19 @@ export default function AdminShell({
           <div className="h-14 flex items-center px-4 border-b border-gray-100">
             <LogoIP5 className="h-8" />
           </div>
-          <div className="h-[calc(100%-3.5rem)]">
-            <Menu_ page={page} onNavigate={go} compact={false} email={email} onSignOut={onSignOut} />
-          </div>
+          <div className="h-[calc(100%-3.5rem)]">{body(false)}</div>
         </SheetContent>
       </Sheet>
+
+      {/* Ouverture « en superposition » d'un tableau */}
+      <Dialog open={!!overlay} onOpenChange={(o) => !o && setOverlay(null)}>
+        <DialogContent className="max-w-[96vw] w-[96vw] h-[92vh] overflow-auto bg-gray-50 text-gray-900 p-4 sm:rounded-xl" dir="ltr">
+          <DialogHeader>
+            <DialogTitle>{overlay?.title}</DialogTitle>
+          </DialogHeader>
+          {overlay && renderPage(overlay.page, overlay, tools)}
+        </DialogContent>
+      </Dialog>
 
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="sticky top-0 z-20 h-14 bg-white border-b border-gray-100 flex items-center gap-3 px-4">
@@ -354,11 +329,14 @@ export default function AdminShell({
           >
             <Menu size={22} />
           </button>
-          <h1 className="text-lg font-bold text-gray-900">{PAGE_TITLES[page]}</h1>
-          <MailSyncStatus email={email} />
-          <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
+          <h1 className="text-lg font-bold text-gray-900 truncate">{title}</h1>
+          <div className="ml-auto flex items-center gap-2">
+            {headerExtra}
+            <MailSyncStatus email={email} />
+            <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
+          </div>
         </header>
-        <main className="flex-1 min-w-0 p-4 md:p-6">{children}</main>
+        <main className="flex-1 min-w-0 p-4 md:p-6">{renderPage(page, activeItem, tools)}</main>
       </div>
     </div>
   );
