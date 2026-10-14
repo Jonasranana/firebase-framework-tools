@@ -1062,14 +1062,14 @@ export default function LeadsTable({
           </button>
           <button
             onClick={() => {
-              if (window.confirm(`Supprimer définitivement ${selIds.length} lead${selIds.length > 1 ? "s" : ""} ?`)) {
+              if (window.confirm(`Mettre ${selIds.length} lead${selIds.length > 1 ? "s" : ""} à la corbeille ? (récupérables pendant 30 jours)`)) {
                 bulk.remove(selIds);
                 setSel(new Set());
               }
             }}
             className="text-sm font-semibold text-red-600 border border-red-200 rounded-md px-2.5 py-1 hover:bg-red-50"
           >
-            Supprimer
+            Corbeille
           </button>
           <button onClick={() => setSel(new Set())} className="text-sm text-gray-500 px-1" aria-label="Désélectionner">
             ✕

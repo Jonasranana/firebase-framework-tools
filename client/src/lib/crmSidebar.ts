@@ -14,6 +14,8 @@ export type AdminPageKey =
   | "artisans"
   | "stats"
   | "documents"
+  | "doublons"
+  | "corbeille"
   | "equipe"
   | "devis"
   | "marges"
@@ -72,6 +74,8 @@ export const DEFAULT_SIDEBAR: SideConfig = {
         item("artisans", "Artisans"),
         item("documents", "Documents"),
         item("stats", "Statistiques"),
+        item("doublons", "Doublons"),
+        item("corbeille", "Corbeille"),
         item("equipe", "Équipe"),
       ],
     },

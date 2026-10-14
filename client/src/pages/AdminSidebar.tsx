@@ -49,6 +49,8 @@ const ICONS: Record<AdminPageKey, typeof Users> = {
   leads: Users,
   artisans: HardHat,
   documents: FolderOpen,
+  doublons: Copy,
+  corbeille: Trash2,
   stats: BarChart3,
   equipe: UserPlus,
   devis: Calculator,

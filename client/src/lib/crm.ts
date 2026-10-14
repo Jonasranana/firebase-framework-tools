@@ -137,6 +137,10 @@ export type Lead = {
   createdAt: string; // ISO
   updatedAt: string; // ISO
   updatedBy: string;
+  // Corbeille : date de mise à la corbeille (vide = fiche active). Purge après 30 jours.
+  deletedAt: string;
+  deletedBy: string;
+  mergedInto: string;
 };
 
 // Convertit un Timestamp Firestore (ou une chaîne) en ISO.
@@ -175,6 +179,9 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     createdAt: toIso(d.createdAt),
     updatedAt: toIso(d.updatedAt),
     updatedBy: String(d.updatedBy ?? ""),
+    deletedAt: toIso(d.deletedAt),
+    deletedBy: String(d.deletedBy ?? ""),
+    mergedInto: String(d.mergedInto ?? ""),
   };
 }
 
