@@ -97,6 +97,18 @@ export function useColumnsConfig(email: string) {
       save({ ...ref.current, custom: [...(ref.current.custom ?? []), col], order });
       return col;
     },
+    // Déplace une colonne à la place d'une autre (glisser-déposer de l'en-tête).
+    move(key: string, targetKey: string) {
+      if (key === targetKey || key === "name") return;
+      const order = currentOrder();
+      const from = order.indexOf(key);
+      const to = order.indexOf(targetKey);
+      if (from < 0 || to < 0) return;
+      order.splice(from, 1);
+      order.splice(to, 0, key);
+      // Le nom reste toujours la première colonne.
+      save({ ...ref.current, order: ["name", ...order.filter((k) => k !== "name")] });
+    },
     rename(key: string, title: string) {
       const custom = (ref.current.custom ?? []).map((c) => (c.key === key ? { ...c, title } : c));
       save({ ...ref.current, custom, titles: { ...(ref.current.titles ?? {}), [key]: title } });

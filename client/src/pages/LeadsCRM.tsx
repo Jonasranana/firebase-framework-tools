@@ -1315,6 +1315,8 @@ export default function LeadsCRM({
           onDuplicateLeads={duplicateLeads}
           bulk={bulk}
           fitZoom={zoom}
+          onMoveColumn={(k, t) => columnsApi.move(k, t)}
+          onRenameColumn={(k, title) => columnsApi.rename(k, title)}
           onOpen={(id, focus) => {
             setOpenId(id);
             setFocusUpdates(focus === "updates");

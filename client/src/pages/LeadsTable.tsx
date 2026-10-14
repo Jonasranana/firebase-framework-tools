@@ -864,7 +864,12 @@ export default function LeadsTable({
   setVisible,
   bulk,
   fitZoom,
+  onMoveColumn,
+  onRenameColumn,
 }: {
+  // Glisser-déposer d'une colonne et renommage en cliquant sur son titre.
+  onMoveColumn?: (key: string, targetKey: string) => void;
+  onRenameColumn?: (key: string, title: string) => void;
   // Le tableau descend jusqu'en bas de la fenêtre : la barre de défilement horizontale est collée au bas de l'écran.
   fitZoom?: number;
   // Actions groupées sur les lignes cochées (barre en bas).
@@ -915,6 +920,9 @@ export default function LeadsTable({
       clearTimeout(t);
     };
   }, [fitZoom, leads.length]);
+  const [dragCol, setDragCol] = useState<string | null>(null);
+  const [overCol, setOverCol] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
   const toggleSel = (ids: string[], on: boolean) =>
     setSel((prev) => {
@@ -1070,24 +1078,75 @@ export default function LeadsTable({
                     className="grid text-xs font-semibold text-gray-500 bg-white border-b border-gray-200 h-8 items-center"
                     style={{ gridTemplateColumns: template }}
                   >
-                    {cols.map((c, i) => (
-                      <div
-                        key={c.key}
-                        className={`group/col px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""}`}
-                        style={i === 0 ? { borderLeft: `6px solid ${st.color}` } : undefined}
-                        title={c.title}
-                      >
-                        {i === 0 && bulk && (
-                          <RowCheck
-                            label="Tout sélectionner dans ce groupe"
-                            checked={rows.length > 0 && rows.every((r) => sel.has(r.id))}
-                            onChange={(v) => toggleSel(rows.map((r) => r.id), v)}
-                          />
-                        )}
-                        <span className="truncate flex-1">{c.title}</span>
-                        {columnMenu?.(c)}
-                      </div>
-                    ))}
+                    {cols.map((c, i) => {
+                      const movable = !!onMoveColumn && c.type !== "name";
+                      return (
+                        <div
+                          key={c.key}
+                          draggable={movable && renaming !== c.key}
+                          onDragStart={(e) => {
+                            if (!movable) return;
+                            e.dataTransfer.setData("text/column-key", c.key);
+                            e.dataTransfer.effectAllowed = "move";
+                            setDragCol(c.key);
+                          }}
+                          onDragOver={(e) => {
+                            if (!dragCol || c.type === "name") return;
+                            e.preventDefault();
+                            setOverCol(c.key);
+                          }}
+                          onDrop={(e) => {
+                            e.preventDefault();
+                            if (dragCol && onMoveColumn) onMoveColumn(dragCol, c.key);
+                            setDragCol(null);
+                            setOverCol(null);
+                          }}
+                          onDragEnd={() => {
+                            setDragCol(null);
+                            setOverCol(null);
+                          }}
+                          className={`group/col px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""} ${movable ? "cursor-grab active:cursor-grabbing" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
+                          style={{
+                            ...(i === 0 ? { borderLeft: `6px solid ${st.color}` } : {}),
+                            ...(overCol === c.key && dragCol !== c.key ? { boxShadow: "inset 3px 0 0 #0073ea", background: "#eef5ff" } : {}),
+                          }}
+                          title={movable ? `${c.title} — glisser pour déplacer la colonne` : c.title}
+                        >
+                          {i === 0 && bulk && (
+                            <RowCheck
+                              label="Tout sélectionner dans ce groupe"
+                              checked={rows.length > 0 && rows.every((r) => sel.has(r.id))}
+                              onChange={(v) => toggleSel(rows.map((r) => r.id), v)}
+                            />
+                          )}
+                          {renaming === c.key ? (
+                            <input
+                              autoFocus
+                              defaultValue={c.title}
+                              onFocus={(e) => e.currentTarget.select()}
+                              onBlur={(e) => {
+                                const v = e.currentTarget.value.trim();
+                                if (v && v !== c.title) onRenameColumn?.(c.key, v);
+                                setRenaming(null);
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") e.currentTarget.blur();
+                                if (e.key === "Escape") setRenaming(null);
+                              }}
+                              className="flex-1 min-w-0 h-6 px-1.5 text-xs font-semibold bg-white text-gray-900 rounded outline outline-2 outline-[#579bfc]"
+                            />
+                          ) : (
+                            <span
+                              className={`truncate flex-1 ${onRenameColumn ? "cursor-text hover:text-gray-900" : ""}`}
+                              onClick={() => onRenameColumn && setRenaming(c.key)}
+                            >
+                              {c.title}
+                            </span>
+                          )}
+                          {renaming !== c.key && columnMenu?.(c)}
+                        </div>
+                      );
+                    })}
                     <div className="border-l border-gray-100 flex items-center justify-center">
                       {onAddColumn && (
                         <Popover>
