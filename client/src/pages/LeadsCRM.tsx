@@ -1450,6 +1450,10 @@ export default function LeadsCRM({
         onSendMail={async (id, mail) => {
           await callFn("sendLeadMessage", { leadId: id, channel: "mail", template: mail.template, subject: mail.subject, body: mail.body, files: mail.files?.map((f) => ({ name: f.name, type: f.type, data: f.data })) });
         }}
+        onSendSms={async (id, text) => {
+          await callFn("sendLeadMessage", { leadId: id, channel: "sms", text });
+        }}
+        onLoadBalance={() => callFn<{ balance: number; currency: string }>("getTwilioBalance")}
         onLogWhatsApp={async (id, text) => {
           const { m } = await fs();
           await patchLead(id, email, {
@@ -1462,7 +1466,7 @@ export default function LeadsCRM({
             } satisfies LeadNote),
           });
         }}
-        onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string }[] }>("listLeadTemplates")).templates}
+        onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string; sms?: string }[] }>("listLeadTemplates")).templates}
         onOpenFiche={(id) => {
           setChatId(null);
           setOpenId(id);
