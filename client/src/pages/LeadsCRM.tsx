@@ -9,7 +9,6 @@ import {
   Columns3,
   ZoomIn,
   ZoomOut,
-  Zap,
   Table2,
   Loader2,
   BellRing,
@@ -34,7 +33,6 @@ import { useLeads } from "@/lib/crmStore";
 import { LEAD_COLUMNS, cellValue, formulaValue, type ColType, type LeadColumn } from "@/lib/crmColumns";
 import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 import ColumnMenu from "./ColumnMenu";
-import AutomationsDialog, { useAutomationsCount } from "./AutomationsDialog";
 import { PersonBar } from "./LeadsFilter";
 import { AddSplit, GroupByMenu, MoreMenu, QuickFilter, SearchToggle, SortMenu } from "./LeadsToolbar";
 import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
@@ -722,8 +720,6 @@ export default function LeadsCRM({
   onBoardViewChange?: (v: { filters: LeadFilter[]; sorts: LeadSort[]; groupBy: string; personKey: string; visible: string[] }) => void;
 }) {
   const { data: leads, error: storeError } = useLeads();
-  const automations = useAutomationsCount();
-  const [autoOpen, setAutoOpen] = useState(false);
   // Ouverture d'une fiche demandée depuis l'Accueil.
   useEffect(() => {
     try {
@@ -1189,14 +1185,6 @@ export default function LeadsCRM({
             <X size={12} /> Tout enlever
           </button>
         )}
-        <button
-          onClick={() => setAutoOpen(true)}
-          className="ml-auto inline-flex items-center gap-1.5 rounded-md border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-semibold text-gray-700 hover:bg-gray-100"
-          title="Automatisations"
-        >
-          <Zap size={15} className="text-[#fdab3d]" /> Automatiser
-          <span className="text-xs text-gray-500">/ {automations.filter((a) => a.enabled).length}</span>
-        </button>
         <div className="inline-flex items-center rounded-md border border-gray-200 bg-white" title="Zoom du tableau">
           <button onClick={() => changeZoom(zoom - 0.1)} aria-label="Dézoomer" className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md">
             <ZoomOut size={15} />
@@ -1208,7 +1196,6 @@ export default function LeadsCRM({
             <ZoomIn size={15} />
           </button>
         </div>
-        <AutomationsDialog open={autoOpen} onClose={() => setAutoOpen(false)} list={automations} groups={groups} email={email} />
         <div className="inline-flex rounded-md bg-gray-100 p-0.5">
           {(
             [
