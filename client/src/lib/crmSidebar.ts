@@ -61,7 +61,7 @@ export type SideConfig = {
 const item = (page: AdminPageKey, title: string): SideItem => ({ id: `p_${page}`, kind: "page", page, title, core: true });
 
 export const DEFAULT_SIDEBAR: SideConfig = {
-  workspaceName: "IP5 Énergie",
+  workspaceName: "IP5 Energy",
   favorites: [],
   folders: [
     {
@@ -126,7 +126,7 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
     }
   }
   return {
-    workspaceName: c.workspaceName || DEFAULT_SIDEBAR.workspaceName,
+    workspaceName: !c.workspaceName || c.workspaceName === "IP5 Énergie" ? DEFAULT_SIDEBAR.workspaceName : c.workspaceName,
     folders,
     favorites: Array.isArray(c.favorites) ? c.favorites : [],
   };
