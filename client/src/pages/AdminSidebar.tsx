@@ -10,7 +10,6 @@ import {
   FolderOpen,
   FolderPlus,
   Gauge,
-  HardHat,
   Layers,
   MoreHorizontal,
   Palette,
@@ -44,9 +43,9 @@ import {
 
 // Menu de gauche façon Monday : espace de travail, favoris, dossiers colorés,
 // tableaux. Chaque dossier et chaque tableau a son menu « ⋯ ».
-const ICONS: Record<AdminPageKey, typeof Users> = {
-  leads: Users,
-  artisans: HardHat,
+const ICONS: Record<AdminPageKey, typeof Table2> = {
+  leads: Table2,
+  artisans: Table2,
   documents: FolderOpen,
   corbeille: Trash2,
   bareme: Percent,
