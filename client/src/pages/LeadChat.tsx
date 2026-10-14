@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Send, ExternalLink, X, Paperclip } from "lucide-react";
+import { Send, ExternalLink, X, Paperclip, MessageSquareText } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APPEL_SLOTS } from "@/lib/crmColumns";
 import { formatDateTime, formatPhone, statusInfo, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
@@ -111,6 +111,8 @@ export default function LeadChat({
   onSend,
   onSendMail,
   onLogWhatsApp,
+  onSendSms,
+  onLoadBalance,
   onLoadTemplates,
   onOpenFiche,
 }: {
@@ -120,7 +122,9 @@ export default function LeadChat({
   onSend: (leadId: string, text: string) => Promise<void>;
   onSendMail: (leadId: string, mail: { subject?: string; body?: string; template?: string; files?: MailFile[] }) => Promise<void>;
   onLogWhatsApp: (leadId: string, text: string) => Promise<void>;
-  onLoadTemplates: () => Promise<{ key: string; subject: string }[]>;
+  onSendSms: (leadId: string, text: string) => Promise<void>;
+  onLoadBalance: () => Promise<{ balance: number; currency: string }>;
+  onLoadTemplates: () => Promise<{ key: string; subject: string; sms?: string }[]>;
   onOpenFiche: (leadId: string) => void;
 }) {
   const [text, setText] = useState("");
@@ -132,7 +136,13 @@ export default function LeadChat({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [tpl, setTpl] = useState("");
-  const [templates, setTemplates] = useState<{ key: string; subject: string }[]>([]);
+  const [templates, setTemplates] = useState<{ key: string; subject: string; sms?: string }[]>([]);
+  const [smsOpen, setSmsOpen] = useState(false);
+  const [smsText, setSmsText] = useState("");
+  const [smsTpl, setSmsTpl] = useState("");
+  const [smsBusy, setSmsBusy] = useState(false);
+  const [smsMsg, setSmsMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [balance, setBalance] = useState<{ balance: number; currency: string } | "err" | null>(null);
   const [files, setFiles] = useState<MailFile[]>([]);
   const [waOpen, setWaOpen] = useState(false);
   const [waText, setWaText] = useState("");
@@ -154,15 +164,25 @@ export default function LeadChat({
     setTpl("");
     setMailMsg(null);
     setFiles([]);
+    setSmsOpen(false);
+    setSmsText("");
+    setSmsTpl("");
+    setSmsMsg(null);
     setWaOpen(false);
     setWaText("");
     setTab("tout");
   }, [lead?.id]);
 
+  const loadBalance = () => onLoadBalance().then(setBalance).catch(() => setBalance("err"));
   useEffect(() => {
-    if (mailOpen && templates.length === 0) onLoadTemplates().then(setTemplates).catch(() => {});
+    if (lead?.id) loadBalance();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mailOpen]);
+  }, [lead?.id]);
+
+  useEffect(() => {
+    if ((mailOpen || smsOpen) && templates.length === 0) onLoadTemplates().then(setTemplates).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailOpen, smsOpen]);
 
   const addFiles = async (list: FileList | null) => {
     if (!list) return;
@@ -177,6 +197,27 @@ export default function LeadChat({
       setFiles(next);
     } catch {
       setMailMsg({ ok: false, text: "Impossible de lire ce fichier." });
+    }
+  };
+
+  const sendSms = async () => {
+    const t = smsText.trim();
+    if (!lead || !t || smsBusy) return;
+    if (!lead.phone) return setSmsMsg({ ok: false, text: "Ce lead n'a pas de numéro." });
+    if (!confirm(`Envoyer ce SMS au ${formatPhone(lead.phone)} ?`)) return;
+    setSmsBusy(true);
+    setSmsMsg(null);
+    try {
+      await onSendSms(lead.id, t);
+      setSmsMsg({ ok: true, text: "SMS envoyé." });
+      setSmsText("");
+      setSmsTpl("");
+      loadBalance();
+      setTimeout(() => setSmsOpen(false), 900);
+    } catch (e: any) {
+      setSmsMsg({ ok: false, text: e?.message || "Échec de l'envoi." });
+    } finally {
+      setSmsBusy(false);
     }
   };
 
@@ -277,7 +318,7 @@ export default function LeadChat({
           </div>
           <div className="flex items-center gap-2 pt-1">
             <button
-              onClick={() => setMailOpen((o) => !o)}
+              onClick={() => { setMailOpen((o) => !o); setSmsOpen(false); setWaOpen(false); }}
               className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border ${
                 mailOpen ? "bg-blue-50 text-[#2b5a8f] border-[#2b5a8f]" : "text-[#2b5a8f] border-[#2b5a8f]/40 hover:bg-blue-50"
               }`}
@@ -285,7 +326,7 @@ export default function LeadChat({
               <GmailLogo size={16} /> Gmail
             </button>
             <button
-              onClick={() => setWaOpen((o) => !o)}
+              onClick={() => { setWaOpen((o) => !o); setMailOpen(false); setSmsOpen(false); }}
               disabled={!lead || !whatsappHref(lead.phone)}
               title={lead && whatsappHref(lead.phone) ? undefined : "Pas de numéro"}
               className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border disabled:text-gray-300 disabled:border-gray-200 ${
@@ -294,7 +335,29 @@ export default function LeadChat({
             >
               <WhatsAppLogo size={16} /> WhatsApp
             </button>
-            <div className="ml-auto inline-flex rounded-lg bg-gray-100 p-0.5 text-[11px] font-semibold">
+            <button
+              onClick={() => { setSmsOpen((o) => !o); setMailOpen(false); setWaOpen(false); }}
+              disabled={!lead?.phone}
+              title={lead?.phone ? undefined : "Pas de numéro"}
+              className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border disabled:text-gray-300 disabled:border-gray-200 ${
+                smsOpen ? "bg-red-50 text-[#c8102e] border-[#c8102e]" : "text-[#c8102e] border-[#c8102e]/40 hover:bg-red-50"
+              }`}
+            >
+              <MessageSquareText size={15} /> SMS Twilio
+            </button>
+          </div>
+          <div className="flex items-center justify-between gap-2">
+            <span
+              className="text-[11px] font-semibold text-gray-600"
+              title="Crédits restants sur le compte Twilio"
+            >
+              {balance === null ? "Crédits Twilio : …" : balance === "err" ? "Crédits Twilio : indisponible" : (
+                <>
+                  Crédits Twilio : <span className={balance.balance < 5 ? "text-red-600" : "text-green-700"}>{balance.balance.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {balance.currency === "USD" ? "$" : balance.currency === "EUR" ? "€" : balance.currency}</span>
+                </>
+              )}
+            </span>
+            <div className="inline-flex rounded-lg bg-gray-100 p-0.5 text-[11px] font-semibold">
               {([["tout", "Tout"], ["messages", "Messages"], ["mouvements", "Mouvements"]] as const).map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} className={`px-2 py-1 rounded-md ${tab === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
                   {l}
@@ -361,6 +424,51 @@ export default function LeadChat({
                 className="w-full text-sm font-bold text-white bg-[#2b5a8f] disabled:opacity-50 rounded-lg py-1.5"
               >
                 {mailBusy ? "Envoi…" : "Envoyer le mail"}
+              </button>
+            </div>
+          )}
+          {smsOpen && lead && (
+            <div className="rounded-xl border border-red-200 bg-red-50/60 p-2.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-700">SMS Twilio au {formatPhone(lead.phone)}</span>
+                <button onClick={() => setSmsOpen(false)} aria-label="Fermer" className="text-gray-400 hover:text-gray-600">
+                  <X size={14} />
+                </button>
+              </div>
+              <select
+                value={smsTpl}
+                onChange={(e) => {
+                  setSmsTpl(e.target.value);
+                  const t = templates.find((x) => x.key === e.target.value);
+                  if (t?.sms) setSmsText(t.sms);
+                }}
+                className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2 py-1.5"
+              >
+                <option value="">SMS libre (j'écris moi-même)</option>
+                {templates.filter((t) => t.sms).map((t) => (
+                  <option key={t.key} value={t.key}>
+                    Modèle : {t.key}
+                  </option>
+                ))}
+              </select>
+              <textarea
+                value={smsText}
+                onChange={(e) => setSmsText(e.target.value)}
+                rows={4}
+                maxLength={480}
+                placeholder="Votre SMS…"
+                className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5 resize-none"
+              />
+              <p className="text-[11px] text-gray-500">
+                {smsText.length} / 480 caractères · environ {Math.max(1, Math.ceil(smsText.length / 153))} SMS facturé{smsText.length > 160 ? "s" : ""} (160 caractères par SMS, accents et émojis peuvent réduire).
+              </p>
+              {smsMsg && <p className={`text-xs ${smsMsg.ok ? "text-green-700" : "text-red-600"}`}>{smsMsg.text}</p>}
+              <button
+                onClick={sendSms}
+                disabled={smsBusy || !smsText.trim()}
+                className="w-full text-sm font-bold text-white bg-[#c8102e] disabled:opacity-50 rounded-lg py-1.5"
+              >
+                {smsBusy ? "Envoi…" : "Envoyer le SMS"}
               </button>
             </div>
           )}

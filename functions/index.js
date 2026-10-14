@@ -1413,6 +1413,27 @@ exports.listLeadTemplates = onCall({ region: "europe-west9" }, async (request) =
   return { templates: crmTemplates() };
 });
 
+// Solde du compte Twilio (crédits restants), affiché dans le chat du CRM.
+exports.getTwilioBalance = onCall(
+  { secrets: [TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN], region: "europe-west9" },
+  async (request) => {
+    if (!isCrmMember(request)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const sid = TWILIO_ACCOUNT_SID.value();
+    const auth = Buffer.from(`${sid}:${TWILIO_AUTH_TOKEN.value()}`).toString("base64");
+    const res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${sid}/Balance.json`, {
+      headers: { Authorization: `Basic ${auth}` },
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      logger.error("Solde Twilio illisible", { status: res.status, error: JSON.stringify(data) });
+      throw new HttpsError("unavailable", "Solde Twilio indisponible.");
+    }
+    return { balance: Number(data.balance), currency: String(data.currency ?? "") };
+  },
+);
+
 exports.sendGonflageSignatureEmail = onDocumentCreated(
   {
     document: "gonflage_signatures/{token}",
