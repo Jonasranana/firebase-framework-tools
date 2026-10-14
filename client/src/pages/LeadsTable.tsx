@@ -1359,7 +1359,7 @@ export default function LeadsTable({
               {!isCollapsed && (
                 <div className="bg-white rounded-lg border border-gray-200 overflow-clip">
                   <div
-                    className="grid text-xs font-semibold text-gray-500 bg-white border-b border-gray-200 h-8 items-center"
+                    className="grid text-xs font-semibold text-gray-500 bg-white border-b border-gray-200 h-10 items-center"
                     style={{ gridTemplateColumns: template }}
                   >
                     {cols.map((c, i) => {
@@ -1388,7 +1388,7 @@ export default function LeadsTable({
                               },
                             });
                           }}
-                          className={`group/col relative px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""} ${movable ? "cursor-grab" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
+                          className={`group/col relative h-full pt-2 px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""} ${movable ? "cursor-grab" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
                           style={{
                             ...(i === 0 ? { borderLeft: `6px solid ${st.color}` } : {}),
                             ...(overCol === c.key && dragCol !== c.key ? { boxShadow: "inset 3px 0 0 #0073ea", background: "#eef5ff" } : {}),
@@ -1404,9 +1404,10 @@ export default function LeadsTable({
                           )}
                           {movable && (
                             <>
-                              {/* Bande d'attrape tout en haut de l'en-tête, comme sur Monday : la main apparaît ici. */}
+                              {/* Bande d'attrape tout en haut de l'en-tête, à la couleur du groupe : la main apparaît ici. */}
                               <div
-                                className="absolute inset-x-0 top-0 h-2.5 cursor-grab opacity-0 group-hover/col:opacity-100 bg-[#0073ea]/25 hover:bg-[#0073ea]/50 transition-opacity"
+                                className="absolute inset-x-0 top-0 h-2 cursor-grab opacity-45 group-hover/col:opacity-100 hover:!opacity-100 transition-opacity rounded-b-sm"
+                                style={{ background: st.color }}
                                 title="Attrapez ici pour déplacer la colonne"
                               />
                               <GripVertical size={12} className="shrink-0 -ml-1 text-gray-300 opacity-0 group-hover/col:opacity-100 pointer-events-none" />
