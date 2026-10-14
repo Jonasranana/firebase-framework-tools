@@ -14,6 +14,7 @@ import LeadsCRM from "./LeadsCRM";
 import ArtisansCRM from "./ArtisansCRM";
 import StatsCRM from "./StatsCRM";
 import AccueilCRM from "./AccueilCRM";
+import ArchivesMonday from "./ArchivesMonday";
 import DoublonsCRM from "./DoublonsCRM";
 import CorbeilleCRM from "./CorbeilleCRM";
 import DocumentsPage from "./DocumentsPage";
@@ -893,6 +894,7 @@ export default function OutilDevis() {
           />
         )}
         {p === "corbeille" && <CorbeilleCRM email={email} />}
+        {p === "archives" && <ArchivesMonday />}
         {p === "stats" && <StatsCRM />}
         {p === "documents" && <DocumentsPage />}
         {p === "equipe" && narrow(<TeamPage email={email} />)}

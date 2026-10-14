@@ -48,7 +48,8 @@ export type AdminPage =
   | "devis"
   | "marges"
   | "gonflage"
-  | "clients";
+  | "clients"
+  | "archives";
 
 export const PAGE_TITLES: Record<AdminPage, string> = {
   accueil: "Accueil",
@@ -63,6 +64,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   marges: "Marges Prémi",
   gonflage: "Station de gonflage",
   clients: "Clients (copie Monday)",
+  archives: "Archives Monday",
 };
 
 const PAGES = Object.keys(PAGE_TITLES) as AdminPage[];
