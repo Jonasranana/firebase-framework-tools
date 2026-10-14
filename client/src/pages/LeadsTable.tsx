@@ -1356,17 +1356,6 @@ export default function LeadsTable({
 
               {!isCollapsed && (
                 <div>
-                  {/* Barre du groupe, sur toute la longueur du tableau : on l'attrape pour déplacer le groupe. */}
-                  <div
-                    className={`group/gb py-1 mb-0.5 ${readOnlyGroups ? "" : "cursor-grab"}`}
-                    title={readOnlyGroups ? undefined : "Attrapez cette barre pour déplacer le groupe"}
-                    onMouseDown={(e) => onGroupMouseDown(e, st)}
-                  >
-                    <div
-                      className="h-[3px] rounded-full opacity-40 group-hover/gb:opacity-90 transition-opacity"
-                      style={{ background: st.color }}
-                    />
-                  </div>
                 <div className="bg-white rounded-lg border border-gray-200 overflow-clip">
                   <div
                     className="grid text-xs font-semibold text-gray-500 bg-white border-b border-gray-200 h-10 items-center"
