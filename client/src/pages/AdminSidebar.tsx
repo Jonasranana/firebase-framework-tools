@@ -57,6 +57,7 @@ const ICONS: Record<AdminPageKey, typeof Users> = {
   marges: Percent,
   gonflage: Gauge,
   clients: Archive,
+  archives: Archive,
 };
 
 const POP = "bg-white text-gray-900 border border-gray-200 shadow-xl";

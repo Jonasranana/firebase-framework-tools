@@ -1,0 +1,60 @@
+name: Archive Monday vers CRM
+
+# Copie TOUT Monday (tableaux, colonnes, étiquettes, commentaires, fichiers)
+# dans le CRM, en lecture seule côté Monday. Voir scripts/import-monday-archive.mjs.
+# 1) Lancer à la main avec « essai à blanc » : compte tout, n'écrit rien.
+# 2) Relancer sans essai à blanc : l'archive démarre ; si elle n'est pas finie
+#    à la fin des 5 h 30, la reprise est automatique (toutes les 6 h) jusqu'au bout.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Essai à blanc (n'écrit rien)"
+        type: boolean
+        default: true
+      files:
+        description: "Copier aussi les fichiers"
+        type: boolean
+        default: true
+      board_ids:
+        description: "Facultatif : identifiants de tableaux séparés par des virgules (sinon tous)"
+        type: string
+        default: ""
+  schedule:
+    - cron: "40 */6 * * *"
+
+concurrency:
+  group: archive-monday
+  cancel-in-progress: false
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+      - name: Archive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+          FILES: ${{ github.event_name == 'workflow_dispatch' && !inputs.files && '0' || '1' }}
+          BOARD_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.board_ids || '' }}
+          SCHEDULED: ${{ github.event_name == 'schedule' && '1' || '0' }}
+        run: |
+          set +e
+          node scripts/import-monday-archive.mjs
+          code=$?
+          # 3 = temps écoulé : normal, la reprise automatique continuera.
+          if [ "$code" = "3" ]; then exit 0; fi
+          exit $code
