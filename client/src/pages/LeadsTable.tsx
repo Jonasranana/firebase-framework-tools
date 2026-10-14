@@ -430,7 +430,7 @@ const AppelsCell = ({ lead, onPatch }: { lead: Lead; onPatch: (id: string, patch
           {filled.map((s) => (
             <span
               key={s.key}
-              className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-white rounded-full pl-1.5 pr-2 py-0.5"
+              className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold text-white rounded-full pl-1 pr-1.5 py-0.5 leading-4"
               style={{ background: colorOf(lead.fields[s.key]) }}
               title={`${s.label} : ${lead.fields[s.key]}`}
             >
