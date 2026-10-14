@@ -3,7 +3,6 @@ import { Plus, Trash2, Zap } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { crmFirestore } from "@/lib/crmDb";
 import { LEAD_COLUMNS } from "@/lib/crmColumns";
-import { useCallTracking } from "@/lib/crmCalls";
 import AutomationAssistant from "./AutomationAssistant";
 import type { AutoDraft } from "@/lib/crmAutomationParse";
 import type { LeadGroup } from "@/lib/crm";
@@ -113,7 +112,6 @@ export default function AutomationsDialog({
 }) {
   const [editing, setEditing] = useState(false);
   const [assistant, setAssistant] = useState(false);
-  const [tracking, setTracking] = useCallTracking();
   const [name, setName] = useState("");
   const [trigger, setTrigger] = useState<Trigger>({ type: "column_changes", col: "status", value: "" });
   const [actions, setActions] = useState<Action[]>([{ type: "notify_team" }]);
@@ -224,14 +222,6 @@ export default function AutomationsDialog({
 
         {!editing && !assistant && (
           <div className="space-y-3">
-            <label className="flex items-start gap-3 rounded-lg border border-[#0073ea]/30 bg-blue-50 p-3 cursor-pointer">
-              <input type="checkbox" checked={tracking} onChange={(e) => setTracking(e.target.checked)} className="mt-1 h-4 w-4" />
-              <div>
-                <div className="text-sm font-semibold">📞 Suivi automatique des appels</div>
-                <div className="text-xs text-gray-600">
-                  À chaque changement du « Statut Appel », le CRM note qui a appelé dans la colonne « 📞 Appels » (1er, 2e, 3e appel : une nouvelle personne remplit l'appel suivant). « Commercial » reste celui du premier appel. Vous pouvez corriger à la main en cliquant dans la colonne.</div>
-              </div>
-            </label>
             {list.length === 0 && <p className="text-sm text-gray-500">Aucune automatisation pour l'instant.</p>}
             {list.map((a) => (
               <div key={a.id} className="flex items-start gap-3 border border-gray-200 rounded-lg p-3">

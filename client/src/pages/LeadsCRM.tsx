@@ -33,7 +33,6 @@ import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
 import { LEAD_COLUMNS, cellValue, formulaValue, type ColType, type LeadColumn } from "@/lib/crmColumns";
 import { useColumnsConfig } from "@/lib/crmColumnsConfig";
-import { callPatch, useCallTracking } from "@/lib/crmCalls";
 import ColumnMenu from "./ColumnMenu";
 import AutomationsDialog, { useAutomationsCount } from "./AutomationsDialog";
 import { PersonBar } from "./LeadsFilter";
@@ -464,7 +463,7 @@ const LeadSheet = ({
     };
     run(async () => {
       const { m } = await fs();
-      await patchLead(lead.id, email, { status, ...callPatch(lead, status, email, m.arrayUnion), notes: m.arrayUnion(trace) });
+      await patchLead(lead.id, email, { status, notes: m.arrayUnion(trace) });
     }, "Impossible de changer le statut.");
   };
 
@@ -660,21 +659,6 @@ const LeadSheet = ({
             />
           )}
 
-          {lead && lead.calls.length > 0 && (
-            <div className="pt-3 border-t border-gray-100">
-              <span className="block text-xs font-semibold text-gray-600 mb-1.5">
-                📞 Suivi des appels — 1er appel par {lead.fields.premierAppel || lead.calls[0].name}
-              </span>
-              <ol className="space-y-1">
-                {lead.calls.map((c) => (
-                  <li key={`${c.n}-${c.at}`} className="text-xs text-gray-700">
-                    <b>Appel {c.n}</b> · {c.name} · {c.at.slice(0, 10).split("-").reverse().join("/")} · {statusInfo(c.status).label}
-                  </li>
-                ))}
-              </ol>
-            </div>
-          )}
-
           {lead && (
             <div id="updates-section" className="pt-3 border-t border-gray-100">
               <span className="block text-xs font-semibold text-gray-600 mb-2">
@@ -866,7 +850,6 @@ export default function LeadsCRM({
       const { m } = await fs();
       await patchLead(id, email, {
         status,
-        ...callPatch(lead, status, email, m.arrayUnion),
         notes: m.arrayUnion({
           id: newId(),
           text: `${statusInfo(lead.status).label} → ${statusInfo(status).label}`,
@@ -991,15 +974,7 @@ export default function LeadsCRM({
     }
   };
   const bulk = {
-    setStatus: (ids: string[], status: string) =>
-      bulkWrite(
-        ids,
-        (id, m) => {
-          const l = leads?.find((x) => x.id === id);
-          return { status, ...(l ? callPatch(l, status, email, m.arrayUnion) : {}) };
-        },
-        `Statut → ${statusInfo(status).label}`,
-      ),
+    setStatus: (ids: string[], status: string) => bulkWrite(ids, { status }, `Statut → ${statusInfo(status).label}`),
     moveGroup: (ids: string[], groupId: string) =>
       bulkWrite(ids, { group: groupId }, `Groupe → ${groups.find((g) => g.id === groupId)?.title ?? groupId}`),
     // Jamais de suppression directe : les fiches vont à la corbeille (30 jours).
