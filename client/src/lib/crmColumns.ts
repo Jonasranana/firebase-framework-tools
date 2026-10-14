@@ -209,6 +209,8 @@ export const APPEL_SLOTS = [
   { key: "premierAppel", label: "1er appel", short: "1er" },
   { key: "deuxiemeAppel", label: "2e appel", short: "2e" },
   { key: "troisiemeAppel", label: "3e appel", short: "3e" },
+  { key: "quatriemeAppel", label: "4e appel", short: "4e" },
+  { key: "cinquiemeAppel", label: "5e appel", short: "5e" },
 ] as const;
 
 export function cellValue(l: Lead, c: LeadColumn): string {
