@@ -41,6 +41,8 @@ export type SideItem = {
   // Éléments d'origine : ne peuvent pas être supprimés, seulement archivés.
   core?: boolean;
   archived?: boolean;
+  // Mis à la corbeille le (ISO) : caché du menu, restaurable pendant 30 jours.
+  deletedAt?: string;
   view?: BoardView;
   // Tableau de leads à part (créé depuis le menu) : identifiant du tableau, ses leads et ses groupes lui sont propres.
   board?: string;
@@ -101,6 +103,8 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
     ...f,
     items: (Array.isArray(f.items) ? f.items : [])
       .filter((i) => !(i.core && REMOVED.includes(i.page as string)))
+      // Corbeille : un tableau supprimé depuis plus de 30 jours quitte définitivement le menu (ses leads ne sont jamais effacés).
+      .filter((i) => i.core || !i.deletedAt || Date.now() - new Date(i.deletedAt).getTime() < 30 * 86400000)
       .map((i) => (i.core && i.page === "corbeille" && i.title === "Corbeille" ? { ...i, title: "Corbeille et doublons" } : i)),
   }));
   // Migration : « Pac Pac » (ex-Leads) et « Artisans » vivent dans le dossier « Tableau IP5 ».
