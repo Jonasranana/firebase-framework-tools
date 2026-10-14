@@ -577,9 +577,13 @@ export async function submitCallbackRequest(
 
 export const Simulator = ({
   source = "simulateur-landing",
+  tone = "default",
 }: {
   source?: string;
+  // « pro » : présentation plus sobre (page d'accueil) ; défaut : présentation d'origine des pages de campagne.
+  tone?: "default" | "pro";
 } = {}) => {
+  const pro = tone === "pro";
   const [step, setStep] = useState(1);
   const [isCalculating, setIsCalculating] = useState(false);
   const [formData, setFormData] = useState<SimulatorData>(INITIAL_DATA);
@@ -712,7 +716,7 @@ export const Simulator = ({
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-              Quel est votre type de logement ?
+              Quel est votre type de logement&nbsp;?
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <button
@@ -736,7 +740,7 @@ export const Simulator = ({
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
-              Vous êtes… ?
+              Vous êtes…&nbsp;?
             </h3>
             <p className="text-gray-500 text-sm mb-6 text-center">
               Les aides diffèrent selon votre situation.
@@ -768,7 +772,7 @@ export const Simulator = ({
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             <h3 className="text-2xl font-bold text-gray-800 mb-6">
-              Quelle est la surface à chauffer ?
+              Quelle est la surface à chauffer&nbsp;?
             </h3>
             <div className="mb-8">
               <span className="text-5xl font-bold text-[#2b5a8f]">
@@ -799,7 +803,7 @@ export const Simulator = ({
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-              Quel est votre chauffage actuel ?
+              Quel est votre chauffage actuel&nbsp;?
             </h3>
             <div className="grid grid-cols-2 gap-4">
               <button
@@ -837,7 +841,7 @@ export const Simulator = ({
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              Dans quel département se situe votre projet ?
+              Dans quel département se situe votre projet&nbsp;?
             </h3>
             <p className="text-gray-500 text-sm mb-6">
               Les aides d'État (MaPrimeRénov') varient selon votre région.
@@ -884,7 +888,7 @@ export const Simulator = ({
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              Combien de personnes composent votre foyer ?
+              Combien de personnes composent votre foyer&nbsp;?
             </h3>
             <p className="text-gray-500 text-sm mb-6">
               Ce critère est indispensable pour calculer le montant de vos
@@ -912,7 +916,7 @@ export const Simulator = ({
         return (
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
             <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              Quel est le revenu fiscal de votre foyer ?
+              Quel est le revenu fiscal de votre foyer&nbsp;?
             </h3>
             <p className="text-gray-500 text-sm mb-6">
               Il figure sur votre <b>avis d'imposition de l'année dernière</b>{" "}
@@ -1320,14 +1324,15 @@ export const Simulator = ({
   const progressPercentage = Math.min((step / (TOTAL_QUESTIONS + 1)) * 100, 100);
   const showProgress = step <= TOTAL_QUESTIONS + 1 && !isCalculating;
   // Petit jalon d'encouragement affiché à côté du numéro d'étape.
-  const milestone =
-    step <= 2 ? "🚀 C'est parti" : step <= 5 ? "💪 À mi-chemin" : "🏁 Dernière ligne droite";
+  const milestone = pro
+    ? ""
+    : step <= 2 ? "🚀 C'est parti" : step <= 5 ? "💪 À mi-chemin" : "🏁 Dernière ligne droite";
 
   return (
-    <div className="bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-md w-full mx-auto relative overflow-hidden border border-gray-100">
+    <div className={pro ? "bg-white rounded-2xl shadow-xl shadow-slate-900/10 p-6 md:p-9 max-w-md w-full mx-auto relative overflow-hidden border border-slate-200" : "bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-md w-full mx-auto relative overflow-hidden border border-gray-100"}>
       {showProgress && (
         <div
-          className="absolute top-0 left-0 w-full h-2 bg-gray-100"
+          className={`absolute top-0 left-0 w-full bg-gray-100 ${pro ? "h-1" : "h-2"}`}
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -1335,7 +1340,7 @@ export const Simulator = ({
           aria-label="Progression de la simulation"
         >
           <div
-            className="h-full bg-gradient-to-r from-[#2b5a8f] to-cyan-400 transition-all duration-500 ease-out"
+            className={`h-full transition-all duration-500 ease-out ${pro ? "bg-[#173a5e]" : "bg-gradient-to-r from-[#2b5a8f] to-cyan-400"}`}
             style={{ width: `${progressPercentage}%` }}
           ></div>
         </div>
@@ -1356,8 +1361,14 @@ export const Simulator = ({
           <p className="text-sm text-gray-400 font-medium">
             {step <= TOTAL_QUESTIONS ? (
               <>
-                <span className="mr-2">{milestone}</span>
-                {step} / {TOTAL_QUESTIONS}
+                {pro ? (
+                  <>Étape {step} sur {TOTAL_QUESTIONS}</>
+                ) : (
+                  <>
+                    <span className="mr-2">{milestone}</span>
+                    {step} / {TOTAL_QUESTIONS}
+                  </>
+                )}
               </>
             ) : (
               "Votre résultat"
