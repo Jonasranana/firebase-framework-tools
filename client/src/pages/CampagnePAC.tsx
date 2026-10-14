@@ -2,13 +2,11 @@ import React, { useState } from "react";
 import {
   ShieldCheck,
   CheckCircle2,
-  Gift,
   Clock,
   Phone,
   ChevronDown,
-  HandCoins,
-  BadgeCheck,
-  Sparkles,
+  ArrowRight,
+  Building2,
   Droplet,
   Flame,
   HelpCircle,
@@ -71,8 +69,8 @@ const FAQ_ITEMS = [
     a: "Les aides s'adressent en priorité aux propriétaires occupants et bailleurs. En copropriété, des dispositifs existent aussi. Le plus simple : renseignez votre situation dans le simulateur, on vous dit en 2 minutes ce à quoi vous avez droit.",
   },
   {
-    q: "Intervenez-vous partout en France ?",
-    a: "Oui, nous accompagnons des projets partout en France. Nos équipes et partenaires certifiés RGE assurent une installation aux normes, où que vous soyez.",
+    q: "Intervenez-vous dans mon département ?",
+    a: "Nous intervenons dans la plupart des départements de France métropolitaine, hors pourtour méditerranéen et Corse. Indiquez votre code postal dans le simulateur : nous vous confirmons tout de suite si votre commune est couverte.",
   },
   {
     q: "Combien puis-je vraiment économiser ?",
@@ -83,12 +81,12 @@ const FAQ_ITEMS = [
 const FaqItem = ({ q, a }: { q: string; a: string }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-gray-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+    <div className="border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-900 overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-4 text-left px-6 py-5 font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+        className="w-full flex items-center justify-between gap-4 text-left px-6 py-5 font-semibold text-[#0f2a47] dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
       >
         <span>{q}</span>
         <ChevronDown
@@ -99,7 +97,7 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
         />
       </button>
       {open && (
-        <p className="px-6 pb-6 -mt-1 text-gray-600 dark:text-slate-300 leading-relaxed">
+        <p className="px-6 pb-6 -mt-1 text-slate-600 dark:text-slate-300 leading-relaxed">
           {a}
         </p>
       )}
@@ -143,7 +141,7 @@ const INITIAL_CALLBACK: CallbackRequest = {
 };
 
 const inputClass =
-  "w-full px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:border-[#2b5a8f] outline-none transition-colors";
+  "w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-gray-900 dark:text-white focus:border-[#2b5a8f] focus:ring-2 focus:ring-[#2b5a8f]/15 outline-none transition-colors";
 
 // Point d'entrée de la landing : une question (chauffage), puis le choix le
 // plus simple possible — appeler, être rappelé, ou faire la simulation
@@ -159,7 +157,7 @@ const QuickStart = ({ source }: { source: string }) => {
   const [done, setDone] = useState(false);
 
   if (mode === "simulation") {
-    return <Simulator source={source} />;
+    return <Simulator source={source} tone="pro" />;
   }
 
   const trackCall = () => {
@@ -195,13 +193,13 @@ const QuickStart = ({ source }: { source: string }) => {
   };
 
   const card =
-    "bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-800 p-6 md:p-8 text-left";
+    "bg-white dark:bg-slate-900 rounded-2xl shadow-xl shadow-slate-900/10 border border-slate-200 dark:border-slate-800 p-6 md:p-8 text-left";
 
   if (done) {
     return (
       <div className={`${card} text-center`}>
         <CheckCircle2 className="mx-auto mb-4 text-green-500" size={48} />
-        <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-2">
+        <h3 className="text-2xl font-bold text-[#0f2a47] dark:text-white mb-2">
           Merci {form.firstName.trim()} !
         </h3>
         <p className="text-gray-600 dark:text-slate-300">
@@ -215,11 +213,11 @@ const QuickStart = ({ source }: { source: string }) => {
   if (!heating) {
     return (
       <div className={card}>
-        <p className="text-sm font-bold text-[#2b5a8f] dark:text-blue-400 mb-1">
+        <p className="text-xs font-semibold uppercase tracking-wider text-[#2b5a8f] dark:text-blue-300 mb-2">
           <span className="lg:hidden">Jusqu'à 100 % d'aides pour votre pompe à chaleur</span>
           <span className="hidden lg:inline">Question rapide</span>
         </p>
-        <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-6">
+        <h3 className="text-2xl font-bold text-[#0f2a47] dark:text-white mb-6">
           Vous chauffez votre logement au :
         </h3>
         <div className="grid grid-cols-3 gap-3">
@@ -228,7 +226,7 @@ const QuickStart = ({ source }: { source: string }) => {
               key={value}
               type="button"
               onClick={() => setHeating(value)}
-              className={`flex flex-col items-center gap-2 py-5 rounded-2xl border-2 font-bold text-gray-900 dark:text-white transition-colors ${style}`}
+              className={`flex flex-col items-center gap-2 py-5 rounded-xl border-2 font-semibold text-gray-900 dark:text-white transition-colors ${style}`}
             >
               <Icon size={30} className={iconStyle} />
               {label}
@@ -249,7 +247,7 @@ const QuickStart = ({ source }: { source: string }) => {
         >
           <ArrowLeft size={16} /> Retour
         </button>
-        <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-5">
+        <h3 className="text-2xl font-bold text-[#0f2a47] dark:text-white mb-5">
           On vous rappelle
         </h3>
         <input
@@ -331,7 +329,7 @@ const QuickStart = ({ source }: { source: string }) => {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full inline-flex items-center justify-center gap-2 bg-gradient-to-r from-[#2b5a8f] to-cyan-500 text-white py-4 rounded-full font-bold text-lg shadow-lg disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 bg-[#173a5e] hover:bg-[#122f4d] text-white py-4 rounded-lg font-semibold text-lg shadow-md transition-colors disabled:opacity-60"
           >
             {submitting ? "Envoi…" : "Être rappelé(e)"}
           </button>
@@ -343,7 +341,7 @@ const QuickStart = ({ source }: { source: string }) => {
   // La simulation est le choix principal : seul bloc encadré, en grand.
   // Rappel puis appel viennent ensuite, en simples lignes sans cadre.
   const secondary =
-    "w-full flex items-center gap-3 px-2 py-3 text-left rounded-xl hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors";
+    "w-full flex items-center gap-3 px-3 py-3 text-left rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors";
   return (
     <div className={card}>
       <button
@@ -353,20 +351,20 @@ const QuickStart = ({ source }: { source: string }) => {
       >
         <ArrowLeft size={16} /> Chauffage : {heating}
       </button>
-      <h3 className="text-2xl font-extrabold text-gray-900 dark:text-white mb-5">
+      <h3 className="text-2xl font-bold text-[#0f2a47] dark:text-white mb-5">
         Comment souhaitez-vous avancer ?
       </h3>
       <button
         type="button"
         onClick={() => setMode("simulation")}
-        className="w-full text-left rounded-2xl border-[3px] border-[#2b5a8f] bg-blue-50 dark:bg-slate-800 p-5 shadow-lg hover:shadow-xl hover:bg-blue-100 dark:hover:bg-slate-700 transition-all"
+        className="w-full text-left rounded-xl border-2 border-[#173a5e] bg-slate-50 dark:bg-slate-800 p-5 shadow-md hover:shadow-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-all"
       >
         <span className="flex items-center gap-4">
-          <span className="flex-shrink-0 w-14 h-14 rounded-2xl bg-[#2b5a8f] text-white flex items-center justify-center">
+          <span className="flex-shrink-0 w-14 h-14 rounded-lg bg-[#173a5e] text-white flex items-center justify-center">
             <Calculator size={30} />
           </span>
           <span>
-            <span className="block text-xl font-extrabold text-gray-900 dark:text-white leading-tight">
+            <span className="block text-xl font-bold text-[#0f2a47] dark:text-white leading-tight">
               Faire la simulation
             </span>
             <span className="block text-sm text-gray-600 dark:text-slate-300 mt-0.5">
@@ -374,8 +372,8 @@ const QuickStart = ({ source }: { source: string }) => {
             </span>
           </span>
         </span>
-        <span className="mt-4 flex items-center justify-center gap-2 w-full rounded-xl bg-[#2b5a8f] text-white font-bold py-3">
-          <Sparkles size={18} /> Commencer la simulation
+        <span className="mt-4 flex items-center justify-center gap-2 w-full rounded-lg bg-[#173a5e] text-white font-semibold py-3">
+          Commencer la simulation <ArrowRight size={18} />
         </span>
       </button>
       <p className="text-center text-xs font-semibold uppercase tracking-wider text-gray-400 mt-5 mb-1">
@@ -384,7 +382,7 @@ const QuickStart = ({ source }: { source: string }) => {
       <button type="button" onClick={() => setMode("rappel")} className={secondary}>
         <Clock className="text-[#2b5a8f] dark:text-blue-400 flex-shrink-0" size={22} />
         <span>
-          <span className="block font-bold text-gray-900 dark:text-white">
+          <span className="block font-semibold text-[#0f2a47] dark:text-white">
             Être rappelé(e) rapidement
           </span>
           <span className="block text-sm text-gray-500 dark:text-slate-400">
@@ -395,7 +393,7 @@ const QuickStart = ({ source }: { source: string }) => {
       <a href="tel:+33749525267" onClick={trackCall} className={secondary}>
         <Phone className="text-[#2b5a8f] dark:text-blue-400 flex-shrink-0" size={22} />
         <span>
-          <span className="block font-bold text-gray-900 dark:text-white">
+          <span className="block font-semibold text-[#0f2a47] dark:text-white">
             Appeler maintenant
           </span>
           <span className="block text-sm text-gray-500 dark:text-slate-400">
@@ -422,10 +420,11 @@ const ChantierPreuve = () => (
   <section className="py-14 lg:py-20 bg-white dark:bg-slate-950">
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center mb-8">
-        <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
+        <p className="text-sm font-semibold uppercase tracking-wider text-[#2b5a8f] dark:text-blue-300 mb-2">Nos réalisations</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-[#0f2a47] dark:text-white">
           Un vrai chantier IP5 Énergie
         </h2>
-        <p className="text-gray-600 dark:text-slate-300 mt-2">
+        <p className="text-slate-600 dark:text-slate-300 mt-2">
           Remplacement d'une chaudière fioul par une pompe à chaleur air/eau.
         </p>
       </div>
@@ -434,14 +433,14 @@ const ChantierPreuve = () => (
           { src: "avant-ancienne-chaudiere.jpg", alt: "Ancienne chaudière fioul avant remplacement", label: "Avant", badge: "bg-red-600" },
           { src: "interieur-pac-ballon.jpg", alt: "Pompe à chaleur et ballon d'eau chaude installés", label: "Après", badge: "bg-green-600" },
         ].map((photo) => (
-          <figure key={photo.src} className="relative rounded-2xl sm:rounded-3xl overflow-hidden shadow-lg border border-gray-100 dark:border-slate-800">
+          <figure key={photo.src} className="relative rounded-xl overflow-hidden shadow-md border border-slate-200 dark:border-slate-800">
             <img
               src={`/images/realisations/${photo.src}`}
               alt={photo.alt}
               className="w-full h-56 sm:h-80 object-cover"
               loading="lazy"
             />
-            <span className={`absolute top-3 left-3 ${photo.badge} text-white text-xs sm:text-sm font-bold uppercase tracking-wide px-3 py-1 rounded-full shadow`}>
+            <span className={`absolute top-3 left-3 ${photo.badge} text-white text-xs sm:text-sm font-semibold uppercase tracking-wide px-3 py-1 rounded-md shadow`}>
               {photo.label}
             </span>
           </figure>
@@ -449,7 +448,7 @@ const ChantierPreuve = () => (
       </div>
       <div className="grid grid-cols-4 gap-2 sm:gap-4 mt-3 sm:mt-6">
         {CHANTIER_DETAILS.map((photo) => (
-          <figure key={photo.src} className="rounded-xl overflow-hidden border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <figure key={photo.src} className="rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <img
               src={`/images/realisations/${photo.src}`}
               alt={photo.alt}
@@ -465,9 +464,9 @@ const ChantierPreuve = () => (
       <div className="text-center mt-8">
         <button
           onClick={scrollToSimulateur}
-          className="inline-flex items-center gap-2 bg-[#2b5a8f] hover:bg-[#1f4470] text-white font-bold px-7 py-3.5 rounded-full shadow-lg transition-colors"
+          className="inline-flex items-center gap-2.5 bg-[#173a5e] hover:bg-[#122f4d] text-white font-semibold px-7 py-3.5 rounded-lg shadow-md transition-colors"
         >
-          <Sparkles size={18} /> Vérifier mes aides
+          Vérifier mes aides <ArrowRight size={18} />
         </button>
       </div>
     </div>
@@ -480,66 +479,72 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       title="Pompe à chaleur : vérifiez vos aides 2026 — IP5 Énergie"
       hideFloatingWhileVisible="simulateur"
     >
-      {/* ── HERO calé sur l'annonce : angle AIDES + ÉLIGIBILITÉ ── */}
-      <section className="relative pt-24 pb-16 lg:pt-40 lg:pb-28 overflow-hidden bg-white dark:bg-slate-950">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] rounded-full bg-blue-50 dark:bg-blue-900/20 blur-3xl opacity-70"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-green-50 dark:bg-green-900/20 blur-3xl opacity-70"></div>
-
+      {/* ── HERO calé sur l'annonce : angle AIDES + ÉLIGIBILITÉ ──
+          Même présentation sobre que la page d'accueil (fond gris clair,
+          bleu nuit, identité de l'entreprise). */}
+      <section className="relative pt-24 pb-14 lg:pt-40 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           {/* Mobile : la question rapide en tout premier, puis le titre et le
               texte. Ordinateur : texte à gauche, question à droite. */}
-          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:gap-x-16 lg:gap-y-0">
+          <div className="flex flex-col gap-6 lg:grid lg:grid-cols-12 lg:gap-x-14 lg:gap-y-0">
             <div className="order-2 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-1 lg:self-end text-center lg:text-left">
-              <div className="hidden lg:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 dark:bg-green-950/50 text-green-700 dark:text-green-300 font-bold text-sm mb-6 border border-green-100 dark:border-green-900 shadow-sm">
-                <Gift size={16} /> Aides 2026 ouvertes — vérifiez votre montant
+              <div className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-white dark:bg-slate-900 text-[#173a5e] dark:text-blue-200 font-semibold text-sm mb-6 border border-slate-200 dark:border-slate-700">
+                <ShieldCheck size={16} className="text-[#2b5a8f] dark:text-blue-300" /> Aides 2026 : MaPrimeRénov' et prime CEE
               </div>
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight lg:mb-6 text-gray-900 dark:text-white">
-                Jusqu'à{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
-                  100% d'aides
-                </span>{" "}
-                pour votre pompe à chaleur
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight leading-[1.12] lg:mb-6 text-[#0f2a47] dark:text-white">
+                Jusqu'à <span className="text-[#2b5a8f] dark:text-blue-300">100&nbsp;% d'aides</span> pour votre pompe à chaleur
               </h1>
             </div>
 
             <div id="simulateur" className="order-1 lg:order-none lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:row-span-2 lg:self-center relative scroll-mt-28">
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-green-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
-              <div className="relative">
-                <QuickStart source={source} />
-              </div>
+              <QuickStart source={source} />
             </div>
 
             <div className="order-3 lg:order-none lg:col-span-6 lg:col-start-1 lg:row-start-2 lg:self-start text-center lg:text-left">
-              <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
                 Remplacez votre ancienne chaudière et divisez votre facture de
-                chauffage. Avec <b>MaPrimeRénov'</b> et la <b>prime CEE</b>{" "}
-                cumulées, découvrez en 2 minutes le montant d'aides auquel vous
-                avez droit.
+                chauffage. Avec{" "}
+                <b className="font-semibold text-slate-800 dark:text-slate-100">MaPrimeRénov'</b> et la{" "}
+                <b className="font-semibold text-slate-800 dark:text-slate-100">prime CEE</b> cumulées,
+                découvrez en 2 minutes le montant d'aides auquel vous avez droit.
               </p>
 
-              <div className="hidden lg:flex justify-start">
+              <div className="hidden lg:flex gap-3 justify-start">
                 <a
                   href="#simulateur"
                   onClick={scrollToSimulateur}
-                  className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#2b5a8f] to-cyan-500 text-white px-9 py-4 rounded-full font-bold text-lg shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 hover:scale-[1.03] transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2.5 bg-[#173a5e] hover:bg-[#122f4d] text-white px-7 py-3.5 rounded-lg font-semibold text-base shadow-md transition-colors"
                 >
-                  <Sparkles size={22} fill="currentColor" /> Vérifier mes aides
-                  gratuitement
+                  Vérifier mes aides gratuitement <ArrowRight size={18} />
+                </a>
+                <a
+                  href="tel:+33749525267"
+                  className="inline-flex items-center justify-center gap-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-[#173a5e] dark:text-blue-200 px-7 py-3.5 rounded-lg font-semibold text-base border border-slate-300 dark:border-slate-600 transition-colors"
+                >
+                  <Phone size={18} /> 07 49 52 52 67
                 </a>
               </div>
-              <p className="lg:mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-gray-500 dark:text-slate-400 font-medium">
+              <p className="lg:mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-slate-500 dark:text-slate-400">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-green-500" size={16} /> 100%
-                  gratuit
+                  <CheckCircle2 className="text-[#2b5a8f] dark:text-blue-300" size={16} /> 100&nbsp;% gratuit
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Clock className="text-green-500" size={16} /> 2 minutes
+                  <Clock className="text-[#2b5a8f] dark:text-blue-300" size={16} /> 2 minutes
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="text-green-500" size={16} /> Sans
-                  engagement
+                  <ShieldCheck className="text-[#2b5a8f] dark:text-blue-300" size={16} /> Sans engagement
                 </span>
               </p>
+
+              {/* Identité de l'entreprise, comme sur l'accueil. */}
+              <div className="hidden lg:flex mt-9 pt-6 border-t border-slate-200 dark:border-slate-800 items-start gap-3 text-left">
+                <Building2 size={20} className="mt-0.5 text-[#2b5a8f] dark:text-blue-300 shrink-0" />
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">IP5 CONSEILS</span> — société française, siège à Paris
+                  <br />
+                  SIREN 890 293 277 · Certifiée RGE QualiPAC
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -561,20 +566,18 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       <AvisSection />
 
       {/* ── FAQ : lève les objections avant l'appel ── */}
-      <section className="py-24 bg-gray-50 dark:bg-slate-950">
+      <section className="py-20 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 border-blue-100 dark:border-blue-900">
-              <HandCoins size={14} /> Vos questions
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
+          <div className="text-center mb-12">
+            <p className="text-sm font-semibold uppercase tracking-wider text-[#2b5a8f] dark:text-blue-300 mb-2">Vos questions</p>
+            <h2 className="text-3xl font-bold text-[#0f2a47] dark:text-white mb-3">
               Tout ce que vous vous demandez
             </h2>
-            <p className="text-xl text-gray-600 dark:text-slate-300">
+            <p className="text-lg text-slate-600 dark:text-slate-300">
               Les réponses aux questions les plus fréquentes avant de se lancer.
             </p>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {FAQ_ITEMS.map((item) => (
               <FaqItem key={item.q} q={item.q} a={item.a} />
             ))}
@@ -585,15 +588,12 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       {/* ── CTA final : reste sur la page, renvoie au simulateur ── */}
       <section className="py-20 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] rounded-[2.5rem] px-8 py-14 md:p-16 text-center text-white overflow-hidden shadow-2xl">
-            <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-cyan-400/20 blur-3xl"></div>
-            <div className="absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-green-400/15 blur-3xl"></div>
+          <div className="relative bg-[#173a5e] rounded-2xl px-8 py-14 md:p-16 text-center text-white overflow-hidden shadow-xl">
             <div className="relative">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm mb-6">
-                <BadgeCheck size={16} /> Installateur certifié RGE — France
-                entière
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-white/10 border border-white/20 text-white font-semibold text-sm mb-6">
+                <ShieldCheck size={16} /> Installateur certifié RGE QualiPAC
               </div>
-              <h2 className="text-3xl md:text-4xl font-extrabold mb-4 leading-tight">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4 leading-tight">
                 Découvrez vos aides en 2 minutes
               </h2>
               <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
@@ -605,13 +605,13 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
                 <a
                   href="#simulateur"
                   onClick={scrollToSimulateur}
-                  className="inline-flex items-center justify-center gap-2 bg-white text-[#2b5a8f] px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
+                  className="inline-flex items-center justify-center gap-2.5 bg-white text-[#173a5e] px-8 py-4 rounded-lg font-semibold text-lg hover:bg-slate-100 transition-colors shadow-md"
                 >
-                  <Sparkles size={20} /> Vérifier mes aides
+                  Vérifier mes aides <ArrowRight size={20} />
                 </a>
                 <a
                   href="tel:+33749525267"
-                  className="inline-flex items-center justify-center gap-2 bg-white/10 border-2 border-white/40 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition-colors"
+                  className="inline-flex items-center justify-center gap-2 bg-transparent border border-white/40 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-white/10 transition-colors"
                 >
                   <Phone size={20} /> 07 49 52 52 67
                 </a>
