@@ -20,6 +20,7 @@ type State<T> = { data: T[] | null; error: string };
 function createStore<T>(collectionName: string, map: (id: string, d: Record<string, any>) => T) {
   let state: State<T> = { data: null, error: "" };
   const listeners = new Set<() => void>();
+  let cache = new Map<string, T>();
   let unsub: (() => void) | null = null;
   let stopTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -34,7 +35,20 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
       if (!listeners.size) return; // plus personne n'écoute entre-temps
       unsub = m.onSnapshot(
         m.query(m.collection(db, collectionName), m.orderBy("createdAt", "desc")),
-        (snap) => emit({ data: snap.docs.map((d) => map(d.id, d.data())), error: "" }),
+        (snap) => {
+          // On ne retraduit que les documents modifiés : les autres gardent le même objet,
+          // ce qui évite de redessiner des milliers de lignes à chaque modification.
+          const changed = new Set(snap.docChanges().map((c) => c.doc.id));
+          const next = new Map<string, T>();
+          const list = snap.docs.map((d) => {
+            const old = cache.get(d.id);
+            const item = old !== undefined && !changed.has(d.id) ? old : map(d.id, d.data());
+            next.set(d.id, item);
+            return item;
+          });
+          cache = next;
+          emit({ data: list, error: "" });
+        },
         (e) => {
           console.error(e);
           emit({ data: state.data, error: "Impossible de charger les données. Vérifiez que vous êtes autorisé, puis rechargez la page." });

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Phone,
   MessageCircle,
@@ -779,6 +779,10 @@ export default function LeadsCRM({
   const [creating, setCreating] = useState(false);
   const [dropOver, setDropOver] = useState<string | null>(null);
   const { version: columnsVersion, api: columnsApi, error: columnsError } = useColumnsConfig(email);
+  // Valeur stable pour le contexte des étiquettes (sinon toutes les lignes se redessinent à chaque rendu).
+  const columnsApiRef = useRef(columnsApi);
+  columnsApiRef.current = columnsApi;
+  const editLabels = useCallback((key: string, opts: any[]) => columnsApiRef.current.setOptions(key, opts), []);
   const [visibleCols, setVisibleCols] = useVisibleColumns(columnsVersion);
   // Zoom du tableau (70 % à 140 %), mémorisé sur l'appareil.
   const [zoom, setZoom] = useState(() => {
@@ -1282,7 +1286,7 @@ export default function LeadsCRM({
 
       {/* Vue tableau façon Monday */}
       {leads && view === "tableau" && (
-        <StatusEditContext.Provider value={(key, opts) => columnsApi.setOptions(key, opts)}>
+        <StatusEditContext.Provider value={editLabels}>
         <div style={{ zoom }}>
         <LeadsTable
           leads={filtered}

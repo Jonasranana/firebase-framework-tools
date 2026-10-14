@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   LogOut,
   Eye,
@@ -9,19 +9,21 @@ import {
   Loader2,
 } from "lucide-react";
 import { LogoIP5 } from "./site-chrome";
-import ClientsCRM from "./ClientsCRM";
 import LeadsCRM from "./LeadsCRM";
-import ArtisansCRM from "./ArtisansCRM";
-import StatsCRM from "./StatsCRM";
-import BaremeCRM from "./BaremeCRM";
-import ArchivesMonday from "./ArchivesMonday";
-import CorbeilleEtDoublons from "./CorbeilleEtDoublons";
-import DocumentsPage from "./DocumentsPage";
-import TeamPage from "./TeamPage";
 import { memberName } from "@/lib/crmTeam";
 import GonflageCRM from "./GonflageCRM";
 import AdminShell, { initialPage, rememberPage, type AdminPage, type PageTools } from "./AdminShell";
 import type { SideItem } from "@/lib/crmSidebar";
+
+// Les pages secondaires ne sont chargées qu'à l'ouverture (démarrage plus rapide).
+const ClientsCRM = lazy(() => import("./ClientsCRM"));
+const ArtisansCRM = lazy(() => import("./ArtisansCRM"));
+const StatsCRM = lazy(() => import("./StatsCRM"));
+const BaremeCRM = lazy(() => import("./BaremeCRM"));
+const ArchivesMonday = lazy(() => import("./ArchivesMonday"));
+const CorbeilleEtDoublons = lazy(() => import("./CorbeilleEtDoublons"));
+const DocumentsPage = lazy(() => import("./DocumentsPage"));
+const TeamPage = lazy(() => import("./TeamPage"));
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -861,7 +863,7 @@ export default function OutilDevis() {
     const narrow = (node: React.ReactNode) => <div className="max-w-2xl mx-auto">{node}</div>;
     // Contenu d'une page (utilisé par l'écran principal et par « Ouvrir en superposition »).
     const renderPage = (p: AdminPage, item: SideItem | null, tools: PageTools) => (
-      <>
+      <Suspense fallback={<Loader2 className="animate-spin text-gray-400 mx-auto my-10" />}>
         {p === "leads" && (
           <LeadsCRM
             key={item?.id ?? "leads"}
@@ -890,7 +892,7 @@ export default function OutilDevis() {
         {p === "devis" && <DevisPAC email={email} />}
         {p === "marges" && narrow(<MargesPremi />)}
         {p === "clients" && narrow(<ClientsCRM email={email} />)}
-      </>
+      </Suspense>
     );
     return (
       <AdminShell
