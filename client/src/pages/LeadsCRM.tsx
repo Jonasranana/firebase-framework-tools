@@ -936,6 +936,59 @@ export default function LeadsCRM({
     if (v.visible?.length) setVisibleCols(v.visible);
   };
 
+  // Actions groupées sur les lignes cochées du tableau.
+  const bulkWrite = async (ids: string[], patch: Record<string, unknown>, trace?: string) => {
+    try {
+      const { m, db } = await fs();
+      for (let i = 0; i < ids.length; i += 400) {
+        const batch = m.writeBatch(db);
+        for (const id of ids.slice(i, i + 400)) {
+          batch.update(m.doc(db, CRM_LEADS_COLLECTION, id), {
+            ...patch,
+            ...(trace
+              ? { notes: m.arrayUnion({ id: newId(), text: trace, by: email, at: new Date().toISOString(), kind: "statut" }) }
+              : {}),
+            updatedAt: m.serverTimestamp(),
+            updatedBy: email,
+          });
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      console.error(e);
+      setError("L'action groupée a échoué. Réessayez.");
+    }
+  };
+  const bulk = {
+    setStatus: (ids: string[], status: string) => bulkWrite(ids, { status }, `Statut → ${statusInfo(status).label}`),
+    moveGroup: (ids: string[], groupId: string) =>
+      bulkWrite(ids, { group: groupId }, `Groupe → ${groups.find((g) => g.id === groupId)?.title ?? groupId}`),
+    remove: async (ids: string[]) => {
+      try {
+        const { m, db } = await fs();
+        for (let i = 0; i < ids.length; i += 400) {
+          const batch = m.writeBatch(db);
+          ids.slice(i, i + 400).forEach((id) => batch.delete(m.doc(db, CRM_LEADS_COLLECTION, id)));
+          await batch.commit();
+        }
+      } catch (e) {
+        console.error(e);
+        setError("La suppression a échoué. Réessayez.");
+      }
+    },
+    exportCsv: (ids: string[]) => {
+      const set = new Set(ids);
+      const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
+      const blob = new Blob([leadsToCsv((leads ?? []).filter((l) => set.has(l.id)), cols)], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `leads-selection-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    },
+  };
+
   const exportCsv = () => {
     const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
     const blob = new Blob([leadsToCsv(filtered, cols)], { type: "text/csv;charset=utf-8" });
@@ -1235,6 +1288,7 @@ export default function LeadsCRM({
           onGroupsChange={saveGroups}
           onGroup={moveToGroup}
           onDuplicateLeads={duplicateLeads}
+          bulk={bulk}
           onOpen={(id, focus) => {
             setOpenId(id);
             setFocusUpdates(focus === "updates");

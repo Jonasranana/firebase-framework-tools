@@ -27,6 +27,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
+import { LEAD_STATUSES } from "@/lib/crm";
 import { useTeam } from "@/lib/crmTeam";
 import { AddTypeList } from "./ColumnMenu";
 import type { ColType } from "@/lib/crmColumns";
@@ -674,7 +675,15 @@ export default function LeadsTable({
   columnsVersion,
   visible,
   setVisible,
+  bulk,
 }: {
+  // Actions groupées sur les lignes cochées (barre en bas).
+  bulk?: {
+    setStatus: (ids: string[], status: string) => void;
+    moveGroup: (ids: string[], groupId: string) => void;
+    remove: (ids: string[]) => void;
+    exportCsv: (ids: string[]) => void;
+  };
   // Menu « ⋯ » du titre de chaque colonne, et ajout d'une colonne à droite.
   columnMenu?: (col: LeadColumn) => React.ReactNode;
   onAddColumn?: (type: ColType) => void;
@@ -698,6 +707,14 @@ export default function LeadsTable({
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [limits, setLimits] = useState<Record<string, number>>({});
   const [dropOver, setDropOver] = useState<string | null>(null);
+  const [sel, setSel] = useState<Set<string>>(new Set());
+  const toggleSel = (ids: string[], on: boolean) =>
+    setSel((prev) => {
+      const n = new Set(prev);
+      ids.forEach((id) => (on ? n.add(id) : n.delete(id)));
+      return n;
+    });
+  const selIds = Array.from(sel).filter((id) => leads.some((l) => l.id === id));
 
   const cols = useMemo(() => LEAD_COLUMNS.filter((c) => visible.includes(c.key)), [visible, columnsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
   const template = `${colsTemplate(cols)} 44px`;
@@ -852,6 +869,15 @@ export default function LeadsTable({
                         style={i === 0 ? { borderLeft: `6px solid ${st.color}` } : undefined}
                         title={c.title}
                       >
+                        {i === 0 && bulk && (
+                          <input
+                            type="checkbox"
+                            aria-label="Tout sélectionner dans ce groupe"
+                            className="h-3.5 w-3.5 shrink-0 cursor-pointer"
+                            checked={rows.length > 0 && rows.every((r) => sel.has(r.id))}
+                            onChange={(e) => toggleSel(rows.map((r) => r.id), e.target.checked)}
+                          />
+                        )}
                         <span className="truncate flex-1">{c.title}</span>
                         {columnMenu?.(c)}
                       </div>
@@ -876,7 +902,7 @@ export default function LeadsTable({
                   {rows.slice(0, limit).map((l) => (
                     <div
                       key={l.id}
-                      className="group grid items-stretch border-b border-gray-100 min-h-[36px] hover:bg-gray-50"
+                      className={`group grid items-stretch border-b border-gray-100 min-h-[36px] ${sel.has(l.id) ? "bg-blue-50" : "hover:bg-gray-50"}`}
                       style={{ gridTemplateColumns: template }}
                     >
                       {cols.map((c, i) =>
@@ -886,6 +912,15 @@ export default function LeadsTable({
                             className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 flex items-center gap-1 pr-1"
                             style={{ borderLeft: `6px solid ${st.color}` }}
                           >
+                            {bulk && (
+                              <input
+                                type="checkbox"
+                                aria-label="Sélectionner"
+                                className={`h-3.5 w-3.5 shrink-0 cursor-pointer ${sel.has(l.id) ? "" : "opacity-0 group-hover:opacity-100"}`}
+                                checked={sel.has(l.id)}
+                                onChange={(e) => toggleSel([l.id], e.target.checked)}
+                              />
+                            )}
                             <span
                               draggable={!readOnlyGroups}
                               onDragStart={(e) => {
@@ -991,6 +1026,56 @@ export default function LeadsTable({
         </button>
         )}
       </div>
+      {bulk && selIds.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex flex-wrap items-center gap-2 rounded-xl bg-white text-gray-900 border border-gray-200 shadow-2xl px-4 py-2.5 max-w-[95vw]">
+          <span className="text-sm font-bold">{selIds.length} sélectionné{selIds.length > 1 ? "s" : ""}</span>
+          <select
+            className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) bulk.setStatus(selIds, e.target.value);
+            }}
+          >
+            <option value="">Changer le statut…</option>
+            {LEAD_STATUSES.map((s) => (
+              <option key={s.key} value={s.key}>
+                {s.label}
+              </option>
+            ))}
+          </select>
+          <select
+            className="text-sm bg-white border border-gray-300 rounded-md px-2 py-1"
+            value=""
+            onChange={(e) => {
+              if (e.target.value) bulk.moveGroup(selIds, e.target.value);
+            }}
+          >
+            <option value="">Déplacer vers…</option>
+            {visibleGroups.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.title}
+              </option>
+            ))}
+          </select>
+          <button onClick={() => bulk.exportCsv(selIds)} className="text-sm font-semibold border border-gray-300 rounded-md px-2.5 py-1 hover:bg-gray-100">
+            Exporter
+          </button>
+          <button
+            onClick={() => {
+              if (window.confirm(`Supprimer définitivement ${selIds.length} lead${selIds.length > 1 ? "s" : ""} ?`)) {
+                bulk.remove(selIds);
+                setSel(new Set());
+              }
+            }}
+            className="text-sm font-semibold text-red-600 border border-red-200 rounded-md px-2.5 py-1 hover:bg-red-50"
+          >
+            Supprimer
+          </button>
+          <button onClick={() => setSel(new Set())} className="text-sm text-gray-500 px-1" aria-label="Désélectionner">
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }
