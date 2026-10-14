@@ -127,6 +127,9 @@ export function useColumnsConfig(email: string, boardId = "leads") {
       const custom = (ref.current.custom ?? []).map((c) => (c.key === key ? { ...c, title } : c));
       save({ ...ref.current, custom, titles: { ...(ref.current.titles ?? {}), [key]: title } });
     },
+    setWidth(key: string, width: number) {
+      save({ ...ref.current, widths: { ...(ref.current.widths ?? {}), [key]: Math.round(width) } });
+    },
     setWrap(key: string, on: boolean) {
       save({ ...ref.current, wrap: { ...(ref.current.wrap ?? {}), [key]: on } });
     },

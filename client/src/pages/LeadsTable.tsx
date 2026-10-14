@@ -53,6 +53,7 @@ import {
 } from "@/lib/crm";
 import {
   APPEL_SLOTS,
+  BASE_LEAD_COLUMNS,
   COMMERCIAL,
   DEFAULT_VISIBLE,
   LEAD_COLUMNS,
@@ -1072,10 +1073,12 @@ export default function LeadsTable({
   fitZoom,
   onMoveColumn,
   onRenameColumn,
+  onResizeColumn,
 }: {
   // Glisser-déposer d'une colonne et renommage en cliquant sur son titre.
   onMoveColumn?: (key: string, targetKey: string) => void;
   onRenameColumn?: (key: string, title: string) => void;
+  onResizeColumn?: (key: string, width: number) => void;
   // Le tableau descend jusqu'en bas de la fenêtre : la barre de défilement horizontale est collée au bas de l'écran.
   fitZoom?: number;
   // Actions groupées sur les lignes cochées (barre en bas).
@@ -1155,7 +1158,32 @@ export default function LeadsTable({
   );
   const selIds = Array.from(sel).filter((id) => leads.some((l) => l.id === id));
 
-  const cols = useMemo(() => LEAD_COLUMNS.filter((c) => visible.includes(c.key)), [visible, columnsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Largeur d'une colonne pendant qu'on la tire à la souris (enregistrée au relâchement).
+  const [liveW, setLiveW] = useState<Record<string, number>>({});
+  const baseCols = useMemo(() => LEAD_COLUMNS.filter((c) => visible.includes(c.key)), [visible, columnsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  const cols = useMemo(() => (Object.keys(liveW).length ? baseCols.map((c) => (liveW[c.key] ? { ...c, width: liveW[c.key] } : c)) : baseCols), [baseCols, liveW]);
+  const startResize = (e: React.PointerEvent, c: LeadColumn) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const z = fitZoom || 1;
+    const x0 = e.clientX;
+    const w0 = c.width;
+    let w = w0;
+    const move = (ev: PointerEvent) => {
+      w = Math.max(60, Math.min(900, Math.round(w0 + (ev.clientX - x0) / z)));
+      setLiveW({ [c.key]: w });
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      if (w !== w0) onResizeColumn?.(c.key, w);
+      setLiveW({});
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
   // Colonnes à dessiner selon le défilement horizontal (virtualisation des colonnes).
   const [colRange, setColRange] = useState<[number, number]>([0, 14]);
   const [viewW, setViewW] = useState(0);
@@ -1465,6 +1493,16 @@ export default function LeadsTable({
                             </span>
                           )}
                           {renaming !== `${st.id}|${c.key}` && columnMenu?.(c)}
+                          {/* Poignée entre deux colonnes : tirer pour élargir ou rétrécir (double-clic : largeur d'origine). */}
+                          {onResizeColumn && (
+                            <div
+                              data-nodrag
+                              onPointerDown={(e) => startResize(e, c)}
+                              onDoubleClick={() => onResizeColumn(c.key, BASE_LEAD_COLUMNS.find((b) => b.key === c.key)?.width ?? 150)}
+                              title="Tirez pour changer la largeur de la colonne"
+                              className="absolute right-0 top-0 z-20 h-full w-2 -mr-1 cursor-col-resize hover:bg-[#579bfc]/60 active:bg-[#579bfc]"
+                            />
+                          )}
                         </div>
                       );
                     })}
