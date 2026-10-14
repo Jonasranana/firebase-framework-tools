@@ -14,6 +14,8 @@ import LeadsCRM from "./LeadsCRM";
 import ArtisansCRM from "./ArtisansCRM";
 import StatsCRM from "./StatsCRM";
 import AccueilCRM from "./AccueilCRM";
+import DoublonsCRM from "./DoublonsCRM";
+import CorbeilleCRM from "./CorbeilleCRM";
 import DocumentsPage from "./DocumentsPage";
 import TeamPage from "./TeamPage";
 import { memberName } from "@/lib/crmTeam";
@@ -879,6 +881,18 @@ export default function OutilDevis() {
             }}
           />
         )}
+        {p === "doublons" && (
+          <DoublonsCRM
+            email={email}
+            onOpenLead={(id) => {
+              try {
+                sessionStorage.setItem("crm-open-lead", id);
+              } catch {}
+              navigate("leads");
+            }}
+          />
+        )}
+        {p === "corbeille" && <CorbeilleCRM email={email} />}
         {p === "stats" && <StatsCRM />}
         {p === "documents" && <DocumentsPage />}
         {p === "equipe" && narrow(<TeamPage email={email} />)}

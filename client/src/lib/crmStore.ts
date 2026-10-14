@@ -71,5 +71,21 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
 const leadsStore = createStore<Lead>(CRM_LEADS_COLLECTION, leadFromDoc);
 const artisansStore = createStore<Artisan>(CRM_ARTISANS_COLLECTION, artisanFromDoc);
 
-export const useLeads = () => useSyncExternalStore(leadsStore.subscribe, leadsStore.getSnapshot);
+// Fiches actives / fiches à la corbeille, dérivées du même flux (mises en cache
+// tant que le flux ne change pas, pour garder une référence stable).
+let lastRaw: State<Lead> | null = null;
+let lastActive: State<Lead> = { data: null, error: "" };
+let lastTrash: State<Lead> = { data: null, error: "" };
+const derive = () => {
+  const raw = leadsStore.getSnapshot();
+  if (raw !== lastRaw) {
+    lastRaw = raw;
+    lastActive = { data: raw.data ? raw.data.filter((l) => !l.deletedAt) : null, error: raw.error };
+    lastTrash = { data: raw.data ? raw.data.filter((l) => !!l.deletedAt) : null, error: raw.error };
+  }
+};
+export const useLeads = () =>
+  useSyncExternalStore(leadsStore.subscribe, () => (derive(), lastActive));
+export const useTrashedLeads = () =>
+  useSyncExternalStore(leadsStore.subscribe, () => (derive(), lastTrash));
 export const useArtisans = () => useSyncExternalStore(artisansStore.subscribe, artisansStore.getSnapshot);

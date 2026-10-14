@@ -973,19 +973,8 @@ export default function LeadsCRM({
     setStatus: (ids: string[], status: string) => bulkWrite(ids, { status }, `Statut → ${statusInfo(status).label}`),
     moveGroup: (ids: string[], groupId: string) =>
       bulkWrite(ids, { group: groupId }, `Groupe → ${groups.find((g) => g.id === groupId)?.title ?? groupId}`),
-    remove: async (ids: string[]) => {
-      try {
-        const { m, db } = await fs();
-        for (let i = 0; i < ids.length; i += 400) {
-          const batch = m.writeBatch(db);
-          ids.slice(i, i + 400).forEach((id) => batch.delete(m.doc(db, CRM_LEADS_COLLECTION, id)));
-          await batch.commit();
-        }
-      } catch (e) {
-        console.error(e);
-        setError("La suppression a échoué. Réessayez.");
-      }
-    },
+    // Jamais de suppression directe : les fiches vont à la corbeille (30 jours).
+    remove: (ids: string[]) => bulkWrite(ids, { deletedAt: new Date(), deletedBy: email }),
     exportCsv: (ids: string[]) => {
       const set = new Set(ids);
       const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));

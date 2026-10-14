@@ -42,6 +42,8 @@ export type AdminPage =
   | "artisans"
   | "stats"
   | "documents"
+  | "doublons"
+  | "corbeille"
   | "equipe"
   | "devis"
   | "marges"
@@ -54,6 +56,8 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   artisans: "Artisans",
   stats: "Statistiques",
   documents: "Documents",
+  doublons: "Doublons",
+  corbeille: "Corbeille",
   equipe: "Équipe",
   devis: "Devis PAC",
   marges: "Marges Prémi",
