@@ -29,6 +29,7 @@ import {
   ArrowDown,
   Save,
   Check,
+  Home,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -44,6 +45,7 @@ import {
 // Menu de gauche façon Monday : espace de travail, favoris, dossiers colorés,
 // tableaux. Chaque dossier et chaque tableau a son menu « ⋯ ».
 const ICONS: Record<AdminPageKey, typeof Users> = {
+  accueil: Home,
   leads: Users,
   artisans: HardHat,
   documents: FolderOpen,
