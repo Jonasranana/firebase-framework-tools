@@ -27,6 +27,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import LeadChat from "./LeadChat";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
@@ -756,6 +757,7 @@ export default function LeadsCRM({
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [openId, setOpenId] = useState<string | null>(null);
   const [focusUpdates, setFocusUpdates] = useState(false);
+  const [chatId, setChatId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dropOver, setDropOver] = useState<string | null>(null);
   const { version: columnsVersion, api: columnsApi, error: columnsError } = useColumnsConfig(email);
@@ -1102,11 +1104,40 @@ export default function LeadsCRM({
     }
   };
 
-  const patchFromTable = (id: string, patch: Record<string, unknown>) =>
-    patchLead(id, email, patch).catch((e) => {
+  // Chaque modification d'une cellule laisse une petite ligne dans la bulle de commentaires.
+  const patchFromTable = async (id: string, patch: Record<string, unknown>) => {
+    try {
+      let full = patch;
+      const lead = leads?.find((l) => l.id === id);
+      const keys = Object.keys(patch);
+      if (lead && keys.length === 1 && !("notes" in patch)) {
+        const k = keys[0];
+        const colKey = k.startsWith("fields.") ? k.slice(7) : k;
+        const col = LEAD_COLUMNS.find((c) => c.key === colKey);
+        if (col && col.type !== "name") {
+          const before = cellValue(lead, col);
+          const after = String(patch[k] ?? "");
+          if (before !== after) {
+            const { m } = await fs();
+            full = {
+              ...patch,
+              notes: m.arrayUnion({
+                id: newId(),
+                text: `${col.title.replace(/^[^A-Za-z0-9\u00C0-\u00FF]+/, "")} : ${before || "vide"} → ${after || "vide"}`,
+                by: email,
+                at: new Date().toISOString(),
+                kind: "statut",
+              } satisfies LeadNote),
+            };
+          }
+        }
+      }
+      await patchLead(id, email, full);
+    } catch (e) {
       console.error(e);
       setError("Modification non enregistrée. Réessayez.");
-    });
+    }
+  };
 
   const createFromTable = async (groupId: string, name: string) => {
     try {
@@ -1284,8 +1315,12 @@ export default function LeadsCRM({
           onMoveColumn={(k, t) => columnsApi.move(k, t)}
           onRenameColumn={(k, title) => columnsApi.rename(k, title)}
           onOpen={(id, focus) => {
+            if (focus === "updates") {
+              setChatId(id);
+              return;
+            }
             setOpenId(id);
-            setFocusUpdates(focus === "updates");
+            setFocusUpdates(false);
           }}
           onStatus={moveLead}
           onPatch={patchFromTable}
@@ -1379,6 +1414,20 @@ export default function LeadsCRM({
           })}
         </div>
       )}
+
+      <LeadChat
+        lead={leads?.find((l) => l.id === chatId) ?? null}
+        email={email}
+        onClose={() => setChatId(null)}
+        onSend={async (id, text) => {
+          await callFn("postUpdate", { kind: "lead", id, text });
+        }}
+        onOpenFiche={(id) => {
+          setChatId(null);
+          setOpenId(id);
+          setFocusUpdates(false);
+        }}
+      />
 
       <LeadSheet
         focusUpdates={focusUpdates}
