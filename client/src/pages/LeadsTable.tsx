@@ -1135,7 +1135,7 @@ export default function LeadsTable({
                           key={c.key}
                           data-colkey={c.key}
                           onMouseDown={(e) => {
-                            if (!movable || renaming === c.key) return;
+                            if (!movable || renaming === `${st.id}|${c.key}`) return;
                             if ((e.target as HTMLElement).closest("button,input,[data-nodrag]")) return;
                             startPointerDrag(e, {
                               label: c.title,
@@ -1167,7 +1167,7 @@ export default function LeadsTable({
                               onChange={(v) => toggleSel(rows.map((r) => r.id), v)}
                             />
                           )}
-                          {renaming === c.key ? (
+                          {renaming === `${st.id}|${c.key}` ? (
                             <input
                               autoFocus
                               defaultValue={c.title}
@@ -1186,12 +1186,12 @@ export default function LeadsTable({
                           ) : (
                             <span
                               className={`truncate flex-1 ${onRenameColumn ? "cursor-text hover:text-gray-900" : ""}`}
-                              onClick={() => onRenameColumn && setRenaming(c.key)}
+                              onClick={() => onRenameColumn && setRenaming(`${st.id}|${c.key}`)}
                             >
                               {c.title}
                             </span>
                           )}
-                          {renaming !== c.key && columnMenu?.(c)}
+                          {renaming !== `${st.id}|${c.key}` && columnMenu?.(c)}
                         </div>
                       );
                     })}
