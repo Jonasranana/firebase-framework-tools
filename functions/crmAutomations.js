@@ -175,6 +175,27 @@ module.exports = function buildCrmAutomations({
                 }
                 break;
               }
+              case "send_email": {
+                const to = String(lead.email ?? "").trim();
+                if (!EMAIL_RE.test(to)) {
+                  done.push("mail non envoyé (pas d'adresse e-mail)");
+                  break;
+                }
+                const body = fill(a.body, lead).trim();
+                if (!body) {
+                  done.push("mail vide : non envoyé");
+                  break;
+                }
+                const html = buildBrandedEmailShell({
+                  bodyHtml: `<div style="white-space:pre-wrap; line-height:1.55;">${escapeHtmlText(body)}</div>`,
+                });
+                await getGmail().users.messages.send({
+                  userId: "me",
+                  requestBody: { raw: buildRawMessage({ to, from: GMAIL_SENDER_EMAIL.value(), subject: fill(a.subject || "IP5 Énergie", lead).slice(0, 150), html }) },
+                });
+                done.push("mail envoyé");
+                break;
+              }
               case "send_sms": {
                 const to = toE164French(lead.phone);
                 const body = fill(a.text, lead).slice(0, 480);
