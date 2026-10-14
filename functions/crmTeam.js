@@ -36,16 +36,29 @@ module.exports = function buildCrmTeam({
   const callerEmail = (request) => String(request.auth?.token?.email ?? "").toLowerCase();
   const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+  // Profils (nom d'affichage, poste, téléphone, photo, notifications) : collection
+  // crm_profiles/<e-mail>, écrite uniquement par la fonction manageTeam.
   async function teamMembers() {
-    const snap = await db.collection("crm_team").get();
-    const extra = snap.docs.map((d) => ({
+    const [teamSnap, profSnap] = await Promise.all([db.collection("crm_team").get(), db.collection("crm_profiles").get()]);
+    const profiles = Object.fromEntries(profSnap.docs.map((d) => [d.id, d.data()]));
+    const extra = teamSnap.docs.map((d) => ({
       email: d.id,
       name: d.get("name") || d.id,
       root: false,
       addedBy: d.get("addedBy") ?? "",
     }));
     const roots = CRM_ALLOWED_EMAILS.map((e) => ({ email: e, name: ROOT_NAMES[e] ?? e, root: true, addedBy: "" }));
-    return [...roots, ...extra.filter((m) => !CRM_ALLOWED_EMAILS.includes(m.email))];
+    return [...roots, ...extra.filter((m) => !CRM_ALLOWED_EMAILS.includes(m.email))].map((m) => {
+      const p = profiles[m.email] ?? {};
+      return {
+        ...m,
+        name: p.name || m.name,
+        title: p.title ?? "",
+        phone: p.phone ?? "",
+        photoUrl: p.photoUrl ?? "",
+        notify: p.notify !== false,
+      };
+    });
   }
 
   const manageTeam = onCall({ region: "europe-west9" }, async (request) => {
@@ -53,6 +66,31 @@ module.exports = function buildCrmTeam({
     const caller = callerEmail(request);
     const { action } = request.data ?? {};
     if (action === "list") return { members: await teamMembers() };
+
+    // Modifier un profil : chacun modifie le sien, les administrateurs modifient tous les profils.
+    if (action === "update-profile") {
+      const email = String(request.data?.email ?? caller).trim().toLowerCase();
+      if (email !== caller && !CRM_ALLOWED_EMAILS.includes(caller)) {
+        throw new HttpsError("permission-denied", "Vous ne pouvez modifier que votre propre profil.");
+      }
+      const members = await teamMembers();
+      if (!members.some((m) => m.email === email)) throw new HttpsError("not-found", "Personne inconnue.");
+      const d = request.data ?? {};
+      const patch = { updatedAt: FieldValue.serverTimestamp(), updatedBy: caller };
+      if (typeof d.name === "string" && d.name.trim()) patch.name = d.name.trim().slice(0, 80);
+      if (typeof d.title === "string") patch.title = d.title.trim().slice(0, 80);
+      if (typeof d.phone === "string") patch.phone = d.phone.trim().slice(0, 30);
+      if (typeof d.notify === "boolean") patch.notify = d.notify;
+      if (typeof d.photoUrl === "string") {
+        // Seules les adresses de notre propre stockage sont acceptées.
+        if (d.photoUrl && !d.photoUrl.startsWith("https://firebasestorage.googleapis.com/")) {
+          throw new HttpsError("invalid-argument", "Photo invalide.");
+        }
+        patch.photoUrl = d.photoUrl;
+      }
+      await db.doc(`crm_profiles/${email}`).set(patch, { merge: true });
+      return { members: await teamMembers() };
+    }
 
     // Seuls les administrateurs d'origine ajoutent ou retirent quelqu'un.
     if (!CRM_ALLOWED_EMAILS.includes(caller)) {
@@ -136,7 +174,7 @@ module.exports = function buildCrmTeam({
       let notified = 0;
       try {
         const name = snap.get("name") || "(sans nom)";
-        const to = members.map((m) => m.email).filter((e) => e !== author);
+        const to = members.filter((m) => m.notify !== false).map((m) => m.email).filter((e) => e !== author);
         if (to.length) {
           const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
           oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });

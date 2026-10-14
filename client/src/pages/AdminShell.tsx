@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Archive,
+  Camera,
   BarChart3,
   Calculator,
   ChevronDown,
@@ -21,7 +22,9 @@ import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LogoIP5 } from "./site-chrome";
 import MailSyncStatus from "./MailSyncStatus";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { initials } from "@/lib/crmTeam";
+import { useTeam } from "@/lib/crmTeam";
+import Avatar from "@/components/Avatar";
+import ProfileDialog from "./ProfileDialog";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Coquille de /admin façon Monday : menu à gauche (groupes repliables, un
@@ -210,39 +213,65 @@ const Menu_ = ({
   );
 };
 
-// Pastille « Vous êtes connecté en tant que … » (barre du haut).
-const UserChip = ({ name, email, onNavigate, onSignOut }: { name: string; email: string; onNavigate: (p: AdminPage) => void; onSignOut: () => void }) => (
-  <Popover>
-    <PopoverTrigger asChild>
-      <button className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-gray-200 bg-white hover:bg-gray-50">
-        <span className="w-7 h-7 rounded-full bg-[#2b5a8f] text-white text-xs font-bold flex items-center justify-center">
-          {initials(name)}
-        </span>
-        <span className="hidden md:block text-left leading-tight">
-          <span className="block text-[10px] text-gray-400">Connecté en tant que</span>
-          <span className="block text-xs font-bold text-gray-800">{name}</span>
-        </span>
-      </button>
-    </PopoverTrigger>
-    <PopoverContent align="end" className="w-64 p-3 bg-white text-gray-900 border border-gray-200 shadow-xl">
-      <p className="text-xs text-gray-400">Vous êtes connecté en tant que</p>
-      <p className="text-sm font-bold text-gray-900">{name}</p>
-      <p className="text-xs text-gray-500 mb-3 truncate">{email}</p>
-      <button
-        onClick={() => onNavigate("equipe")}
-        className="w-full text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg px-2 py-1.5"
-      >
-        Équipe et accès
-      </button>
-      <button
-        onClick={onSignOut}
-        className="w-full text-left text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg px-2 py-1.5"
-      >
-        Se déconnecter
-      </button>
-    </PopoverContent>
-  </Popover>
-);
+// Pastille « Connecté en tant que … » (barre du haut) : photo de profil, nom,
+// poste, et menu (modifier mon profil, équipe et accès, déconnexion).
+const UserChip = ({ name, email, onNavigate, onSignOut }: { name: string; email: string; onNavigate: (p: AdminPage) => void; onSignOut: () => void }) => {
+  const team = useTeam();
+  const me = team?.find((m) => m.email === email.toLowerCase());
+  const shownName = me?.name || name;
+  const [editing, setEditing] = useState(false);
+  return (
+    <>
+      <Popover>
+        <PopoverTrigger asChild>
+          <button className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full border border-gray-200 bg-white hover:bg-gray-50">
+            <Avatar name={shownName} photoUrl={me?.photoUrl} size={34} />
+            <span className="hidden md:block text-left leading-tight max-w-[11rem]">
+              <span className="block text-[10px] text-gray-400">Connecté en tant que</span>
+              <span className="block text-sm font-bold text-gray-800 truncate">{shownName}</span>
+              {me?.title && <span className="block text-[10px] text-gray-500 truncate">{me.title}</span>}
+            </span>
+            <ChevronDown size={14} className="text-gray-400 hidden md:block" />
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-72 p-0 bg-white text-gray-900 border border-gray-200 shadow-xl overflow-hidden">
+          <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-100">
+            <Avatar name={shownName} photoUrl={me?.photoUrl} size={56} />
+            <div className="min-w-0">
+              <p className="text-[11px] text-gray-400">Vous êtes connecté en tant que</p>
+              <p className="text-sm font-bold text-gray-900 truncate">{shownName}</p>
+              {me?.title && <p className="text-xs text-gray-600 truncate">{me.title}</p>}
+              <p className="text-xs text-gray-500 truncate">{email}</p>
+              {me?.phone && <p className="text-xs text-gray-500">{me.phone}</p>}
+            </div>
+          </div>
+          <div className="p-1.5">
+            <button
+              onClick={() => setEditing(true)}
+              disabled={!me}
+              className="w-full flex items-center gap-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg px-2.5 py-2 disabled:opacity-40"
+            >
+              <Camera size={15} /> Modifier mon profil et ma photo
+            </button>
+            <button
+              onClick={() => onNavigate("equipe")}
+              className="w-full flex items-center gap-2 text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg px-2.5 py-2"
+            >
+              <UserPlus size={15} /> Équipe et accès
+            </button>
+            <button
+              onClick={onSignOut}
+              className="w-full flex items-center gap-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg px-2.5 py-2"
+            >
+              <LogOut size={15} /> Se déconnecter
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
+      {editing && me && <ProfileDialog key={me.email} member={me} open onClose={() => setEditing(false)} />}
+    </>
+  );
+};
 
 export default function AdminShell({
   email,

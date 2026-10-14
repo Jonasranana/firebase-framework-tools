@@ -20,4 +20,43 @@ export const initials = (name: string) =>
     .map((w) => w[0]!.toUpperCase())
     .join("");
 
-export type TeamMember = { email: string; name: string; root: boolean; addedBy: string };
+export type TeamMember = {
+  email: string;
+  name: string;
+  root: boolean;
+  addedBy: string;
+  title?: string;
+  phone?: string;
+  photoUrl?: string;
+  notify?: boolean;
+};
+
+// ── Accès à l'équipe (fonction manageTeam), avec cache partagé ─────────────
+import { useEffect, useState } from "react";
+import { getEspaceProApp } from "@/lib/espacePro";
+
+let cache: TeamMember[] | null = null;
+const listeners = new Set<(m: TeamMember[]) => void>();
+
+export async function callTeam(data: Record<string, unknown>): Promise<TeamMember[]> {
+  const app = await getEspaceProApp();
+  const { getFunctions, httpsCallable } = await import("firebase/functions");
+  const r = await httpsCallable(getFunctions(app, "europe-west9"), "manageTeam")(data);
+  const members = (r.data as { members: TeamMember[] }).members;
+  cache = members;
+  listeners.forEach((l) => l(members));
+  return members;
+}
+
+// Membres de l'équipe (nom, photo, poste…), chargés une fois puis partagés.
+export function useTeam() {
+  const [members, setMembers] = useState<TeamMember[] | null>(cache);
+  useEffect(() => {
+    listeners.add(setMembers);
+    if (!cache) callTeam({ action: "list" }).catch((e) => console.error(e));
+    return () => {
+      listeners.delete(setMembers);
+    };
+  }, []);
+  return members;
+}

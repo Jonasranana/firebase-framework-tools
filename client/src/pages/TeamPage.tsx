@@ -1,40 +1,27 @@
-import { useEffect, useState } from "react";
-import { Loader2, Trash2, UserPlus } from "lucide-react";
-import { getEspaceProApp } from "@/lib/espacePro";
-import { initials, isRootAdmin, type TeamMember } from "@/lib/crmTeam";
+import { useState } from "react";
+import { BellOff, Loader2, Pencil, Phone, Trash2, UserPlus } from "lucide-react";
+import Avatar from "@/components/Avatar";
+import { callTeam, isRootAdmin, useTeam, type TeamMember } from "@/lib/crmTeam";
+import ProfileDialog from "./ProfileDialog";
 
-// Page « Équipe » : qui a accès au CRM. Les trois administrateurs d'origine
-// peuvent ajouter ou retirer des personnes (e-mail Google). Une personne
-// ajoutée se connecte ensuite avec son compte Google sur /admin.
-async function callTeam(data: Record<string, unknown>): Promise<TeamMember[]> {
-  const app = await getEspaceProApp();
-  const { getFunctions, httpsCallable } = await import("firebase/functions");
-  const r = await httpsCallable(getFunctions(app, "europe-west9"), "manageTeam")(data);
-  return (r.data as { members: TeamMember[] }).members;
-}
-
+// Page « Équipe » : qui a accès au CRM, avec la fiche de chaque personne
+// (photo, poste, téléphone, e-mails de mise à jour). Chacun modifie son
+// propre profil ; les trois administrateurs modifient tous les profils,
+// ajoutent et retirent des personnes (e-mail Google).
 export default function TeamPage({ email }: { email: string }) {
-  const [members, setMembers] = useState<TeamMember[] | null>(null);
+  const members = useTeam();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [newName, setNewName] = useState("");
+  const [editing, setEditing] = useState<TeamMember | null>(null);
   const admin = isRootAdmin(email);
-
-  useEffect(() => {
-    callTeam({ action: "list" })
-      .then(setMembers)
-      .catch((e) => {
-        console.error(e);
-        setError("Impossible de charger l'équipe (fonction non déployée ?).");
-      });
-  }, []);
 
   const run = async (data: Record<string, unknown>) => {
     setBusy(true);
     setError("");
     try {
-      setMembers(await callTeam(data));
+      await callTeam(data);
     } catch (e: any) {
       console.error(e);
       setError(e?.message || "Action impossible.");
@@ -47,11 +34,11 @@ export default function TeamPage({ email }: { email: string }) {
     <div>
       <p className="text-sm text-gray-500 mb-4">
         Les personnes ci-dessous peuvent se connecter à ce CRM avec leur compte Google.
-        {!admin && " Seuls les administrateurs peuvent ajouter ou retirer quelqu'un."}
+        {!admin && " Vous pouvez modifier votre profil ; seuls les administrateurs ajoutent ou retirent quelqu'un."}
       </p>
 
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
-      {!members && !error && (
+      {!members && (
         <div className="py-8 text-center text-gray-400">
           <Loader2 className="animate-spin mx-auto" size={22} />
         </div>
@@ -59,34 +46,57 @@ export default function TeamPage({ email }: { email: string }) {
 
       {members && (
         <ul className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 mb-6">
-          {members.map((m) => (
-            <li key={m.email} className="flex items-center gap-3 px-4 py-3">
-              <span className="w-9 h-9 rounded-full bg-[#2b5a8f] text-white text-sm font-bold flex items-center justify-center shrink-0">
-                {initials(m.name)}
-              </span>
-              <div className="min-w-0 flex-1">
-                <p className="font-bold text-gray-900 truncate">{m.name}</p>
-                <p className="text-xs text-gray-500 truncate">{m.email}</p>
-              </div>
-              <span
-                className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-                  m.root ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
-                }`}
-              >
-                {m.root ? "Administrateur" : "Membre"}
-              </span>
-              {admin && !m.root && (
-                <button
-                  disabled={busy}
-                  onClick={() => confirm(`Retirer l'accès de ${m.name} ?`) && run({ action: "remove", email: m.email })}
-                  aria-label={`Retirer ${m.name}`}
-                  className="text-gray-400 hover:text-red-600"
+          {members.map((m) => {
+            const canEdit = admin || m.email === email.toLowerCase();
+            return (
+              <li key={m.email} className="flex items-center gap-3 px-4 py-3">
+                <Avatar name={m.name} photoUrl={m.photoUrl} size={44} />
+                <div className="min-w-0 flex-1">
+                  <p className="font-bold text-gray-900 truncate">
+                    {m.name}
+                    {m.email === email.toLowerCase() && <span className="ml-1.5 text-[11px] font-semibold text-gray-400">(vous)</span>}
+                  </p>
+                  {m.title && <p className="text-xs text-gray-600 truncate">{m.title}</p>}
+                  <p className="text-xs text-gray-500 truncate">{m.email}</p>
+                  {m.phone && (
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <Phone size={10} /> {m.phone}
+                    </p>
+                  )}
+                </div>
+                {m.notify === false && (
+                  <span title="Ne reçoit pas les e-mails de mise à jour" className="text-gray-400">
+                    <BellOff size={15} />
+                  </span>
+                )}
+                <span
+                  className={`hidden sm:inline text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+                    m.root ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"
+                  }`}
                 >
-                  <Trash2 size={16} />
-                </button>
-              )}
-            </li>
-          ))}
+                  {m.root ? "Administrateur" : "Membre"}
+                </span>
+                {canEdit && (
+                  <button
+                    onClick={() => setEditing(m)}
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#2b5a8f] border border-[#2b5a8f]/40 rounded-lg px-2.5 py-1.5 hover:bg-blue-50"
+                  >
+                    <Pencil size={12} /> Modifier
+                  </button>
+                )}
+                {admin && !m.root && (
+                  <button
+                    disabled={busy}
+                    onClick={() => confirm(`Retirer l'accès de ${m.name} ?`) && run({ action: "remove", email: m.email })}
+                    aria-label={`Retirer ${m.name}`}
+                    className="text-gray-400 hover:text-red-600"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -126,6 +136,8 @@ export default function TeamPage({ email }: { email: string }) {
           </p>
         </div>
       )}
+
+      {editing && <ProfileDialog key={editing.email} member={editing} open onClose={() => setEditing(null)} />}
     </div>
   );
 }
