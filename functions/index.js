@@ -400,6 +400,87 @@ exports.sendLeadWelcomeSms = onDocumentCreated(
   },
 );
 
+// Suivi des visiteurs qui commencent le simulateur sans le finir : chaque réponse crée ou met à jour
+// une fiche « incomplète » dans le CRM (tableau « Demandes incomplètes »). Aucune donnée personnelle
+// n'est enregistrée à ce stade : seulement un identifiant aléatoire de visite et les réponses données.
+// La fiche est mise à la corbeille automatiquement quand le visiteur envoie la demande complète.
+const TRACK_LABELS = {
+  housingType: "Logement",
+  ownerStatus: "Propriétaire",
+  currentHeating: "Chauffage",
+  department: "Département",
+  householdSize: "Foyer",
+  incomeBracket: "Revenus",
+  projectTiming: "Échéance",
+  projectType: "Projet",
+};
+let incompleteBoardReady = false;
+exports.trackSimulatorStep = onRequest({ region: "europe-west9", cors: true, maxInstances: 5 }, async (req, res) => {
+  try {
+    if (req.method !== "POST") {
+      res.status(204).end();
+      return;
+    }
+    let b = req.body;
+    if (typeof b === "string") b = JSON.parse(b);
+    const sid = String(b?.sid ?? "");
+    if (!/^[a-z0-9]{16,40}$/.test(sid)) {
+      res.status(400).end();
+      return;
+    }
+    const answers = b.answers && typeof b.answers === "object" ? b.answers : {};
+    const details = {};
+    for (const [k, label] of Object.entries(TRACK_LABELS)) {
+      const v = String(answers[k] ?? "").trim().slice(0, 80);
+      if (v) details[label] = v;
+    }
+    const surface = Number(answers.surface);
+    if (surface > 0 && surface < 5000 && details["Logement"]) details["Surface"] = `${Math.round(surface)} m²`;
+    const step = Math.max(1, Math.min(12, Number(b.step) || 1));
+    details["Progression"] = `Étape ${step} sur 8 — n'a pas laissé ses coordonnées`;
+    const source = String(b.source ?? "site").slice(0, 60);
+
+    if (!incompleteBoardReady) {
+      await db
+        .doc("crm_boards/board_incomplets")
+        .create({ groups: [{ id: "nouveaux", title: "🕵️ Visiteurs sans coordonnées", color: "#7f8794" }], updatedAt: FieldValue.serverTimestamp(), updatedBy: "site" })
+        .catch(() => {});
+      incompleteBoardReady = true;
+    }
+    const ref = db.doc(`crm_leads/site_${sid}`);
+    await db.runTransaction(async (tx) => {
+      const snap = await tx.get(ref);
+      if (snap.exists) {
+        if (snap.get("deletedAt")) return; // demande déjà complétée
+        tx.update(ref, { details, postalCode: String(answers.department ?? "").slice(0, 2), updatedAt: FieldValue.serverTimestamp(), updatedBy: "site incomplet" });
+      } else {
+        tx.create(ref, {
+          name: "Visiteur du site (incomplet)",
+          phone: "",
+          email: "",
+          postalCode: String(answers.department ?? "").slice(0, 2),
+          city: "",
+          type: crmTypeForSource({ source }),
+          source: `Site (incomplet) : ${source}`,
+          projet: String(answers.projectType ?? ""),
+          status: "nouveau_lead",
+          group: "nouveaux",
+          board: "board_incomplets",
+          rappelLe: "",
+          details,
+          notes: [],
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+          updatedBy: "site incomplet",
+        });
+      }
+    });
+  } catch (err) {
+    logger.warn("trackSimulatorStep", { error: err.message });
+  }
+  res.status(204).end();
+});
+
 exports.notifyNewLead = onDocumentCreated(
   {
     document: "ip5_leads/{leadId}",
@@ -662,8 +743,15 @@ exports.copyLeadToCrm = onDocumentCreated(
       });
       logger.info("Lead copié dans le CRM", { leadId });
     } catch (err) {
-      if (err.code === 6) return; // ALREADY_EXISTS : déjà copié
-      logger.error("Échec de la copie du lead dans le CRM", { leadId, error: err.message });
+      if (err.code !== 6) logger.error("Échec de la copie du lead dans le CRM", { leadId, error: err.message });
+    }
+    // La demande est maintenant complète : la fiche « incomplète » de la même visite part à la corbeille (30 jours).
+    const sid = String(f.sessionId ?? "");
+    if (/^[a-z0-9]{16,40}$/.test(sid)) {
+      await db
+        .doc(`crm_leads/site_${sid}`)
+        .update({ deletedAt: FieldValue.serverTimestamp(), deletedBy: "demande complétée", updatedBy: "site incomplet" })
+        .catch(() => {});
     }
   },
 );

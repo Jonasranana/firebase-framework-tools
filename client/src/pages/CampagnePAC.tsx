@@ -22,6 +22,7 @@ import {
   AvisSection,
   FRENCH_PHONE_REGEX,
   submitCallbackRequest,
+  trackStep,
   type CallbackRequest,
 } from "./ip5-sections";
 
@@ -225,7 +226,10 @@ const QuickStart = ({ source }: { source: string }) => {
             <button
               key={value}
               type="button"
-              onClick={() => setHeating(value)}
+              onClick={() => {
+                setHeating(value);
+                trackStep(source, 1, { currentHeating: value });
+              }}
               className={`flex flex-col items-center gap-2 py-5 rounded-xl border-2 font-semibold text-gray-900 dark:text-white transition-colors ${style}`}
             >
               <Icon size={30} className={iconStyle} />
