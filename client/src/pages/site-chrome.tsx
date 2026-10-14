@@ -194,7 +194,7 @@ export const SiteHeader = () => {
             </a>
             <a
               href="/contact"
-              className="hidden 2xl:inline-flex items-center gap-2 bg-[#173a5e] text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#122f4d] transition-colors shadow-sm"
+              className="hidden 2xl:inline-flex items-center gap-2 whitespace-nowrap bg-[#173a5e] text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#122f4d] transition-colors shadow-sm"
             >
               Devis gratuit
             </a>
