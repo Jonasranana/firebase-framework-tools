@@ -107,7 +107,9 @@ const Timeline = ({ buckets }: { buckets: { label: string; value: number }[] }) 
 const fmtDay = (d: Date) => d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" });
 
 export default function StatsCRM() {
-  const { data: leads, error: leadsError } = useLeads();
+  const { data: allLeads, error: leadsError } = useLeads();
+  // Les statistiques portent sur les leads Pac Pac (pas sur les autres tableaux ni les visiteurs sans coordonnées).
+  const leads = useMemo(() => (allLeads ? allLeads.filter((l) => (l.board || "leads") === "leads") : allLeads), [allLeads]);
   const { data: artisans, error: artisansError } = useArtisans();
   const error = leadsError || artisansError;
   const [period, setPeriod] = useState<PeriodKey>("30");

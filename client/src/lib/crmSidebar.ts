@@ -128,6 +128,18 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
     const def = DEFAULT_SIDEBAR.folders.find((f) => f.id === "f_tableau")!;
     folders.unshift({ ...def, items: moved.length ? moved : def.items });
   }
+  // Tableau « Demandes incomplètes » (visiteurs du site sans coordonnées) : toujours présent dans « Tableau IP5 ».
+  if (!folders.some((f) => f.items.some((i) => i.board === "board_incomplets"))) {
+    const target = folders.find((f) => f.id === "f_tableau") ?? folders[0];
+    target?.items.push({
+      id: "i_incomplets",
+      kind: "view",
+      page: "leads",
+      title: "Demandes incomplètes",
+      board: "board_incomplets",
+      view: { filters: [], sorts: [], groupBy: "", personKey: "", visible: [] },
+    });
+  }
   const present = new Set(folders.flatMap((f) => f.items.filter((i) => i.core).map((i) => i.page)));
   for (const df of DEFAULT_SIDEBAR.folders) {
     for (const di of df.items) {

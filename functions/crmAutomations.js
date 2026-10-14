@@ -96,7 +96,8 @@ module.exports = function buildCrmAutomations({
       const before = event.data?.before?.exists ? event.data.before.data() : null;
       const after = event.data?.after?.exists ? event.data.after.data() : null;
       if (!after) return; // suppression : rien à faire
-      if (["automation", "import Monday"].includes(String(after.updatedBy))) return;
+      // Modifications automatiques (et recopie de Monday tant qu'il est actif) : jamais de mail/SMS déclenché.
+      if (["automation", "import Monday", "sync Monday", "site incomplet"].includes(String(after.updatedBy))) return;
 
       const created = !before;
       const autos = (await db.collection("crm_automations").where("enabled", "==", true).get()).docs.filter((d) => {

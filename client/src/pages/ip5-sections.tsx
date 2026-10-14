@@ -575,6 +575,37 @@ export async function submitCallbackRequest(
   }
 }
 
+// Suivi des visites qui n'aboutissent pas : chaque réponse est signalée au serveur, qui crée une
+// fiche « incomplète » dans le CRM (sans aucune donnée personnelle). Ne casse jamais le parcours.
+const TRACK_URL = "https://europe-west9-kachoto-7554c.cloudfunctions.net/trackSimulatorStep";
+export function getVisitId(): string {
+  try {
+    let id = sessionStorage.getItem("ip5-visit");
+    if (!id) {
+      id = Array.from(crypto.getRandomValues(new Uint8Array(12)))
+        .map((b) => b.toString(36).padStart(2, "0"))
+        .join("")
+        .slice(0, 24);
+      sessionStorage.setItem("ip5-visit", id);
+    }
+    return id;
+  } catch {
+    return "";
+  }
+}
+export function trackStep(source: string, step: number, answers: Record<string, unknown>) {
+  try {
+    if (source.startsWith("reactivation")) return;
+    const sid = getVisitId();
+    if (!sid) return;
+    const body = JSON.stringify({ sid, source, step, answers });
+    if (navigator.sendBeacon) navigator.sendBeacon(TRACK_URL, new Blob([body], { type: "text/plain" }));
+    else fetch(TRACK_URL, { method: "POST", body, headers: { "Content-Type": "text/plain" }, keepalive: true, mode: "no-cors" }).catch(() => {});
+  } catch {
+    /* le suivi ne doit jamais gêner le visiteur */
+  }
+}
+
 export const Simulator = ({
   source = "simulateur-landing",
   tone = "default",
@@ -608,6 +639,12 @@ export const Simulator = ({
       return source;
     }
   })();
+
+  // Chaque étape franchie est signalée (fiche « incomplète » côté CRM, sans coordonnées).
+  useEffect(() => {
+    if (step >= 2 && step <= TOTAL_QUESTIONS + 1 && !isCalculating) trackStep(effectiveSource, step - 1, formData);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step]);
 
   // Pré-sélection du projet selon l'origine : PAC sur la landing PAC, solaire
   // sur la landing solaire, « Les deux » sur le simulateur générique (site, SMS).
@@ -681,6 +718,7 @@ export const Simulator = ({
     try {
       await submitLead(formData, effectiveSource, {
         simulationResult: describeSimulationResult(computeSimulationResult(formData)),
+        sessionId: getVisitId(),
       });
       setStep(TOTAL_QUESTIONS + 2);
     } catch (err) {
