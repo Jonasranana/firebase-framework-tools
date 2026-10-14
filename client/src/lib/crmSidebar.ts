@@ -103,6 +103,12 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
     ...f,
     items: (Array.isArray(f.items) ? f.items : [])
       .filter((i) => !(i.core && REMOVED.includes(i.page as string)))
+      // Anciens « Nouveau tableau » (créés avant que chaque tableau ait ses propres leads) : ils deviennent de vrais tableaux vides.
+      .map((i) =>
+        i.kind === "view" && !i.board && !i.core && !(i.view?.filters?.length || i.view?.sorts?.length || i.view?.groupBy)
+          ? { ...i, board: `board_${i.id}` }
+          : i,
+      )
       // Corbeille : un tableau supprimé depuis plus de 30 jours quitte définitivement le menu (ses leads ne sont jamais effacés).
       .filter((i) => i.core || !i.deletedAt || Date.now() - new Date(i.deletedAt).getTime() < 30 * 86400000)
       .map((i) => (i.core && i.page === "corbeille" && i.title === "Corbeille" ? { ...i, title: "Corbeille et doublons" } : i)),
