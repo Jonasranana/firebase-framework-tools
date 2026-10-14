@@ -186,9 +186,8 @@ const ItemMenu = ({ it, ctx }: { it: SideItem; ctx: Ctx }) => {
               <Entry
                 icon={Trash2}
                 label="Supprimer"
-                disabled={!!it.core}
                 onClick={() => {
-                  if (confirm(`Supprimer « ${it.title} » ?`)) {
+                  if (confirm(`Supprimer « ${it.title} » ? Il sera gardé 30 jours dans la corbeille, vous pourrez le restaurer.`)) {
                     close();
                     deleteItem(it.id);
                   }
@@ -380,11 +379,24 @@ export default function AdminSidebar({
       }),
     });
   };
+  // Suppression douce : l'élément quitte le menu et reste 30 jours dans la corbeille (aucune donnée de leads n'est effacée).
   const deleteItem = (id: string) =>
     save({
       ...config,
       favorites: config.favorites.filter((x) => x !== id),
-      folders: config.folders.map((f) => ({ ...f, items: f.items.filter((i) => i.id !== id) })),
+      folders: config.folders.map((f) => ({ ...f, items: f.items.map((i) => (i.id === id ? { ...i, deletedAt: new Date().toISOString() } : i)) })),
+    });
+  const restoreItem = (id: string) =>
+    save({
+      ...config,
+      folders: config.folders.map((f) => ({
+        ...f,
+        items: f.items.map((i) => {
+          if (i.id !== id) return i;
+          const { deletedAt, ...rest } = i;
+          return { ...rest, archived: false };
+        }),
+      })),
     });
   const toggleFav = (id: string) =>
     save({ ...config, favorites: config.favorites.includes(id) ? config.favorites.filter((x) => x !== id) : [...config.favorites, id] });
@@ -405,8 +417,9 @@ export default function AdminSidebar({
   const deleteFolder = (id: string) => save({ ...config, folders: config.folders.filter((f) => f.id !== id) });
 
   const url = (it: SideItem) => `${window.location.origin}/admin#${it.kind === "view" ? `view-${it.id}` : it.page}`;
-  const archived = items.filter((i) => i.archived);
-  const favItems = config.favorites.map((id) => items.find((i) => i.id === id)).filter((i): i is SideItem => !!i && !i.archived);
+  const archived = items.filter((i) => i.archived && !i.deletedAt);
+  const trashed = items.filter((i) => i.deletedAt);
+  const favItems = config.favorites.map((id) => items.find((i) => i.id === id)).filter((i): i is SideItem => !!i && !i.archived && !i.deletedAt);
 
   const ctx: Ctx = {
     config, activeId, renaming, draft, setDraft, commit, setRenaming, start, onSelect, onOverlay,
@@ -420,7 +433,7 @@ export default function AdminSidebar({
       <nav className="py-3 px-2 space-y-0.5 overflow-y-auto h-full">
         {config.folders.flatMap((f) =>
           f.items
-            .filter((i) => !i.archived)
+            .filter((i) => !i.archived && !i.deletedAt)
             .map((it) => {
               const Icon = it.kind === "view" ? Table2 : ICONS[it.page];
               return (
@@ -476,6 +489,23 @@ export default function AdminSidebar({
               <Entry icon={FolderPlus} label="Ajouter un dossier" onClick={() => addFolder()} />
               <Entry icon={ChevronsDownUp} label="Réduire tous les dossiers" onClick={() => collapseAll(true)} />
               <Entry icon={Layers} label="Développer tous les dossiers" onClick={() => collapseAll(false)} />
+              {trashed.length > 0 && (
+                <>
+                  <Sep />
+                  <p className="text-[11px] font-semibold text-gray-400 px-2.5 py-1">Corbeille, gardée 30 jours ({trashed.length})</p>
+                  {trashed.map((a) => (
+                    <button
+                      key={a.id}
+                      onClick={() => restoreItem(a.id)}
+                      className="w-full flex items-center gap-2 text-left text-sm px-2.5 py-1.5 rounded-md hover:bg-gray-100"
+                    >
+                      <Trash2 size={14} className="shrink-0 text-gray-400" />
+                      <span className="truncate flex-1">{a.title}</span>
+                      <span className="text-xs font-bold text-[#0073ea]">Restaurer</span>
+                    </button>
+                  ))}
+                </>
+              )}
               {archived.length > 0 && (
                 <>
                   <Sep />
@@ -520,7 +550,7 @@ export default function AdminSidebar({
 
       {/* Dossiers */}
       {config.folders.map((f, fi) => {
-        const visible = f.items.filter((i) => !i.archived);
+        const visible = f.items.filter((i) => !i.archived && !i.deletedAt);
         return (
           <div key={f.id} className="px-2 mb-1.5">
             <div className="group/folder flex items-center">
