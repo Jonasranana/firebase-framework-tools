@@ -444,8 +444,11 @@ export default function AdminSidebar({
       {/* Espace de travail */}
       <div className="px-2 mb-1">
         <div className="group/item flex items-center gap-2 px-2 py-1.5">
-          <span className="w-6 h-6 rounded bg-[#2b5a8f] text-white text-xs font-bold flex items-center justify-center shrink-0">
-            {config.workspaceName.slice(0, 1).toUpperCase()}
+          <span
+            className="w-7 h-7 rounded-lg text-white text-[11px] font-extrabold flex items-center justify-center shrink-0 shadow-sm"
+            style={{ background: "linear-gradient(135deg,#2b5a8f,#3f8be0)" }}
+          >
+            IP5
           </span>
           {renaming === "ws" ? (
             <input

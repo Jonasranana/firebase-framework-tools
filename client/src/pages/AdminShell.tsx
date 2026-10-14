@@ -292,15 +292,34 @@ export default function AdminShell({
           compact ? "w-16" : "w-64"
         }`}
       >
-        <div className={`flex items-center h-14 border-b border-gray-100 ${compact ? "justify-center" : "px-4 justify-between"}`}>
-          {!compact && <LogoIP5 className="h-8" />}
+        {/* En-tête de marque : bandeau en couleur avec le logo IP5 Énergie (comme l'espace de travail Monday). */}
+        <div
+          className={`relative flex items-center h-16 text-white ${compact ? "justify-center" : "pl-4 pr-2 justify-between"}`}
+          style={{ background: "linear-gradient(135deg,#1f4a7c 0%,#2b5a8f 45%,#3f8be0 100%)" }}
+        >
+          {!compact ? (
+            <div className="flex items-center gap-2.5 min-w-0">
+              <span className="h-11 rounded-xl bg-white shadow-md flex items-center justify-center shrink-0 px-2">
+                <LogoIP5 className="!h-8" />
+              </span>
+              <div className="leading-tight min-w-0">
+                <div className="text-[15px] font-extrabold tracking-tight truncate">IP5 Energy</div>
+                <div className="text-[10px] font-semibold uppercase tracking-widest text-white/70">CRM</div>
+              </div>
+            </div>
+          ) : (
+            <span className="h-9 rounded-xl bg-white shadow-md flex items-center justify-center px-1">
+              <LogoIP5 className="!h-6" />
+            </span>
+          )}
           <button
             onClick={() => setCompact((v) => !v)}
             aria-label={compact ? "Agrandir le menu" : "Réduire le menu"}
-            className="p-1.5 text-gray-400 hover:text-gray-700 rounded"
+            className={`p-1.5 text-white/80 hover:text-white hover:bg-white/15 rounded-lg ${compact ? "absolute right-0.5 bottom-0.5 scale-75" : ""}`}
           >
             {compact ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
           </button>
+          <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ff9f1c,#ff5ac4,#9d50dd,#579bfc)" }} />
         </div>
         <div className="flex-1 min-h-0">{body(compact)}</div>
       </aside>
@@ -309,10 +328,17 @@ export default function AdminShell({
       <Sheet open={drawer} onOpenChange={setDrawer}>
         <SheetContent side="left" className="w-72 p-0" dir="ltr">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <div className="h-14 flex items-center px-4 border-b border-gray-100">
-            <LogoIP5 className="h-8" />
+          <div className="relative h-16 flex items-center gap-2.5 px-4 text-white" style={{ background: "linear-gradient(135deg,#1f4a7c 0%,#2b5a8f 45%,#3f8be0 100%)" }}>
+            <span className="h-11 rounded-xl bg-white shadow-md flex items-center justify-center px-2">
+              <LogoIP5 className="!h-8" />
+            </span>
+            <div className="leading-tight">
+              <div className="text-[15px] font-extrabold tracking-tight">IP5 Energy</div>
+              <div className="text-[10px] font-semibold uppercase tracking-widest text-white/70">CRM</div>
+            </div>
+            <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ff9f1c,#ff5ac4,#9d50dd,#579bfc)" }} />
           </div>
-          <div className="h-[calc(100%-3.5rem)]">{body(false)}</div>
+          <div className="h-[calc(100%-4rem)]">{body(false)}</div>
         </SheetContent>
       </Sheet>
 
