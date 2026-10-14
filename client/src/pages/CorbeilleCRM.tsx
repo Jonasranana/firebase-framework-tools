@@ -1,8 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Loader2, RotateCcw } from "lucide-react";
 import { useTrashedLeads } from "@/lib/crmStore";
 import { CRM_LEADS_COLLECTION, formatPhone } from "@/lib/crm";
 import { crmFirestore } from "@/lib/crmDb";
+import { CRM_DOCUMENTS_COLLECTION, documentFromDoc, formatSize, type CrmDocument } from "@/lib/crmDocs";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Corbeille de secours : une fiche supprimée ou fusionnée y reste 30 jours,
@@ -15,6 +16,35 @@ export default function CorbeilleCRM({ email }: { email: string }) {
   const { data, error } = useTrashedLeads();
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState("");
+  const [docs, setDocs] = useState<CrmDocument[]>([]);
+
+  // Documents mis à la corbeille (fichiers conservés, restaurables 30 jours).
+  const loadDocs = async () => {
+    try {
+      const { m, db } = await crmFirestore();
+      const snap = await m.getDocs(m.query(m.collection(db, CRM_DOCUMENTS_COLLECTION), m.where("deletedAt", ">=", new Date(0)), m.limit(300)));
+      setDocs(snap.docs.map((d: any) => documentFromDoc(d.id, d.data())).sort((a: CrmDocument, b: CrmDocument) => b.deletedAt.localeCompare(a.deletedAt)));
+    } catch (e) {
+      console.error(e);
+    }
+  };
+  useEffect(() => {
+    loadDocs();
+  }, []);
+
+  const restoreDoc = async (id: string) => {
+    setBusy(id);
+    try {
+      const { m, db } = await crmFirestore();
+      await m.updateDoc(m.doc(db, CRM_DOCUMENTS_COLLECTION, id), { deletedAt: m.deleteField(), deletedBy: m.deleteField() });
+      await loadDocs();
+    } catch (e) {
+      console.error(e);
+      window.alert("Impossible de restaurer ce document. Réessayez.");
+    } finally {
+      setBusy("");
+    }
+  };
 
   const list = useMemo(() => {
     const n = q.trim().toLowerCase();
@@ -84,6 +114,33 @@ export default function CorbeilleCRM({ email }: { email: string }) {
           );
         })}
       </div>
+      {docs.length > 0 && (
+        <>
+          <h3 className="text-sm font-bold text-gray-700 pt-4">📎 Documents supprimés ({docs.length})</h3>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100">
+            {docs.map((d) => {
+              const left = Math.max(0, 30 - Math.floor((Date.now() - Date.parse(d.deletedAt)) / DAY));
+              return (
+                <div key={d.id} className="flex items-center gap-3 p-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-900 truncate">{d.name}</div>
+                    <div className="text-xs text-gray-500 truncate">
+                      {d.ownerName} · {formatSize(d.size)} · effacé définitivement dans {left} jour{left > 1 ? "s" : ""}
+                    </div>
+                  </div>
+                  <button
+                    disabled={busy === d.id}
+                    onClick={() => restoreDoc(d.id)}
+                    className="inline-flex items-center gap-1.5 text-sm font-semibold text-[#0073ea] border border-[#0073ea]/40 rounded-md px-3 py-1.5 hover:bg-blue-50 disabled:opacity-50"
+                  >
+                    <RotateCcw size={14} /> Restaurer
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

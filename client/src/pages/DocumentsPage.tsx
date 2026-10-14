@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { FileText, HardDrive, Loader2, Mail, Search, Trash2 } from "lucide-react";
 import { crmFirestore } from "@/lib/crmDb";
+import DataHealth from "./DataHealth";
 import { getEspaceProApp } from "@/lib/espacePro";
 import {
   CRM_DOCUMENTS_COLLECTION,
@@ -40,7 +41,7 @@ export default function DocumentsPage() {
         const { m, db } = await crmFirestore();
         unsub = m.onSnapshot(
           m.query(m.collection(db, CRM_DOCUMENTS_COLLECTION), m.orderBy("createdAt", "desc"), m.limit(limit)),
-          (snap) => !cancelled && setDocs(snap.docs.map((d) => documentFromDoc(d.id, d.data()))),
+          (snap) => !cancelled && setDocs(snap.docs.map((d) => documentFromDoc(d.id, d.data())).filter((d) => !d.deletedAt)),
           (e) => {
             console.error(e);
             setError("Impossible de charger les documents (règle Firestore crm_documents à publier ?).");
@@ -95,18 +96,13 @@ export default function DocumentsPage() {
   };
 
   const remove = async (d: CrmDocument) => {
-    if (!confirm(`Supprimer « ${d.name} » (${d.ownerName}) ?`)) return;
+    if (!confirm(`Mettre « ${d.name} » (${d.ownerName}) à la corbeille ?\n\nIl reste récupérable pendant 30 jours.`)) return;
     try {
-      const app = await getEspaceProApp();
-      const st = await import("firebase/storage");
       const { m, db } = await crmFirestore();
-      await st.deleteObject(st.ref(st.getStorage(app), d.path)).catch((e: any) => {
-        if (e?.code !== "storage/object-not-found") throw e;
-      });
-      await m.deleteDoc(m.doc(db, CRM_DOCUMENTS_COLLECTION, d.id));
+      await m.updateDoc(m.doc(db, CRM_DOCUMENTS_COLLECTION, d.id), { deletedAt: m.serverTimestamp() });
     } catch (e) {
       console.error(e);
-      setError("Échec de la suppression.");
+      setError("Échec : le document n'a pas été déplacé.");
     }
   };
 
@@ -114,6 +110,7 @@ export default function DocumentsPage() {
 
   return (
     <div>
+      <DataHealth />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
           <p className="text-xs font-semibold text-gray-500">Fichiers stockés</p>

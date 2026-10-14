@@ -31,4 +31,14 @@ for (const d of snap.docs) {
   }
   await d.ref.delete();
 }
+// Documents mis à la corbeille depuis plus de 30 jours : fichier + index.
+const dsnap = await db.collection("crm_documents").where("deletedAt", "<", cutoff).get();
+console.log(`${dsnap.size} document(s) à la corbeille depuis plus de ${DAYS} jours.`);
+for (const x of dsnap.docs) {
+  console.log(`- document ${x.get("name") || x.id}`);
+  if (DRY_RUN) continue;
+  const path = x.get("path");
+  if (path) await bucket.file(path).delete({ ignoreNotFound: true }).catch((e) => console.error("Storage :", e.message));
+  await x.ref.delete();
+}
 console.log(DRY_RUN ? "Essai à blanc : rien supprimé." : "Corbeille vidée.");

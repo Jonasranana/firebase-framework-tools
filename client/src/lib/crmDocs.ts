@@ -46,6 +46,8 @@ export type CrmDocument = {
   source: "upload" | "mail" | "monday";
   uploadedBy: string;
   createdAt: string; // ISO
+  // Corbeille : date de mise à la corbeille (vide = document actif). Effacé pour de bon après 30 jours.
+  deletedAt: string;
 };
 
 // Devine la catégorie d'après le nom du fichier (modifiable ensuite).
@@ -85,6 +87,12 @@ export function documentFromDoc(id: string, d: Record<string, any>): CrmDocument
         ? created
         : typeof created?.toDate === "function"
           ? created.toDate().toISOString()
+          : "",
+    deletedAt:
+      typeof d.deletedAt === "string"
+        ? d.deletedAt
+        : typeof d.deletedAt?.toDate === "function"
+          ? d.deletedAt.toDate().toISOString()
           : "",
   };
 }
