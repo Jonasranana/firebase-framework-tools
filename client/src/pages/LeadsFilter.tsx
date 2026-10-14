@@ -2,14 +2,14 @@ import { useState } from "react";
 import { Filter, Plus, Trash2, User, X } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LEAD_COLUMNS } from "@/lib/crmColumns";
-import { OP_LABELS, filterColumns, opsFor, type FilterOp, type LeadFilter, type Person } from "@/lib/crmFilters";
+import { DATE_BUCKETS, OP_LABELS, filterColumns, opsFor, type FilterOp, type LeadFilter, type Person } from "@/lib/crmFilters";
 import { initials } from "@/lib/crmTeam";
 
 // Bouton « Filtre » façon Monday : choisir une colonne, une condition, une ou
 // plusieurs valeurs ; plusieurs filtres se cumulent.
 const sel = "text-xs bg-white text-gray-900 border border-gray-200 rounded-md px-1.5 py-1";
 
-export function FilterMenu({ filters, onChange }: { filters: LeadFilter[]; onChange: (f: LeadFilter[]) => void }) {
+export function AdvancedFilters({ filters, onChange }: { filters: LeadFilter[]; onChange: (f: LeadFilter[]) => void }) {
   const [, force] = useState(0);
   const add = () =>
     onChange([...filters, { id: Math.random().toString(36).slice(2, 8), col: "status", op: "is", values: [] }]);
@@ -18,18 +18,8 @@ export function FilterMenu({ filters, onChange }: { filters: LeadFilter[]; onCha
     force((n) => n + 1);
   };
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${
-            filters.length ? "bg-[#e5efff] text-[#1f4f8f] border-[#579bfc]" : "bg-white text-gray-600 border-gray-200"
-          }`}
-        >
-          <Filter size={13} /> Filtre{filters.length ? ` (${filters.length})` : ""}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-[26rem] max-w-[92vw] p-3 bg-white text-gray-900 border border-gray-200 shadow-xl">
-        <p className="text-sm font-bold mb-2">Filtrer les leads</p>
+    <div>
+      <p className="text-sm font-bold mb-2">Filtrer les leads</p>
         {filters.length === 0 && <p className="text-xs text-gray-400 mb-2">Aucun filtre. Ajoutez-en un pour commencer.</p>}
         <div className="space-y-2 max-h-80 overflow-y-auto">
           {filters.map((f) => {
@@ -80,7 +70,23 @@ export function FilterMenu({ filters, onChange }: { filters: LeadFilter[]; onCha
                       })}
                   </div>
                 )}
-                {f.op === "contains" && (
+                {f.op === "when" && (
+                  <div className="w-full flex flex-wrap gap-1 mt-1">
+                    {DATE_BUCKETS.map((b) => {
+                      const on = f.values.includes(b.key);
+                      return (
+                        <button
+                          key={b.key}
+                          onClick={() => patch(f.id, { values: on ? f.values.filter((v) => v !== b.key) : [...f.values, b.key] })}
+                          className={`text-[11px] font-semibold px-2 py-0.5 rounded-full border ${on ? "bg-[#2b5a8f] text-white border-transparent" : "bg-white text-gray-600 border-gray-200"}`}
+                        >
+                          {b.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                {(f.op === "contains" || (f.op === "is" && !col.options)) && (
                   <input
                     value={f.values[0] ?? ""}
                     onChange={(e) => patch(f.id, { values: [e.target.value] })}
@@ -102,6 +108,24 @@ export function FilterMenu({ filters, onChange }: { filters: LeadFilter[]; onCha
             </button>
           )}
         </div>
+    </div>
+  );
+}
+
+export function FilterMenu({ filters, onChange }: { filters: LeadFilter[]; onChange: (f: LeadFilter[]) => void }) {
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${
+            filters.length ? "bg-[#e5efff] text-[#1f4f8f] border-[#579bfc]" : "bg-white text-gray-600 border-gray-200"
+          }`}
+        >
+          <Filter size={13} /> Filtre{filters.length ? ` (${filters.length})` : ""}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[26rem] max-w-[92vw] p-3 bg-white text-gray-900 border border-gray-200 shadow-xl">
+        <AdvancedFilters filters={filters} onChange={onChange} />
       </PopoverContent>
     </Popover>
   );
@@ -123,11 +147,11 @@ export function PersonBar({
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${
-            selected ? "bg-[#e5efff] text-[#1f4f8f] border-[#579bfc]" : "bg-white text-gray-600 border-gray-200"
+          className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md ${
+            selected ? "bg-[#e5efff] text-[#1f4f8f]" : "text-gray-700 hover:bg-gray-100 data-[state=open]:bg-gray-100"
           }`}
         >
-          <User size={13} /> {selected ? people.find((p) => p.key === selected)?.label : "Personne"}
+          <User size={15} /> {selected ? people.find((p) => p.key === selected)?.label : "Personne"}
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-56 p-2 bg-white text-gray-900 border border-gray-200 shadow-xl">
