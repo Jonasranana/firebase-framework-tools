@@ -865,6 +865,12 @@ export default function LeadsCRM({
 
   const rappelsCount = useMemo(() => (leads ?? []).filter(isOverdue).length, [leads]);
   const openLead = leads?.find((l) => l.id === openId) ?? null;
+  // Ouvrir le chat = lire le mail reçu : le repère « Réponse » disparaît du tableau.
+  const chatLead = leads?.find((l) => l.id === chatId) ?? null;
+  useEffect(() => {
+    if (chatLead?.mailNonLu) patchLead(chatLead.id, email, { mailNonLu: false }).catch(console.error);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatLead?.id, chatLead?.mailNonLu]);
 
   const moveLead = async (id: string, status: LeadStatus) => {
     const lead = leads?.find((l) => l.id === id);
