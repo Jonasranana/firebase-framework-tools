@@ -123,7 +123,7 @@ export function sortLeads(list: Lead[], sorts: LeadSort[]): Lead[] {
 }
 
 // ── Grouper par une colonne ────────────────────────────────────────────────
-export const GROUPABLE = ["status", "commercial", "pipeline", "precarite", "marque", "zone", "type", "poseur", "chauffage", "ressenti", "typeDemande", "source"];
+export const GROUPABLE = ["status", "commercial", "pipeline", "type", "poseur", "chauffage", "ressenti", "typeDemande", "source"];
 
 export function groupByColumn(list: Lead[], colKey: string): { groups: { id: string; title: string; color: string }[]; keyOf: (l: Lead) => string } {
   const c = LEAD_COLUMNS.find((x) => x.key === colKey)!;

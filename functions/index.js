@@ -739,7 +739,7 @@ function buildRelance3InjoignableEmailHtml({ nomComplet }) {
 function buildFicheTechniqueEmailHtml({ nomComplet, rac }) {
   const montant = rac
     ? `avec un reste à charge de <strong>${rac}&nbsp;€</strong> sous réserve de votre éligibilité`
-    : `à <strong>0&nbsp;€</strong> sous réserve de votre éligibilité`;
+    : `sous réserve de votre éligibilité`;
   return buildBrandedEmailShell({
     bodyHtml: `
       <p style="margin:0 0 12px 0; font-weight:bold;">Rebonjour ${nomComplet},</p>
@@ -926,9 +926,6 @@ const MONDAY_EMAIL_TEMPLATES = {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
     buildHtml: buildFicheTechniqueEmailHtml,
     attachments: FICHE_TECHNIQUE_ATTACHMENTS,
-    // A besoin d'un RAC résolu (0 ou positif) pour choisir la bonne phrase
-    // dans l'e-mail — voir sendMondayEmailTemplate.
-    requiresResolvedRac: true,
     buildSms: () =>
       `IP5 Énergie : merci pour votre appel. La fiche technique de votre pompe à chaleur vient de vous être envoyée par e-mail. Pour nous joindre : ${SMS_PHONE_NUMBERS}.`,
   },

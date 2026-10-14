@@ -59,9 +59,6 @@ export const COMMERCIAL: Opt[] = [
   o("Alexis", "#ff6d3b"),
   o("Jonas", "#00c875"),
 ];
-export const PRECARITE: Opt[] = [o("Bleu", "#007eb5"), o("Jaune", "#ffcb00"), o("Violet", "#784bd1")];
-export const MARQUE: Opt[] = [o("Atlantis", "#a9bee8"), o("Chappée", "#bca58a")];
-export const ZONE: Opt[] = [o("H1", "#9cd326"), o("H2", "#579bfc")];
 export const MAIL_AUTO: Opt[] = [
   o("1 - Relance injoignable", "#fdab3d"),
   o("2 - Relance injoignable", "#ff007f"),
@@ -110,12 +107,8 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "commercial", title: "👤 Commercial", type: "status", width: 130, options: COMMERCIAL },
   { key: "appels", title: "📞 Appels", type: "appels", width: 150 },
   { key: "phone", title: "📞 Téléphone", type: "phone", width: 175, core: "phone" },
-  { key: "precarite", title: "🏷️ Précarité (Prémi)", type: "status", width: 140, options: PRECARITE },
-  { key: "marque", title: "🔧 Marque PAC", type: "status", width: 120, options: MARQUE },
-  { key: "zone", title: "🌡️ Zone climatique", type: "status", width: 120, options: ZONE },
   { key: "mailAuto", title: "📧 Mail+SMS (Auto)", type: "status", width: 200, options: MAIL_AUTO },
   { key: "dernierMail", title: "📅 Dernier mail envoyé", type: "date", width: 150 },
-  { key: "racMesure", title: "💶 RAC Sur mesure (€)", type: "number", width: 140, unit: "€" },
   { key: "email", title: "📧 Email", type: "email", width: 220, core: "email" },
   { key: "cp", title: "📍 Code postal", type: "text", width: 100, core: "postalCode" },
   { key: "zoneCalc", title: "🌡️ Zone Climatique (calcul)", type: "formula", width: 150 },

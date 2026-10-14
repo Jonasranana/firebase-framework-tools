@@ -179,22 +179,7 @@ module.exports = function buildCrmAutomations({
                   infosManquantes("aucune adresse e-mail renseignée sur cette fiche.");
                   break;
                 }
-                let rac;
-                if (tpl.requiresResolvedRac) {
-                  const manual = Number(String(lead.fields?.racMesure ?? "").replace(",", "."));
-                  rac = String(lead.fields?.racMesure ?? "").trim() && !isNaN(manual)
-                    ? manual
-                    : computeResteACharge({
-                        precarite: String(lead.fields?.precarite ?? "").trim(),
-                        zone: String(lead.fields?.zone ?? "").replace(/^\W*zone\s*/i, "").trim() || zoneFromCp(lead.postalCode),
-                        marque: String(lead.fields?.marque ?? "").trim(),
-                      });
-                  if (rac === undefined) {
-                    infosManquantes("renseignez Précarité + Zone + Marque (ou « RAC sur mesure »), puis rechoisissez l'étiquette.");
-                    break;
-                  }
-                }
-                const racText = rac > 0 ? rac.toLocaleString("fr-FR") : undefined;
+                const racText = undefined;
                 let sent = false;
                 if (a.mail !== false) {
                   await getGmail().users.messages.send({
