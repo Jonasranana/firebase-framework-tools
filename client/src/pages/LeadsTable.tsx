@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import StatusLabelEditor from "./StatusLabelEditor";
+import { startPointerDrag } from "@/lib/pointerDrag";
 import {
   Check,
   X,
@@ -1041,12 +1042,8 @@ export default function LeadsTable({
           return (
             <section
               key={st.id}
+              data-groupid={st.id}
               onDragOver={(e) => {
-                if (dragGroup) {
-                  e.preventDefault();
-                  setDropGroup(st.id);
-                  return;
-                }
                 if (!e.dataTransfer.types.includes("text/lead-id")) return;
                 e.preventDefault();
                 setDropOver(st.id);
@@ -1056,11 +1053,6 @@ export default function LeadsTable({
               }}
               onDrop={(e) => {
                 e.preventDefault();
-                if (dragGroup) {
-                  reorderGroups(dragGroup, st.id);
-                  endGroupDrag();
-                  return;
-                }
                 setDropOver(null);
                 const id = e.dataTransfer.getData("text/lead-id");
                 if (id) onGroup(id, st.id);
@@ -1068,20 +1060,26 @@ export default function LeadsTable({
               className={`rounded-lg transition-colors ${dropOver === st.id ? "bg-blue-50 ring-2 ring-[#579bfc]" : ""} ${dropGroup === st.id && dragGroup !== st.id ? "ring-2 ring-[#0073ea] bg-blue-50/60" : ""} ${dragGroup === st.id ? "opacity-50" : ""}`}
             >
               <div
-                className="group/head flex items-center gap-1 mb-1 px-1 sticky left-0"
-                draggable={!readOnlyGroups}
-                onDragStart={(e) => {
+                className={`group/head flex items-center gap-1 mb-1 px-1 sticky left-0 ${readOnlyGroups ? "" : "cursor-grab"}`}
+                onMouseDown={(e) => {
                   if (readOnlyGroups) return;
-                  e.dataTransfer.setData("text/group-id", st.id);
-                  e.dataTransfer.effectAllowed = "move";
-                  // Comme sur Monday : on replie tous les groupes pendant le déplacement.
-                  collapsedBeforeDrag.current = collapsed;
-                  setTimeout(() => {
-                    setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])));
-                    setDragGroup(st.id);
-                  }, 0);
+                  if ((e.target as HTMLElement).closest("button,input,[data-nodrag]")) return;
+                  startPointerDrag(e, {
+                    label: st.title,
+                    color: st.color,
+                    scrollEl: scrollRef.current,
+                    hit: (el) => el?.closest("[data-groupid]")?.getAttribute("data-groupid") ?? null,
+                    onStart: () => {
+                      // Comme sur Monday : on replie tous les groupes pendant le déplacement.
+                      collapsedBeforeDrag.current = collapsed;
+                      setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])));
+                      setDragGroup(st.id);
+                    },
+                    onHover: setDropGroup,
+                    onDrop: (k) => reorderGroups(st.id, k),
+                    onEnd: endGroupDrag,
+                  });
                 }}
-                onDragEnd={endGroupDrag}
               >
                 <button
                   onClick={() => setCollapsed((c) => ({ ...c, [st.id]: !c[st.id] }))}
@@ -1118,7 +1116,7 @@ export default function LeadsTable({
                 />
                 )}
                 {!readOnlyGroups && (
-                  <div className="flex-1 h-8 flex items-center cursor-grab active:cursor-grabbing" title="Attrapez cette ligne pour déplacer le groupe">
+                  <div className="flex-1 h-8 flex items-center cursor-grab" title="Attrapez cette ligne pour déplacer le groupe">
                     <div className="w-full rounded-full" style={{ height: 3, background: `${st.color}55` }} />
                   </div>
                 )}
@@ -1135,29 +1133,27 @@ export default function LeadsTable({
                       return (
                         <div
                           key={c.key}
-                          draggable={movable && renaming !== c.key}
-                          onDragStart={(e) => {
-                            if (!movable) return;
-                            e.dataTransfer.setData("text/column-key", c.key);
-                            e.dataTransfer.effectAllowed = "move";
-                            setDragCol(c.key);
+                          data-colkey={c.key}
+                          onMouseDown={(e) => {
+                            if (!movable || renaming === c.key) return;
+                            if ((e.target as HTMLElement).closest("button,input,[data-nodrag]")) return;
+                            startPointerDrag(e, {
+                              label: c.title,
+                              scrollEl: scrollRef.current,
+                              hit: (el) => {
+                                const k = el?.closest("[data-colkey]")?.getAttribute("data-colkey") ?? null;
+                                return k && k !== "name" ? k : null;
+                              },
+                              onStart: () => setDragCol(c.key),
+                              onHover: setOverCol,
+                              onDrop: (k) => onMoveColumn?.(c.key, k),
+                              onEnd: () => {
+                                setDragCol(null);
+                                setOverCol(null);
+                              },
+                            });
                           }}
-                          onDragOver={(e) => {
-                            if (!dragCol || c.type === "name") return;
-                            e.preventDefault();
-                            setOverCol(c.key);
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            if (dragCol && onMoveColumn) onMoveColumn(dragCol, c.key);
-                            setDragCol(null);
-                            setOverCol(null);
-                          }}
-                          onDragEnd={() => {
-                            setDragCol(null);
-                            setOverCol(null);
-                          }}
-                          className={`group/col px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""} ${movable ? "cursor-grab active:cursor-grabbing" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
+                          className={`group/col px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""} ${movable ? "cursor-grab" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
                           style={{
                             ...(i === 0 ? { borderLeft: `6px solid ${st.color}` } : {}),
                             ...(overCol === c.key && dragCol !== c.key ? { boxShadow: "inset 3px 0 0 #0073ea", background: "#eef5ff" } : {}),
