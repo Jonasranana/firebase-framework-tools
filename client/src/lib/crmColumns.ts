@@ -161,10 +161,19 @@ export type ColumnsConfig = {
   wrap?: Record<string, boolean>;
   collapsed?: Record<string, boolean>;
   deleted?: string[];
+  // Étiquettes modifiées d'une colonne de statut (clé de colonne → options).
+  options?: Record<string, Opt[]>;
 };
+
+const BASE_STATUSES: Opt[] = LEAD_STATUSES.map((x) => ({ ...x }));
 
 export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined) {
   const c = cfg ?? {};
+  // « Statut Appel » : la liste partagée des statuts suit les étiquettes modifiées
+  // (mise à jour sur place : tout le CRM la lit).
+  const st = (LEAD_STATUSES as unknown) as Opt[];
+  st.length = 0;
+  st.push(...(c.options?.status ?? BASE_STATUSES).map((x) => ({ ...x })));
   const deleted = new Set(c.deleted ?? []);
   const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key)), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
   const byKey = new Map(all.map((x) => [x.key, x]));
@@ -185,6 +194,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined) {
     width: c.collapsed?.[col.key] ? 52 : c.widths?.[col.key] ?? col.width,
     wrap: !!c.wrap?.[col.key],
     collapsed: !!c.collapsed?.[col.key],
+    options: col.key === "status" ? LEAD_STATUSES : c.options?.[col.key] ?? col.options,
   }));
   LEAD_COLUMNS.length = 0;
   LEAD_COLUMNS.push(...next);

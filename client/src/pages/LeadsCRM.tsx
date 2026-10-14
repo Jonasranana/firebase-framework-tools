@@ -39,7 +39,7 @@ import { PersonBar } from "./LeadsFilter";
 import { AddSplit, GroupByMenu, MoreMenu, QuickFilter, SearchToggle, SortMenu } from "./LeadsToolbar";
 import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
 import { ROOT_ADMINS, memberName } from "@/lib/crmTeam";
-import LeadsTable, { ColumnsMenu, useVisibleColumns } from "./LeadsTable";
+import LeadsTable, { ColumnsMenu, StatusEditContext, useVisibleColumns } from "./LeadsTable";
 import DocumentsPanel from "./DocumentsPanel";
 import {
   CRM_BOARDS_COLLECTION,
@@ -1257,6 +1257,7 @@ export default function LeadsCRM({
 
       {/* Vue tableau façon Monday */}
       {leads && view === "tableau" && (
+        <StatusEditContext.Provider value={(key, opts) => columnsApi.setOptions(key, opts)}>
         <div style={{ zoom }}>
         <LeadsTable
           leads={filtered}
@@ -1297,6 +1298,7 @@ export default function LeadsCRM({
           onCreate={createFromTable}
         />
         </div>
+        </StatusEditContext.Provider>
       )}
 
       {/* Vue liste */}

@@ -116,7 +116,12 @@ export function useColumnsConfig(email: string) {
       });
     },
     setOptions(key: string, options: Opt[]) {
-      save({ ...ref.current, custom: (ref.current.custom ?? []).map((c) => (c.key === key ? { ...c, options } : c)) });
+      const isCustom = (ref.current.custom ?? []).some((c) => c.key === key);
+      save(
+        isCustom
+          ? { ...ref.current, custom: (ref.current.custom ?? []).map((c) => (c.key === key ? { ...c, options } : c)) }
+          : { ...ref.current, options: { ...(ref.current.options ?? {}), [key]: options } },
+      );
     },
     remove(key: string) {
       const order = currentOrder().filter((k) => k !== key);
