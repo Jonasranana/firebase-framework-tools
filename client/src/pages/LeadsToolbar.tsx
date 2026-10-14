@@ -95,7 +95,7 @@ export function SearchToggle({ value, onChange }: { value: string; onChange: (v:
 
 // ── Filtre : « Filtres rapides » ───────────────────────────────────────────
 const QUICK_COLS = [
-  "status", "rappel", "pipeline", "commercial", "precarite", "marque", "zone", "mailAuto", "cp", "zoneCalc",
+  "status", "rappel", "pipeline", "commercial", "mailAuto", "cp", "zoneCalc",
   "profilAides", "opportunite", "type", "source", "typeDemande", "poseur", "dateVt", "datePose", "ressenti",
   "chauffage", "foyerSite", "tranche", "projet", "region", "premierContact",
 ];
