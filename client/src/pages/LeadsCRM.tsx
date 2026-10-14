@@ -705,7 +705,16 @@ const LeadSheet = ({
 };
 
 // ── Page ───────────────────────────────────────────────────────────────────
-export default function LeadsCRM({ email }: { email: string }) {
+export default function LeadsCRM({
+  email,
+  boardView,
+  onBoardViewChange,
+}: {
+  email: string;
+  // Tableau « vue » ouvert depuis le menu : filtres, tri, groupement et colonnes enregistrés.
+  boardView?: { filters: LeadFilter[]; sorts: LeadSort[]; groupBy: string; personKey: string; visible: string[] };
+  onBoardViewChange?: (v: { filters: LeadFilter[]; sorts: LeadSort[]; groupBy: string; personKey: string; visible: string[] }) => void;
+}) {
   const { data: leads, error: storeError } = useLeads();
   const [localError, setError] = useState("");
   const error = localError || storeError;
@@ -725,10 +734,10 @@ export default function LeadsCRM({ email }: { email: string }) {
     const extra = ["Mebarek", "Julien"].map((n) => ({ key: n.toLowerCase(), label: n, emails: [] as string[] }));
     return [...team, ...extra];
   }, []);
-  const [filters, setFilters] = useState<LeadFilter[]>([]);
-  const [personKey, setPersonKey] = useState("");
-  const [sorts, setSorts] = useState<LeadSort[]>([]);
-  const [groupBy, setGroupBy] = useState("");
+  const [filters, setFilters] = useState<LeadFilter[]>(boardView?.filters ?? []);
+  const [personKey, setPersonKey] = useState(boardView?.personKey ?? "");
+  const [sorts, setSorts] = useState<LeadSort[]>(boardView?.sorts ?? []);
+  const [groupBy, setGroupBy] = useState(boardView?.groupBy ?? "");
   const [rappelsOnly, setRappelsOnly] = useState(false);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -864,6 +873,22 @@ export default function LeadsCRM({ email }: { email: string }) {
       unsub?.();
     };
   }, []);
+  // Tableau « vue » : colonnes de départ, et enregistrement automatique (après une
+  // courte pause) des filtres, du tri, du groupement et des colonnes choisis.
+  useEffect(() => {
+    if (boardView?.visible?.length) setVisibleCols(boardView.visible);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (!boardView || !onBoardViewChange) return;
+    const current = { filters, sorts, groupBy, personKey, visible: visibleCols };
+    const stored = { ...boardView, visible: boardView.visible?.length ? boardView.visible : visibleCols };
+    if (JSON.stringify(current) === JSON.stringify(stored)) return;
+    const t = setTimeout(() => onBoardViewChange(current), 900);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, sorts, groupBy, personKey, visibleCols]);
+
   const persistViews = async (next: SavedView[]) => {
     setViews(next);
     try {

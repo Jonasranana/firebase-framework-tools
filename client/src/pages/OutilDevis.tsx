@@ -17,7 +17,8 @@ import DocumentsPage from "./DocumentsPage";
 import TeamPage from "./TeamPage";
 import { memberName } from "@/lib/crmTeam";
 import GonflageCRM from "./GonflageCRM";
-import AdminShell, { initialPage, rememberPage, type AdminPage } from "./AdminShell";
+import AdminShell, { initialPage, rememberPage, type AdminPage, type PageTools } from "./AdminShell";
+import type { SideItem } from "@/lib/crmSidebar";
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -754,9 +755,11 @@ export default function OutilDevis() {
   const [authApi, setAuthApi] = useState<any>(null);
   const [error, setError] = useState("");
   const [page, setPage] = useState<AdminPage>(initialPage);
-  const navigate = (p: AdminPage) => {
+  const [activeItem, setActiveItem] = useState<SideItem | null>(null);
+  const navigate = (p: AdminPage, item?: SideItem) => {
     setPage(p);
-    rememberPage(p);
+    setActiveItem(item ?? null);
+    rememberPage(p, item);
   };
 
   useEffect(() => {
@@ -853,17 +856,36 @@ export default function OutilDevis() {
       return <GonflageCRM email={email} onBack={() => navigate("leads")} />;
     }
     const narrow = (node: React.ReactNode) => <div className="max-w-2xl mx-auto">{node}</div>;
+    // Contenu d'une page (utilisé par l'écran principal et par « Ouvrir en superposition »).
+    const renderPage = (p: AdminPage, item: SideItem | null, tools: PageTools) => (
+      <>
+        {p === "leads" && (
+          <LeadsCRM
+            key={item?.id ?? "leads"}
+            email={email}
+            boardView={item?.kind === "view" ? item.view : undefined}
+            onBoardViewChange={item?.kind === "view" ? (v) => tools.updateItem(item.id, { view: v }) : undefined}
+          />
+        )}
+        {p === "artisans" && <ArtisansCRM email={email} />}
+        {p === "stats" && <StatsCRM />}
+        {p === "documents" && <DocumentsPage />}
+        {p === "equipe" && narrow(<TeamPage email={email} />)}
+        {p === "devis" && <DevisPAC email={email} />}
+        {p === "marges" && narrow(<MargesPremi />)}
+        {p === "clients" && narrow(<ClientsCRM email={email} />)}
+      </>
+    );
     return (
-      <AdminShell email={email} userName={userName} page={page} onNavigate={navigate} onSignOut={signOut}>
-        {page === "leads" && <LeadsCRM email={email} />}
-        {page === "artisans" && <ArtisansCRM email={email} />}
-        {page === "stats" && <StatsCRM />}
-        {page === "documents" && <DocumentsPage />}
-        {page === "equipe" && narrow(<TeamPage email={email} />)}
-        {page === "devis" && <DevisPAC email={email} />}
-        {page === "marges" && narrow(<MargesPremi />)}
-        {page === "clients" && narrow(<ClientsCRM email={email} />)}
-      </AdminShell>
+      <AdminShell
+        email={email}
+        userName={userName}
+        page={page}
+        activeItem={activeItem}
+        onNavigate={navigate}
+        onSignOut={signOut}
+        renderPage={renderPage}
+      />
     );
   }
 
