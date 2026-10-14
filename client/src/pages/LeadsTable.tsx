@@ -27,6 +27,10 @@ import {
   Trash2,
 } from "lucide-react";
 import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
+import { useTeam } from "@/lib/crmTeam";
+import { AddTypeList } from "./ColumnMenu";
+import type { ColType } from "@/lib/crmColumns";
+import Avatar from "@/components/Avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   GROUP_COLORS,
@@ -64,11 +68,13 @@ export const EditableCell = ({
   onSave,
   type = "text",
   placeholder = "",
+  wrap = false,
 }: {
   value: string;
   onSave: (v: string) => void;
   type?: string;
   placeholder?: string;
+  wrap?: boolean;
 }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -103,7 +109,7 @@ export const EditableCell = ({
   return (
     <button
       onClick={() => setEditing(true)}
-      className="w-full h-full px-2 text-left text-sm text-gray-700 truncate hover:bg-gray-100"
+      className={`w-full h-full px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-100 ${wrap ? "whitespace-normal break-words" : "truncate"}`}
       title={value}
     >
       {value || <span className="text-gray-300">{placeholder}</span>}
@@ -375,23 +381,133 @@ const GroupMenu = ({
   );
 };
 
+
+// ── Types de colonnes ajoutées : Personnes, Échéances, Hashtags ───────────
+const PeopleCell = ({ value, onSave }: { value: string; onSave: (v: string) => void }) => {
+  const team = useTeam();
+  const names = Array.from(new Set([...(team ?? []).map((m) => m.name), "Mebarek", "Julien"]));
+  const selected = value ? value.split(",").map((x) => x.trim()).filter(Boolean) : [];
+  const toggle = (n: string) =>
+    onSave((selected.includes(n) ? selected.filter((x) => x !== n) : [...selected, n]).join(", "));
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="w-full h-full px-2 flex items-center gap-1 hover:bg-gray-100 overflow-hidden">
+          {selected.length === 0 && <span className="text-gray-300 text-sm">—</span>}
+          {selected.slice(0, 3).map((n) => (
+            <Avatar key={n} name={n} photoUrl={team?.find((m) => m.name === n)?.photoUrl} size={22} />
+          ))}
+          {selected.length > 3 && <span className="text-xs text-gray-500">+{selected.length - 3}</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-56 p-1.5 bg-white text-gray-900 border border-gray-200 shadow-xl">
+        {names.map((n) => (
+          <button key={n} onClick={() => toggle(n)} className="w-full flex items-center gap-2 text-sm px-2 py-1.5 rounded-md hover:bg-gray-100">
+            <Avatar name={n} photoUrl={team?.find((m) => m.name === n)?.photoUrl} size={22} />
+            <span className="flex-1 text-left truncate">{n}</span>
+            {selected.includes(n) && <span className="text-[#0073ea] text-xs font-bold">✓</span>}
+          </button>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+// Échéance : deux dates « du … au … » stockées « AAAA-MM-JJ/AAAA-MM-JJ ».
+const TimelineCell = ({ value, onSave }: { value: string; onSave: (v: string) => void }) => {
+  const [from = "", to = ""] = value.split("/");
+  const set = (f: string, t: string) => onSave(f || t ? `${f}/${t}` : "");
+  const label = from || to ? `${formatShortDate(from)}${to ? ` → ${formatShortDate(to)}` : ""}` : "";
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="w-full h-full px-2 text-left text-sm hover:bg-gray-100 truncate">
+          {label ? (
+            <span className="inline-block bg-[#9d50dd] text-white text-xs font-semibold px-2 py-0.5 rounded-full">{label}</span>
+          ) : (
+            <span className="text-gray-300">—</span>
+          )}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-60 p-3 space-y-2 bg-white text-gray-900 border border-gray-200 shadow-xl">
+        <label className="block text-xs font-semibold text-gray-500">
+          Début
+          <input type="date" value={from} onChange={(e) => set(e.target.value, to)} className="mt-1 w-full text-sm border border-gray-200 rounded-md px-2 py-1" />
+        </label>
+        <label className="block text-xs font-semibold text-gray-500">
+          Fin
+          <input type="date" value={to} onChange={(e) => set(from, e.target.value)} className="mt-1 w-full text-sm border border-gray-200 rounded-md px-2 py-1" />
+        </label>
+        {(from || to) && (
+          <button onClick={() => onSave("")} className="text-xs font-semibold text-gray-500 hover:text-red-600">
+            Effacer
+          </button>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+// Hashtags : mots séparés par des espaces ou des virgules, affichés en pastilles.
+const TagsCell = ({ value, onSave }: { value: string; onSave: (v: string) => void }) => {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  useEffect(() => setDraft(value), [value]);
+  const tags = value.split(/[\s,]+/).filter(Boolean);
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setEditing(false);
+          const clean = draft.split(/[\s,]+/).filter(Boolean).map((t) => (t.startsWith("#") ? t : `#${t}`)).join(" ");
+          if (clean !== value) onSave(clean);
+        }}
+        onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
+        placeholder="#mot #autre"
+        className="w-full h-full px-2 text-sm bg-white outline outline-2 outline-[#579bfc] rounded-sm"
+      />
+    );
+  }
+  return (
+    <button onClick={() => setEditing(true)} className="w-full h-full px-2 flex items-center gap-1 hover:bg-gray-100 overflow-hidden">
+      {tags.length === 0 && <span className="text-gray-300 text-sm">—</span>}
+      {tags.map((t) => (
+        <span key={t} className="shrink-0 bg-[#00c875]/15 text-[#037f4c] text-xs font-semibold px-1.5 py-0.5 rounded">
+          {t}
+        </span>
+      ))}
+    </button>
+  );
+};
+
 const colsTemplate = (cols: LeadColumn[]) => cols.map((c) => `${c.width}px`).join(" ");
 
-// Colonnes affichées : choix mémorisé sur l'appareil.
-function useVisibleColumns() {
-  const [visible, setVisible] = useState<string[]>(() => {
+// Colonnes masquées : choix mémorisé sur l'appareil. On retient les colonnes
+// MASQUÉES (et non les affichées) : une colonne ajoutée plus tard apparaît seule.
+function useVisibleColumns(version = 0) {
+  const [hidden, setHidden] = useState<string[]>(() => {
     try {
       const v = JSON.parse(localStorage.getItem(COLS_STORAGE) ?? "null");
-      if (Array.isArray(v) && v.includes("name")) return v;
+      if (v && Array.isArray(v.hidden)) return v.hidden;
+      // Ancien format : liste des colonnes affichées.
+      if (Array.isArray(v)) return LEAD_COLUMNS.map((c) => c.key).filter((k) => !v.includes(k));
     } catch {
       /* préférence non essentielle */
     }
-    return DEFAULT_VISIBLE;
+    return [];
   });
+  const visible = useMemo(
+    () => LEAD_COLUMNS.map((c) => c.key).filter((k) => k === "name" || !hidden.includes(k)),
+    [hidden, version], // eslint-disable-line react-hooks/exhaustive-deps
+  );
   const set = (v: string[]) => {
-    setVisible(v);
+    const h = LEAD_COLUMNS.map((c) => c.key).filter((k) => k !== "name" && !v.includes(k));
+    setHidden(h);
     try {
-      localStorage.setItem(COLS_STORAGE, JSON.stringify(v));
+      localStorage.setItem(COLS_STORAGE, JSON.stringify({ hidden: h }));
     } catch {
       /* non essentiel */
     }
@@ -412,7 +528,7 @@ export const ColumnsMenu = ({ visible, onChange }: { visible: string[]; onChange
     </PopoverTrigger>
     <PopoverContent className="w-64 p-2 max-h-96 overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-xl" align="start">
       <div className="flex gap-2 mb-2">
-        <button onClick={() => onChange(DEFAULT_VISIBLE)} className="flex-1 text-xs font-semibold border border-gray-200 rounded py-1">
+        <button onClick={() => onChange(LEAD_COLUMNS.map((c) => c.key))} className="flex-1 text-xs font-semibold border border-gray-200 rounded py-1">
           Tout afficher
         </button>
         <button
@@ -469,9 +585,15 @@ function Cell({
         />
       );
     case "text":
-      return <EditableCell value={v} onSave={save} />;
+      return <EditableCell value={v} onSave={save} wrap={col.wrap} />;
     case "longtext":
       return <LongTextCell value={v} onSave={save} />;
+    case "people":
+      return <PeopleCell value={v} onSave={save} />;
+    case "timeline":
+      return <TimelineCell value={v} onSave={save} />;
+    case "tags":
+      return <TagsCell value={v} onSave={save} />;
     case "email":
       return <EditableCell value={v} type="email" onSave={(x) => save(x.toLowerCase())} />;
     case "number":
@@ -547,9 +669,16 @@ export default function LeadsTable({
   onDuplicateLeads,
   groupKeyOf,
   readOnlyGroups,
+  columnMenu,
+  onAddColumn,
+  columnsVersion,
   visible,
   setVisible,
 }: {
+  // Menu « ⋯ » du titre de chaque colonne, et ajout d'une colonne à droite.
+  columnMenu?: (col: LeadColumn) => React.ReactNode;
+  onAddColumn?: (type: ColType) => void;
+  columnsVersion?: number;
   // Groupement automatique par une colonne (sinon : groupes personnalisés).
   groupKeyOf?: (l: Lead) => string;
   readOnlyGroups?: boolean;
@@ -570,9 +699,9 @@ export default function LeadsTable({
   const [limits, setLimits] = useState<Record<string, number>>({});
   const [dropOver, setDropOver] = useState<string | null>(null);
 
-  const cols = useMemo(() => LEAD_COLUMNS.filter((c) => visible.includes(c.key)), [visible]);
-  const template = colsTemplate(cols);
-  const totalWidth = cols.reduce((n, c) => n + c.width, 0) + 8;
+  const cols = useMemo(() => LEAD_COLUMNS.filter((c) => visible.includes(c.key)), [visible, columnsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  const template = `${colsTemplate(cols)} 44px`;
+  const totalWidth = cols.reduce((n, c) => n + c.width, 0) + 52;
 
   const [focusAdd, setFocusAdd] = useState<string | null>(null);
   const visibleGroups = groups.filter((g) => !g.archived);
@@ -719,19 +848,35 @@ export default function LeadsTable({
                     {cols.map((c, i) => (
                       <div
                         key={c.key}
-                        className={`px-2 border-l border-gray-100 truncate ${i === 0 ? "sticky left-0 z-10 bg-white" : ""}`}
+                        className={`group/col px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""}`}
                         style={i === 0 ? { borderLeft: `6px solid ${st.color}` } : undefined}
                         title={c.title}
                       >
-                        {c.title}
+                        <span className="truncate flex-1">{c.title}</span>
+                        {columnMenu?.(c)}
                       </div>
                     ))}
+                    <div className="border-l border-gray-100 flex items-center justify-center">
+                      {onAddColumn && (
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button aria-label="Ajouter une colonne" className="p-1 rounded text-gray-400 hover:text-gray-800 hover:bg-gray-100">
+                              <Plus size={15} />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="end" className="w-56 p-1.5 bg-white text-gray-900 border border-gray-200 shadow-xl">
+                            <p className="text-[11px] font-semibold text-gray-400 px-2.5 py-1">Ajout de colonnes</p>
+                            <AddTypeList onPick={onAddColumn} />
+                          </PopoverContent>
+                        </Popover>
+                      )}
+                    </div>
                   </div>
 
                   {rows.slice(0, limit).map((l) => (
                     <div
                       key={l.id}
-                      className="group grid items-stretch border-b border-gray-100 h-9 hover:bg-gray-50"
+                      className="group grid items-stretch border-b border-gray-100 min-h-[36px] hover:bg-gray-50"
                       style={{ gridTemplateColumns: template }}
                     >
                       {cols.map((c, i) =>
@@ -812,6 +957,7 @@ export default function LeadsTable({
                           </div>
                         ),
                       )}
+                      <div className="border-l border-gray-100" />
                     </div>
                   ))}
 
