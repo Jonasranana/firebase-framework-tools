@@ -1,5 +1,5 @@
 import React from "react";
-import { ShieldCheck, CheckCircle2, Zap, ArrowRight, Award, Star } from "lucide-react";
+import { ShieldCheck, CheckCircle2, ArrowRight, Award, Phone, Building2, ClipboardCheck, Home, FileText, Wrench } from "lucide-react";
 import {
   PageLayout,
   Simulator,
@@ -8,19 +8,7 @@ import {
   VideoSection,
   FinalCTA,
   Reveal,
-  REVIEWS,
 } from "./ip5-sections";
-
-// Initiales pour les pastilles d'avatar de la preuve sociale du hero
-// (ex. « Sophie & Laurent P. » -> « SL »). Réutilise les avis réels du site.
-const initials = (name: string) =>
-  name
-    .split(/[\s&]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase();
 
 // Page d'accueil d'IP5 Énergie : accroche + simulateur (capture de leads),
 // gages de confiance, avantages de la pompe à chaleur, et raccourcis vers les
@@ -28,46 +16,25 @@ const initials = (name: string) =>
 const IP5Energie = () => {
   return (
     <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 100% d'aides">
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-32 overflow-hidden bg-white dark:bg-slate-950">
-        {/* Grille en filigrane : donne de la profondeur au fond, estompée sur
-            les bords par un masque radial pour rester discrète. */}
-        <div
-          className="absolute inset-0 pointer-events-none opacity-60 dark:opacity-25"
-          aria-hidden="true"
-          style={{
-            backgroundImage:
-              "linear-gradient(to right, rgb(148 163 184 / 0.14) 1px, transparent 1px), linear-gradient(to bottom, rgb(148 163 184 / 0.14) 1px, transparent 1px)",
-            backgroundSize: "48px 48px",
-            maskImage:
-              "radial-gradient(ellipse 80% 60% at 50% 40%, black, transparent 78%)",
-            WebkitMaskImage:
-              "radial-gradient(ellipse 80% 60% at 50% 40%, black, transparent 78%)",
-          }}
-        ></div>
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] rounded-full bg-blue-50 dark:bg-blue-900/20 blur-3xl opacity-70"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-green-50 dark:bg-green-900/20 blur-3xl opacity-70"></div>
-
+      {/* Hero Section : sobre, factuel, orienté confiance */}
+      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="lg:grid lg:grid-cols-12 gap-16 items-center">
+          <div className="lg:grid lg:grid-cols-12 gap-14 items-center">
             <div className="lg:col-span-6 mb-12 lg:mb-0 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 font-bold text-sm mb-6 border border-blue-100 dark:border-blue-900 shadow-sm">
-                <ShieldCheck size={16} /> Installateur Agréé RGE France
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-white dark:bg-slate-900 text-[#173a5e] dark:text-blue-200 font-semibold text-sm mb-6 border border-slate-200 dark:border-slate-700">
+                <ShieldCheck size={16} className="text-[#2b5a8f] dark:text-blue-300" /> Installateur certifié RGE QualiPAC
               </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-gray-900 dark:text-white">
-                Passez à la pompe à chaleur et coupez vos factures par{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
-                  trois
-                </span>
-                .
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-[1.12] mb-6 text-[#0f2a47] dark:text-white">
+                Votre pompe à chaleur, de l'étude à la mise en service, avec jusqu'à 100&nbsp;% d'aides
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Remplacez votre ancien chauffage. Profitez d'une chaleur douce
-                en hiver, et bénéficiez des subventions <b>MaPrimeRénov'</b>{" "}
-                pour financer jusqu'à 100% de votre installation.
+              <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+                IP5 Énergie étudie votre projet, prépare vos dossiers{" "}
+                <b className="font-semibold text-slate-800 dark:text-slate-100">MaPrimeRénov'</b> et{" "}
+                <b className="font-semibold text-slate-800 dark:text-slate-100">CEE</b>, puis fait installer votre pompe à chaleur
+                par des artisans certifiés RGE. Un seul interlocuteur du début à la fin.
               </p>
 
-              <div className="flex justify-center lg:justify-start">
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
                 <a
                   href="#simulateur"
                   onClick={(e) => {
@@ -76,57 +43,42 @@ const IP5Energie = () => {
                       .getElementById("simulateur")
                       ?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }}
-                  className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#2b5a8f] to-cyan-500 text-white px-9 py-4 rounded-full font-bold text-lg shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 hover:scale-[1.03] transition-all duration-300"
+                  className="inline-flex items-center justify-center gap-2.5 bg-[#173a5e] hover:bg-[#122f4d] text-white px-7 py-3.5 rounded-lg font-semibold text-base shadow-md transition-colors"
                 >
-                  <Zap size={22} fill="currentColor" /> Je calcule mes économies
+                  Estimer mes aides gratuitement <ArrowRight size={18} />
+                </a>
+                <a
+                  href="tel:+33749525267"
+                  className="inline-flex items-center justify-center gap-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-[#173a5e] dark:text-blue-200 px-7 py-3.5 rounded-lg font-semibold text-base border border-slate-300 dark:border-slate-600 transition-colors"
+                >
+                  <Phone size={18} /> 07 49 52 52 67
                 </a>
               </div>
-              <p className="mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-gray-500 dark:text-slate-400 font-medium">
+              <p className="mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-slate-500 dark:text-slate-400">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-green-500" size={16} /> Gratuit
+                  <CheckCircle2 className="text-[#2b5a8f] dark:text-blue-300" size={16} /> Étude gratuite
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-green-500" size={16} /> 30
-                  secondes
+                  <CheckCircle2 className="text-[#2b5a8f] dark:text-blue-300" size={16} /> Sans engagement
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-green-500" size={16} /> Sans
-                  engagement
+                  <CheckCircle2 className="text-[#2b5a8f] dark:text-blue-300" size={16} /> Rappel par un conseiller
                 </span>
               </p>
 
-              {/* Preuve sociale : avatars des clients (initiales des avis réels
-                  du site) + note 5 étoiles, pour rassurer dès le premier écran. */}
-              <div className="mt-8 flex items-center gap-4 justify-center lg:justify-start">
-                <div className="flex -space-x-3">
-                  {REVIEWS.map((r) => (
-                    <span
-                      key={r.name}
-                      className="w-10 h-10 rounded-full ring-2 ring-white dark:ring-slate-950 bg-gradient-to-br from-[#2b5a8f] to-cyan-500 text-white text-xs font-bold flex items-center justify-center"
-                      aria-hidden="true"
-                    >
-                      {initials(r.name)}
-                    </span>
-                  ))}
-                </div>
-                <div className="text-left">
-                  <div className="flex text-yellow-400" aria-hidden="true">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} size={15} fill="currentColor" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">
-                    Des familles accompagnées partout en France
-                  </p>
-                </div>
+              {/* Identité de l'entreprise : rassure par des faits vérifiables. */}
+              <div className="mt-9 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-start gap-3 justify-center lg:justify-start text-left">
+                <Building2 size={20} className="mt-0.5 text-[#2b5a8f] dark:text-blue-300 shrink-0" />
+                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">IP5 CONSEILS</span> — société française, siège à Paris
+                  <br />
+                  SIREN 890 293 277 · Certifiée RGE QualiPAC
+                </p>
               </div>
             </div>
 
             <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
-              <div className="absolute inset-0 bg-gradient-to-tr from-blue-100 to-green-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
-              <div className="relative">
-                <Simulator />
-              </div>
+              <Simulator tone="pro" />
             </div>
           </div>
         </div>
@@ -134,6 +86,40 @@ const IP5Energie = () => {
 
       {/* Bande de confiance */}
       <TrustBar />
+
+      {/* Déroulé d'un projet : rassure sur ce qui se passe après la demande */}
+      <Reveal>
+        <section className="py-20 bg-white dark:bg-slate-950">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className="text-sm font-semibold uppercase tracking-wider text-[#2b5a8f] dark:text-blue-300 mb-2">Notre méthode</p>
+              <h2 className="text-3xl font-bold text-[#0f2a47] dark:text-white mb-3">Un projet suivi de A à Z</h2>
+              <p className="text-lg text-slate-600 dark:text-slate-300">
+                Vous n'avez pas à gérer les dossiers ni à chercher un artisan : nous coordonnons chaque étape.
+              </p>
+            </div>
+            <ol className="grid md:grid-cols-4 gap-6">
+              {[
+                { icon: ClipboardCheck, title: "Étude de votre projet", text: "Vous répondez à quelques questions. Un conseiller vous rappelle pour vérifier votre éligibilité aux aides." },
+                { icon: Home, title: "Visite technique", text: "Un professionnel étudie votre logement et définit la pompe à chaleur adaptée à vos besoins." },
+                { icon: FileText, title: "Dossiers d'aides", text: "Nous montons vos dossiers MaPrimeRénov' et CEE. Les aides sont déduites de votre devis." },
+                { icon: Wrench, title: "Installation certifiée", text: "La pose est réalisée par un artisan certifié RGE, puis nous restons votre interlocuteur." },
+              ].map((step, i) => (
+                <li key={step.title} className="relative bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
+                  <div className="flex items-center justify-between mb-5">
+                    <span className="w-10 h-10 rounded-lg bg-[#173a5e] text-white flex items-center justify-center">
+                      <step.icon size={20} />
+                    </span>
+                    <span className="text-sm font-semibold text-slate-400">0{i + 1}</span>
+                  </div>
+                  <h3 className="text-base font-semibold text-[#0f2a47] dark:text-white mb-2">{step.title}</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{step.text}</p>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      </Reveal>
 
       {/* Avantages de la pompe à chaleur */}
       <Reveal>
