@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import StatusLabelEditor from "./StatusLabelEditor";
 import { startPointerDrag } from "@/lib/pointerDrag";
 import {
@@ -67,7 +67,7 @@ import {
 // « Colonnes » pour afficher/masquer. Le nom reste collé à gauche.
 // ─────────────────────────────────────────────────────────────────────────
 
-const GROUP_PAGE = 100;
+const GROUP_PAGE = 50;
 const COLS_STORAGE = "crm-leads-columns";
 
 // Cellule texte : s'édite au clic, Entrée ou clic ailleurs enregistre, Échap annule.
@@ -704,6 +704,132 @@ const BulkBar = ({
   );
 };
 
+// Une ligne du tableau : mémorisée, elle ne se redessine que si SA fiche, la sélection
+// ou les colonnes changent (au lieu de redessiner des milliers de cellules à chaque action).
+const LeadRow = memo(function LeadRow({
+  lead: l,
+  cols,
+  template,
+  color,
+  selected,
+  selectable,
+  draggable,
+  colA,
+  colB,
+  onToggle,
+  onOpen,
+  onPatch,
+  onStatus,
+}: {
+  // Seules les colonnes visibles à l'écran (± une marge) sont dessinées : les autres restent vides.
+  colA: number;
+  colB: number;
+  lead: Lead;
+  cols: LeadColumn[];
+  template: string;
+  color: string;
+  selected: boolean;
+  selectable: boolean;
+  draggable: boolean;
+  onToggle: (ids: string[], on: boolean) => void;
+  onOpen: (id: string, focus?: "updates") => void;
+  onPatch: (id: string, patch: Record<string, unknown>) => void;
+  onStatus: (id: string, status: any) => void;
+}) {
+  const notes = l.notes.reduce((n, x) => n + (x.kind === "note" || x.kind === "mail" ? 1 : 0), 0);
+  return (
+    <div
+      className={`group grid items-stretch border-b border-gray-100 h-9 ${selected ? "bg-blue-50" : "hover:bg-gray-50"}`}
+      style={{ gridTemplateColumns: template }}
+    >
+      {cols.map((c, i) =>
+        c.type !== "name" && (i < colA || i > colB) ? (
+          <div key={c.key} className={i === 0 ? "" : "border-l border-gray-100"} />
+        ) : c.type === "name" ? (
+          <div
+            key={c.key}
+            className={`sticky left-0 z-10 group-hover:bg-gray-50 flex items-center gap-1 pr-1 ${selected ? "bg-blue-50" : "bg-white"}`}
+            style={{ borderLeft: `6px solid ${color}` }}
+          >
+            {selectable && (
+              <RowCheck
+                label="Sélectionner"
+                className={selected ? "" : "opacity-0 group-hover:opacity-100 focus:opacity-100"}
+                checked={selected}
+                onChange={(v) => onToggle([l.id], v)}
+              />
+            )}
+            <span
+              draggable={draggable}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("text/lead-id", l.id);
+                e.dataTransfer.effectAllowed = "move";
+                const row = (e.currentTarget as HTMLElement).closest(".group");
+                if (row) e.dataTransfer.setDragImage(row, 20, 16);
+              }}
+              title="Glisser vers un autre groupe"
+              className="shrink-0 cursor-grab text-gray-300 hover:text-gray-500 pl-0.5"
+            >
+              <GripVertical size={14} />
+            </span>
+            <div className="flex-1 min-w-0 h-full">
+              <EditableCell value={l.name} placeholder="Sans nom" onSave={(v) => onPatch(l.id, { name: v })} />
+            </div>
+            {/* Mises à jour (commentaires de l'équipe) : pastille discrète, bleue quand il y en a. */}
+            <button
+              onClick={() => onOpen(l.id, "updates")}
+              title={notes ? `${notes} mise${notes > 1 ? "s" : ""} à jour : cliquez pour lire ou écrire` : "Ajouter une mise à jour"}
+              className={`shrink-0 inline-flex items-center gap-1 h-6 rounded-full px-2 text-xs font-semibold transition-colors ${
+                notes ? "bg-[#e6f0ff] text-[#0b63ce] hover:bg-[#d3e5ff]" : "text-gray-300 hover:bg-gray-100 hover:text-gray-500"
+              }`}
+            >
+              <MessageSquare size={13} />
+              {notes > 0 && <span>{notes > 99 ? "99+" : notes}</span>}
+            </button>
+            {/* Le client a répondu par mail et personne n'a encore ouvert la fiche. */}
+            {l.mailNonLu && (
+              <button
+                onClick={() => onOpen(l.id)}
+                title="Le client a répondu par mail : cliquez pour lire sa réponse"
+                className="shrink-0 inline-flex items-center gap-1 h-6 rounded-full px-2 text-[11px] font-bold bg-[#fff1d6] text-[#a35b00] hover:bg-[#ffe6b3]"
+              >
+                <Mail size={12} /> Réponse
+              </button>
+            )}
+            <button
+              onClick={() => onOpen(l.id)}
+              className="shrink-0 text-[11px] font-semibold text-[#579bfc] border border-[#579bfc]/40 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100"
+            >
+              Ouvrir
+            </button>
+          </div>
+        ) : c.type === "phone" ? (
+          <div key={c.key} className="border-l border-gray-100 flex items-center min-w-0">
+            <div className="flex-1 min-w-0 h-full">
+              <EditableCell value={l.phone} type="tel" onSave={(v) => onPatch(l.id, { phone: v })} />
+            </div>
+            {telHref(l.phone) && (
+              <span className="flex gap-1 pr-1 shrink-0 opacity-0 group-hover:opacity-100">
+                <a href={telHref(l.phone)} aria-label="Appeler" className="text-[#2b5a8f]">
+                  <Phone size={14} />
+                </a>
+                <a href={whatsappHref(l.phone)} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="text-green-600">
+                  <MessageCircle size={14} />
+                </a>
+              </span>
+            )}
+          </div>
+        ) : (
+          <div key={c.key} className={`${i === 0 ? "" : "border-l"} border-gray-100 min-w-0`}>
+            <Cell lead={l} col={c} onPatch={onPatch} onStatus={onStatus} />
+          </div>
+        ),
+      )}
+      <div className="border-l border-gray-100" />
+    </div>
+  );
+});
+
 // Bandeau bien visible sous les lignes d'un groupe : il reste des leads à afficher.
 // Les lignes suivantes se chargent aussi toutes seules quand on arrive en bas.
 const MoreRows = ({
@@ -928,15 +1054,71 @@ export default function LeadsTable({
   const [overCol, setOverCol] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const [sel, setSel] = useState<Set<string>>(new Set());
-  const toggleSel = (ids: string[], on: boolean) =>
-    setSel((prev) => {
-      const n = new Set(prev);
-      ids.forEach((id) => (on ? n.add(id) : n.delete(id)));
-      return n;
-    });
+  const toggleSel = useCallback(
+    (ids: string[], on: boolean) =>
+      setSel((prev) => {
+        const n = new Set(prev);
+        ids.forEach((id) => (on ? n.add(id) : n.delete(id)));
+        return n;
+      }),
+    [],
+  );
+  // Rappels stables pour les lignes mémorisées (ils lisent toujours les dernières versions).
+  const cbRef = useRef({ onOpen, onPatch, onStatus });
+  cbRef.current = { onOpen, onPatch, onStatus };
+  const stableCb = useMemo(
+    () => ({
+      open: (id: string, focus?: "updates") => cbRef.current.onOpen(id, focus),
+      patch: (id: string, patch: Record<string, unknown>) => cbRef.current.onPatch(id, patch),
+      status: (id: string, status: any) => cbRef.current.onStatus(id, status),
+    }),
+    [],
+  );
   const selIds = Array.from(sel).filter((id) => leads.some((l) => l.id === id));
 
   const cols = useMemo(() => LEAD_COLUMNS.filter((c) => visible.includes(c.key)), [visible, columnsVersion]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Colonnes à dessiner selon le défilement horizontal (virtualisation des colonnes).
+  const [colRange, setColRange] = useState<[number, number]>([0, 14]);
+  const [viewW, setViewW] = useState(0);
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    let raf = 0;
+    const compute = () => {
+      raf = 0;
+      const left = el.scrollLeft - 400;
+      const right = el.scrollLeft + el.clientWidth + 400;
+      let x = 0;
+      let a = 0;
+      let b = cols.length - 1;
+      let foundA = false;
+      for (let i = 0; i < cols.length; i++) {
+        const w = cols[i].width;
+        if (!foundA && x + w > left) {
+          a = i;
+          foundA = true;
+        }
+        if (x > right) {
+          b = i;
+          break;
+        }
+        x += w;
+      }
+      setColRange((prev) => (prev[0] === a && prev[1] === b ? prev : [a, b]));
+      setViewW((w) => (Math.abs(w - el.clientWidth) > 1 ? el.clientWidth : w));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(compute);
+    };
+    compute();
+    el.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [cols, maxH]);
   const template = `${colsTemplate(cols)} 44px`;
   const totalWidth = cols.reduce((n, c) => n + c.width, 0) + 52;
 
@@ -1061,6 +1243,7 @@ export default function LeadsTable({
             >
               <div
                 className={`group/head flex items-center gap-1 mb-1 px-1 sticky left-0 ${readOnlyGroups ? "" : "cursor-grab"}`}
+                style={viewW ? { width: viewW } : undefined}
                 onMouseDown={(e) => {
                   if (readOnlyGroups) return;
                   if ((e.target as HTMLElement).closest("button,input,[data-nodrag]")) return;
@@ -1123,7 +1306,7 @@ export default function LeadsTable({
               </div>
 
               {!isCollapsed && (
-                <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="bg-white rounded-lg border border-gray-200 overflow-clip">
                   <div
                     className="grid text-xs font-semibold text-gray-500 bg-white border-b border-gray-200 h-8 items-center"
                     style={{ gridTemplateColumns: template }}
@@ -1213,99 +1396,22 @@ export default function LeadsTable({
                   </div>
 
                   {rows.slice(0, limit).map((l) => (
-                    <div
+                    <LeadRow
                       key={l.id}
-                      className={`group grid items-stretch border-b border-gray-100 min-h-[36px] ${sel.has(l.id) ? "bg-blue-50" : "hover:bg-gray-50"}`}
-                      style={{ gridTemplateColumns: template }}
-                    >
-                      {cols.map((c, i) =>
-                        c.type === "name" ? (
-                          <div
-                            key={c.key}
-                            className="sticky left-0 z-10 bg-white group-hover:bg-gray-50 flex items-center gap-1 pr-1"
-                            style={{ borderLeft: `6px solid ${st.color}` }}
-                          >
-                            {bulk && (
-                              <RowCheck
-                                label="Sélectionner"
-                                className={sel.has(l.id) ? "" : "opacity-0 group-hover:opacity-100 focus:opacity-100"}
-                                checked={sel.has(l.id)}
-                                onChange={(v) => toggleSel([l.id], v)}
-                              />
-                            )}
-                            <span
-                              draggable={!readOnlyGroups}
-                              onDragStart={(e) => {
-                                e.dataTransfer.setData("text/lead-id", l.id);
-                                e.dataTransfer.effectAllowed = "move";
-                                const row = (e.currentTarget as HTMLElement).closest(".group");
-                                if (row) e.dataTransfer.setDragImage(row, 20, 16);
-                              }}
-                              title="Glisser vers un autre groupe"
-                              className="shrink-0 cursor-grab text-gray-300 hover:text-gray-500 pl-0.5"
-                            >
-                              <GripVertical size={14} />
-                            </span>
-                            <div className="flex-1 min-w-0 h-full">
-                              <EditableCell value={l.name} placeholder="Sans nom" onSave={(v) => onPatch(l.id, { name: v })} />
-                            </div>
-                            {(() => {
-                              const n = l.notes.filter((x) => x.kind === "note" || x.kind === "mail").length;
-                              return (
-                                <button
-                                  onClick={() => onOpen(l.id, "updates")}
-                                  title={n ? `${n} mise${n > 1 ? "s" : ""} à jour : cliquez pour lire ou écrire` : "Ajouter une mise à jour"}
-                                  className={`shrink-0 relative p-1 rounded ${n ? "text-[#579bfc]" : "text-gray-300 hover:text-gray-500"}`}
-                                >
-                                  <MessageSquare size={16} fill={n ? "currentColor" : "none"} />
-                                  {n > 0 && (
-                                    <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-[#ff5ac4] text-white text-[9px] font-bold flex items-center justify-center">
-                                      {n > 99 ? "99+" : n}
-                                    </span>
-                                  )}
-                                </button>
-                              );
-                            })()}
-                            {l.mailNonLu && (
-                              <button
-                                onClick={() => onOpen(l.id)}
-                                title="Le client a répondu par mail : cliquez pour lire"
-                                className="shrink-0 text-[#579bfc]"
-                              >
-                                <Mail size={15} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => onOpen(l.id)}
-                              className="shrink-0 text-[11px] font-semibold text-[#579bfc] border border-[#579bfc]/40 rounded px-1.5 py-0.5 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                            >
-                              Ouvrir
-                            </button>
-                          </div>
-                        ) : c.type === "phone" ? (
-                          <div key={c.key} className="border-l border-gray-100 flex items-center min-w-0">
-                            <div className="flex-1 min-w-0 h-full">
-                              <EditableCell value={l.phone} type="tel" onSave={(v) => onPatch(l.id, { phone: v })} />
-                            </div>
-                            {telHref(l.phone) && (
-                              <span className="flex gap-1 pr-1 shrink-0 opacity-0 group-hover:opacity-100">
-                                <a href={telHref(l.phone)} aria-label="Appeler" className="text-[#2b5a8f]">
-                                  <Phone size={14} />
-                                </a>
-                                <a href={whatsappHref(l.phone)} target="_blank" rel="noreferrer" aria-label="WhatsApp" className="text-green-600">
-                                  <MessageCircle size={14} />
-                                </a>
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <div key={c.key} className={`${i === 0 ? "" : "border-l"} border-gray-100 min-w-0`}>
-                            <Cell lead={l} col={c} onPatch={onPatch} onStatus={onStatus} />
-                          </div>
-                        ),
-                      )}
-                      <div className="border-l border-gray-100" />
-                    </div>
+                      lead={l}
+                      cols={cols}
+                      template={template}
+                      color={st.color}
+                      selected={sel.has(l.id)}
+                      selectable={!!bulk}
+                      draggable={!readOnlyGroups}
+                      colA={colRange[0]}
+                      colB={colRange[1]}
+                      onToggle={toggleSel}
+                      onOpen={stableCb.open}
+                      onPatch={stableCb.patch}
+                      onStatus={stableCb.status}
+                    />
                   ))}
 
                   {rows.length > limit && (

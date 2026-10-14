@@ -65,17 +65,16 @@ export const DEFAULT_SIDEBAR: SideConfig = {
   favorites: [],
   folders: [
     {
+      id: "f_tableau",
+      title: "Tableau IP5",
+      color: "#579bfc",
+      items: [item("leads", "Pac Pac"), item("artisans", "Artisans")],
+    },
+    {
       id: "f_crm",
       title: "CRM IP5",
       color: "#fb275d",
-      items: [
-        item("leads", "Leads"),
-        item("artisans", "Artisans"),
-        item("documents", "Documents"),
-        item("stats", "Statistiques"),
-        item("bareme", "Barème"),
-        item("corbeille", "Corbeille et doublons"),
-      ],
+      items: [item("documents", "Documents"), item("stats", "Statistiques"), item("bareme", "Barème"), item("corbeille", "Corbeille et doublons")],
     },
     { id: "f_pac", title: "Outils pompe à chaleur", color: "#fdab3d", items: [item("devis", "Devis PAC"), item("marges", "Marges Prémi")] },
     { id: "f_autres", title: "Autres métiers", color: "#9d50dd", items: [item("gonflage", "Station de gonflage")] },
@@ -102,6 +101,21 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
       .filter((i) => !(i.core && REMOVED.includes(i.page as string)))
       .map((i) => (i.core && i.page === "corbeille" && i.title === "Corbeille" ? { ...i, title: "Corbeille et doublons" } : i)),
   }));
+  // Migration : « Pac Pac » (ex-Leads) et « Artisans » vivent dans le dossier « Tableau IP5 ».
+  if (!folders.some((f) => f.id === "f_tableau")) {
+    const moved: SideItem[] = [];
+    for (const f of folders) {
+      f.items = f.items.filter((i) => {
+        if (i.core && (i.page === "leads" || i.page === "artisans")) {
+          moved.push(i.page === "leads" && i.title === "Leads" ? { ...i, title: "Pac Pac" } : i);
+          return false;
+        }
+        return true;
+      });
+    }
+    const def = DEFAULT_SIDEBAR.folders.find((f) => f.id === "f_tableau")!;
+    folders.unshift({ ...def, items: moved.length ? moved : def.items });
+  }
   const present = new Set(folders.flatMap((f) => f.items.filter((i) => i.core).map((i) => i.page)));
   for (const df of DEFAULT_SIDEBAR.folders) {
     for (const di of df.items) {

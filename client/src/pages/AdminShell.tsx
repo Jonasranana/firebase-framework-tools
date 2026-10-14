@@ -51,7 +51,7 @@ export type AdminPage =
   | "archives";
 
 export const PAGE_TITLES: Record<AdminPage, string> = {
-  leads: "Leads",
+  leads: "Pac Pac",
   artisans: "Artisans",
   stats: "Statistiques",
   documents: "Documents",
