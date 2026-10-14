@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import StatusLabelEditor from "./StatusLabelEditor";
 import {
   Archive,
   ArrowDown,
@@ -120,18 +121,25 @@ export const EditableCell = ({
 
 export type StatusOption = { key: string; label: string; hex: string };
 
+// Permet à la cellule de statut d'ouvrir l'éditeur d'étiquettes de sa colonne
+// (fourni par la page Leads ; absent = pas de bouton « Modifier les étiquettes »).
+export const StatusEditContext = createContext<((colKey: string, options: StatusOption[]) => void) | null>(null);
+
 export const StatusCell = ({
   status,
   options,
   onChange,
   clearable,
+  onEditLabels,
 }: {
   status: string;
   options: readonly StatusOption[];
   onChange: (s: string) => void;
   clearable?: boolean;
+  onEditLabels?: (next: StatusOption[]) => void;
 }) => {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
   const s = options.find((o) => o.key === status);
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -143,7 +151,11 @@ export const StatusCell = ({
           {s?.label ?? ""}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-52 p-2 space-y-1.5 max-h-80 overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-xl" align="start">
+      <PopoverContent
+        className={`p-2.5 max-h-96 overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-xl ${options.length > 8 ? "w-[min(640px,92vw)]" : "w-56"}`}
+        align="start"
+      >
+        <div className="grid gap-1.5" style={{ gridTemplateColumns: options.length > 8 ? "repeat(auto-fill, minmax(140px, 1fr))" : "1fr" }}>
         {options
           .filter((o) => o.label !== "")
           .map((o) => (
@@ -153,12 +165,14 @@ export const StatusCell = ({
                 setOpen(false);
                 onChange(o.key);
               }}
-              className="w-full text-sm font-semibold text-white py-1.5 rounded hover:brightness-95"
+              className="w-full text-sm font-semibold text-white py-1.5 px-2 rounded truncate hover:brightness-95"
               style={{ background: o.hex }}
+              title={o.label}
             >
               {o.label}
             </button>
           ))}
+        </div>
         {(clearable || options.some((o) => o.label === "")) && (
           <button
             onClick={() => {
@@ -170,7 +184,19 @@ export const StatusCell = ({
             Vider
           </button>
         )}
+        {onEditLabels && (
+          <button
+            onClick={() => {
+              setOpen(false);
+              setEditing(true);
+            }}
+            className="w-full mt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 py-2 border-t border-gray-100 hover:bg-gray-50"
+          >
+            <Pencil size={12} /> Modifier les étiquettes
+          </button>
+        )}
       </PopoverContent>
+      {editing && onEditLabels && <StatusLabelEditor options={options} onApply={onEditLabels} onClose={() => setEditing(false)} />}
     </Popover>
   );
 };
@@ -574,11 +600,13 @@ function Cell({
   onStatus: (id: string, status: string) => void;
 }) {
   const v = cellValue(lead, col);
+  const editLabels = useContext(StatusEditContext);
   const save = (val: string) => onPatch(lead.id, cellPatch(col, val));
   switch (col.type) {
     case "status":
       return (
         <StatusCell
+          onEditLabels={editLabels ? (next) => editLabels(col.key, next) : undefined}
           status={v}
           options={col.options ?? []}
           clearable={col.key !== "status"}
