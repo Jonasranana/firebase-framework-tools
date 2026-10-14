@@ -2635,6 +2635,7 @@ Object.assign(
 Object.assign(
   exports,
   require("./crmAutomations")({
+    computeResteACharge,
     db,
     logger,
     google,

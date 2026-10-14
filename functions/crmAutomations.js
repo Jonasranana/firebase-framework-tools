@@ -31,6 +31,18 @@ const CORE = {
 const valueOf = (d, col) => (CORE[col] ? String(d?.[CORE[col]] ?? "") : String(d?.fields?.[col] ?? ""));
 const writeCol = (col, value) => (CORE[col] ? { [CORE[col]]: value } : { [`fields.${col}`]: value });
 
+// Zone climatique d'après le code postal (mêmes listes que la colonne « Zone Climatique (calcul) »).
+const H3 = ["06", "11", "13", "20", "30", "34", "66", "83"];
+const H2 = [
+  "04", "07", "09", "12", "16", "17", "18", "22", "24", "26", "28", "29", "31", "32", "33", "35", "36", "37",
+  "40", "41", "44", "46", "47", "48", "49", "50", "53", "56", "61", "64", "65", "72", "79", "81", "82", "84", "85", "86",
+];
+const zoneFromCp = (cp) => {
+  const d = String(cp ?? "").trim().slice(0, 2);
+  if (!d) return "";
+  return H3.includes(d) ? "H3" : H2.includes(d) ? "H2" : "H1";
+};
+
 const parisToday = (offsetDays = 0) => {
   const d = new Date(Date.now() + offsetDays * 86400000);
   return new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
@@ -65,6 +77,7 @@ module.exports = function buildCrmAutomations({
   sendTwilioSms,
   toE164French,
   normalizeLabel,
+  computeResteACharge,
 }) {
   async function teamRecipients() {
     const [team, profiles] = await Promise.all([db.collection("crm_team").get(), db.collection("crm_profiles").get()]);
@@ -144,35 +157,70 @@ module.exports = function buildCrmAutomations({
               }
               case "send_template": {
                 const tpl = MONDAY_EMAIL_TEMPLATES[a.template] ?? MONDAY_EMAIL_TEMPLATES[String(a.template ?? "").toLowerCase()];
-                if (!tpl || tpl.requiresResolvedRac) {
-                  done.push(`modèle « ${a.template} » indisponible`);
+                if (!tpl) {
+                  done.push(`modèle « ${a.template} » introuvable`);
                   break;
                 }
+                // Comme sur Monday : sans adresse e-mail (ou reste à charge non calculable), rien n'est envoyé,
+                // la fiche reçoit une note et la colonne passe sur « Infos manquantes ».
+                const infosManquantes = (why) => {
+                  notes.push({
+                    id: Math.random().toString(36).slice(2, 10),
+                    text: `⚠️ E-mail non envoyé : ${why}`,
+                    by: "automation",
+                    at: new Date().toISOString(),
+                    kind: "note",
+                  });
+                  Object.assign(patch, writeCol("mailAuto", "⚠️ Infos manquantes"));
+                  done.push("non envoyé (infos manquantes)");
+                };
+                const to = String(lead.email ?? "").trim();
+                if (!EMAIL_RE.test(to)) {
+                  infosManquantes("aucune adresse e-mail renseignée sur cette fiche.");
+                  break;
+                }
+                let rac;
+                if (tpl.requiresResolvedRac) {
+                  const manual = Number(String(lead.fields?.racMesure ?? "").replace(",", "."));
+                  rac = String(lead.fields?.racMesure ?? "").trim() && !isNaN(manual)
+                    ? manual
+                    : computeResteACharge({
+                        precarite: String(lead.fields?.precarite ?? "").trim(),
+                        zone: String(lead.fields?.zone ?? "").replace(/^\W*zone\s*/i, "").trim() || zoneFromCp(lead.postalCode),
+                        marque: String(lead.fields?.marque ?? "").trim(),
+                      });
+                  if (rac === undefined) {
+                    infosManquantes("renseignez Précarité + Zone + Marque (ou « RAC sur mesure »), puis rechoisissez l'étiquette.");
+                    break;
+                  }
+                }
+                const racText = rac > 0 ? rac.toLocaleString("fr-FR") : undefined;
+                let sent = false;
                 if (a.mail !== false) {
-                  const to = String(lead.email ?? "").trim();
-                  if (EMAIL_RE.test(to)) {
-                    await getGmail().users.messages.send({
-                      userId: "me",
-                      requestBody: {
-                        raw: buildRawMessageWithAttachment({
-                          to,
-                          from: GMAIL_SENDER_EMAIL.value(),
-                          subject: tpl.subject,
-                          html: tpl.buildHtml({ nomComplet: String(lead.name ?? "").trim(), rac: undefined }),
-                          attachments: tpl.attachments,
-                        }),
-                      },
-                    });
-                    done.push(`mail « ${tpl.subject} » envoyé`);
-                  } else done.push("mail non envoyé (pas d'adresse e-mail)");
+                  await getGmail().users.messages.send({
+                    userId: "me",
+                    requestBody: {
+                      raw: buildRawMessageWithAttachment({
+                        to,
+                        from: GMAIL_SENDER_EMAIL.value(),
+                        subject: tpl.subject,
+                        html: tpl.buildHtml({ nomComplet: String(lead.name ?? "").trim(), rac: racText }),
+                        attachments: tpl.attachments,
+                      }),
+                    },
+                  });
+                  sent = true;
+                  done.push(`mail « ${tpl.subject} » envoyé`);
                 }
                 if (a.sms !== false && tpl.buildSms) {
-                  const to = toE164French(lead.phone);
-                  if (to && to.startsWith("+")) {
-                    const ok = await sendTwilioSms({ to, body: tpl.buildSms({}), accountSid: TWILIO_ACCOUNT_SID.value(), authToken: TWILIO_AUTH_TOKEN.value() });
+                  const tel = toE164French(lead.phone);
+                  if (tel && tel.startsWith("+")) {
+                    const ok = await sendTwilioSms({ to: tel, body: tpl.buildSms({ rac: racText }), accountSid: TWILIO_ACCOUNT_SID.value(), authToken: TWILIO_AUTH_TOKEN.value() });
                     done.push(ok ? "SMS envoyé" : "SMS en échec");
+                    sent = sent || !!ok;
                   } else done.push("SMS non envoyé (pas de téléphone)");
                 }
+                if (sent) Object.assign(patch, writeCol("dernierMail", parisToday()));
                 break;
               }
               case "send_email": {
