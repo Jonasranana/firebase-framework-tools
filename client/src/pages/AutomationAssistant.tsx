@@ -1,21 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, Send, Sparkles } from "lucide-react";
 import { LEAD_COLUMNS } from "@/lib/crmColumns";
-import { getEspaceProApp } from "@/lib/espacePro";
 import { parseAutomation, type AutoDraft } from "@/lib/crmAutomationParse";
 import type { LeadGroup } from "@/lib/crm";
 
 // Création d'une automatisation en parlant : l'utilisateur décrit ce qu'il veut, l'assistant
-// prépare la règle, la résume en français et la crée après confirmation.
-async function callFn<T>(name: string, data?: unknown): Promise<T> {
-  const app = await getEspaceProApp();
-  const { getFunctions, httpsCallable } = await import("firebase/functions");
-  return (await httpsCallable(getFunctions(app, "europe-west9"), name)(data)).data as T;
-}
-
-export type AiStatus = { configured: boolean; canConfigure: boolean; canUse: boolean };
-export const fetchAiStatus = () => callFn<AiStatus>("aiSettings", {});
-export const saveAiKey = (key: string) => callFn<AiStatus>("aiSettings", { action: "save", key });
+// prépare la règle (mode simple, gratuit, sans IA), la résume en français et la crée après confirmation.
 
 const EXAMPLES = [
   "Quand un lead passe en « Intéressé », préviens toute l'équipe par mail",
@@ -46,24 +36,9 @@ export default function AutomationAssistant({
   const [text, setText] = useState("");
   const [thinking, setThinking] = useState(false);
   const [draft, setDraft] = useState<AutoDraft | null>(null);
-  const [ai, setAi] = useState<AiStatus | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchAiStatus().then(setAi).catch(() => setAi({ configured: false, canConfigure: false, canUse: false }));
-  }, []);
   useEffect(() => endRef.current?.scrollIntoView({ block: "nearest" }), [msgs, draft, thinking]);
-
-  const context = () => ({
-    columns: LEAD_COLUMNS.filter((c) => c.type === "status" || c.type === "date").map((c) => ({
-      key: c.key,
-      title: c.title,
-      type: c.type,
-      options: c.options?.filter((o) => o.label).map((o) => ({ key: o.key, label: o.label })),
-    })),
-    groups: groups.filter((g) => !g.archived).map((g) => ({ id: g.id, title: g.title })),
-    templates,
-  });
 
   const submit = async (value?: string) => {
     const q = (value ?? text).trim();
@@ -72,22 +47,7 @@ export default function AutomationAssistant({
     setDraft(null);
     setMsgs((m) => [...m, { from: "me", text: q }]);
     setThinking(true);
-    let result: any = null;
-    let simple = false;
-    try {
-      if (ai?.configured && ai.canUse) {
-        result = await callFn<any>("draftAutomation", { text: q, context: context() });
-      } else {
-        simple = true;
-        result = parseAutomation(q, LEAD_COLUMNS, groups, templates);
-      }
-    } catch (e: any) {
-      const code = String(e?.message ?? "");
-      simple = true;
-      result = parseAutomation(q, LEAD_COLUMNS, groups, templates);
-      if (/bad-key/.test(code)) setMsgs((m) => [...m, { from: "bot", text: "La clé de l'IA est refusée : j'utilise le mode simple en attendant." }]);
-      else if (/quota/.test(code)) setMsgs((m) => [...m, { from: "bot", text: "Le crédit de l'IA est épuisé : j'utilise le mode simple en attendant." }]);
-    }
+    const result: any = parseAutomation(q, LEAD_COLUMNS, groups, templates);
     setThinking(false);
     if (result?.error) {
       setMsgs((m) => [
@@ -95,8 +55,8 @@ export default function AutomationAssistant({
         {
           from: "bot",
           text: result.needsDesktop
-            ? `${result.error}\n\nCe cas est trop complexe pour ce chat (images, pièces jointes, nouvelle fonction…). Parlez-en à Claude sur votre ordinateur (l'application Claude Code) : il pourra le construire directement dans le CRM, avec vos images.`
-            : result.error,
+            ? result.error
+            : `${result.error}\n\nSi c'est trop compliqué à écrire ici (images, pièces jointes, règle spéciale), dites-le simplement à Claude sur votre ordinateur : il la créera pour vous.`,
         },
       ]);
       return;
@@ -105,7 +65,7 @@ export default function AutomationAssistant({
     setDraft(d);
     setMsgs((m) => [
       ...m,
-      { from: "bot", text: `${d.explanation || describeDraft(d)}${simple ? "\n(mode simple : vérifiez bien avant de créer)" : ""}` },
+      { from: "bot", text: describeDraft(d) },
     ]);
   };
 
@@ -188,7 +148,6 @@ export default function AutomationAssistant({
         <button onClick={() => onManual(null)} className="underline">
           La construire à la main
         </button>
-        {ai && <span>{ai.configured ? "IA activée" : "Mode simple (IA non configurée)"}</span>}
       </div>
     </div>
   );
