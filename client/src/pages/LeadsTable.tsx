@@ -920,6 +920,9 @@ export default function LeadsTable({
       clearTimeout(t);
     };
   }, [fitZoom, leads.length]);
+  const [dragGroup, setDragGroup] = useState<string | null>(null);
+  const [dropGroup, setDropGroup] = useState<string | null>(null);
+  const collapsedBeforeDrag = useRef<Record<string, boolean> | null>(null);
   const [dragCol, setDragCol] = useState<string | null>(null);
   const [overCol, setOverCol] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
@@ -952,6 +955,25 @@ export default function LeadsTable({
     rest.splice(dest, 0, id);
     const byId = Object.fromEntries(groups.map((g) => [g.id, g]));
     onGroupsChange([...rest.map((x) => byId[x]), ...groups.filter((g) => g.archived)]);
+  };
+
+  // Un groupe attrapé par sa ligne de titre prend la place de celui sur lequel on le lâche.
+  const reorderGroups = (dragId: string, targetId: string) => {
+    if (dragId === targetId) return;
+    const arr = [...groups];
+    const from = arr.findIndex((g) => g.id === dragId);
+    const to = arr.findIndex((g) => g.id === targetId);
+    if (from < 0 || to < 0) return;
+    const [g] = arr.splice(from, 1);
+    arr.splice(to, 0, g);
+    onGroupsChange(arr);
+  };
+
+  const endGroupDrag = () => {
+    if (collapsedBeforeDrag.current) setCollapsed(collapsedBeforeDrag.current);
+    collapsedBeforeDrag.current = null;
+    setDragGroup(null);
+    setDropGroup(null);
   };
 
   const addGroupAfter = (id: string) => {
@@ -1020,6 +1042,11 @@ export default function LeadsTable({
             <section
               key={st.id}
               onDragOver={(e) => {
+                if (dragGroup) {
+                  e.preventDefault();
+                  setDropGroup(st.id);
+                  return;
+                }
                 if (!e.dataTransfer.types.includes("text/lead-id")) return;
                 e.preventDefault();
                 setDropOver(st.id);
@@ -1029,13 +1056,33 @@ export default function LeadsTable({
               }}
               onDrop={(e) => {
                 e.preventDefault();
+                if (dragGroup) {
+                  reorderGroups(dragGroup, st.id);
+                  endGroupDrag();
+                  return;
+                }
                 setDropOver(null);
                 const id = e.dataTransfer.getData("text/lead-id");
                 if (id) onGroup(id, st.id);
               }}
-              className={`rounded-lg transition-colors ${dropOver === st.id ? "bg-blue-50 ring-2 ring-[#579bfc]" : ""}`}
+              className={`rounded-lg transition-colors ${dropOver === st.id ? "bg-blue-50 ring-2 ring-[#579bfc]" : ""} ${dropGroup === st.id && dragGroup !== st.id ? "ring-2 ring-[#0073ea] bg-blue-50/60" : ""} ${dragGroup === st.id ? "opacity-50" : ""}`}
             >
-              <div className="group/head flex items-center gap-1 mb-1 px-1 sticky left-0">
+              <div
+                className="group/head flex items-center gap-1 mb-1 px-1 sticky left-0"
+                draggable={!readOnlyGroups}
+                onDragStart={(e) => {
+                  if (readOnlyGroups) return;
+                  e.dataTransfer.setData("text/group-id", st.id);
+                  e.dataTransfer.effectAllowed = "move";
+                  // Comme sur Monday : on replie tous les groupes pendant le déplacement.
+                  collapsedBeforeDrag.current = collapsed;
+                  setTimeout(() => {
+                    setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])));
+                    setDragGroup(st.id);
+                  }, 0);
+                }}
+                onDragEnd={endGroupDrag}
+              >
                 <button
                   onClick={() => setCollapsed((c) => ({ ...c, [st.id]: !c[st.id] }))}
                   className="flex items-center gap-2"
@@ -1069,6 +1116,11 @@ export default function LeadsTable({
                   onDelete={() => onGroupsChange(groups.filter((g) => g.id !== st.id))}
                   onArchive={() => patchGroup(st.id, { archived: true })}
                 />
+                )}
+                {!readOnlyGroups && (
+                  <div className="flex-1 h-8 flex items-center cursor-grab active:cursor-grabbing" title="Attrapez cette ligne pour déplacer le groupe">
+                    <div className="w-full rounded-full" style={{ height: 3, background: `${st.color}55` }} />
+                  </div>
                 )}
               </div>
 
