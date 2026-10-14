@@ -330,7 +330,7 @@ export const isoToYmd = (iso: string) => (iso ? iso.slice(0, 10) : "");
 export const CRM_BOARDS_COLLECTION = "crm_boards";
 export const LEADS_BOARD_ID = "leads";
 
-export type LeadGroup = { id: string; title: string; color: string };
+export type LeadGroup = { id: string; title: string; color: string; archived?: boolean };
 
 export const DEFAULT_LEAD_GROUPS: LeadGroup[] = [
   { id: "nouveaux", title: "📥 Nouveaux leads", color: "#579bfc" },
@@ -352,4 +352,4 @@ export const GROUP_COLORS = [
 ];
 
 export const groupOf = (lead: Lead, groups: LeadGroup[]) =>
-  groups.find((g) => g.id === lead.group) ?? groups[0];
+  groups.find((g) => g.id === lead.group) ?? groups.find((g) => !g.archived) ?? groups[0];

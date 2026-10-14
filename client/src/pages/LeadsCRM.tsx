@@ -29,6 +29,9 @@ import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
 import { LEAD_COLUMNS, cellValue, formulaValue } from "@/lib/crmColumns";
+import { FilterMenu, PersonBar } from "./LeadsFilter";
+import { applyFilters, leadMatchesPerson, type LeadFilter, type Person } from "@/lib/crmFilters";
+import { ROOT_ADMINS, memberName } from "@/lib/crmTeam";
 import LeadsTable, { ColumnsMenu, useVisibleColumns } from "./LeadsTable";
 import DocumentsPanel from "./DocumentsPanel";
 import {
@@ -47,6 +50,7 @@ import {
   leadFromDoc,
   statusInfo,
   isClosedStatus,
+  groupOf,
   telHref,
   todayYmd,
   whatsappHref,
@@ -345,7 +349,9 @@ const LeadSheet = ({
   creating,
   email,
   onClose,
+  focusUpdates,
 }: {
+  focusUpdates?: boolean;
   lead: Lead | null;
   creating: boolean;
   email: string;
@@ -357,6 +363,13 @@ const LeadSheet = ({
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
+
+  // Ouverte depuis la bulle de la ligne : on descend directement aux mises à jour.
+  useEffect(() => {
+    if (!focusUpdates || !lead) return;
+    const t = setTimeout(() => document.getElementById("updates-section")?.scrollIntoView({ block: "start" }), 450);
+    return () => clearTimeout(t);
+  }, [lead?.id, focusUpdates]);
 
   // Ouvrir la fiche = lire le mail reçu : le repère disparaît du tableau.
   useEffect(() => {
@@ -453,16 +466,12 @@ const LeadSheet = ({
   const addNote = () => {
     const text = noteText.trim();
     if (!lead || !text) return;
+    // La mise à jour est enregistrée par la fonction postUpdate, qui prévient
+    // aussi toute l'équipe par e-mail.
     run(async () => {
-      await addLeadNote(lead.id, email, {
-        id: newId(),
-        text,
-        by: email,
-        at: new Date().toISOString(),
-        kind: "note",
-      });
+      await callFn("postUpdate", { kind: "lead", id: lead.id, text });
       setNoteText("");
-    }, "Impossible d'ajouter la note.");
+    }, "Impossible d'ajouter la mise à jour.");
   };
 
   const tel = lead ? telHref(lead.phone) : "";
@@ -644,9 +653,9 @@ const LeadSheet = ({
           )}
 
           {lead && (
-            <div className="pt-3 border-t border-gray-100">
+            <div id="updates-section" className="pt-3 border-t border-gray-100">
               <span className="block text-xs font-semibold text-gray-600 mb-2">
-                Notes et historique
+                Mises à jour et historique (toute l'équipe est prévenue par e-mail)
               </span>
               <textarea
                 value={noteText}
@@ -709,11 +718,18 @@ export default function LeadsCRM({ email }: { email: string }) {
   });
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | LeadStatus>("");
-  const [typeFilter, setTypeFilter] = useState<"" | LeadType>("");
-  const [sourceFilter, setSourceFilter] = useState("");
+  // Personnes proposées dans le filtre « Personne » : l'équipe + les commerciaux de Monday.
+  const people: Person[] = useMemo(() => {
+    const team = Object.entries(ROOT_ADMINS).map(([mail, name]) => ({ key: mail, label: name, emails: [mail] }));
+    const extra = ["Mebarek", "Julien"].map((n) => ({ key: n.toLowerCase(), label: n, emails: [] as string[] }));
+    return [...team, ...extra];
+  }, []);
+  const [filters, setFilters] = useState<LeadFilter[]>([]);
+  const [personKey, setPersonKey] = useState("");
   const [rappelsOnly, setRappelsOnly] = useState(false);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [focusUpdates, setFocusUpdates] = useState(false);
   const [creating, setCreating] = useState(false);
   const [dropOver, setDropOver] = useState<string | null>(null);
   const [visibleCols, setVisibleCols] = useVisibleColumns();
@@ -737,8 +753,11 @@ export default function LeadsCRM({ email }: { email: string }) {
     if (!leads) return [];
     const q = normalize(query.trim());
     return leads.filter((l) => {
-      if (typeFilter && l.type !== typeFilter) return false;
-      if (sourceFilter && l.source !== sourceFilter) return false;
+      if (filters.length && !applyFilters(l, filters)) return false;
+      if (personKey) {
+        const p = people.find((x) => x.key === personKey);
+        if (p && !leadMatchesPerson(l, p)) return false;
+      }
       if (rappelsOnly && !isOverdue(l)) return false;
       if (!q) return true;
       const qDigits = phoneDigitsOf(q);
@@ -749,7 +768,7 @@ export default function LeadsCRM({ email }: { email: string }) {
       );
       return hay.includes(q);
     });
-  }, [leads, query, typeFilter, sourceFilter, rappelsOnly]);
+  }, [leads, query, filters, personKey, people, rappelsOnly]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -763,7 +782,7 @@ export default function LeadsCRM({ email }: { email: string }) {
   );
 
   // Retour en haut de liste quand un filtre change.
-  useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, typeFilter, sourceFilter, rappelsOnly]);
+  useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, filters, personKey, rappelsOnly]);
 
   const rappelsCount = useMemo(() => (leads ?? []).filter(isOverdue).length, [leads]);
   const openLead = leads?.find((l) => l.id === openId) ?? null;
@@ -859,6 +878,46 @@ export default function LeadsCRM({ email }: { email: string }) {
     }
   };
 
+  // Duplication d'un groupe avec ses leads : copie des fiches (sans notes ni
+  // documents) dans le nouveau groupe, par lots.
+  const duplicateLeads = async (fromGroupId: string, toGroupId: string) => {
+    try {
+      const { m, db } = await fs();
+      const src = (leads ?? []).filter((l) => groupOf(l, groups).id === fromGroupId).slice(0, 2000);
+      for (let i = 0; i < src.length; i += 400) {
+        const batch = m.writeBatch(db);
+        for (const l of src.slice(i, i + 400)) {
+          batch.set(m.doc(m.collection(db, CRM_LEADS_COLLECTION)), {
+            name: l.name,
+            phone: l.phone,
+            email: l.email,
+            postalCode: l.postalCode,
+            city: l.city,
+            type: l.type,
+            source: l.source,
+            projet: l.projet,
+            status: l.status,
+            group: toGroupId,
+            rappelLe: l.rappelLe,
+            fields: l.fields,
+            details: l.details,
+            notes: [],
+            mailNonLu: false,
+            docCount: 0,
+            docCats: [],
+            createdAt: m.serverTimestamp(),
+            updatedAt: m.serverTimestamp(),
+            updatedBy: email,
+          });
+        }
+        await batch.commit();
+      }
+    } catch (e) {
+      console.error(e);
+      setError("La duplication des leads a échoué. Réessayez.");
+    }
+  };
+
   const patchFromTable = (id: string, patch: Record<string, unknown>) =>
     patchLead(id, email, patch).catch((e) => {
       console.error(e);
@@ -939,26 +998,8 @@ export default function LeadsCRM({ email }: { email: string }) {
             </button>
           ))}
         </div>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as "" | LeadType)}
-          className="text-xs font-semibold bg-white border border-gray-200 rounded-full px-3 py-1.5"
-        >
-          <option value="">Tous types</option>
-          {LEAD_TYPES.map((t) => (
-            <option key={t}>{t}</option>
-          ))}
-        </select>
-        <select
-          value={sourceFilter}
-          onChange={(e) => setSourceFilter(e.target.value)}
-          className="text-xs font-semibold bg-white border border-gray-200 rounded-full px-3 py-1.5 max-w-[10rem]"
-        >
-          <option value="">Toutes sources</option>
-          {sources.map((s) => (
-            <option key={s}>{s}</option>
-          ))}
-        </select>
+        <FilterMenu filters={filters} onChange={setFilters} />
+        <PersonBar people={people} selected={personKey} onSelect={setPersonKey} meKey={email.toLowerCase()} />
         <button
           onClick={() => setRappelsOnly((v) => !v)}
           className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border ${
@@ -970,13 +1011,13 @@ export default function LeadsCRM({ email }: { email: string }) {
           <BellRing size={12} /> Rappels{rappelsCount ? ` (${rappelsCount})` : ""}
         </button>
         {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
-        {(query || statusFilter || typeFilter || sourceFilter || rappelsOnly) && (
+        {(query || statusFilter || filters.length > 0 || personKey || rappelsOnly) && (
           <button
             onClick={() => {
               setQuery("");
               setStatusFilter("");
-              setTypeFilter("");
-              setSourceFilter("");
+              setFilters([]);
+              setPersonKey("");
               setRappelsOnly(false);
             }}
             className="inline-flex items-center gap-1 text-xs font-semibold text-gray-500"
@@ -1039,7 +1080,11 @@ export default function LeadsCRM({ email }: { email: string }) {
           setVisible={setVisibleCols}
           onGroupsChange={saveGroups}
           onGroup={moveToGroup}
-          onOpen={setOpenId}
+          onDuplicateLeads={duplicateLeads}
+          onOpen={(id, focus) => {
+            setOpenId(id);
+            setFocusUpdates(focus === "updates");
+          }}
           onStatus={moveLead}
           onPatch={patchFromTable}
           onCreate={createFromTable}
@@ -1132,6 +1177,7 @@ export default function LeadsCRM({ email }: { email: string }) {
       )}
 
       <LeadSheet
+        focusUpdates={focusUpdates}
         lead={openLead}
         creating={creating}
         email={email}

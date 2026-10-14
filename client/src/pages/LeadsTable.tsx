@@ -1,10 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  Archive,
   ArrowDown,
   ArrowUp,
   ChevronDown,
   ChevronRight,
+  ChevronsDown,
+  ChevronsDownUp,
+  ChevronsUp,
+  ChevronsUpDown,
   Columns3,
+  Copy,
+  FolderPlus,
+  MessageSquare,
+  MoveVertical,
+  Palette,
+  Pencil,
   GripVertical,
   Mail,
   MessageCircle,
@@ -179,13 +190,18 @@ const LongTextCell = ({ value, onSave }: { value: string; onSave: (v: string) =>
   );
 };
 
-const AddRow = ({ color, onAdd }: { color: string; onAdd: (name: string) => void }) => {
+const AddRow = ({ color, onAdd, focus }: { color: string; onAdd: (name: string) => void; focus?: boolean }) => {
   const [v, setV] = useState("");
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (focus) ref.current?.focus();
+  }, [focus]);
   return (
     <div className="border-t border-gray-100 h-9 flex">
       <div className="sticky left-0 z-10 bg-white flex items-center gap-2 px-2" style={{ borderLeft: `6px solid ${color}`, width: 300 }}>
         <Plus size={14} className="text-gray-400 shrink-0" />
         <input
+          ref={ref}
           value={v}
           onChange={(e) => setV(e.target.value)}
           onKeyDown={(e) => {
@@ -204,94 +220,159 @@ const AddRow = ({ color, onAdd }: { color: string; onAdd: (name: string) => void
 
 const newGroupId = () => `g_${Math.random().toString(36).slice(2, 8)}`;
 
-// Menu d'un groupe : renommer, colorer, déplacer, supprimer.
+// Menu d'un groupe (les trois petits points), comme dans Monday : ajouter un
+// lead, réduire, ajouter/dupliquer/déplacer/renommer/colorer/supprimer/archiver.
 const GroupMenu = ({
   group,
   index,
   total,
   count,
+  collapsed,
+  onToggle,
+  onCollapseAll,
+  onExpandAll,
+  onAddLead,
+  onAddGroup,
+  onDuplicate,
   onChange,
   onMove,
   onDelete,
+  onArchive,
 }: {
   group: LeadGroup;
   index: number;
   total: number;
   count: number;
+  collapsed: boolean;
+  onToggle: () => void;
+  onCollapseAll: () => void;
+  onExpandAll: () => void;
+  onAddLead: () => void;
+  onAddGroup: () => void;
+  onDuplicate: () => void;
   onChange: (patch: Partial<LeadGroup>) => void;
-  onMove: (dir: -1 | 1) => void;
+  onMove: (to: "top" | "up" | "down" | "bottom") => void;
   onDelete: () => void;
+  onArchive: () => void;
 }) => {
+  const [open, setOpen] = useState(false);
+  const [panel, setPanel] = useState<"" | "rename" | "color" | "move">("");
   const [title, setTitle] = useState(group.title);
   useEffect(() => setTitle(group.title), [group.title]);
+  const close = () => {
+    setOpen(false);
+    setPanel("");
+  };
+  const Item = ({ icon: Icon, label, onClick, danger, disabled }: { icon: any; label: string; onClick: () => void; danger?: boolean; disabled?: boolean }) => (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      className={`w-full flex items-center gap-2.5 text-left text-sm px-2.5 py-1.5 rounded-md disabled:opacity-30 ${
+        danger ? "text-red-600 hover:bg-red-50" : "text-gray-700 hover:bg-gray-100"
+      }`}
+    >
+      <Icon size={15} className="shrink-0" /> {label}
+    </button>
+  );
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
       <PopoverTrigger asChild>
         <button
           aria-label="Options du groupe"
-          className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover/head:opacity-100 focus:opacity-100"
+          className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover/head:opacity-100 focus:opacity-100 data-[state=open]:opacity-100"
         >
           <MoreHorizontal size={16} />
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-60 p-3 space-y-3 bg-white text-gray-900 border border-gray-200 shadow-xl" align="start">
-        <div>
-          <span className="block text-[11px] font-semibold text-gray-500 mb-1">Nom du groupe</span>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            onBlur={() => title.trim() && title.trim() !== group.title && onChange({ title: title.trim() })}
-            onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
-            className="w-full text-sm bg-white text-gray-900 border-2 border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-[#579bfc]"
-          />
-        </div>
-        <div>
-          <span className="block text-[11px] font-semibold text-gray-500 mb-1">Couleur</span>
-          <div className="grid grid-cols-6 gap-1.5">
-            {GROUP_COLORS.map((c) => (
-              <button
-                key={c}
-                onClick={() => onChange({ color: c })}
-                aria-label={`Couleur ${c}`}
-                className={`h-6 rounded ${group.color === c ? "ring-2 ring-offset-1 ring-gray-700" : ""}`}
-                style={{ background: c }}
-              />
-            ))}
+      <PopoverContent className="w-64 p-1.5 bg-white text-gray-900 border border-gray-200 shadow-xl" align="start">
+        {panel === "" && (
+          <>
+            <Item icon={Plus} label="Ajouter un lead au groupe" onClick={() => { close(); onAddLead(); }} />
+            <Item icon={collapsed ? ChevronDown : ChevronRight} label={collapsed ? "Développer ce groupe" : "Réduire ce groupe"} onClick={() => { close(); onToggle(); }} />
+            <Item icon={ChevronsDownUp} label="Réduire tous les groupes" onClick={() => { close(); onCollapseAll(); }} />
+            <Item icon={ChevronsUpDown} label="Développer tous les groupes" onClick={() => { close(); onExpandAll(); }} />
+            <div className="my-1 border-t border-gray-100" />
+            <Item icon={FolderPlus} label="Ajouter un groupe" onClick={() => { close(); onAddGroup(); }} />
+            <Item icon={Copy} label="Dupliquer ce groupe" onClick={() => { close(); onDuplicate(); }} />
+            <Item icon={MoveVertical} label="Déplacer ce groupe" onClick={() => setPanel("move")} />
+            <Item icon={Pencil} label="Renommer ce groupe" onClick={() => setPanel("rename")} />
+            <Item icon={Palette} label="Modifier la couleur du groupe" onClick={() => setPanel("color")} />
+            <div className="my-1 border-t border-gray-100" />
+            <Item icon={Archive} label="Archiver ce groupe" onClick={() => { close(); onArchive(); }} disabled={total <= 1} />
+            <Item
+              icon={Trash2}
+              label="Supprimer ce groupe"
+              danger
+              disabled={total <= 1}
+              onClick={() => {
+                const msg = count
+                  ? `Supprimer « ${group.title} » ? Ses ${count} lead${count > 1 ? "s" : ""} passeront dans le premier groupe.`
+                  : `Supprimer le groupe « ${group.title} » ?`;
+                if (confirm(msg)) {
+                  close();
+                  onDelete();
+                }
+              }}
+            />
+          </>
+        )}
+        {panel === "rename" && (
+          <div className="p-1.5">
+            <span className="block text-[11px] font-semibold text-gray-500 mb-1">Nom du groupe</span>
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && title.trim()) {
+                  onChange({ title: title.trim() });
+                  close();
+                }
+              }}
+              className="w-full text-sm bg-white text-gray-900 border-2 border-gray-200 rounded-lg px-2 py-1.5 outline-none focus:border-[#579bfc]"
+            />
+            <button
+              onClick={() => {
+                if (title.trim()) onChange({ title: title.trim() });
+                close();
+              }}
+              className="mt-2 w-full text-sm font-bold text-white bg-[#2b5a8f] rounded-lg py-1.5"
+            >
+              Renommer
+            </button>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button
-            disabled={index === 0}
-            onClick={() => onMove(-1)}
-            className="flex-1 inline-flex items-center justify-center gap-1 text-xs font-semibold bg-white text-gray-700 border border-gray-200 rounded-lg py-1.5 disabled:opacity-30"
-          >
-            <ArrowUp size={13} /> Monter
-          </button>
-          <button
-            disabled={index === total - 1}
-            onClick={() => onMove(1)}
-            className="flex-1 inline-flex items-center justify-center gap-1 text-xs font-semibold bg-white text-gray-700 border border-gray-200 rounded-lg py-1.5 disabled:opacity-30"
-          >
-            <ArrowDown size={13} /> Descendre
-          </button>
-        </div>
-        <button
-          disabled={total <= 1}
-          onClick={() => {
-            const msg = count
-              ? `Supprimer « ${group.title} » ? Ses ${count} lead${count > 1 ? "s" : ""} passeront dans le premier groupe.`
-              : `Supprimer le groupe « ${group.title} » ?`;
-            if (confirm(msg)) onDelete();
-          }}
-          className="w-full inline-flex items-center justify-center gap-1.5 text-xs font-semibold bg-white text-red-600 border border-red-200 rounded-lg py-1.5 disabled:opacity-30"
-        >
-          <Trash2 size={13} /> Supprimer le groupe
-        </button>
+        )}
+        {panel === "color" && (
+          <div className="p-1.5">
+            <span className="block text-[11px] font-semibold text-gray-500 mb-1">Couleur du groupe</span>
+            <div className="grid grid-cols-6 gap-1.5">
+              {GROUP_COLORS.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => {
+                    onChange({ color: c });
+                    close();
+                  }}
+                  aria-label={`Couleur ${c}`}
+                  className={`h-6 rounded ${group.color === c ? "ring-2 ring-offset-1 ring-gray-700" : ""}`}
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+        {panel === "move" && (
+          <div className="p-1">
+            <Item icon={ChevronsUp} label="Tout en haut" disabled={index === 0} onClick={() => { close(); onMove("top"); }} />
+            <Item icon={ArrowUp} label="Monter d'un cran" disabled={index === 0} onClick={() => { close(); onMove("up"); }} />
+            <Item icon={ArrowDown} label="Descendre d'un cran" disabled={index === total - 1} onClick={() => { close(); onMove("down"); }} />
+            <Item icon={ChevronsDown} label="Tout en bas" disabled={index === total - 1} onClick={() => { close(); onMove("bottom"); }} />
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
 };
-
 
 const colsTemplate = (cols: LeadColumn[]) => cols.map((c) => `${c.width}px`).join(" ");
 
@@ -458,17 +539,20 @@ export default function LeadsTable({
   onGroup,
   onPatch,
   onCreate,
+  onDuplicateLeads,
   visible,
   setVisible,
 }: {
   leads: Lead[];
   groups: LeadGroup[];
   onGroupsChange: (groups: LeadGroup[]) => void;
-  onOpen: (id: string) => void;
+  onOpen: (id: string, focus?: "updates") => void;
   onStatus: (id: string, status: any) => void;
   onGroup: (id: string, groupId: string) => void;
   onPatch: (id: string, patch: Record<string, unknown>) => void;
   onCreate: (groupId: string, name: string) => void;
+  // Copie les leads d'un groupe dans un autre (duplication d'un groupe).
+  onDuplicateLeads: (fromGroupId: string, toGroupId: string) => void;
   visible: string[];
   setVisible: (v: string[]) => void;
 }) {
@@ -480,18 +564,83 @@ export default function LeadsTable({
   const template = colsTemplate(cols);
   const totalWidth = cols.reduce((n, c) => n + c.width, 0) + 8;
 
+  const [focusAdd, setFocusAdd] = useState<string | null>(null);
+  const visibleGroups = groups.filter((g) => !g.archived);
+  const archived = groups.filter((g) => g.archived);
+
   const patchGroup = (id: string, patch: Partial<LeadGroup>) =>
     onGroupsChange(groups.map((g) => (g.id === id ? { ...g, ...patch } : g)));
-  const moveGroup = (i: number, dir: -1 | 1) => {
+
+  const moveGroup = (id: string, to: "top" | "up" | "down" | "bottom") => {
+    const vis = groups.filter((g) => !g.archived).map((g) => g.id);
+    const pos = vis.indexOf(id);
+    if (pos < 0) return;
+    const rest = vis.filter((x) => x !== id);
+    const dest = to === "top" ? 0 : to === "bottom" ? rest.length : to === "up" ? Math.max(0, pos - 1) : Math.min(rest.length, pos + 1);
+    rest.splice(dest, 0, id);
+    const byId = Object.fromEntries(groups.map((g) => [g.id, g]));
+    onGroupsChange([...rest.map((x) => byId[x]), ...groups.filter((g) => g.archived)]);
+  };
+
+  const addGroupAfter = (id: string) => {
+    const i = groups.findIndex((g) => g.id === id);
+    const g: LeadGroup = { id: newGroupId(), title: "Nouveau groupe", color: GROUP_COLORS[groups.length % GROUP_COLORS.length] };
     const next = [...groups];
-    [next[i], next[i + dir]] = [next[i + dir], next[i]];
+    next.splice(i + 1, 0, g);
     onGroupsChange(next);
+  };
+
+  const duplicateGroup = (src: LeadGroup, count: number) => {
+    const copyLeads = count > 0 && confirm(`Dupliquer aussi les ${count} lead${count > 1 ? "s" : ""} de « ${src.title} » ?\n\nOK = avec les leads, Annuler = groupe vide.`);
+    const copy: LeadGroup = { id: newGroupId(), title: `${src.title} (copie)`, color: src.color };
+    const i = groups.findIndex((g) => g.id === src.id);
+    const next = [...groups];
+    next.splice(i + 1, 0, copy);
+    onGroupsChange(next);
+    if (copyLeads) onDuplicateLeads(src.id, copy.id);
   };
 
   return (
     <div className="overflow-x-auto pb-4">
       <div style={{ minWidth: totalWidth }} className="space-y-6">
-        {groups.map((st, gi) => {
+        <div className="sticky left-0 flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])))}
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-200"
+          >
+            <ChevronsDownUp size={13} /> Réduire tous les groupes
+          </button>
+          <button
+            onClick={() => setCollapsed({})}
+            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-200"
+          >
+            <ChevronsUpDown size={13} /> Développer tout
+          </button>
+          {archived.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-200">
+                  <Archive size={13} /> Groupes archivés ({archived.length})
+                </button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="w-64 p-2 bg-white text-gray-900 border border-gray-200 shadow-xl">
+                {archived.map((g) => (
+                  <div key={g.id} className="flex items-center gap-2 px-1.5 py-1.5">
+                    <span className="w-3 h-3 rounded-sm shrink-0" style={{ background: g.color }} />
+                    <span className="flex-1 text-sm truncate">{g.title}</span>
+                    <button
+                      onClick={() => patchGroup(g.id, { archived: false })}
+                      className="text-xs font-bold text-[#2b5a8f]"
+                    >
+                      Restaurer
+                    </button>
+                  </div>
+                ))}
+              </PopoverContent>
+            </Popover>
+          )}
+        </div>
+        {visibleGroups.map((st, gi) => {
           const rows = leads.filter((l) => groupOf(l, groups).id === st.id);
           const isCollapsed = collapsed[st.id];
           const limit = limits[st.id] ?? GROUP_PAGE;
@@ -529,11 +678,23 @@ export default function LeadsTable({
                 <GroupMenu
                   group={st}
                   index={gi}
-                  total={groups.length}
+                  total={visibleGroups.length}
                   count={rows.length}
+                  collapsed={!!isCollapsed}
+                  onToggle={() => setCollapsed((c) => ({ ...c, [st.id]: !c[st.id] }))}
+                  onCollapseAll={() => setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])))}
+                  onExpandAll={() => setCollapsed({})}
+                  onAddLead={() => {
+                    setCollapsed((c) => ({ ...c, [st.id]: false }));
+                    setFocusAdd(null);
+                    setTimeout(() => setFocusAdd(st.id), 50);
+                  }}
+                  onAddGroup={() => addGroupAfter(st.id)}
+                  onDuplicate={() => duplicateGroup(st, rows.length)}
                   onChange={(patch) => patchGroup(st.id, patch)}
-                  onMove={(dir) => moveGroup(gi, dir)}
+                  onMove={(to) => moveGroup(st.id, to)}
                   onDelete={() => onGroupsChange(groups.filter((g) => g.id !== st.id))}
+                  onArchive={() => patchGroup(st.id, { archived: true })}
                 />
               </div>
 
@@ -584,6 +745,23 @@ export default function LeadsTable({
                             <div className="flex-1 min-w-0 h-full">
                               <EditableCell value={l.name} placeholder="Sans nom" onSave={(v) => onPatch(l.id, { name: v })} />
                             </div>
+                            {(() => {
+                              const n = l.notes.filter((x) => x.kind === "note" || x.kind === "mail").length;
+                              return (
+                                <button
+                                  onClick={() => onOpen(l.id, "updates")}
+                                  title={n ? `${n} mise${n > 1 ? "s" : ""} à jour : cliquez pour lire ou écrire` : "Ajouter une mise à jour"}
+                                  className={`shrink-0 relative p-1 rounded ${n ? "text-[#579bfc]" : "text-gray-300 hover:text-gray-500"}`}
+                                >
+                                  <MessageSquare size={16} fill={n ? "currentColor" : "none"} />
+                                  {n > 0 && (
+                                    <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] px-[3px] rounded-full bg-[#ff5ac4] text-white text-[9px] font-bold flex items-center justify-center">
+                                      {n > 99 ? "99+" : n}
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })()}
                             {l.mailNonLu && (
                               <button
                                 onClick={() => onOpen(l.id)}
@@ -634,7 +812,7 @@ export default function LeadsTable({
                     </button>
                   )}
 
-                  <AddRow color={st.color} onAdd={(name) => onCreate(st.id, name)} />
+                  <AddRow color={st.color} focus={focusAdd === st.id} onAdd={(name) => onCreate(st.id, name)} />
                 </div>
               )}
             </section>

@@ -14,6 +14,8 @@ import LeadsCRM from "./LeadsCRM";
 import ArtisansCRM from "./ArtisansCRM";
 import StatsCRM from "./StatsCRM";
 import DocumentsPage from "./DocumentsPage";
+import TeamPage from "./TeamPage";
+import { memberName } from "@/lib/crmTeam";
 import GonflageCRM from "./GonflageCRM";
 import AdminShell, { initialPage, rememberPage, type AdminPage } from "./AdminShell";
 
@@ -133,7 +135,12 @@ function useNoIndex() {
   }, []);
 }
 
-type FirebaseUser = { email: string | null } | null;
+type FirebaseUser = {
+  email: string | null;
+  displayName?: string | null;
+  getIdToken: (forceRefresh?: boolean) => Promise<string>;
+  getIdTokenResult: () => Promise<{ claims: Record<string, unknown> }>;
+} | null;
 
 // Message clair selon l'erreur Firebase (surtout la configuration manquante).
 function authErrorMessage(e: any): string {
@@ -743,6 +750,7 @@ export default function OutilDevis() {
     "loading" | "signed-out" | "authorized" | "denied"
   >("loading");
   const [email, setEmail] = useState("");
+  const [userName, setUserName] = useState("");
   const [authApi, setAuthApi] = useState<any>(null);
   const [error, setError] = useState("");
   const [page, setPage] = useState<AdminPage>(initialPage);
@@ -771,18 +779,39 @@ export default function OutilDevis() {
       // Connexion uniquement par pop-up (voir signIn) : pas de
       // getRedirectResult, qui pouvait resurgir une vieille erreur de
       // redirection restée coincée dans le stockage du navigateur.
-      unsub = auth.onAuthStateChanged(authInstance, (user: FirebaseUser) => {
+      unsub = auth.onAuthStateChanged(authInstance, async (user: FirebaseUser) => {
         const mail = (user?.email ?? "").toLowerCase();
-        if (!mail) {
+        if (!user || !mail) {
           setStatus("signed-out");
-        } else if (ALLOWED_EMAILS.includes(mail)) {
+          return;
+        }
+        // Accès : administrateur d'origine, ou personne ajoutée à l'équipe (claim
+        // crm). Une personne tout juste ajoutée reçoit son claim à la première
+        // connexion (fonction claimTeamAccess).
+        let ok = ALLOWED_EMAILS.includes(mail);
+        if (!ok) {
+          try {
+            ok = (await user.getIdTokenResult()).claims.crm === true;
+            if (!ok) {
+              const { getFunctions, httpsCallable } = await import("firebase/functions");
+              const r = await httpsCallable(getFunctions(app, "europe-west9"), "claimTeamAccess")();
+              if ((r.data as { ok?: boolean }).ok) {
+                await user.getIdToken(true);
+                ok = true;
+              }
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        }
+        setEmail(mail);
+        setUserName(memberName(mail, user.displayName ?? ""));
+        if (ok) {
           // Prépare tout de suite la base du CRM (cache local) pour que les
           // tableaux s'affichent sans attendre.
           import("@/lib/crmDb").then((m) => m.crmFirestore()).catch(() => {});
-          setEmail(mail);
           setStatus("authorized");
         } else {
-          setEmail(mail);
           setStatus("denied");
         }
       });
@@ -825,11 +854,12 @@ export default function OutilDevis() {
     }
     const narrow = (node: React.ReactNode) => <div className="max-w-2xl mx-auto">{node}</div>;
     return (
-      <AdminShell email={email} page={page} onNavigate={navigate} onSignOut={signOut}>
+      <AdminShell email={email} userName={userName} page={page} onNavigate={navigate} onSignOut={signOut}>
         {page === "leads" && <LeadsCRM email={email} />}
         {page === "artisans" && <ArtisansCRM email={email} />}
         {page === "stats" && <StatsCRM />}
         {page === "documents" && <DocumentsPage />}
+        {page === "equipe" && narrow(<TeamPage email={email} />)}
         {page === "devis" && <DevisPAC email={email} />}
         {page === "marges" && narrow(<MargesPremi />)}
         {page === "clients" && narrow(<ClientsCRM email={email} />)}

@@ -10,6 +10,7 @@ import {
   Gauge,
   Globe,
   HardHat,
+  UserPlus,
   LogOut,
   Menu,
   Percent,
@@ -19,6 +20,8 @@ import {
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LogoIP5 } from "./site-chrome";
 import MailSyncStatus from "./MailSyncStatus";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { initials } from "@/lib/crmTeam";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Coquille de /admin façon Monday : menu à gauche (groupes repliables, un
@@ -32,6 +35,7 @@ export type AdminPage =
   | "artisans"
   | "stats"
   | "documents"
+  | "equipe"
   | "devis"
   | "marges"
   | "gonflage"
@@ -52,6 +56,7 @@ const NAV: { title: string; items: NavItem[] }[] = [
       { key: "artisans", label: "Artisans", icon: HardHat },
       { key: "documents", label: "Documents", icon: FolderOpen },
       { key: "stats", label: "Statistiques", icon: BarChart3 },
+      { key: "equipe", label: "Équipe", icon: UserPlus },
     ],
   },
   {
@@ -79,6 +84,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   artisans: "Artisans",
   stats: "Statistiques",
   documents: "Documents",
+  equipe: "Équipe",
   devis: "Devis PAC",
   marges: "Marges Prémi",
   gonflage: "Station de gonflage",
@@ -204,14 +210,50 @@ const Menu_ = ({
   );
 };
 
+// Pastille « Vous êtes connecté en tant que … » (barre du haut).
+const UserChip = ({ name, email, onNavigate, onSignOut }: { name: string; email: string; onNavigate: (p: AdminPage) => void; onSignOut: () => void }) => (
+  <Popover>
+    <PopoverTrigger asChild>
+      <button className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border border-gray-200 bg-white hover:bg-gray-50">
+        <span className="w-7 h-7 rounded-full bg-[#2b5a8f] text-white text-xs font-bold flex items-center justify-center">
+          {initials(name)}
+        </span>
+        <span className="hidden md:block text-left leading-tight">
+          <span className="block text-[10px] text-gray-400">Connecté en tant que</span>
+          <span className="block text-xs font-bold text-gray-800">{name}</span>
+        </span>
+      </button>
+    </PopoverTrigger>
+    <PopoverContent align="end" className="w-64 p-3 bg-white text-gray-900 border border-gray-200 shadow-xl">
+      <p className="text-xs text-gray-400">Vous êtes connecté en tant que</p>
+      <p className="text-sm font-bold text-gray-900">{name}</p>
+      <p className="text-xs text-gray-500 mb-3 truncate">{email}</p>
+      <button
+        onClick={() => onNavigate("equipe")}
+        className="w-full text-left text-sm font-semibold text-gray-700 hover:bg-gray-100 rounded-lg px-2 py-1.5"
+      >
+        Équipe et accès
+      </button>
+      <button
+        onClick={onSignOut}
+        className="w-full text-left text-sm font-semibold text-red-600 hover:bg-red-50 rounded-lg px-2 py-1.5"
+      >
+        Se déconnecter
+      </button>
+    </PopoverContent>
+  </Popover>
+);
+
 export default function AdminShell({
   email,
+  userName,
   page,
   onNavigate,
   onSignOut,
   children,
 }: {
   email: string;
+  userName: string;
   page: AdminPage;
   onNavigate: (p: AdminPage) => void;
   onSignOut: () => void;
@@ -285,6 +327,7 @@ export default function AdminShell({
           </button>
           <h1 className="text-lg font-bold text-gray-900">{PAGE_TITLES[page]}</h1>
           <MailSyncStatus email={email} />
+          <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
         </header>
         <main className="flex-1 min-w-0 p-4 md:p-6">{children}</main>
       </div>
