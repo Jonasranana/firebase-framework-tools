@@ -2630,3 +2630,31 @@ Object.assign(
     GMAIL_SENDER_EMAIL,
   }),
 );
+
+// ── Automatisations du CRM (functions/crmAutomations.js) ─────────────────
+Object.assign(
+  exports,
+  require("./crmAutomations")({
+    db,
+    logger,
+    google,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+    GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET,
+    GMAIL_REFRESH_TOKEN,
+    GMAIL_SENDER_EMAIL,
+    TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN,
+    CRM_ALLOWED_EMAILS,
+    EMAIL_RE,
+    SITE_URL,
+    MONDAY_EMAIL_TEMPLATES,
+    buildRawMessage,
+    buildRawMessageWithAttachment,
+    buildBrandedEmailShell,
+    escapeHtmlText,
+    sendTwilioSms,
+    toE164French,
+    normalizeLabel,
+  }),
+);
