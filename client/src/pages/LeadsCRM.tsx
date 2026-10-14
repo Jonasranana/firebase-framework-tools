@@ -1331,6 +1331,7 @@ export default function LeadsCRM({
           fitZoom={zoom}
           onMoveColumn={(k, t) => columnsApi.move(k, t)}
           onRenameColumn={(k, title) => columnsApi.rename(k, title)}
+          onResizeColumn={(k, w) => columnsApi.setWidth(k, w)}
           onOpen={(id, focus) => {
             if (focus === "updates") {
               setChatId(id);
