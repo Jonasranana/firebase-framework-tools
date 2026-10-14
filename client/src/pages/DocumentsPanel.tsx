@@ -16,7 +16,6 @@ import {
   DOC_CATEGORIES,
   REQUIRED_ARTISAN_DOCS,
   REQUIRED_LEAD_DOCS,
-  compressImage,
   documentFromDoc,
   formatSize,
   guessCategory,
@@ -72,6 +71,7 @@ export default function DocumentsPanel({
             if (cancelled) return;
             const list = snap.docs
               .map((d) => documentFromDoc(d.id, d.data()))
+              .filter((d) => !d.deletedAt)
               .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
             setDocs(list);
           },
@@ -115,7 +115,7 @@ export default function DocumentsPanel({
       setUploads((u) => u.map((x) => (x.key === key ? { ...x, error: msg } : x)));
     try {
       if (original.size > 50 * 1024 * 1024) return fail("Plus de 50 Mo");
-      const file = await compressImage(original);
+      const file = original; // jamais de compression : le document reste exactement tel qu'envoyé
       const app = await getEspaceProApp();
       const st = await import("firebase/storage");
       const { m, db } = await crmFirestore();
@@ -134,8 +134,11 @@ export default function DocumentsPanel({
           () => resolve(),
         );
       });
+      // Vérifie que le fichier est bien arrivé en entier avant de l'ajouter à l'index.
+      const meta = await st.getMetadata(ref);
+      if (Number(meta.size) !== file.size) throw new Error(`Fichier incomplet (${meta.size}/${file.size})`);
       const url = await st.getDownloadURL(ref);
-      await m.addDoc(m.collection(db, CRM_DOCUMENTS_COLLECTION), {
+      const entry = {
         ownerType,
         ownerId,
         ownerName,
@@ -148,7 +151,20 @@ export default function DocumentsPanel({
         source: "upload",
         uploadedBy: email,
         createdAt: m.serverTimestamp(),
-      });
+      };
+      // Trois essais pour ranger le fichier dans l'index (coupure réseau passagère).
+      let lastErr: unknown;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          await m.addDoc(m.collection(db, CRM_DOCUMENTS_COLLECTION), entry);
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+          await new Promise((r) => setTimeout(r, 800 * attempt));
+        }
+      }
+      if (lastErr) throw lastErr;
       setUploads((u) => u.filter((x) => x.key !== key));
     } catch (e) {
       console.error(e);
@@ -177,19 +193,15 @@ export default function DocumentsPanel({
     }
   };
 
+  // Jamais d'effacement direct : le document passe à la corbeille (restaurable 30 jours).
   const remove = async (d: CrmDocument) => {
-    if (!confirm(`Supprimer « ${d.name} » ?`)) return;
+    if (!confirm(`Mettre « ${d.name} » à la corbeille ?\n\nIl reste récupérable pendant 30 jours.`)) return;
     try {
-      const app = await getEspaceProApp();
-      const st = await import("firebase/storage");
       const { m, db } = await crmFirestore();
-      await st.deleteObject(st.ref(st.getStorage(app), d.path)).catch((e: any) => {
-        if (e?.code !== "storage/object-not-found") throw e;
-      });
-      await m.deleteDoc(m.doc(db, CRM_DOCUMENTS_COLLECTION, d.id));
+      await m.updateDoc(m.doc(db, CRM_DOCUMENTS_COLLECTION, d.id), { deletedAt: m.serverTimestamp(), deletedBy: email });
     } catch (e) {
       console.error(e);
-      setError("Échec de la suppression.");
+      setError("Échec : le document n'a pas été déplacé.");
     }
   };
 

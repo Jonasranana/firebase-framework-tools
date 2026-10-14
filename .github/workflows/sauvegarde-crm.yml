@@ -1,0 +1,53 @@
+name: Sauvegarde et vérification du CRM
+
+# Chaque nuit : 1) copie de toutes les données du CRM dans Storage (backups/AAAA-MM-JJ/, 30 jours
+# conservés), 2) vérification que tous les documents et fichiers sont bien là. En cas de problème
+# (fichier manquant, sauvegarde impossible) le workflow passe au rouge et GitHub envoie un e-mail.
+# Lancement manuel possible ; « essai à blanc » = compte sans rien écrire.
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Essai à blanc (n'écrit rien)"
+        type: boolean
+        default: false
+      with_monday:
+        description: "Inclure aussi l'archive Monday dans la sauvegarde"
+        type: boolean
+        default: false
+
+concurrency:
+  group: sauvegarde-crm
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+      - name: Sauvegarde
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+          WITH_MONDAY: ${{ github.event_name == 'workflow_dispatch' && inputs.with_monday && '1' || '0' }}
+        run: node scripts/backup-crm.mjs
+      - name: Vérification d'intégrité
+        if: always()
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+        run: node scripts/check-crm-integrity.mjs
