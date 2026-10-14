@@ -304,6 +304,141 @@ function BoardView({ board, onBack, email }: { board: MBoard; onBack: () => void
   );
 }
 
+// Liste des tableaux : statut, espace de travail, filtre par nom, tri
+// (lignes, fichiers, nom) et regroupement par espace / dossier Monday.
+const lines = (b: MBoard) => b.itemsArchived ?? b.itemsCount ?? 0;
+const SORTS: Record<string, { label: string; fn: (a: MBoard, b: MBoard) => number }> = {
+  lignes: { label: "Plus de lignes", fn: (a, b) => lines(b) - lines(a) },
+  fichiers: { label: "Plus de fichiers", fn: (a, b) => (b.filesCount ?? 0) - (a.filesCount ?? 0) || lines(b) - lines(a) },
+  nom: { label: "Nom (A → Z)", fn: (a, b) => a.name.localeCompare(b.name, "fr") },
+  moins: { label: "Moins de lignes", fn: (a, b) => lines(a) - lines(b) },
+};
+const fmtN = (n: number) => n.toLocaleString("fr-FR");
+
+function BoardList({ boards, onOpen }: { boards: MBoard[]; onOpen: (b: MBoard) => void }) {
+  const [state, setState] = useState("active");
+  const [ws, setWs] = useState("");
+  const [name, setName] = useState("");
+  const [sort, setSort] = useState("lignes");
+  const [group, setGroup] = useState(true);
+  const [hideEmpty, setHideEmpty] = useState(true);
+
+  const total = useMemo(() => ({
+    boards: boards.length,
+    lines: boards.reduce((n, b) => n + lines(b), 0),
+    files: boards.reduce((n, b) => n + (b.filesCount ?? 0), 0),
+    done: boards.filter((b) => b.complete).length,
+  }), [boards]);
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: boards.length };
+    for (const b of boards) c[b.state] = (c[b.state] ?? 0) + 1;
+    return c;
+  }, [boards]);
+  const workspaces = useMemo(() => Array.from(new Set(boards.map((b) => b.workspace || "Sans espace"))).sort((a, b) => a.localeCompare(b, "fr")), [boards]);
+
+  const list = useMemo(() => {
+    const n = norm(name.trim());
+    return boards
+      .filter((b) => (state === "all" || b.state === state)
+        && (!ws || (b.workspace || "Sans espace") === ws)
+        && (!hideEmpty || lines(b) > 0)
+        && (!n || norm(`${b.name} ${b.folder ?? ""}`).includes(n)))
+      .sort(SORTS[sort].fn);
+  }, [boards, state, ws, name, sort, hideEmpty]);
+
+  const sections = useMemo(() => {
+    if (!group) return [{ key: "", title: "", boards: list }];
+    const map = new Map<string, MBoard[]>();
+    for (const b of list) {
+      const k = [b.workspace || "Sans espace", b.folder].filter(Boolean).join(" › ");
+      map.set(k, [...(map.get(k) ?? []), b]);
+    }
+    return Array.from(map, ([key, bs]) => ({ key, title: key, boards: bs }))
+      .sort((a, b) => b.boards.reduce((n, x) => n + lines(x), 0) - a.boards.reduce((n, x) => n + lines(x), 0));
+  }, [list, group]);
+
+  const select = "text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2.5 py-2";
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          ["Tableaux", fmtN(total.boards)],
+          ["Lignes", fmtN(total.lines)],
+          ["Fichiers", fmtN(total.files)],
+          ["Copie terminée", `${fmtN(total.done)} / ${fmtN(total.boards)}`],
+        ].map(([k, v]) => (
+          <div key={k} className="bg-white rounded-xl border border-gray-200 px-4 py-3">
+            <div className="text-xs text-gray-500">{k}</div>
+            <div className="text-lg font-bold text-gray-900">{v}</div>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap gap-1.5">
+        {["active", "archived", "deleted", "all"].map((st) => (counts[st] ?? 0) > 0 && (
+          <button key={st} onClick={() => setState(st)} className={`text-sm font-semibold rounded-full px-3.5 py-1.5 border ${state === st ? "bg-[#0073ea] text-white border-[#0073ea]" : "bg-white text-gray-700 border-gray-300 hover:border-gray-400"}`}>
+            {st === "all" ? "Tous" : STATE_LABEL[st]} <span className="opacity-70">({counts[st]})</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Filtrer les tableaux par nom…" className="w-full pl-8 pr-3 py-2 text-sm bg-white text-gray-900 border border-gray-300 rounded-md" />
+        </div>
+        <select value={ws} onChange={(e) => setWs(e.target.value)} className={select} aria-label="Espace de travail">
+          <option value="">Tous les espaces</option>
+          {workspaces.map((w) => <option key={w}>{w}</option>)}
+        </select>
+        <select value={sort} onChange={(e) => setSort(e.target.value)} className={select} aria-label="Trier">
+          {Object.entries(SORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+        </select>
+        <label className="flex items-center gap-1.5 text-sm text-gray-700">
+          <input type="checkbox" checked={group} onChange={(e) => setGroup(e.target.checked)} /> Regrouper par dossier
+        </label>
+        <label className="flex items-center gap-1.5 text-sm text-gray-700">
+          <input type="checkbox" checked={hideEmpty} onChange={(e) => setHideEmpty(e.target.checked)} /> Masquer les vides
+        </label>
+      </div>
+
+      <p className="text-xs text-gray-500">{fmtN(list.length)} tableau{list.length > 1 ? "x" : ""} affiché{list.length > 1 ? "s" : ""}</p>
+      {list.length === 0 && <p className="text-sm text-gray-400 py-6 text-center">Aucun tableau ne correspond.</p>}
+
+      {sections.map((sec) => (
+        <section key={sec.key}>
+          {sec.title && (
+            <h3 className="text-sm font-bold text-gray-700 mb-2 flex items-baseline gap-2">
+              {sec.title}
+              <span className="text-xs font-normal text-gray-400">{sec.boards.length} tableau{sec.boards.length > 1 ? "x" : ""} · {fmtN(sec.boards.reduce((n, b) => n + lines(b), 0))} lignes</span>
+            </h3>
+          )}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {sec.boards.map((b) => (
+              <button key={b.id} onClick={() => onOpen(b)} className="text-left bg-white rounded-xl border border-gray-200 hover:border-[#0073ea] hover:shadow p-3 shadow-sm transition">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="text-sm font-bold text-gray-900 truncate">{b.name}</div>
+                  {state === "all" && b.state !== "active" && (
+                    <span className="shrink-0 text-[10px] font-semibold uppercase text-gray-500 bg-gray-100 rounded px-1.5 py-0.5">{b.state === "archived" ? "Archivé" : "Supprimé"}</span>
+                  )}
+                </div>
+                <div className="mt-2 flex gap-3 text-xs text-gray-600">
+                  <span><b className="text-gray-900">{fmtN(lines(b))}</b> lignes</span>
+                  <span><b className="text-gray-900">{fmtN(b.filesCount ?? 0)}</b> fichiers</span>
+                </div>
+                {!group && (b.workspace || b.folder) && (
+                  <div className="text-[11px] text-gray-400 mt-1 truncate">{[b.workspace, b.folder].filter(Boolean).join(" › ")}</div>
+                )}
+                {!b.complete && <div className="text-[11px] text-orange-600 mt-1">Copie en cours…</div>}
+              </button>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  );
+}
+
 export default function ArchivesMonday({ email = "" }: { email?: string }) {
   const [boards, setBoards] = useState<MBoard[] | null>(null);
   const [current, setCurrent] = useState<MBoard | null>(null);
@@ -342,9 +477,8 @@ export default function ArchivesMonday({ email = "" }: { email?: string }) {
   if (!boards) return <Loader2 className="animate-spin text-gray-400 mx-auto my-10" />;
   if (current) return <BoardView board={current} onBack={() => setCurrent(null)} email={email} />;
 
-  const states = ["active", "archived", "deleted"];
   return (
-    <div className="space-y-4 max-w-5xl mx-auto">
+    <div className="space-y-4 max-w-6xl mx-auto">
       <div>
         <h2 className="text-xl font-extrabold text-gray-900">📦 Archives Monday</h2>
         <p className="text-sm text-gray-500">Copie complète de Monday, en lecture seule : colonnes, étiquettes, commentaires et fichiers.</p>
@@ -353,7 +487,7 @@ export default function ArchivesMonday({ email = "" }: { email?: string }) {
         onSubmit={(e) => (e.preventDefault(), searchAll())}
         className="flex gap-2"
       >
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher dans tous les tableaux : nom, e-mail ou téléphone…" className="flex-1 text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-3 py-2" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Rechercher un client dans tous les tableaux : nom, e-mail ou téléphone…" className="flex-1 text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-3 py-2" />
         <button className="text-sm font-semibold text-white bg-[#0073ea] rounded-md px-4">{searching ? "…" : "Chercher"}</button>
       </form>
       {hits && (
@@ -370,28 +504,11 @@ export default function ArchivesMonday({ email = "" }: { email?: string }) {
           })}
         </div>
       )}
-      {boards.length === 0 && <p className="text-sm text-gray-400 py-8 text-center">L'archive n'est pas encore remplie.</p>}
-      {states.map((st) => {
-        const list = boards.filter((b) => b.state === st).sort((a, b) => (b.itemsArchived ?? b.itemsCount) - (a.itemsArchived ?? a.itemsCount));
-        if (!list.length) return null;
-        return (
-          <section key={st}>
-            <h3 className="text-sm font-bold text-gray-600 mb-2">{STATE_LABEL[st]} ({list.length})</h3>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {list.map((b) => (
-                <button key={b.id} onClick={() => setCurrent(b)} className="text-left bg-white rounded-xl border border-gray-200 hover:border-[#0073ea] p-3 shadow-sm">
-                  <div className="text-sm font-bold text-gray-900 truncate">{b.name}</div>
-                  <div className="text-xs text-gray-500 mt-0.5">
-                    {b.itemsArchived ?? b.itemsCount} lignes{b.filesCount ? ` · ${b.filesCount} fichiers` : ""}
-                    {b.workspace ? ` · ${b.workspace}` : ""}
-                  </div>
-                  {!b.complete && <div className="text-[11px] text-orange-600 mt-1">Copie en cours…</div>}
-                </button>
-              ))}
-            </div>
-          </section>
-        );
-      })}
+      {boards.length === 0 ? (
+        <p className="text-sm text-gray-400 py-8 text-center">L'archive n'est pas encore remplie.</p>
+      ) : (
+        <BoardList boards={boards} onOpen={setCurrent} />
+      )}
       <p className="text-xs text-gray-400 flex items-center gap-1"><Download size={12} /> Les fichiers s'ouvrent depuis le stockage du CRM (aucun lien Monday ne reste nécessaire).</p>
     </div>
   );
