@@ -13,10 +13,9 @@ import ClientsCRM from "./ClientsCRM";
 import LeadsCRM from "./LeadsCRM";
 import ArtisansCRM from "./ArtisansCRM";
 import StatsCRM from "./StatsCRM";
-import AccueilCRM from "./AccueilCRM";
+import BaremeCRM from "./BaremeCRM";
 import ArchivesMonday from "./ArchivesMonday";
-import DoublonsCRM from "./DoublonsCRM";
-import CorbeilleCRM from "./CorbeilleCRM";
+import CorbeilleEtDoublons from "./CorbeilleEtDoublons";
 import DocumentsPage from "./DocumentsPage";
 import TeamPage from "./TeamPage";
 import { memberName } from "@/lib/crmTeam";
@@ -872,18 +871,8 @@ export default function OutilDevis() {
           />
         )}
         {p === "artisans" && <ArtisansCRM email={email} />}
-        {p === "accueil" && (
-          <AccueilCRM
-            onOpenLead={(id) => {
-              try {
-                sessionStorage.setItem("crm-open-lead", id);
-              } catch {}
-              navigate("leads");
-            }}
-          />
-        )}
-        {p === "doublons" && (
-          <DoublonsCRM
+        {p === "corbeille" && (
+          <CorbeilleEtDoublons
             email={email}
             onOpenLead={(id) => {
               try {
@@ -893,7 +882,7 @@ export default function OutilDevis() {
             }}
           />
         )}
-        {p === "corbeille" && <CorbeilleCRM email={email} />}
+        {p === "bareme" && <BaremeCRM />}
         {p === "archives" && <ArchivesMonday />}
         {p === "stats" && <StatsCRM />}
         {p === "documents" && <DocumentsPage />}

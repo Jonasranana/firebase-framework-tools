@@ -1314,6 +1314,7 @@ export default function LeadsCRM({
           onGroup={moveToGroup}
           onDuplicateLeads={duplicateLeads}
           bulk={bulk}
+          scrollMaxHeight={`calc((100vh - 250px) / ${zoom})`}
           onOpen={(id, focus) => {
             setOpenId(id);
             setFocusUpdates(focus === "updates");
