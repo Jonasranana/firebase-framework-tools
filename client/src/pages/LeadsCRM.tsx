@@ -1095,34 +1095,6 @@ export default function LeadsCRM({ email }: { email: string }) {
         </span>
       </div>
 
-      {/* Filtre par statut (vues tableau et liste) */}
-      {view !== "colonnes" && (
-        <div className="flex gap-1.5 overflow-x-auto pb-2 mb-2 -mx-1 px-1">
-          <button
-            onClick={() => setStatusFilter("")}
-            className={`shrink-0 text-xs font-bold px-3 py-1.5 rounded-full ${
-              !statusFilter ? "bg-[#2b5a8f] text-white" : "bg-white text-gray-600 border border-gray-200"
-            }`}
-          >
-            Tous ({baseFiltered.length})
-          </button>
-          {LEAD_STATUSES.map((s) => (
-            <button
-              key={s.key}
-              onClick={() => setStatusFilter(statusFilter === s.key ? "" : s.key)}
-              className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full ${
-                statusFilter === s.key
-                  ? "bg-[#2b5a8f] text-white"
-                  : "bg-white text-gray-600 border border-gray-200"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full" style={{ background: s.hex }} />
-              {s.label || "(sans statut)"} ({counts[s.key] ?? 0})
-            </button>
-          ))}
-        </div>
-      )}
-
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
       {!leads && !error && (
