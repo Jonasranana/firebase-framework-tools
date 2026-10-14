@@ -1,0 +1,49 @@
+name: Synchro Monday vers CRM
+
+# Recopie dans le CRM ce qui a changé dans Monday (étiquettes, groupes,
+# colonnes, nouvelles lignes, nouveaux commentaires), toutes les 2 heures de
+# 6 h à 22 h. Monday est seulement lu. Voir scripts/sync-monday-to-crm.mjs.
+# À désactiver le jour où Monday est abandonné (Actions > ce workflow > Disable).
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Essai à blanc (n'écrit rien)"
+        type: boolean
+        default: true
+      since:
+        description: "Facultatif : reprendre les modifications depuis cette date (AAAA-MM-JJ)"
+        type: string
+        default: ""
+  schedule:
+    - cron: "17 4-20/2 * * *"
+
+concurrency:
+  group: sync-monday-crm
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+          python3 -m json.tool "$RUNNER_TEMP/sa.json" > /dev/null
+      - name: Synchro
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          MONDAY_API_TOKEN: ${{ secrets.MONDAY_API_TOKEN }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
+          SINCE: ${{ inputs.since }}
+          SCHEDULED: ${{ github.event_name == 'schedule' && '1' || '0' }}
+        run: node scripts/sync-monday-to-crm.mjs
