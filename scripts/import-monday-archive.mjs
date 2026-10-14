@@ -111,7 +111,10 @@ try {
   const f = await monday(`query { folders(limit: 100) { id name } }`);
   folderNames = Object.fromEntries(f.folders.map((x) => [x.id, x.name]));
 } catch {}
-const selected = boards.filter((b) => !ONLY.length || ONLY.includes(b.id));
+// Les tableaux « supprimés » (corbeille Monday) ne sont plus lisibles par l'API : on les met de côté.
+const deletedBoards = boards.filter((b) => b.state === "deleted");
+const selected = boards.filter((b) => (!ONLY.length || ONLY.includes(b.id)) && (b.state !== "deleted" || ONLY.includes(b.id)));
+console.log(`${deletedBoards.length} tableaux supprimés dans Monday (illisibles, ignorés).`);
 console.log(`${boards.length} tableaux trouvés (${selected.length} à traiter).`);
 
 const ITEM_BODY = `
@@ -133,7 +136,7 @@ async function* itemsOf(boardId) {
   for (;;) {
     try {
       const first = await monday(
-        `query ($board: ID!) { boards(ids: [$board]) { items_page(limit: ${limit}) { cursor items { ${ITEM_BODY} } } } }`,
+        `query ($board: ID!) { boards(ids: [$board], state: all) { items_page(limit: ${limit}) { cursor items { ${ITEM_BODY} } } } }`,
         { board: boardId },
       );
       let page = first.boards[0]?.items_page;
