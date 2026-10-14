@@ -1448,7 +1448,19 @@ export default function LeadsCRM({
           await callFn("postUpdate", { kind: "lead", id, text });
         }}
         onSendMail={async (id, mail) => {
-          await callFn("sendLeadMessage", { leadId: id, channel: "mail", template: mail.template, subject: mail.subject, body: mail.body });
+          await callFn("sendLeadMessage", { leadId: id, channel: "mail", template: mail.template, subject: mail.subject, body: mail.body, files: mail.files?.map((f) => ({ name: f.name, type: f.type, data: f.data })) });
+        }}
+        onLogWhatsApp={async (id, text) => {
+          const { m } = await fs();
+          await patchLead(id, email, {
+            notes: m.arrayUnion({
+              id: newId(),
+              text: `💬 WhatsApp : « ${text.slice(0, 300)} »`,
+              by: email,
+              at: new Date().toISOString(),
+              kind: "message",
+            } satisfies LeadNote),
+          });
         }}
         onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string }[] }>("listLeadTemplates")).templates}
         onOpenFiche={(id) => {

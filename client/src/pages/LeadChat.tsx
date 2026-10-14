@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Send, ExternalLink, Mail, MessageCircle, X } from "lucide-react";
+import { Send, ExternalLink, Mail, MessageCircle, X, Paperclip } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APPEL_SLOTS } from "@/lib/crmColumns";
 import { formatDateTime, formatPhone, statusInfo, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
@@ -11,6 +11,36 @@ const authorName = (by: string) => {
   const local = by.split("@")[0].split(/[._-]/)[0];
   return local ? local[0].toUpperCase() + local.slice(1) : by;
 };
+
+export type MailFile = { name: string; type: string; data: string; size: number };
+const MAX_TOTAL = 6 * 1024 * 1024;
+
+// Lit un fichier en base64 ; les grosses photos sont réduites (2000 px, JPEG) pour rester sous la limite d'envoi.
+const readFile = (f: File): Promise<MailFile> =>
+  new Promise((resolve, reject) => {
+    const toB64 = (blob: Blob, name: string, type: string) => {
+      const r = new FileReader();
+      r.onload = () => {
+        const d = String(r.result);
+        resolve({ name, type, data: d.slice(d.indexOf(",") + 1), size: blob.size });
+      };
+      r.onerror = () => reject(new Error("Lecture impossible"));
+      r.readAsDataURL(blob);
+    };
+    if (f.type.startsWith("image/") && f.size > 1.5 * 1024 * 1024 && f.type !== "image/gif") {
+      const img = new Image();
+      img.onload = () => {
+        const k = Math.min(1, 2000 / Math.max(img.width, img.height));
+        const c = document.createElement("canvas");
+        c.width = Math.round(img.width * k);
+        c.height = Math.round(img.height * k);
+        c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
+        c.toBlob((b) => (b ? toB64(b, f.name.replace(/\.\w+$/, "") + ".jpg", "image/jpeg") : toB64(f, f.name, f.type)), "image/jpeg", 0.85);
+      };
+      img.onerror = () => toB64(f, f.name, f.type);
+      img.src = URL.createObjectURL(f);
+    } else toB64(f, f.name, f.type);
+  });
 
 // Phrase simple pour une ligne de « mouvement » : qui a fait quoi.
 const movementText = (n: LeadNote) => {
@@ -27,6 +57,7 @@ const movementText = (n: LeadNote) => {
     if (st) return `${who} a passé le statut de « ${st[1]} » à « ${st[2]} »`;
     return `${who} : ${t}`;
   }
+  if (t.startsWith("💬 WhatsApp")) return `${who} a ouvert WhatsApp ${t.replace(/^💬 WhatsApp\s*:?\s*/, "")}`;
   if (t.startsWith("💬 SMS envoyé")) return `${who} a envoyé un SMS ${t.replace(/^💬 SMS envoyé\s*:?\s*/, "")}`;
   if (t.startsWith("✉️ Mail envoyé")) return `${who} a envoyé un mail ${t.replace(/^✉️ Mail envoyé\s*:?\s*/, "")}`;
   if (t.startsWith("📤 Mail envoyé")) return `${who} a envoyé un mail ${t.replace(/^📤 Mail envoyé\s*—?\s*/, "— ").split("\n")[0]}`;
@@ -62,6 +93,7 @@ export default function LeadChat({
   onClose,
   onSend,
   onSendMail,
+  onLogWhatsApp,
   onLoadTemplates,
   onOpenFiche,
 }: {
@@ -69,7 +101,8 @@ export default function LeadChat({
   email: string;
   onClose: () => void;
   onSend: (leadId: string, text: string) => Promise<void>;
-  onSendMail: (leadId: string, mail: { subject?: string; body?: string; template?: string }) => Promise<void>;
+  onSendMail: (leadId: string, mail: { subject?: string; body?: string; template?: string; files?: MailFile[] }) => Promise<void>;
+  onLogWhatsApp: (leadId: string, text: string) => Promise<void>;
   onLoadTemplates: () => Promise<{ key: string; subject: string }[]>;
   onOpenFiche: (leadId: string) => void;
 }) {
@@ -83,6 +116,9 @@ export default function LeadChat({
   const [body, setBody] = useState("");
   const [tpl, setTpl] = useState("");
   const [templates, setTemplates] = useState<{ key: string; subject: string }[]>([]);
+  const [files, setFiles] = useState<MailFile[]>([]);
+  const [waOpen, setWaOpen] = useState(false);
+  const [waText, setWaText] = useState("");
   const [mailBusy, setMailBusy] = useState(false);
   const [mailMsg, setMailMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const count = lead?.notes.length ?? 0;
@@ -100,6 +136,9 @@ export default function LeadChat({
     setBody("");
     setTpl("");
     setMailMsg(null);
+    setFiles([]);
+    setWaOpen(false);
+    setWaText("");
     setTab("tout");
   }, [lead?.id]);
 
@@ -107,6 +146,33 @@ export default function LeadChat({
     if (mailOpen && templates.length === 0) onLoadTemplates().then(setTemplates).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mailOpen]);
+
+  const addFiles = async (list: FileList | null) => {
+    if (!list) return;
+    try {
+      const added = await Promise.all(Array.from(list).map(readFile));
+      const next = [...files, ...added].slice(0, 5);
+      if (next.reduce((n, f) => n + f.size, 0) > MAX_TOTAL) {
+        setMailMsg({ ok: false, text: "Pièces jointes trop lourdes (6 Mo maximum au total, 5 fichiers)." });
+        return;
+      }
+      setMailMsg(null);
+      setFiles(next);
+    } catch {
+      setMailMsg({ ok: false, text: "Impossible de lire ce fichier." });
+    }
+  };
+
+  const openWhatsApp = async () => {
+    if (!lead || !waText.trim()) return;
+    const url = `${whatsappHref(lead.phone)}?text=${encodeURIComponent(waText.trim())}`;
+    window.open(url, "_blank", "noopener");
+    try {
+      await onLogWhatsApp(lead.id, waText.trim());
+    } catch {}
+    setWaText("");
+    setWaOpen(false);
+  };
 
   const sendMail = async () => {
     if (!lead || mailBusy) return;
@@ -116,11 +182,12 @@ export default function LeadChat({
     setMailBusy(true);
     setMailMsg(null);
     try {
-      await onSendMail(lead.id, tpl ? { template: tpl } : { subject: subject.trim(), body: body.trim() });
+      await onSendMail(lead.id, tpl ? { template: tpl } : { subject: subject.trim(), body: body.trim(), files });
       setMailMsg({ ok: true, text: "Mail envoyé." });
       setSubject("");
       setBody("");
       setTpl("");
+      setFiles([]);
       setTimeout(() => setMailOpen(false), 900);
     } catch (e: any) {
       setMailMsg({ ok: false, text: e?.message || "Échec de l'envoi." });
@@ -161,7 +228,7 @@ export default function LeadChat({
   return (
     <Sheet open={!!lead} onOpenChange={(o) => !o && onClose()}>
       <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col gap-0 bg-[#efeae2]" dir="ltr">
-        <SheetHeader className="text-left bg-white border-b border-gray-200 px-4 pt-4 pb-3 space-y-1.5">
+        <SheetHeader className="text-left bg-white border-b border-gray-200 px-4 pt-4 pb-3 space-y-1.5 max-h-[65vh] overflow-y-auto shrink-0">
           <div className="flex items-start justify-between gap-2 pr-6">
             <div className="min-w-0">
               <SheetTitle className="truncate text-base">{lead?.name || "Sans nom"}</SheetTitle>
@@ -200,20 +267,16 @@ export default function LeadChat({
             >
               <Mail size={14} /> Mail
             </button>
-            {lead && whatsappHref(lead.phone) ? (
-              <a
-                href={whatsappHref(lead.phone)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border border-green-600/40 text-green-700 hover:bg-green-50"
-              >
-                <MessageCircle size={14} /> WhatsApp
-              </a>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border border-gray-200 text-gray-300" title="Pas de numéro">
-                <MessageCircle size={14} /> WhatsApp
-              </span>
-            )}
+            <button
+              onClick={() => setWaOpen((o) => !o)}
+              disabled={!lead || !whatsappHref(lead.phone)}
+              title={lead && whatsappHref(lead.phone) ? undefined : "Pas de numéro"}
+              className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border disabled:text-gray-300 disabled:border-gray-200 ${
+                waOpen ? "bg-green-600 text-white border-green-600" : "border-green-600/40 text-green-700 hover:bg-green-50"
+              }`}
+            >
+              <MessageCircle size={14} /> WhatsApp
+            </button>
             <div className="ml-auto inline-flex rounded-lg bg-gray-100 p-0.5 text-[11px] font-semibold">
               {([["tout", "Tout"], ["messages", "Messages"], ["mouvements", "Mouvements"]] as const).map(([k, l]) => (
                 <button key={k} onClick={() => setTab(k)} className={`px-2 py-1 rounded-md ${tab === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
@@ -225,7 +288,7 @@ export default function LeadChat({
           {mailOpen && (
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-2.5 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700">Mail à {lead?.email || "—"}</span>
+                <span className="text-xs font-bold text-gray-700">Mail à {lead?.email || "—"} <span className="font-normal text-gray-500">· envoyé depuis la boîte contact@ip5energie.com</span></span>
                 <button onClick={() => setMailOpen(false)} aria-label="Fermer" className="text-gray-400 hover:text-gray-600">
                   <X size={14} />
                 </button>
@@ -256,6 +319,22 @@ export default function LeadChat({
                     placeholder="Votre message au client…"
                     className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5 resize-none"
                   />
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <label className="inline-flex items-center gap-1 text-xs font-semibold text-[#2b5a8f] border border-[#2b5a8f]/40 rounded-lg px-2.5 py-1 cursor-pointer hover:bg-blue-50">
+                      <Paperclip size={13} /> Photo / fichier
+                      <input type="file" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+                    </label>
+                    {files.map((f, i) => (
+                      <span key={i} className="inline-flex items-center gap-1 text-[11px] bg-white border border-gray-200 rounded-full pl-2 pr-1 py-0.5 text-gray-700 max-w-[170px]">
+                        <span className="truncate">{f.name}</span>
+                        <span className="text-gray-400">{Math.max(1, Math.round(f.size / 1024))} Ko</span>
+                        <button onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label="Retirer" className="text-gray-400 hover:text-red-500">
+                          <X size={12} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-gray-500">La signature IP5 Énergie (logo, SIREN, adresse, téléphones) est ajoutée automatiquement en bas du mail.</p>
                 </>
               )}
               {mailMsg && <p className={`text-xs ${mailMsg.ok ? "text-green-700" : "text-red-600"}`}>{mailMsg.text}</p>}
@@ -266,6 +345,31 @@ export default function LeadChat({
               >
                 {mailBusy ? "Envoi…" : "Envoyer le mail"}
               </button>
+            </div>
+          )}
+          {waOpen && lead && (
+            <div className="rounded-xl border border-green-200 bg-green-50 p-2.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-700">WhatsApp à {formatPhone(lead.phone)}</span>
+                <button onClick={() => setWaOpen(false)} aria-label="Fermer" className="text-gray-400 hover:text-gray-600">
+                  <X size={14} />
+                </button>
+              </div>
+              <textarea
+                value={waText}
+                onChange={(e) => setWaText(e.target.value)}
+                rows={3}
+                placeholder="Écrivez votre message WhatsApp…"
+                className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5 resize-none"
+              />
+              <button
+                onClick={openWhatsApp}
+                disabled={!waText.trim()}
+                className="w-full text-sm font-bold text-white bg-green-600 disabled:opacity-50 rounded-lg py-1.5"
+              >
+                Ouvrir WhatsApp avec ce message
+              </button>
+              <p className="text-[11px] text-gray-600">WhatsApp s'ouvre avec le message déjà écrit : il ne reste qu'à appuyer sur Envoyer là-bas.</p>
             </div>
           )}
         </SheetHeader>

@@ -663,6 +663,31 @@ function buildBrandedEmailShell({ bodyHtml }) {
 </html>`;
 }
 
+// Mail libre écrit depuis le CRM : message + signature complète (logo, société,
+// SIREN, adresse, téléphones, site). Le prénom de l'expéditeur vient de son e-mail CRM.
+function buildFreeMailHtml({ bodyText, senderFirstName }) {
+  const NAVY = "#173a5e";
+  const logoUrl = `${SITE_URL}/images/email/logo-ip5-energie.png`;
+  return `<!DOCTYPE html>
+<html lang="fr"><body style="margin:0; padding:0; background:#ffffff; font-family:Arial,Helvetica,sans-serif; color:${NAVY};">
+<div style="padding:24px 32px; max-width:640px; font-size:15px; line-height:1.6;">
+  <div style="white-space:pre-wrap;">${escapeHtmlText(bodyText)}</div>
+  <p style="margin:24px 0 0 0;">Bien cordialement,${senderFirstName ? `<br/><b>${escapeHtmlText(senderFirstName)}</b>` : ""}</p>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px; border-top:2px solid ${NAVY}; padding-top:12px;">
+    <tr>
+      <td style="padding:12px 18px 0 0; vertical-align:top;"><img src="${logoUrl}" width="120" alt="IP5 Énergie" style="display:block; height:auto;" /></td>
+      <td style="padding:12px 0 0 0; vertical-align:top; font-size:13px; line-height:1.5; color:#3b4a5c;">
+        <b style="color:${NAVY}; font-size:14px;">IP5 Énergie</b> — IP5 CONSEILS<br/>
+        45 rue de Maubeuge, 75009 Paris<br/>
+        SIREN 890 293 277 — RCS Paris<br/>
+        📞 07&nbsp;49&nbsp;52&nbsp;52&nbsp;67 · 06&nbsp;95&nbsp;92&nbsp;04&nbsp;09<br/>
+        <a href="mailto:contact@ip5energie.com" style="color:${NAVY};">contact@ip5energie.com</a> · <a href="${SITE_URL}" style="color:${NAVY};">ip5energie.fr</a>
+      </td>
+    </tr>
+  </table>
+</div></body></html>`;
+}
+
 function buildRelanceInjoignableEmailHtml({ nomComplet }) {
   return buildBrandedEmailShell({
     bodyHtml: `
@@ -1286,7 +1311,7 @@ exports.sendLeadMessage = onCall(
     if (!isCrmMember(request)) {
       throw new HttpsError("permission-denied", "Accès refusé.");
     }
-    const { leadId, channel, template, text, subject: freeSubject, body: freeBody } = request.data ?? {};
+    const { leadId, channel, template, text, subject: freeSubject, body: freeBody, files: freeFiles } = request.data ?? {};
     if (typeof leadId !== "string" || !leadId || !["mail", "sms"].includes(channel)) {
       throw new HttpsError("invalid-argument", "Requête invalide.");
     }
@@ -1309,6 +1334,21 @@ exports.sendLeadMessage = onCall(
         throw new HttpsError("invalid-argument", "Choisissez un modèle ou écrivez un objet et un message.");
       }
       if (!to) throw new HttpsError("failed-precondition", "Ce lead n'a pas d'adresse e-mail.");
+      // Pièces jointes (mail libre) : 5 fichiers et 6 Mo au total au maximum.
+      const customAttachments = [];
+      if (!tpl && Array.isArray(freeFiles)) {
+        let total = 0;
+        for (const f of freeFiles.slice(0, 5)) {
+          const content = Buffer.from(String(f?.data ?? ""), "base64");
+          total += content.length;
+          const filename = String(f?.name ?? "fichier").replace(/[^\w .()\-À-ÿ]/g, "_").slice(0, 100) || "fichier";
+          if (/\.(exe|bat|cmd|com|scr|js|vbs|msi|jar)$/i.test(filename)) {
+            throw new HttpsError("invalid-argument", "Ce type de fichier ne peut pas être envoyé par mail.");
+          }
+          if (content.length) customAttachments.push({ filename, mimeType: String(f?.type || "application/octet-stream").slice(0, 100), content });
+        }
+        if (total > 6 * 1024 * 1024) throw new HttpsError("invalid-argument", "Pièces jointes trop lourdes (6 Mo maximum au total).");
+      }
       const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
       oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
       const gmail = google.gmail({ version: "v1", auth: oauth2Client });
@@ -1320,13 +1360,15 @@ exports.sendLeadMessage = onCall(
             html: tpl.buildHtml({ nomComplet, rac: undefined }),
             attachments: tpl.attachments,
           })
-        : buildRawMessage({
+        : buildRawMessageWithAttachment({
             to,
             from: GMAIL_SENDER_EMAIL.value(),
             subject: customSubject,
-            html: buildBrandedEmailShell({
-              bodyHtml: `<div style="white-space:pre-wrap; line-height:1.55;">${escapeHtmlText(customBody)}</div>`,
+            html: buildFreeMailHtml({
+              bodyText: customBody,
+              senderFirstName: caller ? caller.split("@")[0].split(/[._-]/)[0].replace(/^./, (c) => c.toUpperCase()) : "",
             }),
+            attachments: customAttachments,
           });
       try {
         await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
@@ -1334,7 +1376,7 @@ exports.sendLeadMessage = onCall(
         logger.error("Échec de l'envoi du mail CRM", { leadId, error: err.message });
         throw new HttpsError("internal", "Échec de l'envoi du mail (voir les journaux).");
       }
-      summary = `✉️ Mail envoyé : « ${tpl ? tpl.subject : customSubject} »`;
+      summary = `✉️ Mail envoyé : « ${tpl ? tpl.subject : customSubject} »${customAttachments.length ? ` (📎 ${customAttachments.map((a) => a.filename).join(", ")})` : ""}`;
     } else {
       const to = toE164French(lead.phone);
       if (!to || !to.startsWith("+")) {
