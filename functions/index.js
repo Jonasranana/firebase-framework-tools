@@ -663,28 +663,23 @@ function buildBrandedEmailShell({ bodyHtml }) {
 </html>`;
 }
 
-// Mail libre écrit depuis le CRM : message + signature complète (logo, société,
-// SIREN, adresse, téléphones, site). Le prénom de l'expéditeur vient de son e-mail CRM.
-function buildFreeMailHtml({ bodyText, senderFirstName }) {
-  const NAVY = "#173a5e";
+// Mail libre écrit depuis le CRM : le message, puis la même signature que celle de la
+// boîte contact@ dans Gmail (logo, nom, société, téléphone, adresse).
+function buildFreeMailHtml({ bodyText }) {
   const logoUrl = `${SITE_URL}/images/email/logo-ip5-energie.png`;
+  const PURPLE = "#8e7cc3";
   return `<!DOCTYPE html>
-<html lang="fr"><body style="margin:0; padding:0; background:#ffffff; font-family:Arial,Helvetica,sans-serif; color:${NAVY};">
-<div style="padding:24px 32px; max-width:640px; font-size:15px; line-height:1.6;">
+<html lang="fr"><body style="margin:0; padding:0; background:#ffffff; font-family:Arial,Helvetica,sans-serif; color:#202124;">
+<div style="padding:16px 24px; max-width:640px; font-size:14px; line-height:1.6;">
   <div style="white-space:pre-wrap;">${escapeHtmlText(bodyText)}</div>
-  <p style="margin:24px 0 0 0;">Bien cordialement,${senderFirstName ? `<br/><b>${escapeHtmlText(senderFirstName)}</b>` : ""}</p>
-  <table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:14px; border-top:2px solid ${NAVY}; padding-top:12px;">
-    <tr>
-      <td style="padding:12px 18px 0 0; vertical-align:top;"><img src="${logoUrl}" width="120" alt="IP5 Énergie" style="display:block; height:auto;" /></td>
-      <td style="padding:12px 0 0 0; vertical-align:top; font-size:13px; line-height:1.5; color:#3b4a5c;">
-        <b style="color:${NAVY}; font-size:14px;">IP5 Énergie</b> — IP5 CONSEILS<br/>
-        45 rue de Maubeuge, 75009 Paris<br/>
-        SIREN 890 293 277 — RCS Paris<br/>
-        📞 07&nbsp;49&nbsp;52&nbsp;52&nbsp;67 · 06&nbsp;95&nbsp;92&nbsp;04&nbsp;09<br/>
-        <a href="mailto:contact@ip5energie.com" style="color:${NAVY};">contact@ip5energie.com</a> · <a href="${SITE_URL}" style="color:${NAVY};">ip5energie.fr</a>
-      </td>
-    </tr>
-  </table>
+  <div style="margin-top:28px; color:#202124;">--</div>
+  <img src="${logoUrl}" width="120" alt="IP5 Énergie" style="display:block; height:auto; margin:8px 0;" />
+  <div style="font-size:14px; font-weight:bold; line-height:1.7; color:${PURPLE};">
+    Carole Sitbon<br/>
+    IP5 Énergie<br/>
+    06 95 92 04 09<br/>
+    45 rue de Maubeuge, 75009 Paris
+  </div>
 </div></body></html>`;
 }
 
@@ -1364,10 +1359,7 @@ exports.sendLeadMessage = onCall(
             to,
             from: GMAIL_SENDER_EMAIL.value(),
             subject: customSubject,
-            html: buildFreeMailHtml({
-              bodyText: customBody,
-              senderFirstName: caller ? caller.split("@")[0].split(/[._-]/)[0].replace(/^./, (c) => c.toUpperCase()) : "",
-            }),
+            html: buildFreeMailHtml({ bodyText: customBody }),
             attachments: customAttachments,
           });
       try {

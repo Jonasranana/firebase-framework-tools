@@ -334,7 +334,7 @@ export default function LeadChat({
                       </span>
                     ))}
                   </div>
-                  <p className="text-[11px] text-gray-500">La signature IP5 Énergie (logo, SIREN, adresse, téléphones) est ajoutée automatiquement en bas du mail.</p>
+                  <p className="text-[11px] text-gray-500">La signature IP5 Énergie (logo, nom, téléphone, adresse) est ajoutée automatiquement en bas du mail.</p>
                 </>
               )}
               {mailMsg && <p className={`text-xs ${mailMsg.ok ? "text-green-700" : "text-red-600"}`}>{mailMsg.text}</p>}
