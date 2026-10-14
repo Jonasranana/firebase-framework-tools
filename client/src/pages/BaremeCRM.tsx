@@ -9,10 +9,10 @@ import { Calculator } from "lucide-react";
 type Prof = { key: "bleu" | "jaune" | "violet" | "rose"; label: string; sub: string; main: string; soft: string; dark: string };
 
 const PROFILS: Prof[] = [
-  { key: "bleu", label: "Profil bleu", sub: "très modeste", main: "#3fa5e5", soft: "#e7f3fc", dark: "#12304d" },
-  { key: "jaune", label: "Profil jaune", sub: "modeste", main: "#f0bf2e", soft: "#fdf4d8", dark: "#3a3210" },
-  { key: "violet", label: "Profil violet", sub: "intermédiaire", main: "#8b7fbd", soft: "#eeebf7", dark: "#2a2645" },
-  { key: "rose", label: "Profil rose", sub: "aisé", main: "#e8838f", soft: "#fcebee", dark: "#3d1f2a" },
+  { key: "bleu", label: "Profil bleu", sub: "très modeste", main: "#3fa5e5", soft: "#e7f3fc", dark: "#1f3d5e" },
+  { key: "jaune", label: "Profil jaune", sub: "modeste", main: "#f0bf2e", soft: "#fdf4d8", dark: "#4a4219" },
+  { key: "violet", label: "Profil violet", sub: "intermédiaire", main: "#8b7fbd", soft: "#eeebf7", dark: "#38325a" },
+  { key: "rose", label: "Profil rose", sub: "aisé", main: "#e8838f", soft: "#fcebee", dark: "#4d2a37" },
 ];
 
 type Region = "idf" | "hors";

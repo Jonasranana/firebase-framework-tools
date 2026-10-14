@@ -1210,6 +1210,27 @@ export default function LeadsTable({
     setDropGroup(null);
   };
 
+  // Attraper la ligne du groupe (titre ou barre colorée) pour le déplacer.
+  const onGroupMouseDown = (e: React.MouseEvent, st: LeadGroup) => {
+    if (readOnlyGroups) return;
+    if ((e.target as HTMLElement).closest("button,input,[data-nodrag]")) return;
+    startPointerDrag(e, {
+      label: st.title,
+      color: st.color,
+      scrollEl: scrollRef.current,
+      hit: (el) => el?.closest("[data-groupid]")?.getAttribute("data-groupid") ?? null,
+      onStart: () => {
+        // Comme sur Monday : on replie tous les groupes pendant le déplacement.
+        collapsedBeforeDrag.current = collapsed;
+        setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])));
+        setDragGroup(st.id);
+      },
+      onHover: setDropGroup,
+      onDrop: (k) => reorderGroups(st.id, k),
+      onEnd: endGroupDrag,
+    });
+  };
+
   const addGroupAfter = (id: string) => {
     const i = groups.findIndex((g) => g.id === id);
     const g: LeadGroup = { id: newGroupId(), title: "Nouveau groupe", color: GROUP_COLORS[groups.length % GROUP_COLORS.length] };
@@ -1295,25 +1316,7 @@ export default function LeadsTable({
               <div
                 className={`group/head flex items-center gap-1 mb-1 px-1 sticky left-0 ${readOnlyGroups ? "" : "cursor-grab"}`}
                 style={viewW ? { width: viewW } : undefined}
-                onMouseDown={(e) => {
-                  if (readOnlyGroups) return;
-                  if ((e.target as HTMLElement).closest("button,input,[data-nodrag]")) return;
-                  startPointerDrag(e, {
-                    label: st.title,
-                    color: st.color,
-                    scrollEl: scrollRef.current,
-                    hit: (el) => el?.closest("[data-groupid]")?.getAttribute("data-groupid") ?? null,
-                    onStart: () => {
-                      // Comme sur Monday : on replie tous les groupes pendant le déplacement.
-                      collapsedBeforeDrag.current = collapsed;
-                      setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])));
-                      setDragGroup(st.id);
-                    },
-                    onHover: setDropGroup,
-                    onDrop: (k) => reorderGroups(st.id, k),
-                    onEnd: endGroupDrag,
-                  });
-                }}
+                onMouseDown={(e) => onGroupMouseDown(e, st)}
               >
                 <button
                   onClick={() => setCollapsed((c) => ({ ...c, [st.id]: !c[st.id] }))}
@@ -1349,15 +1352,18 @@ export default function LeadsTable({
                   onArchive={() => patchGroup(st.id, { archived: true })}
                 />
                 )}
-                {!readOnlyGroups && (
-                  <div className="flex-1 h-8 flex items-center cursor-grab" title="Attrapez cette ligne pour déplacer le groupe">
-                    <div className="w-full rounded-full" style={{ height: 3, background: `${st.color}55` }} />
-                  </div>
-                )}
               </div>
 
               {!isCollapsed && (
-                <div className="bg-white rounded-lg border border-gray-200 overflow-clip">
+                <div>
+                  {/* Barre du groupe, sur toute la longueur du tableau : on l'attrape pour déplacer le groupe. */}
+                  <div
+                    className={`h-2 rounded-t-lg ${readOnlyGroups ? "" : "cursor-grab"}`}
+                    style={{ background: st.color }}
+                    title={readOnlyGroups ? undefined : "Attrapez cette barre pour déplacer le groupe"}
+                    onMouseDown={(e) => onGroupMouseDown(e, st)}
+                  />
+                <div className="bg-white rounded-b-lg border border-t-0 border-gray-200 overflow-clip">
                   <div
                     className="grid text-xs font-semibold text-gray-500 bg-white border-b border-gray-200 h-10 items-center"
                     style={{ gridTemplateColumns: template }}
@@ -1488,6 +1494,7 @@ export default function LeadsTable({
                   )}
 
                   {!readOnlyGroups && <AddRow color={st.color} focus={focusAdd === st.id} onAdd={(name) => onCreate(st.id, name)} />}
+                </div>
                 </div>
               )}
             </section>
