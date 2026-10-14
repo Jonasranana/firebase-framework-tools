@@ -632,6 +632,7 @@ exports.copyLeadToCrm = onDocumentCreated(
       "Type de site": f.typeSite,
       "Véhicules": f.nbVehicules,
       "Message": f.message,
+      "Créneau de rappel": f.callbackSlot,
     };
     for (const k of Object.keys(details)) {
       const v = String(details[k] ?? "").trim();
