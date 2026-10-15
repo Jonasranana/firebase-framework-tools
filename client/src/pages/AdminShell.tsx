@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { LogoIP5 } from "./site-chrome";
+import BrandLoader from "@/components/BrandLoader";
 import { LOGO_FULL_D } from "./ip5-logo";
 
 // Petit logo : seulement les vagues (sans le texte), pour le menu réduit.
@@ -98,6 +99,7 @@ export function initialPage(): AdminPage {
 export function rememberPage(p: AdminPage, item?: SideItem | null) {
   try {
     localStorage.setItem("admin-page", p);
+    localStorage.setItem("admin-view", item?.kind === "view" ? item.id : "");
     window.history.replaceState(null, "", item?.kind === "view" ? `#view-${item.id}` : `#${p}`);
   } catch {
     /* non essentiel */
@@ -284,6 +286,19 @@ export default function AdminShell({
   const [drawer, setDrawer] = useState(false);
   const [overlay, setOverlay] = useState<SideItem | null>(null);
   const { config, save, loaded, error } = useSidebar(email);
+  // Tableau à rouvrir : celui du lien (#view-…), sinon le dernier tableau visité. On attend que le menu soit chargé
+  // (écran de chargement) au lieu d'afficher d'abord Pac Pac puis de basculer.
+  const [wantedView] = useState(() => {
+    try {
+      const h = window.location.hash;
+      if (h.startsWith("#view-")) return h.slice(6);
+      if (!h || h === "#") return localStorage.getItem("admin-view") || "";
+    } catch {
+      /* stockage indisponible */
+    }
+    return "";
+  });
+  const waitingView = !!wantedView && !loaded && !activeItem;
   useEffect(() => {
     try {
       localStorage.setItem("admin-menu-compact", compact ? "1" : "0");
@@ -304,9 +319,8 @@ export default function AdminShell({
   // Lien direct vers un tableau « vue » (#view-<id>) : ouvert quand le menu est chargé.
   useEffect(() => {
     if (!loaded) return;
-    const h = window.location.hash;
-    if (h.startsWith("#view-")) {
-      const it = items.find((i) => i.id === h.slice(6));
+    if (wantedView) {
+      const it = items.find((i) => i.id === wantedView && !i.deletedAt && !i.archived);
       if (it && it.id !== activeItem?.id) onNavigate(it.page, it);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -450,7 +464,7 @@ export default function AdminShell({
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
           </div>
         </header>
-        <main className="flex-1 min-w-0 p-4 md:p-6">{renderPage(page, activeItem, tools)}</main>
+        <main className="flex-1 min-w-0 p-4 md:p-6">{waitingView ? <BrandLoader /> : renderPage(page, activeItem, tools)}</main>
       </div>
     </div>
   );

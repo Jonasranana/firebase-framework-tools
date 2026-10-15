@@ -1,3 +1,4 @@
+import BrandLoader from "@/components/BrandLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Phone,
@@ -812,7 +813,7 @@ export default function LeadsCRM({
   const [chatId, setChatId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [dropOver, setDropOver] = useState<string | null>(null);
-  const { version: columnsVersion, api: columnsApi, error: columnsError } = useColumnsConfig(email, boardId);
+  const { version: columnsVersion, api: columnsApi, error: columnsError, ready: columnsReady } = useColumnsConfig(email, boardId);
   // Valeur stable pour le contexte des étiquettes (sinon toutes les lignes se redessinent à chaque rendu).
   const columnsApiRef = useRef(columnsApi);
   columnsApiRef.current = columnsApi;
@@ -922,6 +923,7 @@ export default function LeadsCRM({
 
   // Groupes du tableau : lus en direct dans crm_boards/leads ; valeurs par
   // défaut tant que la liste n'a jamais été modifiée (ou illisible).
+  const [groupsReady, setGroupsReady] = useState(false);
   const [groups, setGroups] = useState<LeadGroup[]>(
     boardId === LEADS_BOARD_ID ? DEFAULT_LEAD_GROUPS : [{ id: "nouveaux", title: "Nouveau groupe", color: "#579bfc" }],
   );
@@ -936,11 +938,16 @@ export default function LeadsCRM({
           (snap) => {
             const g = snap.data()?.groups;
             if (!cancelled && Array.isArray(g) && g.length) setGroups(g as LeadGroup[]);
+            if (!cancelled) setGroupsReady(true);
           },
-          (e) => console.error("Groupes non lisibles (règle crm_boards ?)", e),
+          (e) => {
+            console.error("Groupes non lisibles (règle crm_boards ?)", e);
+            if (!cancelled) setGroupsReady(true);
+          },
         );
       } catch (e) {
         console.error(e);
+        if (!cancelled) setGroupsReady(true);
       }
     })();
     return () => {
@@ -1304,14 +1311,9 @@ export default function LeadsCRM({
 
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
-      {!leads && !error && (
-        <div className="py-10 text-center text-gray-400">
-          <Loader2 className="animate-spin mx-auto mb-2" size={24} />
-          Chargement…
-        </div>
-      )}
+      {(!leads || !columnsReady || !groupsReady) && !error && <BrandLoader />}
 
-      {leads && total === 0 && view !== "tableau" && (
+      {leads && columnsReady && groupsReady && total === 0 && view !== "tableau" && (
         <p className="text-center text-gray-400 text-sm py-10">
           Aucun lead pour l'instant. Les demandes du site arrivent ici automatiquement ;
           vous pouvez aussi en ajouter un avec « Nouveau ».
@@ -1319,7 +1321,7 @@ export default function LeadsCRM({
       )}
 
       {/* Vue tableau façon Monday */}
-      {leads && view === "tableau" && (
+      {leads && columnsReady && groupsReady && view === "tableau" && (
         <StatusEditContext.Provider value={editLabels}>
         <div style={{ zoom }}>
         <LeadsTable

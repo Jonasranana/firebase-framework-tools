@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import BrandLoader from "@/components/BrandLoader";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -7,7 +8,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import IP5Energie from "@/pages/IP5Energie";
 import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
 
 // Chargées à la demande : la page d'accueil (IP5 Énergie) reste légère, le
 // reste du code (articles, pages légales, app voitures historique) n'est
@@ -60,11 +60,7 @@ const CarDetails = lazy(() => import("@/pages/CarDetails"));
 const ListCar = lazy(() => import("@/pages/ListCar"));
 const MyBookings = lazy(() => import("@/pages/MyBookings"));
 
-const PageSpinner = () => (
-  <div className="h-screen w-full flex items-center justify-center bg-background">
-    <Loader2 className="h-8 w-8 animate-spin text-primary" />
-  </div>
-);
+const PageSpinner = () => <BrandLoader full />;
 
 function Router() {
   const { isLoading } = useAuth();
