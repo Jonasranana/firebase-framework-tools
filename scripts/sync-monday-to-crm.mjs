@@ -94,7 +94,7 @@ console.log(`Modifications Monday depuis ${sinceIso}${DRY_RUN ? " (ESSAI À BLAN
 // Lignes d'un tableau : seulement celles modifiées depuis sinceIso (filtre Monday au jour près,
 // puis à la seconde ici), ou toutes (rattrapage complet).
 async function* itemsOf(boardId, colIds, full) {
-  const fields = `id name created_at updated_at url group { id title } parent_item { id } column_values(ids: $cols) { id type text value }`;
+  const fields = `id name created_at updated_at url group { id title } parent_item { id } column_values(ids: $cols) { id type text value ... on FormulaValue { display_value } ... on MirrorValue { display_value } }`;
   const limit = full ? 25 : 50;
   const q = full
     ? `query ($board: ID!, $cols: [String!]) { boards(ids: [$board]) { items_page(limit: ${limit}) { cursor items { ${fields} } } } }`
@@ -312,7 +312,7 @@ function valueOf(m, cv) {
       return "";
     }
   }
-  const txt = String(cv.text ?? "").trim();
+  const txt = String(cv.text || cv.display_value || "").trim();
   if (m.type === "date" || m.target === "core-rappel") return txt.slice(0, 10);
   if (m.type === "number") return txt.replace(/\s/g, "").replace(",", ".");
   return txt;
@@ -320,7 +320,8 @@ function valueOf(m, cv) {
 
 // Colonnes du tableau CRM mises en phase avec Monday : nouvelles colonnes ajoutées, titres et étiquettes
 // à jour. Les colonnes propres au CRM (ajoutées à la main, fichiers) et l'ordre existant sont gardés.
-function mergeColumnsConfig(existing, mapped) {
+function mergeColumnsConfig(existing, mapped, info = {}) {
+  info.added = []; info.options = []; info.retitled = [];
   const cfg = JSON.parse(JSON.stringify(existing ?? {}));
   cfg.custom = cfg.custom ?? [];
   cfg.titles = cfg.titles ?? { name: "Nom" };
@@ -334,12 +335,17 @@ function mergeColumnsConfig(existing, mapped) {
     }
     const entry = byKey.get(m.key);
     if (!entry) {
+      info.added.push(m.col.title);
       cfg.custom.push({ key: m.key, title: m.col.title, type: m.type, width: WIDTH[m.type] ?? 150, custom: true, ...(m.type === "status" ? { options: m.options } : {}) });
       const at = cfg.order.findIndex((k) => ["docs", "maj", "creation"].includes(k));
       cfg.order.splice(at < 0 ? cfg.order.length : at, 0, m.key);
     } else {
+      if (entry.title !== m.col.title) info.retitled.push(`${entry.title} → ${m.col.title}`);
       entry.title = m.col.title;
-      if (m.type === "status" && entry.type === "status") entry.options = m.options;
+      if (m.type === "status" && entry.type === "status") {
+        if (JSON.stringify(entry.options) !== JSON.stringify(m.options)) info.options.push(m.col.title);
+        entry.options = m.options;
+      }
     }
   }
   return cfg;
@@ -353,9 +359,10 @@ async function refreshBoardMeta(boardDoc, mondayId, meta, mapped) {
   const already = labelHash[`board:${mondayId}`] === h;
   if (!already) {
     const cur = (await colRef.get()).get("config");
-    const next = mergeColumnsConfig(cur, mapped);
+    const info = {};
+    const next = mergeColumnsConfig(cur, mapped, info);
     if (JSON.stringify(next) !== JSON.stringify(cur)) {
-      console.log(`Tableau « ${meta.name} » : colonnes et étiquettes mises à jour depuis Monday.`);
+      console.log(`Tableau « ${meta.name} » : colonnes et étiquettes mises à jour depuis Monday — ${info.added.length} colonne(s) ajoutée(s)${info.added.length ? ` (${info.added.slice(0, 6).join(", ")})` : ""}, étiquettes changées sur ${info.options.length} colonne(s)${info.options.length ? ` (${info.options.slice(0, 8).join(", ")})` : ""}, ${info.retitled.length} titre(s) changé(s).`);
       stats.etiquettes_maj++;
       write(() => colRef.set({ config: next, updatedAt: FieldValue.serverTimestamp(), updatedBy: BY }, { merge: true }));
     }
@@ -384,7 +391,7 @@ for (const d of (await db.collection("ip5_leads").select("mondayItemId").get()).
 }
 const crmDocs = new Map();
 const sitePhoneDay = new Map();
-for (const d of (await db.collection("crm_leads").select("phone", "email", "name", "createdAt", "updatedBy", "status", "group", "rappelLe", "postalCode", "city", "type", "source", "projet", "fields", "details").get()).docs) {
+for (const d of (await db.collection("crm_leads").select("phone", "email", "name", "createdAt", "updatedBy", "status", "group", "rappelLe", "postalCode", "city", "type", "source", "projet", "fields", "details", "mondayItemId").get()).docs) {
   crmDocs.set(d.id, d.data());
   if (/^monday_|^m\d+_/.test(d.id)) continue;
   const iso = d.get("createdAt")?.toDate?.().toISOString() ?? "";
@@ -503,7 +510,7 @@ async function syncPacPac() {
   const rest = [...updates.keys()].filter((id) => !seen.has(id));
   for (let i = 0; i < rest.length; i += 50) {
     const d = await monday(
-      `query ($ids: [ID!], $cols: [String!]) { items(ids: $ids) { id name created_at updated_at url group { id title } parent_item { id } column_values(ids: $cols) { id type text value } } }`,
+      `query ($ids: [ID!], $cols: [String!]) { items(ids: $ids) { id name created_at updated_at url group { id title } parent_item { id } column_values(ids: $cols) { id type text value ... on FormulaValue { display_value } ... on MirrorValue { display_value } } } }`,
       { ids: rest.slice(i, i + 50), cols: Object.values(C) },
     );
     for (const item of d.items ?? []) if (!item.parent_item) handle(item);
@@ -583,7 +590,7 @@ async function syncIntegratedBoards() {
     const rest = [...updates.keys()].filter((id) => !seen.has(id));
     for (let i = 0; i < rest.length; i += 50) {
       const d = await monday(
-        `query ($ids: [ID!], $cols: [String!]) { items(ids: $ids) { id name created_at updated_at url group { id title } parent_item { id } column_values(ids: $cols) { id type text value } } }`,
+        `query ($ids: [ID!], $cols: [String!]) { items(ids: $ids) { id name created_at updated_at url group { id title } parent_item { id } column_values(ids: $cols) { id type text value ... on FormulaValue { display_value } ... on MirrorValue { display_value } } } }`,
         { ids: rest.slice(i, i + 50), cols: colIds },
       );
       for (const item of d.items ?? []) if (!item.parent_item) handle(item);
