@@ -151,6 +151,18 @@ export const StatusCell = ({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const s = options.find((o) => o.key === status);
+  const visibleOptions = options.filter((o) => o.label !== "" && (!o.off || o.key === status));
+
+  // Largeur et colonnes adaptées au nombre d'étiquettes (style Monday.com)
+  const popoverWidth =
+    visibleOptions.length <= 4
+      ? "w-44"
+      : visibleOptions.length <= 8
+      ? "w-[340px]"
+      : visibleOptions.length <= 15
+      ? "w-[min(560px,94vw)]"
+      : "w-[min(660px,94vw)]";
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -162,48 +174,69 @@ export const StatusCell = ({
         </button>
       </PopoverTrigger>
       <PopoverContent
-        className={`p-2.5 max-h-96 overflow-y-auto bg-white text-gray-900 border border-gray-200 shadow-xl ${options.length > 8 ? "w-[min(640px,92vw)]" : "w-56"}`}
+        className={`p-2.5 max-h-[420px] overflow-y-auto bg-white text-gray-900 border border-[#d0d4e4] rounded-lg shadow-xl ${popoverWidth}`}
         align="start"
       >
-        <div className="grid gap-1.5" style={{ gridTemplateColumns: options.length > 8 ? "repeat(auto-fill, minmax(140px, 1fr))" : "1fr" }}>
-        {options
-          .filter((o) => o.label !== "" && (!o.off || o.key === status))
-          .map((o) => (
-            <button
-              key={o.key}
-              onClick={() => {
-                setOpen(false);
-                onChange(o.key);
-              }}
-              className="w-full text-sm font-semibold text-white py-1.5 px-2 rounded truncate hover:brightness-95"
-              style={{ background: o.hex }}
-              title={o.label}
-            >
-              {o.label}
-            </button>
-          ))}
+        <div
+          className="grid gap-1.5"
+          style={{
+            gridTemplateColumns:
+              visibleOptions.length <= 4
+                ? "1fr"
+                : visibleOptions.length <= 8
+                ? "repeat(auto-fill, minmax(96px, 1fr))"
+                : "repeat(auto-fill, minmax(98px, 1fr))",
+          }}
+        >
+          {visibleOptions.map((o) => {
+            const isSelected = o.key === status;
+            return (
+              <button
+                key={o.key}
+                onClick={() => {
+                  setOpen(false);
+                  onChange(o.key);
+                }}
+                className={`h-[30px] px-2 text-[12px] font-medium text-white rounded-[4px] truncate transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none ${
+                  isSelected ? "ring-2 ring-gray-900/50 ring-inset font-semibold shadow-inner" : ""
+                }`}
+                style={{ background: o.hex }}
+                title={o.label}
+              >
+                {o.label}
+              </button>
+            );
+          })}
         </div>
-        {(clearable || options.some((o) => o.label === "")) && (
-          <button
-            onClick={() => {
-              setOpen(false);
-              onChange(options.find((o) => o.label === "")?.key ?? "");
-            }}
-            className="w-full text-xs font-semibold text-gray-500 py-1.5 rounded border border-gray-200 hover:bg-gray-50"
-          >
-            Vider
-          </button>
-        )}
-        {onEditLabels && (
-          <button
-            onClick={() => {
-              setOpen(false);
-              setEditing(true);
-            }}
-            className="w-full mt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 py-2 border-t border-gray-100 hover:bg-gray-50"
-          >
-            <Pencil size={12} /> Modifier les étiquettes
-          </button>
+
+        {(onEditLabels || clearable || options.some((o) => o.label === "")) && (
+          <div className="mt-2.5 pt-2 border-t border-[#d0d4e4] flex items-center justify-between gap-2">
+            {onEditLabels ? (
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  setEditing(true);
+                }}
+                className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 font-medium py-1 px-1.5 rounded hover:bg-gray-100 transition"
+              >
+                <Pencil size={12} /> Modifier les étiquettes
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {(clearable || options.some((o) => o.label === "")) && (
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onChange(options.find((o) => o.label === "")?.key ?? "");
+                }}
+                className="text-xs text-gray-400 hover:text-gray-700 py-1 px-2 rounded hover:bg-gray-100 transition"
+              >
+                Vider
+              </button>
+            )}
+          </div>
         )}
       </PopoverContent>
       {editing && onEditLabels && <StatusLabelEditor options={options} onApply={onEditLabels} onClose={() => setEditing(false)} />}
