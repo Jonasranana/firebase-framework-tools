@@ -57,7 +57,7 @@ class ComplexityError extends Error {}
 
 // Version d'API : 2024-10 par défaut ; les tableaux « multi-niveaux » (ex. « Tableau pour Depot ») ne sont
 // visibles qu'avec une version récente et le paramètre hierarchy_types.
-const API_NEW = "2025-07";
+let API_NEW = "2026-01";
 async function monday(query, variables, version = "2024-10") {
   for (let attempt = 1; ; attempt++) {
     let body = {};
@@ -75,6 +75,7 @@ async function monday(query, variables, version = "2024-10") {
     if (res?.ok && !body.errors?.length) return body.data;
     const text = JSON.stringify(body);
     if (/omplexity/i.test(text) && !/reset|budget/i.test(text)) throw new ComplexityError(text.slice(0, 300));
+    if (/Unknown argument|Invalid version|API version/i.test(text)) throw new Error(`API Monday: ${text.slice(0, 300)}`);
     if (attempt >= 8) throw new Error(`API Monday: ${text.slice(0, 500)}`);
     // Limite de débit : on attend (parfois jusqu'à une minute) puis on réessaie.
     const wait = /budget|rate|429|limit/i.test(text) ? 20000 * attempt : 2000 * attempt;
@@ -90,6 +91,16 @@ const MIME = {
 };
 
 const stats = { tableaux: 0, tableaux_vides_ou_illisibles: 0, lignes: 0, lignes_sautees: 0, commentaires: 0, fichiers: 0, octets: 0, copies: 0, deja_la: 0, trop_gros: 0, erreurs: 0 };
+
+// Version de l'API qui comprend hierarchy_types (tableaux multi-niveaux) : on essaie les plus récentes.
+for (const v of ["2026-07", "2026-04", "2026-01", "2025-10"]) {
+  try {
+    await monday(`query { boards(limit: 1, hierarchy_types: [classic, multi_level]) { id } }`, {}, v);
+    API_NEW = v;
+    break;
+  } catch {}
+}
+console.log(`API Monday (tableaux multi-niveaux) : version ${API_NEW}`);
 
 // ── Utilisateurs ───────────────────────────────────────────────────────────
 const usersData = await monday(`query { users(limit: 500) { id name email title } }`);
