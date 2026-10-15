@@ -605,7 +605,7 @@ const TagsCell = ({ value, onSave }: { value: string; onSave: (v: string) => voi
 };
 
 const colsTemplate = (cols: LeadColumn[], isMobile = false) =>
-  cols.map((c) => `${isMobile && c.type === "name" ? Math.min(c.width, 185) : c.width}px`).join(" ");
+  cols.map((c) => `${isMobile && c.type === "name" ? Math.min(c.width, 135) : c.width}px`).join(" ");
 
 // Colonnes masquées : choix mémorisé sur l'appareil, SÉPARÉMENT pour chaque tableau (avant, un
 // seul choix pour tous les tableaux : les colonnes masquées sur un autre tableau, ou une liste
@@ -842,7 +842,7 @@ const LeadRow = memo(function LeadRow({
         ) : c.type === "name" ? (
           <div
             key={c.key}
-            className={`sticky left-0 z-10 group-hover:bg-gray-50 flex items-center gap-1 pr-1 border-r border-[#d0d4e4] ${selected ? "bg-blue-50" : "bg-white"}`}
+            className={`sticky left-0 z-10 group-hover:bg-gray-50 flex items-center gap-1 pr-1 border-r border-[#d0d4e4] ${selected ? "bg-blue-50" : "bg-white"} shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]`}
             style={{ borderLeft: `6px solid ${color}` }}
           >
             {selectable && (
@@ -866,7 +866,7 @@ const LeadRow = memo(function LeadRow({
             >
               <GripVertical size={14} />
             </span>
-            <div className="flex-1 min-w-0 h-full">
+            <div className="flex-1 min-w-0 h-full overflow-hidden">
               <EditableCell value={l.name} placeholder="Sans nom" onSave={(v) => onPatch(l.id, { name: v })} />
             </div>
             {/* Le client a répondu par mail et personne n'a encore ouvert la fiche. */}
@@ -874,21 +874,21 @@ const LeadRow = memo(function LeadRow({
               <button
                 onClick={() => onOpen(l.id, "updates")}
                 title="Le client a répondu par mail : cliquez pour lire sa réponse"
-                className="shrink-0 inline-flex items-center gap-1 h-6 rounded-full px-2 text-[11px] font-bold bg-[#fff1d6] text-[#a35b00] hover:bg-[#ffe6b3]"
+                className="shrink-0 inline-flex items-center gap-1 h-6 rounded-full px-1.5 text-[10px] font-bold bg-[#fff1d6] text-[#a35b00] hover:bg-[#ffe6b3]"
               >
-                <Mail size={12} /> Réponse
+                <Mail size={11} /> Réponse
               </button>
             )}
             {/* Mises à jour (commentaires de l'équipe) : pastille discrète, bleue quand il y en a. */}
             <button
               onClick={() => onOpen(l.id, "updates")}
               title={notes ? `${notes} mise${notes > 1 ? "s" : ""} à jour : cliquez pour lire ou écrire` : "Ajouter une mise à jour"}
-              className={`shrink-0 ml-auto mr-1 inline-flex items-center gap-1 h-6 rounded-full px-2 text-xs font-semibold transition-colors ${
+              className={`shrink-0 ml-auto mr-0.5 inline-flex items-center justify-center gap-0.5 h-6 rounded-full px-1.5 text-xs font-semibold transition-colors ${
                 notes ? "bg-[#e6f0ff] text-[#0b63ce] hover:bg-[#d3e5ff]" : "text-gray-300 hover:bg-gray-100 hover:text-gray-500"
               }`}
             >
-              <MessageSquare size={13} />
-              {notes > 0 && <span>{notes > 99 ? "99+" : notes}</span>}
+              <MessageSquare size={12} />
+              {notes > 0 && <span className="text-[10px]">{notes > 99 ? "99+" : notes}</span>}
             </button>
           </div>
         ) : c.type === "phone" ? (
@@ -1153,11 +1153,14 @@ export default function LeadsTable({
   onDuplicateLeads: (fromGroupId: string, toGroupId: string) => void;
   visible: string[];
   setVisible: (v: string[]) => void;
+  onChangeZoom?: (z: number) => void;
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [limits, setLimits] = useState<Record<string, number>>({});
   const [dropOver, setDropOver] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const pinchDist = useRef<number | null>(null);
+  const pinchZoom = useRef<number>(fitZoom || 1);
   const [maxH, setMaxH] = useState<number | null>(null);
   useEffect(() => {
     if (!fitZoom) return;
@@ -1247,7 +1250,7 @@ export default function LeadsTable({
       let b = cols.length - 1;
       let foundA = false;
       for (let i = 0; i < cols.length; i++) {
-        const w = isMobile && cols[i].type === "name" ? Math.min(cols[i].width, 185) : cols[i].width;
+        const w = isMobile && cols[i].type === "name" ? Math.min(cols[i].width, 135) : cols[i].width;
         if (!foundA && x + w > left) {
           a = i;
           foundA = true;
@@ -1274,7 +1277,7 @@ export default function LeadsTable({
     };
   }, [cols, maxH, isMobile]);
   const template = `${colsTemplate(cols, isMobile)} 44px`;
-  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? Math.min(c.width, 185) : c.width), 0) + 52;
+  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? Math.min(c.width, 135) : c.width), 0) + 52;
 
   const [focusAdd, setFocusAdd] = useState<string | null>(null);
   const visibleGroups = groups.filter((g) => !g.archived);
@@ -1352,11 +1355,42 @@ export default function LeadsTable({
     if (copyLeads) onDuplicateLeads(src.id, copy.id);
   };
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const d = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      pinchDist.current = d;
+      pinchZoom.current = fitZoom || 1;
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchDist.current && onChangeZoom) {
+      const d = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      const ratio = d / pinchDist.current;
+      const target = Math.min(1.4, Math.max(0.5, Math.round(pinchZoom.current * ratio * 100) / 100));
+      onChangeZoom(target);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    pinchDist.current = null;
+  };
+
   return (
     <TableZoomContext.Provider value={fitZoom || 1}>
       <div
         ref={scrollRef}
-        className="crm-scroll overflow-auto touch-pan-x touch-pan-y overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onTouchCancel={handleTouchEnd}
+        className="crm-scroll overflow-auto touch-pan-x touch-pan-y overscroll-x-contain [-webkit-overflow-scrolling:touch] pb-24 md:pb-4"
         style={maxH ? { maxHeight: maxH, marginBottom: -((typeof window !== "undefined" && window.innerWidth >= 768 ? 24 : 16) / (fitZoom || 1)) } : undefined}
       >
       <div style={{ minWidth: totalWidth }} className="space-y-6">
@@ -1609,7 +1643,7 @@ export default function LeadsTable({
                       color={st.color}
                       focus={focusAdd === st.id}
                       onAdd={(name) => onCreate(st.id, name)}
-                      nameWidth={isMobile ? Math.min(cols[0]?.width ?? 300, 185) : (cols[0]?.width ?? 300)}
+                      nameWidth={isMobile ? Math.min(cols[0]?.width ?? 300, 135) : (cols[0]?.width ?? 300)}
                     />
                   )}
                 </div>

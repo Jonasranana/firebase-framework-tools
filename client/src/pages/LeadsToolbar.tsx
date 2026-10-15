@@ -115,11 +115,13 @@ export function QuickFilter({
   filters,
   onFilters,
   onSaveView,
+  trigger,
 }: {
   leads: Lead[];
   filters: LeadFilter[];
   onFilters: (f: LeadFilter[]) => void;
   onSaveView: (name: string) => void;
+  trigger?: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
   const [advanced, setAdvanced] = useState(false);
@@ -187,9 +189,13 @@ export function QuickFilter({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button className={filters.length ? btnOn : btn}>
-          <Filter size={15} /> Filtre{filters.length ? ` / ${filters.length}` : ""} <ChevronDown size={13} />
-        </button>
+        {trigger ? (
+          trigger
+        ) : (
+          <button className={filters.length ? btnOn : btn}>
+            <Filter size={15} /> Filtre{filters.length ? ` / ${filters.length}` : ""} <ChevronDown size={13} />
+          </button>
+        )}
       </PopoverTrigger>
       <PopoverContent align="start" className={`p-0 w-[min(94vw,880px)] ${POP}`}>
         <div className="flex flex-wrap items-center gap-3 px-4 pt-3 pb-2">

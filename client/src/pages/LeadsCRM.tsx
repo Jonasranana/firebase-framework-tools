@@ -19,6 +19,7 @@ import {
   FileText,
   ExternalLink,
   SendHorizonal,
+  Filter,
 } from "lucide-react";
 import {
   Sheet,
@@ -804,6 +805,136 @@ const LeadSheet = ({
       </SheetContent>
     </Sheet>
   );
+// Barre d'outils flottante en bas façon Monday mobile app
+const MobileBottomBar = ({
+  query,
+  onQueryChange,
+  zoom,
+  onChangeZoom,
+  onAddLead,
+  filters,
+  onFilters,
+  leads,
+  saveView,
+}: {
+  query: string;
+  onQueryChange: (q: string) => void;
+  zoom: number;
+  onChangeZoom: (z: number) => void;
+  onAddLead: () => void;
+  filters: LeadFilter[];
+  onFilters: (f: LeadFilter[]) => void;
+  leads: Lead[];
+  saveView: (name: string) => void;
+}) => {
+  const [searchOpen, setSearchOpen] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (searchOpen) inputRef.current?.focus();
+  }, [searchOpen]);
+
+  return (
+    <div className="md:hidden fixed bottom-3 inset-x-0 z-40 flex justify-center px-3 pointer-events-none">
+      <div className="pointer-events-auto w-full max-w-sm bg-white/95 backdrop-blur-md rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.15)] border border-gray-200/90 p-1.5 flex items-center gap-1.5 transition-all">
+        {searchOpen ? (
+          <div className="flex-1 flex items-center gap-1.5 bg-gray-100 rounded-xl px-2.5 py-1.5">
+            <Search size={15} className="text-[#0073ea] shrink-0" />
+            <input
+              ref={inputRef}
+              value={query}
+              onChange={(e) => onQueryChange(e.target.value)}
+              placeholder="Rechercher nom, tél, ville…"
+              className="w-full text-base bg-transparent outline-none placeholder:text-gray-400"
+            />
+            {query && (
+              <button onClick={() => onQueryChange("")} className="text-gray-400 hover:text-gray-700 p-0.5">
+                <X size={14} />
+              </button>
+            )}
+            <button
+              onClick={() => setSearchOpen(false)}
+              className="text-xs font-bold text-[#0073ea] px-1"
+            >
+              OK
+            </button>
+          </div>
+        ) : (
+          <>
+            {/* Bouton recherche façon Monday */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className={`flex-1 flex items-center gap-2 rounded-xl px-2.5 py-1.5 transition text-left min-w-0 ${
+                query ? "bg-blue-50 text-[#0073ea] font-semibold" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <span className="w-6 h-6 rounded-full bg-[#0073ea] text-white flex items-center justify-center shrink-0 shadow-sm">
+                <Search size={12} strokeWidth={2.5} />
+              </span>
+              <span className="text-xs truncate">{query ? query : "Recherche…"}</span>
+            </button>
+
+            {/* Contrôle de zoom immédiat (+ / -) */}
+            <div className="flex items-center rounded-xl bg-gray-100 border border-gray-200/70 p-0.5 shrink-0">
+              <button
+                onClick={() => onChangeZoom(zoom - 0.08)}
+                title="Dézoomer"
+                className="w-7 h-7 flex items-center justify-center text-gray-700 active:scale-95 text-base font-bold hover:bg-gray-200 rounded-lg"
+              >
+                −
+              </button>
+              <button
+                onClick={() => onChangeZoom(0.75)}
+                title="Taille optimale (75%)"
+                className="px-1 text-[11px] font-bold text-gray-700 min-w-[2.4rem] text-center active:scale-95"
+              >
+                {Math.round(zoom * 100)}%
+              </button>
+              <button
+                onClick={() => onChangeZoom(zoom + 0.08)}
+                title="Zoomer"
+                className="w-7 h-7 flex items-center justify-center text-gray-700 active:scale-95 text-base font-bold hover:bg-gray-200 rounded-lg"
+              >
+                +
+              </button>
+            </div>
+
+            {/* Filtres rapides */}
+            <QuickFilter
+              leads={leads}
+              filters={filters}
+              onFilters={onFilters}
+              onSaveView={saveView}
+              trigger={
+                <button
+                  title="Filtres"
+                  className={`relative w-8 h-8 rounded-xl flex items-center justify-center transition shrink-0 ${
+                    filters.length > 0 ? "bg-[#0073ea] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  <Filter size={15} />
+                  {filters.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center shadow-sm">
+                      {filters.length}
+                    </span>
+                  )}
+                </button>
+              }
+            />
+
+            {/* Bouton Nouveau Lead (+) */}
+            <button
+              onClick={onAddLead}
+              title="Ajouter un lead"
+              className="w-8 h-8 rounded-xl bg-[#0073ea] hover:bg-[#0060c2] text-white flex items-center justify-center shrink-0 shadow-sm active:scale-95 transition"
+            >
+              <Plus size={18} strokeWidth={2.5} />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
 };
 
 // ── Page ───────────────────────────────────────────────────────────────────
@@ -864,20 +995,27 @@ export default function LeadsCRM({
   columnsApiRef.current = columnsApi;
   const editLabels = useCallback((key: string, opts: any[]) => columnsApiRef.current.setOptions(key, opts), []);
   const [visibleCols, setVisibleCols] = useVisibleColumns(columnsVersion, boardId);
-  // Zoom du tableau (70 % à 140 %), mémorisé sur l'appareil.
+  // Zoom du tableau (50 % à 140 %), mémorisé sur l'appareil (séparément sur mobile et PC).
   const [zoom, setZoom] = useState(() => {
     try {
-      const z = parseFloat(localStorage.getItem("crm-table-zoom") ?? "1");
-      return z >= 0.6 && z <= 1.5 ? z : 1;
+      const isMob = typeof window !== "undefined" && window.innerWidth < 768;
+      const key = isMob ? "crm-table-zoom-mobile" : "crm-table-zoom";
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const z = parseFloat(saved);
+        if (z >= 0.5 && z <= 1.5) return z;
+      }
+      return isMob ? 0.75 : 1; // 75% par défaut sur smartphone (affichage compact façon Monday)
     } catch {
       return 1;
     }
   });
   const changeZoom = (z: number) => {
-    const v = Math.min(1.4, Math.max(0.6, Math.round(z * 100) / 100));
+    const v = Math.min(1.4, Math.max(0.5, Math.round(z * 100) / 100));
     setZoom(v);
     try {
-      localStorage.setItem("crm-table-zoom", String(v));
+      const isMob = typeof window !== "undefined" && window.innerWidth < 768;
+      localStorage.setItem(isMob ? "crm-table-zoom-mobile" : "crm-table-zoom", String(v));
     } catch {
       /* non essentiel */
     }
@@ -1400,6 +1538,7 @@ export default function LeadsCRM({
           onDuplicateLeads={duplicateLeads}
           bulk={bulk}
           fitZoom={zoom}
+          onChangeZoom={changeZoom}
           onMoveColumn={(k, t) => columnsApi.move(k, t)}
           onRenameColumn={(k, title) => columnsApi.rename(k, title)}
           onResizeColumn={(k, w) => columnsApi.setWidth(k, w)}
@@ -1536,6 +1675,19 @@ export default function LeadsCRM({
           setOpenId(id);
           setFocusUpdates(false);
         }}
+      />
+
+      {/* Barre d'outils flottante en bas sur mobile (façon Monday mobile app) */}
+      <MobileBottomBar
+        query={query}
+        onQueryChange={setQuery}
+        zoom={zoom}
+        onChangeZoom={changeZoom}
+        onAddLead={() => setCreating(true)}
+        filters={filters}
+        onFilters={setFilters}
+        leads={leads ?? []}
+        saveView={saveView}
       />
 
       <LeadSheet
