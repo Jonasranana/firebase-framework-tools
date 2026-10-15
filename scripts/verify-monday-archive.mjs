@@ -63,13 +63,13 @@ for (const b of readable) {
   const expected = Number(b.items_count ?? 0);
   totalMonday += expected;
   if (!a) {
-    if (expected > 0) problems.push(`ABSENT       ${b.name} (${expected} lignes) [${b.state}]`);
+    if (expected > 0) problems.push(`ABSENT       ${b.name} (${expected} lignes) [${b.state}] id=${b.id}`);
     continue;
   }
-  if (a.complete !== true) problems.push(`NON TERMINÉ  ${b.name}`);
+  if (a.complete !== true) problems.push(`NON TERMINÉ  ${b.name} id=${b.id}`);
   const cnt = (await db.collection("monday_items").where("boardId", "==", b.id).count().get()).data().count;
   totalCopied += cnt;
-  if (cnt < expected) problems.push(`INCOMPLET    ${b.name} : ${cnt} copiées sur ${expected} dans Monday`);
+  if (cnt < expected) problems.push(`INCOMPLET    ${b.name} : ${cnt} copiées sur ${expected} dans Monday id=${b.id}`);
   if ((a.filesCount ?? 0) > 0) {
     const snap = await db.collection("monday_items").where("boardId", "==", b.id).select("files").get();
     for (const d of snap.docs) {
@@ -77,7 +77,7 @@ for (const b of readable) {
         if (f.url) filesOk++;
         else {
           filesBad++;
-          problems.push(`FICHIER KO   ${b.name} / ${f.name} : ${f.error || f.skipped || "sans lien"}`);
+          problems.push(`FICHIER KO   ${b.name} / ${f.name} : ${f.error || f.skipped || "sans lien"} id=${b.id}`);
         }
       }
     }

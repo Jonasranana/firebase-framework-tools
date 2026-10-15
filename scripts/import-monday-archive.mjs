@@ -32,7 +32,10 @@ const BUCKET = "kachoto-7554c.firebasestorage.app";
 const DRY_RUN = process.env.DRY_RUN === "1";
 const WITH_FILES = process.env.FILES !== "0";
 const ONLY = (process.env.BOARD_IDS ?? "").split(/[,\s]+/).filter(Boolean);
-const MAX_BYTES = 200 * 1024 * 1024;
+const MAX_BYTES = Number(process.env.MAX_MB || 200) * 1024 * 1024;
+// REFRESH=1 : repasse sur des tableaux déjà archivés et ne reprend que ce qui manque (lignes absentes ou incomplètes,
+// fichiers en erreur). Les lignes déjà complètes ne sont pas retouchées.
+const REFRESH = process.env.REFRESH === "1";
 const DEADLINE = Date.now() + 5.5 * 3600 * 1000;
 const token = process.env.MONDAY_API_TOKEN;
 if (!token) {
@@ -178,6 +181,43 @@ async function* itemsOf(boardId) {
   }
 }
 
+// Mode REFRESH : ne renvoie que les lignes à (re)prendre — absentes de l'archive, incomplètes, ou avec un fichier en erreur.
+async function* refreshItemsOf(boardId) {
+  const ids = [];
+  let page = (
+    await monday(
+      `query ($board: ID!) { boards(ids: [$board], state: all, hierarchy_types: [classic, multi_level]) { items_page(limit: 500) { cursor items { id } } } }`,
+      { board: boardId },
+      API_NEW,
+    )
+  ).boards[0]?.items_page;
+  while (page) {
+    ids.push(...page.items.map((i) => String(i.id)));
+    if (!page.cursor) break;
+    page = (
+      await monday(`query ($cursor: String!) { next_items_page(limit: 500, cursor: $cursor) { cursor items { id } } }`, { cursor: page.cursor }, API_NEW)
+    ).next_items_page;
+  }
+  const snap = await db.collection("monday_items").where("boardId", "==", boardId).select("complete", "files").get();
+  const have = new Map(snap.docs.map((d) => [d.id.slice(String(boardId).length + 1), d.data()]));
+  const todo = ids.filter((id) => {
+    const d = have.get(id);
+    return !d || d.complete !== true || (d.files ?? []).some((f) => f.error || f.skipped);
+  });
+  console.log(`  rafraîchissement : ${todo.length} ligne(s) à reprendre sur ${ids.length} dans Monday`);
+  let size = 10;
+  for (let i = 0; i < todo.length; ) {
+    try {
+      const d = await monday(`query ($ids: [ID!]) { items(ids: $ids) { ${ITEM_BODY} } }`, { ids: todo.slice(i, i + size) }, API_NEW);
+      yield* d.items;
+      i += size;
+    } catch (e) {
+      if (e instanceof ComplexityError && size > 1) size = Math.max(1, Math.floor(size / 2));
+      else throw e;
+    }
+  }
+}
+
 // Commentaires au-delà de 100 sur une ligne.
 async function moreUpdates(itemId, have) {
   const all = [...have];
@@ -257,21 +297,24 @@ function keysOf(name, cols) {
 async function doBoard(b) {
   const boardRef = db.doc(`monday_boards/${b.id}`);
   const prev = DRY_RUN ? null : await boardRef.get();
-  if (prev?.exists && prev.get("complete") === true) {
+  if (prev?.exists && prev.get("complete") === true && !REFRESH) {
     console.log(`= ${b.name} : déjà archivé.`);
     return "done";
   }
   const own = { items: 0, files: 0, bytes: 0 };
   let ok = false;
   try {
-    if (!DRY_RUN)
-      await boardRef.set({
+    if (!DRY_RUN) {
+      const info = {
         id: b.id, name: b.name, state: b.state, kind: b.board_kind, description: b.description ?? "",
         workspace: b.workspace?.name ?? "", folder: folderNames[b.board_folder_id] ?? "", folderId: b.board_folder_id ?? "",
-        itemsCount: b.items_count ?? 0, columns: b.columns, groups: b.groups ?? [], complete: false, startedAt: Timestamp.now(),
-      });
+        itemsCount: b.items_count ?? 0, columns: b.columns, groups: b.groups ?? [],
+      };
+      if (REFRESH && prev?.exists) await boardRef.set(info, { merge: true });
+      else await boardRef.set({ ...info, complete: false, startedAt: Timestamp.now() });
+    }
     const fileColumns = new Set(b.columns.filter((c) => c.type === "file").map((c) => c.id));
-    for await (const item of itemsOf(b.id)) {
+    for await (const item of REFRESH ? refreshItemsOf(b.id) : itemsOf(b.id)) {
       if (Date.now() > DEADLINE) return "timeout";
       own.items++;
       stats.lignes++;
@@ -290,7 +333,7 @@ async function doBoard(b) {
       const docId = `${b.id}_${item.id}`;
       const itemRef = db.doc(`monday_items/${docId}`);
       const existing = await itemRef.get();
-      if (existing.exists && existing.get("complete") === true) {
+      if (!REFRESH && existing.exists && existing.get("complete") === true) {
         stats.lignes_sautees++;
         continue;
       }
@@ -363,7 +406,17 @@ async function doBoard(b) {
     }
     ok = true;
   } finally {
-    if (!DRY_RUN && ok) await boardRef.update({ complete: true, itemsArchived: own.items, filesCount: own.files, finishedAt: Timestamp.now() });
+    if (!DRY_RUN && ok) {
+      if (REFRESH) {
+        // Recompte sur ce qui est réellement archivé (la passe n'a traité que les manquants).
+        const all = await db.collection("monday_items").where("boardId", "==", b.id).select("files").get();
+        let nf = 0;
+        for (const d of all.docs) nf += (d.get("files") ?? []).filter((f) => f.url).length;
+        await boardRef.update({ complete: true, itemsArchived: all.size, filesCount: nf, finishedAt: Timestamp.now() });
+        own.items = all.size;
+        own.files = nf;
+      } else await boardRef.update({ complete: true, itemsArchived: own.items, filesCount: own.files, finishedAt: Timestamp.now() });
+    }
   }
   stats.tableaux++;
   console.log(`✔ ${b.state.padEnd(8)} ${String(own.items).padStart(5)} lignes, ${String(own.files).padStart(5)} fichiers (${(own.bytes / 1e6).toFixed(0)} Mo) — ${b.name}`);

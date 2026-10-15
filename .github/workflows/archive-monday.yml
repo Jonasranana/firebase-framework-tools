@@ -16,6 +16,14 @@ on:
         description: "Copier aussi les fichiers"
         type: boolean
         default: true
+      refresh:
+        description: "Repasser sur des tableaux déjà archivés : ne reprend que les lignes ou fichiers manquants"
+        type: boolean
+        default: false
+      max_mb:
+        description: "Taille maximale d'un fichier copié, en Mo"
+        type: string
+        default: "200"
       board_ids:
         description: "Facultatif : identifiants de tableaux séparés par des virgules (sinon tous)"
         type: string
@@ -50,6 +58,8 @@ jobs:
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run && '1' || '0' }}
           FILES: ${{ github.event_name == 'workflow_dispatch' && !inputs.files && '0' || '1' }}
           BOARD_IDS: ${{ github.event_name == 'workflow_dispatch' && inputs.board_ids || '' }}
+          REFRESH: ${{ github.event_name == 'workflow_dispatch' && inputs.refresh && '1' || '0' }}
+          MAX_MB: ${{ github.event_name == 'workflow_dispatch' && inputs.max_mb || '200' }}
           SCHEDULED: ${{ github.event_name == 'schedule' && '1' || '0' }}
         run: |
           set +e
