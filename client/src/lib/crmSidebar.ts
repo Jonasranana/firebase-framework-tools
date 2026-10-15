@@ -139,6 +139,7 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
         target.items.push(di);
       }
     }
+  }
   for (const f of folders) {
     if (f.id === "f_pac") {
       f.title = "PRAIMY";
