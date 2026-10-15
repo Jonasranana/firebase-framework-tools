@@ -2990,14 +2990,16 @@ exports.exportLeadToPraimy = onCall(
       throw new HttpsError("internal", data.detail || `Erreur Praimy: ${res.status}`);
     }
 
-    // Trace dans la fiche du lead
+    // Trace dans la fiche du lead + mise à jour de la colonne Pipeline et Poseur
     const caller = String(request.auth?.token?.email ?? "").toLowerCase();
     await db.doc(`crm_leads/${leadId}`).update({
       praimyClientId: data.id,
       praimyExportedAt: new Date().toISOString(),
+      "fields.pipeline": "PRAIMY",
+      "fields.poseur": "PRAIMY",
       notes: require("firebase-admin/firestore").FieldValue.arrayUnion({
         id: Math.random().toString(36).slice(2, 9),
-        text: `Transféré à Prémi / Praimy (Réf client: ${data.id})`,
+        text: `Transféré à PRAIMY (Réf client: ${data.id})`,
         by: caller,
         at: new Date().toISOString(),
         kind: "statut",
@@ -3007,5 +3009,92 @@ exports.exportLeadToPraimy = onCall(
     return { success: true, clientId: data.id };
   }
 );
+
+exports.syncPraimyToPacPac = onCall(
+  {
+    secrets: [PRAIMY_API_KEY],
+    region: "europe-west9",
+  },
+  async (request) => {
+    if (!isCrmMember(request)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const key = PRAIMY_API_KEY.value();
+    const url = "https://portail.praimy.fr/api/v1/dossiers/";
+    const res = await fetch(url, {
+      headers: {
+        "X-API-Key": key,
+        "Accept": "application/json",
+      },
+    });
+    if (!res.ok) {
+      throw new HttpsError("internal", `Erreur API Praimy: ${res.status}`);
+    }
+    const data = await res.json();
+    const dossiers = data.items || [];
+
+    // Lecture des leads existants dans Firestore
+    const leadsSnap = await db.collection("crm_leads").get();
+    const leads = [];
+    leadsSnap.forEach((doc) => leads.push({ id: doc.id, ...doc.data() }));
+
+    let updatedCount = 0;
+    const batch = db.batch();
+
+    // Mapping du statut global Praimy vers l'étiquette Pipeline de Pac Pac
+    const mapToPipeline = (d) => {
+      const g = (d.global_status || "").toLowerCase();
+      const s = (d.statut || "").toLowerCase();
+      if (s === "abandonne" || g === "abandonne") return "Pas bon";
+      if (s === "pose" || s === "termine") return "Installé";
+      if (g === "mandat_mpr_a_signer") return "Mandat MPR à signer";
+      if (g === "en_signature_commerciale" || s === "signature") return "Devis en signature";
+      if (g === "en_audit_pre_installation" || s === "signe") return "Audit / Validé";
+      if (s === "visite") return "VT programmée";
+      return "PRAIMY";
+    };
+
+    for (const d of dossiers) {
+      const clientNom = (d.client_nom || "").toLowerCase().trim();
+      const refDossier = (d.reference || "").toLowerCase().trim();
+
+      // Recherche par nom ou par référence
+      const match = leads.find((l) => {
+        const lName = String(l.name || "").toLowerCase().trim();
+        return (
+          (clientNom && lName.includes(clientNom)) ||
+          (clientNom && clientNom.includes(lName) && lName.length > 3) ||
+          l.praimyClientId === d.client_id ||
+          l.fields?.refPraimy === d.reference
+        );
+      });
+
+      if (match) {
+        const newPipeline = mapToPipeline(d);
+        const updates = {
+          "fields.pipeline": newPipeline,
+          "fields.poseur": "PRAIMY",
+          "fields.refPraimy": d.reference || "",
+          praimyStatut: d.statut || "",
+          praimyGlobalStatus: d.global_status || "",
+          praimyDossierId: d.id,
+        };
+        if (typeof d.reste_a_charge_ttc === "number") {
+          updates["fields.montant"] = d.reste_a_charge_ttc;
+        }
+        batch.update(db.doc(`crm_leads/${match.id}`), updates);
+        updatedCount++;
+      }
+    }
+
+    if (updatedCount > 0) {
+      await batch.commit();
+    }
+
+    return { success: true, updatedCount, totalPraimy: dossiers.length };
+  }
+);
+
+
 
 

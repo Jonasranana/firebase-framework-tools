@@ -47,11 +47,14 @@ export const PIPELINE: Opt[] = [
   o("Docs reçus", "#007eb5"),
   o("Attente conf. VT", "#579bfc"),
   o("VT programmée", "#216edf"),
+  o("Devis en signature", "#bda8f9"),
+  o("Mandat MPR à signer", "#ff5ac4"),
+  o("Audit / Validé", "#00a2ae"),
   o("Pose programmée", "#037f4c"),
   o("Installé", "#00c875"),
   o("Pas bon", "#df2f4a"),
   o("BETSALEL", "#fdab3d"),
-  o("PRAYMI", "#ff5ac4"),
+  o("PRAIMY", "#ff5ac4"),
 ];
 export const COMMERCIAL: Opt[] = [
   o("Mebarek", "#007eb5"),
@@ -75,7 +78,7 @@ export const TYPE_DEMANDE: Opt[] = [
   o("🧮 Simulation", "#579bfc"),
   o("✉️ Réactivation", "#9d50dd"),
 ];
-export const POSEUR: Opt[] = [o("NousGeorges", "#9cd326"), o("Premy", "#cab641"), o("BETS", "#757575")];
+export const POSEUR: Opt[] = [o("NousGeorges", "#9cd326"), o("Premy", "#cab641"), o("PRAIMY", "#cab641"), o("BETS", "#757575")];
 export const RESSENTI: Opt[] = [
   o("Positif", "#00c875"),
   o("Neutre", "#fdab3d"),

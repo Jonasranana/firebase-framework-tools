@@ -69,6 +69,31 @@ export default function PraimyCRM({ email }: { email: string }) {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filterStatut, setFilterStatut] = useState<string>("all");
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+
+  const syncToPacPac = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    setError(null);
+    try {
+      const app = await getEspaceProApp();
+      const { getFunctions, httpsCallable } = await import("firebase/functions");
+      const functions = getFunctions(app, "europe-west9");
+      const syncFn = httpsCallable<void, { success: boolean; updatedCount: number }>(
+        functions,
+        "syncPraimyToPacPac"
+      );
+      const res = await syncFn();
+      setSyncResult(`✓ ${res.data.updatedCount} synchro`);
+      setTimeout(() => setSyncResult(null), 4000);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Erreur de synchronisation avec Pac Pac.");
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const loadDossiers = async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -139,6 +164,14 @@ export default function PraimyCRM({ email }: { email: string }) {
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={syncToPacPac}
+            disabled={syncing || loading}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 shadow-sm transition disabled:opacity-50"
+          >
+            <RefreshCw size={15} className={syncing ? "animate-spin text-emerald-700" : ""} />
+            {syncResult ? syncResult : "Synchroniser avec Pac Pac"}
+          </button>
           <button
             onClick={() => loadDossiers(true)}
             disabled={loading || refreshing}

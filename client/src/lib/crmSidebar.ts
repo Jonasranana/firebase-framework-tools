@@ -140,7 +140,7 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
       }
     }
   for (const f of folders) {
-    if (f.id === "f_pac" && (f.title === "Outils pompe à chaleur" || f.title === "Outils PAC")) {
+    if (f.id === "f_pac") {
       f.title = "PRAIMY";
     }
     for (const i of f.items) {

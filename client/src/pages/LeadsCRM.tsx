@@ -394,7 +394,7 @@ const LeadSheet = ({
       setPraimySuccess(true);
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || "Erreur lors du transfert à Prémi / Praimy.");
+      setError(err?.message || "Erreur lors du transfert à PRAIMY.");
     } finally {
       setPraimyBusy(false);
     }
