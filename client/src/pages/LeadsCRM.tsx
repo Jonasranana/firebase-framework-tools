@@ -817,7 +817,7 @@ export default function LeadsCRM({
   const columnsApiRef = useRef(columnsApi);
   columnsApiRef.current = columnsApi;
   const editLabels = useCallback((key: string, opts: any[]) => columnsApiRef.current.setOptions(key, opts), []);
-  const [visibleCols, setVisibleCols] = useVisibleColumns(columnsVersion);
+  const [visibleCols, setVisibleCols] = useVisibleColumns(columnsVersion, boardId);
   // Zoom du tableau (70 % à 140 %), mémorisé sur l'appareil.
   const [zoom, setZoom] = useState(() => {
     try {
@@ -974,10 +974,8 @@ export default function LeadsCRM({
   }, []);
   // Tableau « vue » : colonnes de départ, et enregistrement automatique (après une
   // courte pause) des filtres, du tri, du groupement et des colonnes choisis.
-  useEffect(() => {
-    if (boardView?.visible?.length) setVisibleCols(boardView.visible);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // (Les colonnes affichées ne sont plus imposées par la vue enregistrée à l'ouverture : chaque
+  // appareil garde son propre choix par tableau, bouton « Masquer ».)
   useEffect(() => {
     if (!boardView || !onBoardViewChange) return;
     const current = { filters, sorts, groupBy, personKey, visible: visibleCols };

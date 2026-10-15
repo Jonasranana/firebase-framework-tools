@@ -568,20 +568,22 @@ const TagsCell = ({ value, onSave }: { value: string; onSave: (v: string) => voi
 
 const colsTemplate = (cols: LeadColumn[]) => cols.map((c) => `${c.width}px`).join(" ");
 
-// Colonnes masquées : choix mémorisé sur l'appareil. On retient les colonnes
-// MASQUÉES (et non les affichées) : une colonne ajoutée plus tard apparaît seule.
-function useVisibleColumns(version = 0) {
-  const [hidden, setHidden] = useState<string[]>(() => {
-    try {
-      const v = JSON.parse(localStorage.getItem(COLS_STORAGE) ?? "null");
-      if (v && Array.isArray(v.hidden)) return v.hidden;
-      // Ancien format : liste des colonnes affichées.
-      if (Array.isArray(v)) return LEAD_COLUMNS.map((c) => c.key).filter((k) => !v.includes(k));
-    } catch {
-      /* préférence non essentielle */
-    }
-    return [];
-  });
+// Colonnes masquées : choix mémorisé sur l'appareil, SÉPARÉMENT pour chaque tableau (avant, un
+// seul choix pour tous les tableaux : les colonnes masquées sur un autre tableau, ou une liste
+// enregistrée avant l'ajout d'une colonne, masquaient des colonnes de Pac Pac à l'ouverture).
+// On retient les colonnes MASQUÉES (et non les affichées) : une colonne ajoutée plus tard apparaît seule.
+function readHidden(boardId: string): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(`${COLS_STORAGE}:${boardId}`) ?? "null");
+    if (v && Array.isArray(v.hidden)) return v.hidden;
+  } catch {
+    /* préférence non essentielle */
+  }
+  return [];
+}
+function useVisibleColumns(version = 0, boardId = "leads") {
+  const [hidden, setHidden] = useState<string[]>(() => readHidden(boardId));
+  useEffect(() => setHidden(readHidden(boardId)), [boardId]);
   const visible = useMemo(
     () => LEAD_COLUMNS.map((c) => c.key).filter((k) => k === "name" || !hidden.includes(k)),
     [hidden, version], // eslint-disable-line react-hooks/exhaustive-deps
@@ -590,7 +592,7 @@ function useVisibleColumns(version = 0) {
     const h = LEAD_COLUMNS.map((c) => c.key).filter((k) => k !== "name" && !v.includes(k));
     setHidden(h);
     try {
-      localStorage.setItem(COLS_STORAGE, JSON.stringify({ hidden: h }));
+      localStorage.setItem(`${COLS_STORAGE}:${boardId}`, JSON.stringify({ hidden: h }));
     } catch {
       /* non essentiel */
     }

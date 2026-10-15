@@ -158,7 +158,7 @@ const QuickStart = ({ source }: { source: string }) => {
   const [done, setDone] = useState(false);
 
   if (mode === "simulation") {
-    return <Simulator source={source} tone="pro" />;
+    return <Simulator source={source} tone="pro" initialHeating={heating} />;
   }
 
   const trackCall = () => {
