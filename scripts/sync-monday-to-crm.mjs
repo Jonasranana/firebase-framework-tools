@@ -392,10 +392,17 @@ for (const d of (await db.collection("crm_leads").select("phone", "email", "name
 }
 
 // Écrit seulement ce qui change (une ligne identique garde sa « Dernière mise à jour »).
-function diffPatch(cur, base, fields) {
+// Compte aussi les écarts par colonne, avec quelques exemples, pour le bilan.
+const diffCount = {};
+const diffExamples = {};
+function diffPatch(cur, base, fields, docId = "") {
   const patch = {};
-  for (const [k, v] of Object.entries(base)) if ((cur?.[k] ?? "") !== (v ?? "")) patch[k] = v;
-  for (const [k, v] of Object.entries(fields)) if ((cur?.fields?.[k] ?? "") !== (v ?? "")) patch[`fields.${k}`] = v || FieldValue.delete();
+  const note = (k, was, now) => {
+    diffCount[k] = (diffCount[k] ?? 0) + 1;
+    if ((diffExamples[k] ??= []).length < 3) diffExamples[k].push(`${docId}: « ${String(was ?? "").slice(0, 40)} » → « ${String(now ?? "").slice(0, 40)} »`);
+  };
+  for (const [k, v] of Object.entries(base)) if ((cur?.[k] ?? "") !== (v ?? "")) (patch[k] = v), note(k, cur?.[k], v);
+  for (const [k, v] of Object.entries(fields)) if ((cur?.fields?.[k] ?? "") !== (v ?? "")) (patch[`fields.${k}`] = v || FieldValue.delete()), note(`fields.${k}`, cur?.fields?.[k], v);
   return patch;
 }
 
@@ -461,7 +468,7 @@ async function syncPacPac() {
         stats.pacpac_ignorees_crm++;
         return;
       }
-      const patch = diffPatch(cur, base, fields);
+      const patch = diffPatch(cur, base, fields, docId);
       if ((cur?.details?.["Groupe Monday"] ?? "") !== (item.group?.title ?? "")) patch["details.Groupe Monday"] = item.group?.title ?? "";
       if (notes.length) patch.notes = FieldValue.arrayUnion(...notes);
       if (!Object.keys(patch).length) return;
@@ -547,7 +554,7 @@ async function syncIntegratedBoards() {
       stats.commentaires += notes.length;
       const cur = crmDocs.get(docId);
       if (cur) {
-        const patch = diffPatch(cur, { ...core, group }, fields);
+        const patch = diffPatch(cur, { ...core, group }, fields, docId);
         if (notes.length) patch.notes = FieldValue.arrayUnion(...notes);
         if (!Object.keys(patch).length) return;
         patch.updatedAt = Timestamp.now();
@@ -597,6 +604,9 @@ await syncIntegratedBoards();
 
 await writer.close();
 if (!DRY_RUN && stats.erreurs === 0) await STATE.set({ lastRun: startedAt.toISOString(), fullDone, labelHash, stats, updatedAt: Timestamp.now() });
+const topDiffs = Object.entries(diffCount).sort((a, b) => b[1] - a[1]).slice(0, 25);
+console.log("Écarts par colonne (CRM ≠ Monday) :");
+for (const [k, n] of topDiffs) console.log(`  ${k}: ${n}  ex. ${diffExamples[k].join(" | ")}`);
 console.log(DRY_RUN ? "ESSAI À BLANC (rien d'écrit)" : "SYNCHRONISATION TERMINÉE");
 console.log(stats);
 if (stats.erreurs > 0) process.exit(1);
