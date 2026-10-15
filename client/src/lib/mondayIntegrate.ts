@@ -251,7 +251,23 @@ export async function integrateMondayBoard(
 
   // Entrée dans le menu, dossier « Tableau IP5 » (une seule fois).
   const exists = sidebar.config.folders.some((f) => f.items.some((x) => x.board === boardId));
-  if (!exists) {
+  if (exists) {
+    // Le tableau était déjà dans le menu (peut-être à la corbeille ou archivé) : on le remet bien en place.
+    const wasHidden = sidebar.config.folders.some((f) => f.items.some((x) => x.board === boardId && (x.deletedAt || x.archived)));
+    if (wasHidden)
+      await sidebar.save({
+        ...sidebar.config,
+        folders: sidebar.config.folders.map((f) => ({
+          ...f,
+          collapsed: f.items.some((x) => x.board === boardId) ? false : f.collapsed,
+          items: f.items.map((x) => {
+            if (x.board !== boardId) return x;
+            const { deletedAt, ...rest } = x;
+            return { ...rest, archived: false };
+          }),
+        })),
+      });
+  } else {
     const entry: SideItem = {
       id: `i_${boardId}`,
       kind: "view",
