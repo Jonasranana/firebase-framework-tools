@@ -12,6 +12,7 @@ import { LogoIP5 } from "./site-chrome";
 import LeadsCRM from "./LeadsCRM";
 import { memberName } from "@/lib/crmTeam";
 import GonflageCRM from "./GonflageCRM";
+import BrandLoader from "@/components/BrandLoader";
 import AdminShell, { initialPage, rememberPage, type AdminPage, type PageTools } from "./AdminShell";
 import type { SideItem } from "@/lib/crmSidebar";
 
@@ -863,7 +864,7 @@ export default function OutilDevis() {
     const narrow = (node: React.ReactNode) => <div className="max-w-2xl mx-auto">{node}</div>;
     // Contenu d'une page (utilisé par l'écran principal et par « Ouvrir en superposition »).
     const renderPage = (p: AdminPage, item: SideItem | null, tools: PageTools) => (
-      <Suspense fallback={<Loader2 className="animate-spin text-gray-400 mx-auto my-10" />}>
+      <Suspense fallback={<BrandLoader />}>
         {p === "leads" && (
           <LeadsCRM
             key={item?.id ?? "leads"}
@@ -908,6 +909,9 @@ export default function OutilDevis() {
     );
   }
 
+  // Démarrage : écran de chargement animé (pas de petite carte avec un rond qui tourne).
+  if (status === "loading") return <BrandLoader full />;
+
   // Écran de connexion / accès refusé
   return (
     <div
@@ -916,13 +920,6 @@ export default function OutilDevis() {
     >
       <div className="max-w-sm w-full bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center">
         <LogoIP5 className="h-10 mx-auto mb-6" />
-
-        {status === "loading" && (
-          <div className="py-6 text-gray-400 flex flex-col items-center gap-3">
-            <Loader2 className="animate-spin" size={28} />
-            <span className="text-sm">Chargement…</span>
-          </div>
-        )}
 
         {status === "signed-out" && (
           <>

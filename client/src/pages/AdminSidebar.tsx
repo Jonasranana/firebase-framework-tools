@@ -19,7 +19,7 @@ import {
   Repeat,
   Settings2,
   Star,
-  Rows3 as BoardIcon,
+  PanelLeft as BoardIcon,
   Trash2,
   UserPlus,
   Users,

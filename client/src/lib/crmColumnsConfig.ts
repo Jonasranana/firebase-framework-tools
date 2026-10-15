@@ -34,6 +34,9 @@ export function useColumnsConfig(email: string, boardId = "leads") {
   const [config, setConfig] = useState<ColumnsConfig>({});
   const [version, setVersion] = useState(0);
   const [error, setError] = useState("");
+  // Vrai dès que la configuration des colonnes de ce tableau est lue (ou illisible) : évite d'afficher le tableau
+  // avec les colonnes d'origine puis de le redessiner une seconde plus tard.
+  const [ready, setReady] = useState(false);
   const ref = useRef<ColumnsConfig>({});
   ref.current = config;
 
@@ -51,11 +54,13 @@ export function useColumnsConfig(email: string, boardId = "leads") {
             applyColumnsConfig(c);
             setConfig(c);
             setVersion((v) => v + 1);
+            setReady(true);
           },
-          () => {},
+          () => !cancelled && setReady(true),
         );
       } catch {
         /* colonnes d'origine seulement */
+        if (!cancelled) setReady(true);
       }
     })();
     return () => {
@@ -164,5 +169,5 @@ export function useColumnsConfig(email: string, boardId = "leads") {
     },
   };
 
-  return { config, version, api, error };
+  return { config, version, api, error, ready };
 }
