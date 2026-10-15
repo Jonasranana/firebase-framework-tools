@@ -806,6 +806,8 @@ const LeadSheet = ({
       </SheetContent>
     </Sheet>
   );
+};
+
 // Barre d'outils flottante en bas façon Monday mobile app
 const MobileBottomBar = ({
   query,
