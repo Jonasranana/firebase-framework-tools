@@ -55,14 +55,17 @@ if (process.env.SCHEDULED === "1") {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 class ComplexityError extends Error {}
 
-async function monday(query, variables) {
+// Version d'API : 2024-10 par défaut ; les tableaux « multi-niveaux » (ex. « Tableau pour Depot ») ne sont
+// visibles qu'avec une version récente et le paramètre hierarchy_types.
+const API_NEW = "2025-07";
+async function monday(query, variables, version = "2024-10") {
   for (let attempt = 1; ; attempt++) {
     let body = {};
     let res;
     try {
       res = await fetch("https://api.monday.com/v2", {
         method: "POST",
-        headers: { Authorization: token, "Content-Type": "application/json", "API-Version": "2024-10" },
+        headers: { Authorization: token, "Content-Type": "application/json", "API-Version": version },
         body: JSON.stringify({ query, variables }),
       });
       body = await res.json().catch(() => ({}));
@@ -97,11 +100,12 @@ if (!DRY_RUN) await db.doc("monday_meta/users").set({ users, at: Timestamp.now()
 const boards = [];
 for (let page = 1; ; page++) {
   const d = await monday(
-    `query ($page: Int) { boards(limit: 100, page: $page, state: all, order_by: created_at) {
+    `query ($page: Int) { boards(limit: 100, page: $page, state: all, order_by: created_at, hierarchy_types: [classic, multi_level]) {
       id name state board_kind description workspace { id name } board_folder_id items_count
       columns { id title type settings_str archived } groups { id title color archived position }
     } }`,
     { page },
+    API_NEW,
   );
   if (!d.boards.length) break;
   boards.push(...d.boards);
@@ -136,8 +140,9 @@ async function* itemsOf(boardId) {
   for (;;) {
     try {
       const first = await monday(
-        `query ($board: ID!) { boards(ids: [$board], state: all) { items_page(limit: ${limit}) { cursor items { ${ITEM_BODY} } } } }`,
+        `query ($board: ID!) { boards(ids: [$board], state: all, hierarchy_types: [classic, multi_level]) { items_page(limit: ${limit}) { cursor items { ${ITEM_BODY} } } } }`,
         { board: boardId },
+        API_NEW,
       );
       let page = first.boards[0]?.items_page;
       while (page) {
@@ -146,6 +151,7 @@ async function* itemsOf(boardId) {
         const nx = await monday(
           `query ($cursor: String!) { next_items_page(limit: ${limit}, cursor: $cursor) { cursor items { ${ITEM_BODY} } } }`,
           { cursor: page.cursor },
+          API_NEW,
         );
         page = nx.next_items_page;
       }
