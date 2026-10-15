@@ -20,6 +20,7 @@ const MONDAY_WEBHOOK_SECRET = defineSecret("MONDAY_WEBHOOK_SECRET");
 const TWILIO_ACCOUNT_SID = defineSecret("TWILIO_ACCOUNT_SID");
 const TWILIO_AUTH_TOKEN = defineSecret("TWILIO_AUTH_TOKEN");
 const TWILIO_FROM_NUMBER = "+33939207357";
+const PRAIMY_API_KEY = defineSecret("PRAIMY_API_KEY");
 
 const SITE_URL = "https://ip5energie.fr";
 
@@ -2913,3 +2914,31 @@ Object.assign(
     normalizeLabel,
   }),
 );
+
+// ── Intégration Praimy (Dossiers PAC Gary) ────────────────────────────────
+exports.listPraimyDossiers = onCall(
+  {
+    secrets: [PRAIMY_API_KEY],
+    region: "europe-west9",
+  },
+  async (request) => {
+    if (!isCrmMember(request)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const key = PRAIMY_API_KEY.value();
+    const url = "https://portail.praimy.fr/api/v1/dossiers/";
+    const res = await fetch(url, {
+      headers: {
+        "X-API-Key": key,
+        "Accept": "application/json",
+      },
+    });
+    if (!res.ok) {
+      const errText = await res.text().catch(() => "");
+      logger.error("Erreur API Praimy listPraimyDossiers", { status: res.status, err: errText });
+      throw new HttpsError("internal", `Erreur Praimy: ${res.status}`);
+    }
+    return await res.json();
+  }
+);
+

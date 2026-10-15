@@ -64,6 +64,7 @@ export type AdminPage =
   | "marges"
   | "gonflage"
   | "clients"
+  | "praimy"
   | "archives";
 
 export const PAGE_TITLES: Record<AdminPage, string> = {
@@ -78,6 +79,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   marges: "Marges Prémi",
   gonflage: "Station de gonflage",
   clients: "Clients (copie Monday)",
+  praimy: "Dossiers Praimy",
   archives: "Archives Monday",
 };
 

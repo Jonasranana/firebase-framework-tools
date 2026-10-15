@@ -25,6 +25,7 @@ const ArchivesMonday = lazy(() => import("./ArchivesMonday"));
 const CorbeilleEtDoublons = lazy(() => import("./CorbeilleEtDoublons"));
 const DocumentsPage = lazy(() => import("./DocumentsPage"));
 const TeamPage = lazy(() => import("./TeamPage"));
+const PraimyCRM = lazy(() => import("./PraimyCRM"));
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -894,6 +895,7 @@ export default function OutilDevis() {
         {p === "devis" && <DevisPAC email={email} />}
         {p === "marges" && narrow(<MargesPremi />)}
         {p === "clients" && narrow(<ClientsCRM email={email} />)}
+        {p === "praimy" && <PraimyCRM email={email} />}
       </Suspense>
     );
     return (

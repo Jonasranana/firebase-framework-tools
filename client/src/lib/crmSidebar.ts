@@ -20,6 +20,7 @@ export type AdminPageKey =
   | "marges"
   | "gonflage"
   | "clients"
+  | "praimy"
   | "archives";
 
 // Définition d'un tableau « vue » : un tableau de leads avec ses propres
@@ -80,7 +81,7 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       color: "#fb275d",
       items: [item("documents", "Documents"), item("stats", "Statistiques"), item("bareme", "Barème"), item("corbeille", "Corbeille et doublons")],
     },
-    { id: "f_pac", title: "Outils pompe à chaleur", color: "#fdab3d", items: [item("devis", "Devis PAC"), item("marges", "Marges Prémi")] },
+    { id: "f_pac", title: "Outils pompe à chaleur", color: "#fdab3d", items: [item("devis", "Devis PAC"), item("marges", "Marges Prémi"), item("praimy", "Dossiers Praimy")] },
     { id: "f_autres", title: "Autres métiers", color: "#9d50dd", items: [item("gonflage", "Station de gonflage")] },
     { id: "f_archives", title: "Archives Monday", color: "#7f8794", items: [item("archives", "Archives Monday"), item("clients", "Clients (copie Monday)")] },
   ],

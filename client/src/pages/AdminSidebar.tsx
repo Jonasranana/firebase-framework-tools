@@ -7,6 +7,7 @@ import {
   ChevronsDownUp,
   Copy,
   ExternalLink,
+  FileCheck2,
   FolderOpen,
   FolderPlus,
   Gauge,
@@ -54,6 +55,7 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
   marges: Percent,
   gonflage: Gauge,
   clients: Archive,
+  praimy: FileCheck2,
   archives: Archive,
 };
 
