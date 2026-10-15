@@ -17,6 +17,8 @@ import {
   Trash2,
   Upload,
   FileText,
+  ExternalLink,
+  SendHorizonal,
 } from "lucide-react";
 import {
   Sheet,
@@ -373,6 +375,30 @@ const LeadSheet = ({
   const [saved, setSaved] = useState(false);
   const [previewSpace, setPreviewSpace] = useState(false);
   const [error, setError] = useState("");
+  const [praimyBusy, setPraimyBusy] = useState(false);
+  const [praimySuccess, setPraimySuccess] = useState(false);
+
+  const sendToPraimy = async () => {
+    if (!lead) return;
+    setPraimyBusy(true);
+    setError("");
+    try {
+      const app = await getEspaceProApp();
+      const { getFunctions, httpsCallable } = await import("firebase/functions");
+      const functions = getFunctions(app, "europe-west9");
+      const exportFn = httpsCallable<{ leadId: string }, { success: boolean; clientId: string }>(
+        functions,
+        "exportLeadToPraimy"
+      );
+      await exportFn({ leadId: lead.id });
+      setPraimySuccess(true);
+    } catch (err: any) {
+      console.error(err);
+      setError(err?.message || "Erreur lors du transfert à Prémi / Praimy.");
+    } finally {
+      setPraimyBusy(false);
+    }
+  };
 
   // Ouverte depuis la bulle de la ligne : on descend directement aux mises à jour.
   useEffect(() => {
@@ -552,11 +578,30 @@ const LeadSheet = ({
               {lead.email && (
                 <a
                   href={`mailto:${lead.email}`}
-                  className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm font-bold px-4 py-2 rounded-full"
+                  className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm font-bold px-4 py-2 rounded-full hover:bg-gray-200 transition"
                 >
                   <Mail size={14} /> Mail
                 </a>
               )}
+              <button
+                type="button"
+                onClick={sendToPraimy}
+                disabled={praimyBusy || praimySuccess || !!lead.praimyClientId}
+                className={`inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full transition ${
+                  praimySuccess || lead.praimyClientId
+                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default"
+                    : "bg-[#0f2b4a] text-white hover:bg-[#1a3d66] disabled:opacity-50"
+                }`}
+              >
+                {praimyBusy ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : praimySuccess || lead.praimyClientId ? (
+                  <Check size={14} className="text-emerald-600" />
+                ) : (
+                  <SendHorizonal size={14} />
+                )}
+                {praimySuccess || lead.praimyClientId ? "Envoyé à Prémi" : "Envoyer à Prémi"}
+              </button>
             </div>
           )}
 

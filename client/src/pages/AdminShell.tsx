@@ -79,7 +79,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   marges: "Marges Prémi",
   gonflage: "Station de gonflage",
   clients: "Clients (copie Monday)",
-  praimy: "Dossiers Praimy",
+  praimy: "Dossiers Prémi",
   archives: "Archives Monday",
 };
 

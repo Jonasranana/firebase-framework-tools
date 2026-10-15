@@ -2942,3 +2942,70 @@ exports.listPraimyDossiers = onCall(
   }
 );
 
+exports.exportLeadToPraimy = onCall(
+  {
+    secrets: [PRAIMY_API_KEY],
+    region: "europe-west9",
+  },
+  async (request) => {
+    if (!isCrmMember(request)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const { leadId } = request.data ?? {};
+    if (typeof leadId !== "string" || !leadId) {
+      throw new HttpsError("invalid-argument", "ID lead manquant.");
+    }
+    const snap = await db.doc(`crm_leads/${leadId}`).get();
+    if (!snap.exists) throw new HttpsError("not-found", "Lead introuvable.");
+    const lead = snap.data();
+
+    // Découpage Prénom / Nom
+    const fullName = String(lead.name ?? "").trim();
+    const parts = fullName.split(/\s+/);
+    const firstName = parts.length > 1 ? parts[0] : "";
+    const lastName = parts.length > 1 ? parts.slice(1).join(" ") : fullName || "Client";
+
+    const key = PRAIMY_API_KEY.value();
+    const url = "https://portail.praimy.fr/api/v1/clients/";
+    const res = await fetch(url, {
+      method: "POST",
+      headers: {
+        "X-API-Key": key,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({
+        first_name: firstName || "—",
+        last_name: lastName || "Client",
+        phone: lead.phone || undefined,
+        email: lead.email || undefined,
+        ville: lead.city || undefined,
+        code_postal: lead.postalCode || undefined,
+      }),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      logger.error("Erreur création client Praimy", { status: res.status, data });
+      throw new HttpsError("internal", data.detail || `Erreur Praimy: ${res.status}`);
+    }
+
+    // Trace dans la fiche du lead
+    const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+    await db.doc(`crm_leads/${leadId}`).update({
+      praimyClientId: data.id,
+      praimyExportedAt: new Date().toISOString(),
+      notes: require("firebase-admin/firestore").FieldValue.arrayUnion({
+        id: Math.random().toString(36).slice(2, 9),
+        text: `Transféré à Prémi / Praimy (Réf client: ${data.id})`,
+        by: caller,
+        at: new Date().toISOString(),
+        kind: "statut",
+      }),
+    });
+
+    return { success: true, clientId: data.id };
+  }
+);
+
+

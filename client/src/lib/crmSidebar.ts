@@ -81,7 +81,7 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       color: "#fb275d",
       items: [item("documents", "Documents"), item("stats", "Statistiques"), item("bareme", "Barème"), item("corbeille", "Corbeille et doublons")],
     },
-    { id: "f_pac", title: "Outils pompe à chaleur", color: "#fdab3d", items: [item("devis", "Devis PAC"), item("marges", "Marges Prémi"), item("praimy", "Dossiers Praimy")] },
+    { id: "f_pac", title: "Outils pompe à chaleur", color: "#fdab3d", items: [item("marges", "Marges Prémi"), item("praimy", "Dossiers Prémi")] },
     { id: "f_autres", title: "Autres métiers", color: "#9d50dd", items: [item("gonflage", "Station de gonflage")] },
     { id: "f_archives", title: "Archives Monday", color: "#7f8794", items: [item("archives", "Archives Monday"), item("clients", "Clients (copie Monday)")] },
   ],
@@ -98,8 +98,8 @@ export const newId = (p: string) => `${p}_${Math.random().toString(36).slice(2, 
 // depuis (une nouvelle page du CRM apparaît seule dans son dossier d'origine).
 export function normalizeConfig(c: Partial<SideConfig> | null | undefined): SideConfig {
   if (!c || !Array.isArray(c.folders) || c.folders.length === 0) return DEFAULT_SIDEBAR;
-  // Pages retirées du menu (l'équipe est dans la pastille en haut à droite, doublons dans la corbeille).
-  const REMOVED = ["accueil", "doublons", "equipe"];
+  // Pages retirées du menu (l'équipe est dans la pastille en haut à droite, doublons dans la corbeille, devis PAC retiré).
+  const REMOVED = ["accueil", "doublons", "equipe", "devis"];
   const folders: SideFolder[] = c.folders.map((f) => ({
     ...f,
     items: (Array.isArray(f.items) ? f.items : [])
