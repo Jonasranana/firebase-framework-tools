@@ -155,21 +155,21 @@ const IP5Energie = () => {
                 title: "Nos pompes à chaleur",
                 text: "Les 6 marques que nous installons et comment choisir le bon modèle pour votre logement.",
                 cta: "Voir les modèles",
-                img: "/images/realisations/interieur-pac-ballon.jpg",
+                visual: "marques",
               },
               {
                 href: "/aides",
                 title: "Les aides de l'État",
                 text: "MaPrimeRénov', CEE : jusqu'à 100% de votre installation financée, démarches gérées de A à Z.",
                 cta: "Comprendre les aides",
-                img: "/images/realisations/unite-exterieure.jpg",
+                visual: "aides",
               },
               {
                 href: "/realisations",
                 title: "Nos réalisations",
-                text: "Avant / après, détails de chantier et avis de nos clients partout en France.",
+                text: "Avant / après et détails de nos chantiers, pour voir comment nous travaillons.",
                 cta: "Voir nos chantiers",
-                img: "/images/realisations/detail-module-hydraulique.jpg",
+                visual: "realisations",
               },
             ].map((card) => (
               <a
@@ -177,13 +177,34 @@ const IP5Energie = () => {
                 href={card.href}
                 className="group flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
               >
-                <div className="h-44 overflow-hidden">
-                  <img
-                    src={card.img}
-                    alt={card.title}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    loading="lazy"
-                  />
+                <div className="h-44 overflow-hidden bg-slate-50 dark:bg-slate-800 border-b border-gray-100 dark:border-slate-800">
+                  {card.visual === "marques" && (
+                    // Les marques de pompes à chaleur : logos sur plaques blanches (lisibles aussi en mode sombre).
+                    <div className="grid grid-cols-3 gap-2 p-3 h-full">
+                      {["daikin.png", "atlantic.png", "dedietrich.png", "tcl.png", "blaupunkt.png", "aux.png"].map((logo) => (
+                        <div key={logo} className="bg-white rounded-lg flex items-center justify-center p-2 border border-slate-100">
+                          <img src={`/images/marques/${logo}`} alt="" className="max-h-9 max-w-full object-contain" loading="lazy" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {card.visual === "aides" && (
+                    <div className="h-full flex items-center justify-center gap-5 px-5">
+                      <div className="bg-white rounded-xl border border-slate-100 flex items-center justify-center h-24 flex-1 px-3">
+                        <img src="/images/aides/maprimerenov.png" alt="MaPrimeRénov'" className="max-h-14 max-w-full object-contain" loading="lazy" />
+                      </div>
+                      <div className="bg-white rounded-xl border border-slate-100 flex items-center justify-center h-24 flex-1 px-3">
+                        <img src="/images/aides/cee.png" alt="Certificats d'économies d'énergie" className="max-h-16 max-w-full object-contain" loading="lazy" />
+                      </div>
+                    </div>
+                  )}
+                  {card.visual === "realisations" && (
+                    <div className="grid grid-cols-2 grid-rows-2 gap-1 h-full">
+                      {["avant-ancienne-chaudiere.jpg", "interieur-pac-ballon.jpg", "unite-exterieure.jpg", "tableau-electrique-etiquete.jpg"].map((photo) => (
+                        <img key={photo} src={`/images/realisations/${photo}`} alt="" className="w-full h-full object-cover" loading="lazy" />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className="p-7 flex flex-col flex-1">
                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
