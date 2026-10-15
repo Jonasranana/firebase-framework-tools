@@ -262,7 +262,7 @@ export const PAC_MODELS = [
 
 const TOTAL_QUESTIONS = 8;
 // Les coordonnées sont demandées après cette question (et non plus seulement à la fin) :
-// un visiteur qui abandonne ensuite reste joignable (fiche « Demandes incomplètes » dans Pac Pac).
+// un visiteur qui abandonne ensuite reste joignable (fiche « Demande incomplète » dans les nouveaux leads de Pac Pac).
 const CONTACT_AFTER = 3;
 
 type SimulatorData = {
@@ -579,8 +579,8 @@ export async function submitCallbackRequest(
 }
 
 // Suivi des visites qui n'aboutissent pas : une fois les coordonnées données (avec l'accord d'être
-// recontacté), chaque réponse est signalée au serveur, qui tient à jour une fiche dans le groupe
-// « Demandes incomplètes » de Pac Pac. Sans coordonnées, rien n'est enregistré. Ne casse jamais le parcours.
+// recontacté), chaque réponse est signalée au serveur, qui tient à jour une fiche dans les
+// nouveaux leads de Pac Pac (message « Demande incomplète » dans la bulle). Sans coordonnées, rien n'est enregistré. Ne casse jamais le parcours.
 const TRACK_URL = "https://europe-west9-kachoto-7554c.cloudfunctions.net/trackSimulatorStep";
 export function getVisitId(): string {
   try {
