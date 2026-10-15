@@ -109,6 +109,9 @@ export type LeadNote = {
   kind?: "note" | "statut" | "message" | "mail"; // « statut »/« message »/« mail » = traces automatiques
 };
 
+// Fichier rangé dans une cellule « Fichiers » d'un tableau (copié depuis Monday ou ajouté dans le CRM).
+export type FileRef = { id: string; name: string; url: string; path?: string; size?: number; ext?: string };
+
 export type Lead = {
   id: string;
   name: string;
@@ -124,6 +127,8 @@ export type Lead = {
   fields: Record<string, string>;
   // Groupe du tableau (identifiant d'un LeadGroup), comme les groupes Monday.
   group: string;
+  // Cellules « Fichiers » : clé de colonne → fichiers.
+  fileCols: Record<string, FileRef[]>;
   // Tableau auquel appartient le lead (« leads » = Pac Pac, par défaut ; sinon identifiant d'un tableau créé dans le menu).
   board: string;
   // Date de rappel prévue (AAAA-MM-JJ), vide si aucune.
@@ -174,6 +179,7 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     status,
     group: String(d.group ?? ""),
     board: String(d.board || LEADS_BOARD_ID),
+    fileCols: d.fileCols && typeof d.fileCols === "object" ? d.fileCols : {},
     fields: d.fields && typeof d.fields === "object" ? d.fields : {},
     rappelLe: String(d.rappelLe ?? ""),
     mailNonLu: !!d.mailNonLu,

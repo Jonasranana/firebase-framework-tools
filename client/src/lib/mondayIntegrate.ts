@@ -1,6 +1,6 @@
 import { crmFirestore } from "@/lib/crmDb";
 import type { ColumnsConfig, LeadColumn } from "@/lib/crmColumns";
-import type { LeadGroup, LeadNote, Opt } from "@/lib/crm";
+import type { FileRef, LeadGroup, LeadNote, Opt } from "@/lib/crm";
 import type { SideConfig, SideItem } from "@/lib/crmSidebar";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -13,7 +13,9 @@ import type { SideConfig, SideItem } from "@/lib/crmSidebar";
 type MCol = { id: string; title: string; type: string; settings_str?: string; archived?: boolean };
 type MGroup = { id: string; title: string; color?: string; archived?: boolean; position?: string };
 export type MBoardLite = { id: string; name: string; columns: MCol[]; groups: MGroup[] };
-type MItemDoc = { itemId: string; name: string; groupId: string; createdAt: string; parentItemId?: string; cols: Record<string, { type: string; t?: string; d?: string; v?: string }> };
+type MFileDoc = { id: string; name: string; url?: string; size?: number; ext?: string; path?: string; col?: string };
+type MItemDoc = { itemId: string; name: string; groupId: string; createdAt: string; parentItemId?: string; cols: Record<string, { type: string; t?: string; d?: string; v?: string }>; files?: MFileDoc[] };
+export const OTHER_FILES_KEY = "m_autres_fichiers";
 
 export const boardIdFor = (mondayId: string) => `board_m${mondayId}`;
 
@@ -50,7 +52,11 @@ export function mapColumns(board: MBoardLite): Mapped[] {
   const out: Mapped[] = [];
   for (const c of cols) {
     const t = norm(c.title);
-    if (c.type === "file" || c.type === "subtasks" || c.type === "button") continue;
+    if (c.type === "subtasks" || c.type === "button") continue;
+    if (c.type === "file") {
+      out.push({ key: `m_${c.id}`, col: c, target: "custom", type: "filecol" });
+      continue;
+    }
     if (!email && c.type === "email") {
       email = true;
       out.push({ key: "email", col: c, target: "core-email" });
@@ -79,9 +85,10 @@ export function mapColumns(board: MBoardLite): Mapped[] {
   return out;
 }
 
-const WIDTH: Record<string, number> = { status: 160, text: 180, longtext: 240, number: 110, date: 130 };
+const WIDTH: Record<string, number> = { status: 160, text: 180, longtext: 240, number: 110, date: 130, filecol: 130 };
 
 function valueOf(m: Mapped, item: MItemDoc): string {
+  if (m.type === "filecol") return "";
   const c = item.cols[m.col.id];
   if (!c) return "";
   if (m.col.type === "checkbox" || m.col.type === "boolean") {
@@ -97,7 +104,7 @@ function valueOf(m: Mapped, item: MItemDoc): string {
   return txt;
 }
 
-export function buildColumnsConfig(board: MBoardLite, mapped: Mapped[]): ColumnsConfig {
+export function buildColumnsConfig(board: MBoardLite, mapped: Mapped[], withOtherFiles = false): ColumnsConfig {
   const custom: LeadColumn[] = mapped
     .filter((m) => m.target === "custom")
     .map((m) => ({
@@ -108,13 +115,14 @@ export function buildColumnsConfig(board: MBoardLite, mapped: Mapped[]): Columns
       custom: true,
       options: m.type === "status" ? m.options : undefined,
     }));
+  if (withOtherFiles) custom.push({ key: OTHER_FILES_KEY, title: "Autres fichiers", type: "filecol", width: 130, custom: true });
   const titles: Record<string, string> = {};
   for (const m of mapped) if (m.target.startsWith("core-")) titles[m.key] = m.col.title;
   return {
     baseOnly: ["name", "rappel", "phone", "email", "docs", "maj", "creation"],
     custom,
     titles: { name: "Nom", ...titles },
-    order: ["name", ...mapped.map((m) => m.key), "docs", "maj", "creation"],
+    order: ["name", ...mapped.map((m) => m.key), ...(withOtherFiles ? [OTHER_FILES_KEY] : []), "docs", "maj", "creation"],
   };
 }
 
@@ -165,6 +173,10 @@ export async function integrateMondayBoard(
     if (snap.size < 500) break;
   }
 
+  // Fichiers qui ne sont dans aucune colonne « fichiers » (pièces jointes de la ligne ou d'un commentaire) : colonne « Autres fichiers ».
+  const fileColIds = new Set(mapped.filter((x) => x.type === "filecol").map((x) => x.col.id));
+  const withOtherFiles = items.some((it) => (it.files ?? []).some((f) => f.url && !fileColIds.has(String(f.col ?? ""))));
+
   progress("Création du tableau et de ses colonnes…");
   const groups: LeadGroup[] = [...board.groups]
     .filter((g) => !g.archived)
@@ -172,7 +184,7 @@ export async function integrateMondayBoard(
     .map((g) => ({ id: g.id, title: g.title, color: g.color && g.color.startsWith("#") ? g.color : "#579bfc" }));
   if (!groups.length) groups.push({ id: "nouveaux", title: "Éléments", color: "#579bfc" });
   await m.setDoc(m.doc(db, "crm_boards", boardId), { groups: JSON.parse(JSON.stringify(groups)), updatedAt: m.serverTimestamp(), updatedBy: email, mondayBoardId: board.id });
-  await m.setDoc(m.doc(db, "crm_boards", `${boardId}_columns`), { config: JSON.parse(JSON.stringify(buildColumnsConfig(board, mapped))), updatedAt: m.serverTimestamp(), updatedBy: email });
+  await m.setDoc(m.doc(db, "crm_boards", `${boardId}_columns`), { config: JSON.parse(JSON.stringify(buildColumnsConfig(board, mapped, withOtherFiles))), updatedAt: m.serverTimestamp(), updatedBy: email });
 
   let done = 0;
   for (let i = 0; i < items.length; i += 400) {
@@ -192,28 +204,45 @@ export async function integrateMondayBoard(
       }
       const created = new Date(it.createdAt);
       const notes = (notesByItem.get(String(it.itemId)) ?? []).sort((a, b) => (a.at < b.at ? -1 : 1)).slice(-100);
-      batch.set(m.doc(db, "crm_leads", `m${board.id}_${it.itemId}`), {
-        name: it.name,
-        phone,
-        email: mail,
-        postalCode: "",
-        city: "",
-        type: "Autre",
-        source: `Monday : ${board.name}`.slice(0, 80),
-        projet: "",
-        status: "nouveau_lead",
-        group: it.groupId || groups[0].id,
-        board: boardId,
-        fields,
-        rappelLe: rappel,
-        details: {},
-        notes,
-        docCount: 0,
-        docCats: [],
-        createdAt: isNaN(created.getTime()) ? m.serverTimestamp() : m.Timestamp.fromDate(created),
-        updatedAt: m.serverTimestamp(),
-        updatedBy: email,
-      });
+      // Fichiers : chaque colonne « fichiers » reçoit ses fichiers ; le reste va dans « Autres fichiers ».
+      const fileCols: Record<string, unknown> = {};
+      const byCol = new Map<string, FileRef[]>();
+      for (const f of it.files ?? []) {
+        if (!f.url) continue;
+        const key = fileColIds.has(String(f.col ?? "")) ? `m_${f.col}` : OTHER_FILES_KEY;
+        const ref: FileRef = { id: String(f.id), name: f.name, url: f.url, ...(f.path ? { path: f.path } : {}), ...(f.size ? { size: f.size } : {}), ...(f.ext ? { ext: f.ext } : {}) };
+        byCol.set(key, [...(byCol.get(key) ?? []), ref]);
+      }
+      byCol.forEach((list, key) => (fileCols[key] = m.arrayUnion(...list)));
+      // Écriture « fusionnée » : relancer l'intégration met à jour les données de Monday sans effacer
+      // les notes, fichiers ou colonnes ajoutés ensuite dans le CRM.
+      batch.set(
+        m.doc(db, "crm_leads", `m${board.id}_${it.itemId}`),
+        {
+          name: it.name,
+          phone,
+          email: mail,
+          postalCode: "",
+          city: "",
+          type: "Autre",
+          source: `Monday : ${board.name}`.slice(0, 80),
+          projet: "",
+          status: "nouveau_lead",
+          group: it.groupId || groups[0].id,
+          board: boardId,
+          fields,
+          rappelLe: rappel,
+          details: {},
+          ...(notes.length ? { notes: m.arrayUnion(...notes) } : {}),
+          ...(Object.keys(fileCols).length ? { fileCols } : {}),
+          docCount: 0,
+          docCats: [],
+          createdAt: isNaN(created.getTime()) ? m.serverTimestamp() : m.Timestamp.fromDate(created),
+          updatedAt: m.serverTimestamp(),
+          updatedBy: email,
+        },
+        { merge: true },
+      );
     }
     await batch.commit();
     done += Math.min(400, items.length - i);
