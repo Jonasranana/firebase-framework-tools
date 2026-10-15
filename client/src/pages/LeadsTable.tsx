@@ -585,9 +585,12 @@ function readHidden(boardId: string): string[] {
 function useVisibleColumns(version = 0, boardId = "leads") {
   const [hidden, setHidden] = useState<string[]>(() => readHidden(boardId));
   useEffect(() => setHidden(readHidden(boardId)), [boardId]);
+  // Recalculé dès que la liste des colonnes change (passage d'un tableau à l'autre) : avant, la valeur
+  // mémorisée pouvait garder les colonnes de l'autre tableau et en masquer.
+  const keysSig = LEAD_COLUMNS.map((c) => c.key).join("|");
   const visible = useMemo(
     () => LEAD_COLUMNS.map((c) => c.key).filter((k) => k === "name" || !hidden.includes(k)),
-    [hidden, version], // eslint-disable-line react-hooks/exhaustive-deps
+    [hidden, version, boardId, keysSig], // eslint-disable-line react-hooks/exhaustive-deps
   );
   const set = (v: string[]) => {
     const h = LEAD_COLUMNS.map((c) => c.key).filter((k) => k !== "name" && !v.includes(k));

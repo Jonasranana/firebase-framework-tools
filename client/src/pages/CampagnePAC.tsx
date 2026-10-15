@@ -152,7 +152,6 @@ const QuickStart = ({ source }: { source: string }) => {
   const [heating, setHeating] = useState("");
   const [mode, setMode] = useState<"" | "rappel" | "simulation">("");
   const [form, setForm] = useState<CallbackRequest>(INITIAL_CALLBACK);
-  const [consent, setConsent] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
@@ -179,7 +178,6 @@ const QuickStart = ({ source }: { source: string }) => {
       next.phone = "Numéro de téléphone invalide.";
     if (!/^\d{5}$/.test(form.postalCode.trim()))
       next.postalCode = "Code postal à 5 chiffres.";
-    if (!consent) next.consent = "Vous devez accepter d'être recontacté(e).";
     setErrors(next);
     if (Object.keys(next).length) return;
     setSubmitting(true);
@@ -312,23 +310,11 @@ const QuickStart = ({ source }: { source: string }) => {
             />
             {errors.postalCode && <p className="text-red-600 text-xs mt-1">{errors.postalCode}</p>}
           </div>
-          <div>
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={consent}
-                onChange={(e) => setConsent(e.target.checked)}
-                className="mt-1 w-4 h-4 accent-[#2b5a8f] flex-shrink-0"
-              />
-              <span className="text-xs text-gray-600 dark:text-slate-400 leading-relaxed">
-                J'accepte d'être recontacté(e) par IP5 Énergie au sujet de ma
-                demande. Mes données ne sont jamais revendues et je peux
-                exercer mes droits (accès, rectification, suppression) à tout
-                moment.
-              </span>
-            </label>
-            {errors.consent && <p className="text-red-600 text-xs mt-1">{errors.consent}</p>}
-          </div>
+          <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">
+            En cliquant sur « Être rappelé(e) », j'accepte d'être recontacté(e) par IP5 Énergie au
+            sujet de ma demande. Mes données ne sont jamais revendues et je peux exercer mes droits
+            (accès, rectification, suppression) à tout moment.
+          </p>
           {errors.submit && <p className="text-red-600 text-sm">{errors.submit}</p>}
           <button
             type="submit"
