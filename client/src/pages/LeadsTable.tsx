@@ -157,14 +157,15 @@ export const StatusCell = ({
   const visibleOptions = options.filter((o) => o.label !== "" && (!o.off || o.key === status));
 
   // Nombre de colonnes et largeur de base (au zoom 100%)
+  // Chaque étiquette fait la taille exacte d'une cellule du tableau (hauteur h-9 / 36px, texte text-sm font-semibold)
   const { baseWidth, gridCols } =
     visibleOptions.length <= 4
       ? { baseWidth: 160, gridCols: "grid-cols-1" }
       : visibleOptions.length <= 8
-      ? { baseWidth: 230, gridCols: "grid-cols-2" }
+      ? { baseWidth: 300, gridCols: "grid-cols-2" }
       : visibleOptions.length <= 15
-      ? { baseWidth: 460, gridCols: "grid-cols-4 sm:grid-cols-5" }
-      : { baseWidth: 580, gridCols: "grid-cols-6" };
+      ? { baseWidth: 580, gridCols: "grid-cols-4" }
+      : { baseWidth: 700, gridCols: "grid-cols-5" };
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -182,9 +183,9 @@ export const StatusCell = ({
       >
         <div
           style={{ zoom }}
-          className="p-2 max-h-[420px] overflow-y-auto"
+          className="p-2.5 max-h-[440px] overflow-y-auto"
         >
-          <div className={`grid ${gridCols} gap-1`} style={{ width: baseWidth }}>
+          <div className={`grid ${gridCols} gap-1.5`} style={{ width: baseWidth }}>
             {visibleOptions.map((o) => {
               const isSelected = o.key === status;
               return (
@@ -194,8 +195,8 @@ export const StatusCell = ({
                     setOpen(false);
                     onChange(o.key);
                   }}
-                  className={`h-[26px] px-1.5 text-[11px] font-medium text-white rounded-[3px] truncate transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none ${
-                    isSelected ? "ring-2 ring-gray-900/60 ring-inset font-semibold shadow-inner" : ""
+                  className={`h-9 px-3 text-sm font-semibold text-white rounded truncate transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none ${
+                    isSelected ? "ring-2 ring-gray-900/60 ring-inset font-bold shadow-inner" : ""
                   }`}
                   style={{ background: o.hex }}
                   title={o.label}
@@ -207,16 +208,16 @@ export const StatusCell = ({
           </div>
 
           {(onEditLabels || clearable || options.some((o) => o.label === "")) && (
-            <div className="mt-2 pt-1.5 border-t border-[#d0d4e4] flex items-center justify-between gap-2" style={{ width: baseWidth }}>
+            <div className="mt-2.5 pt-2 border-t border-[#d0d4e4] flex items-center justify-between gap-2" style={{ width: baseWidth }}>
               {onEditLabels ? (
                 <button
                   onClick={() => {
                     setOpen(false);
                     setEditing(true);
                   }}
-                  className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 hover:text-gray-900 font-medium py-0.5 px-1 rounded hover:bg-gray-100 transition"
+                  className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 font-medium py-1 px-2 rounded hover:bg-gray-100 transition"
                 >
-                  <Pencil size={11} /> Modifier les étiquettes
+                  <Pencil size={12} /> Modifier les étiquettes
                 </button>
               ) : (
                 <div />
@@ -228,7 +229,7 @@ export const StatusCell = ({
                     setOpen(false);
                     onChange(options.find((o) => o.label === "")?.key ?? "");
                   }}
-                  className="text-[11px] text-gray-400 hover:text-gray-700 py-0.5 px-1.5 rounded hover:bg-gray-100 transition"
+                  className="text-xs text-gray-400 hover:text-gray-700 py-1 px-2 rounded hover:bg-gray-100 transition"
                 >
                   Vider
                 </button>
