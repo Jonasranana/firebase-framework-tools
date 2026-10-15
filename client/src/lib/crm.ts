@@ -153,6 +153,8 @@ export type Lead = {
   mergedInto: string;
   // Appels suivis automatiquement (qui a appelé, quand, avec quel statut).
   calls: { n: number; by: string; name: string; at: string; status: string }[];
+  // Identifiant du client créé dans PRAIMY (rempli après « Envoyer à PRAIMY »).
+  praimyClientId?: string;
 };
 
 // Convertit un Timestamp Firestore (ou une chaîne) en ISO.
@@ -197,6 +199,7 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     deletedBy: String(d.deletedBy ?? ""),
     mergedInto: String(d.mergedInto ?? ""),
     calls: Array.isArray(d.calls) ? d.calls : [],
+    ...(d.praimyClientId ? { praimyClientId: String(d.praimyClientId) } : {}),
   };
 }
 
