@@ -400,10 +400,11 @@ exports.sendLeadWelcomeSms = onDocumentCreated(
   },
 );
 
-// Suivi des visiteurs qui commencent le simulateur sans le finir : chaque réponse crée ou met à jour
-// une fiche « incomplète » dans le CRM (tableau « Demandes incomplètes »). Aucune donnée personnelle
-// n'est enregistrée à ce stade : seulement un identifiant aléatoire de visite et les réponses données.
-// La fiche est mise à la corbeille automatiquement quand le visiteur envoie la demande complète.
+// Demandes incomplètes : un visiteur qui a donné ses coordonnées (nom, téléphone, e-mail) et
+// accepté d'être recontacté, puis n'a pas fini le simulateur, a une fiche dans le groupe
+// « Demandes incomplètes » du tableau Pac Pac, mise à jour à chaque réponse. Sans coordonnées
+// complètes et sans accord, rien n'est enregistré (pas de démarchage de personnes qui n'ont rien
+// demandé). La fiche part à la corbeille quand la demande complète arrive (voir copyLeadToCrm).
 const TRACK_LABELS = {
   housingType: "Logement",
   ownerStatus: "Propriétaire",
@@ -414,7 +415,41 @@ const TRACK_LABELS = {
   projectTiming: "Échéance",
   projectType: "Projet",
 };
-let incompleteBoardReady = false;
+const INCOMPLETE_GROUP = { id: "incomplets", title: "🕵️ Demandes incomplètes", color: "#7f8794" };
+// Groupes par défaut de Pac Pac (client/src/lib/crm.ts, DEFAULT_LEAD_GROUPS), utilisés si le
+// tableau n'a encore jamais été personnalisé.
+const PACPAC_DEFAULT_GROUPS = [
+  { id: "nouveaux", title: "📥 Nouveaux leads", color: "#579bfc" },
+  { id: "contacts", title: "0/ Contacts", color: "#9d50dd" },
+  { id: "mebarek", title: "1/ Leads Mebarek", color: "#00c875" },
+  { id: "rdv_mebarek", title: "RDV pris par Mebarek", color: "#007eb5" },
+  { id: "docs_demandes", title: "2/ Docs demandés", color: "#fdab3d" },
+  { id: "docs_recus", title: "3/ Docs reçus", color: "#66ccff" },
+  { id: "previsite", title: "4/ Accord prévisite", color: "#ff642e" },
+  { id: "installation", title: "5/ Date d'installation", color: "#037f4c" },
+  { id: "nrp", title: "NRP", color: "#cab641" },
+  { id: "pas_eligible", title: "Pas éligibles", color: "#7f8794" },
+];
+let incompleteSetupDone = false;
+async function ensureIncompleteGroup() {
+  if (incompleteSetupDone) return;
+  const ref = db.doc("crm_boards/leads");
+  await db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    const groups = snap.exists && Array.isArray(snap.get("groups")) ? snap.get("groups") : PACPAC_DEFAULT_GROUPS;
+    if (groups.some((g) => g.id === INCOMPLETE_GROUP.id)) return;
+    tx.set(ref, { groups: [groups[0], INCOMPLETE_GROUP, ...groups.slice(1)], updatedAt: FieldValue.serverTimestamp(), updatedBy: "site incomplet" }, { merge: true });
+  });
+  // Anciennes fiches anonymes (tableau « Demandes incomplètes » séparé) : à la corbeille (30 jours).
+  const old = await db.collection("crm_leads").where("board", "==", "board_incomplets").get();
+  await Promise.all(
+    old.docs.filter((d) => !d.get("deletedAt")).map((d) =>
+      d.ref.update({ deletedAt: FieldValue.serverTimestamp(), deletedBy: "fiche sans coordonnées", updatedBy: "site incomplet" }),
+    ),
+  );
+  incompleteSetupDone = true;
+}
+
 exports.trackSimulatorStep = onRequest({ region: "europe-west9", cors: true, maxInstances: 5 }, async (req, res) => {
   try {
     if (req.method !== "POST") {
@@ -429,6 +464,21 @@ exports.trackSimulatorStep = onRequest({ region: "europe-west9", cors: true, max
       return;
     }
     const answers = b.answers && typeof b.answers === "object" ? b.answers : {};
+    const firstName = String(answers.firstName ?? "").trim().slice(0, 60);
+    const lastName = String(answers.lastName ?? "").trim().slice(0, 60);
+    const phone = String(answers.phone ?? "").trim().slice(0, 30);
+    const email = String(answers.email ?? "").trim().toLowerCase().slice(0, 120);
+    const hasContact =
+      answers.consent === true &&
+      !answers.company &&
+      firstName.length >= 2 &&
+      lastName.length >= 2 &&
+      /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/.test(phone) &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+    if (!hasContact) {
+      res.status(204).end();
+      return;
+    }
     const details = {};
     for (const [k, label] of Object.entries(TRACK_LABELS)) {
       const v = String(answers[k] ?? "").trim().slice(0, 80);
@@ -437,35 +487,26 @@ exports.trackSimulatorStep = onRequest({ region: "europe-west9", cors: true, max
     const surface = Number(answers.surface);
     if (surface > 0 && surface < 5000 && details["Logement"]) details["Surface"] = `${Math.round(surface)} m²`;
     const step = Math.max(1, Math.min(12, Number(b.step) || 1));
-    details["Progression"] = `Étape ${step} sur 8 — n'a pas laissé ses coordonnées`;
+    details["Progression"] = `Arrêté à l'étape ${step} sur 8 du simulateur`;
     const source = String(b.source ?? "site").slice(0, 60);
 
-    if (!incompleteBoardReady) {
-      await db
-        .doc("crm_boards/board_incomplets")
-        .create({ groups: [{ id: "nouveaux", title: "🕵️ Visiteurs sans coordonnées", color: "#7f8794" }], updatedAt: FieldValue.serverTimestamp(), updatedBy: "site" })
-        .catch(() => {});
-      incompleteBoardReady = true;
-    }
+    await ensureIncompleteGroup();
     const ref = db.doc(`crm_leads/site_${sid}`);
+    const contact = { name: `${firstName} ${lastName}`, phone, email, postalCode: String(answers.department ?? "").slice(0, 2) };
     await db.runTransaction(async (tx) => {
       const snap = await tx.get(ref);
       if (snap.exists) {
         if (snap.get("deletedAt")) return; // demande déjà complétée
-        tx.update(ref, { details, postalCode: String(answers.department ?? "").slice(0, 2), updatedAt: FieldValue.serverTimestamp(), updatedBy: "site incomplet" });
+        tx.update(ref, { ...contact, details, updatedAt: FieldValue.serverTimestamp(), updatedBy: "site incomplet" });
       } else {
         tx.create(ref, {
-          name: "Visiteur du site (incomplet)",
-          phone: "",
-          email: "",
-          postalCode: String(answers.department ?? "").slice(0, 2),
+          ...contact,
           city: "",
           type: crmTypeForSource({ source }),
           source: `Site (incomplet) : ${source}`,
           projet: String(answers.projectType ?? ""),
           status: "nouveau_lead",
-          group: "nouveaux",
-          board: "board_incomplets",
+          group: INCOMPLETE_GROUP.id,
           rappelLe: "",
           details,
           notes: [],
