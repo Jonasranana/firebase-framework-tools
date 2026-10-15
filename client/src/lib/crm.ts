@@ -347,6 +347,7 @@ export type LeadGroup = { id: string; title: string; color: string; archived?: b
 
 export const DEFAULT_LEAD_GROUPS: LeadGroup[] = [
   { id: "nouveaux", title: "📥 Nouveaux leads", color: "#579bfc" },
+  { id: "incomplets", title: "🕵️ Demandes incomplètes", color: "#7f8794" },
   { id: "contacts", title: "0/ Contacts", color: "#9d50dd" },
   { id: "mebarek", title: "1/ Leads Mebarek", color: "#00c875" },
   { id: "rdv_mebarek", title: "RDV pris par Mebarek", color: "#007eb5" },

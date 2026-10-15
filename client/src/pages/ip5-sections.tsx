@@ -261,6 +261,9 @@ export const PAC_MODELS = [
 ];
 
 const TOTAL_QUESTIONS = 8;
+// Les coordonnées sont demandées après cette question (et non plus seulement à la fin) :
+// un visiteur qui abandonne ensuite reste joignable (fiche « Demandes incomplètes » dans Pac Pac).
+const CONTACT_AFTER = 3;
 
 type SimulatorData = {
   housingType: string;
@@ -575,8 +578,9 @@ export async function submitCallbackRequest(
   }
 }
 
-// Suivi des visites qui n'aboutissent pas : chaque réponse est signalée au serveur, qui crée une
-// fiche « incomplète » dans le CRM (sans aucune donnée personnelle). Ne casse jamais le parcours.
+// Suivi des visites qui n'aboutissent pas : une fois les coordonnées données (avec l'accord d'être
+// recontacté), chaque réponse est signalée au serveur, qui tient à jour une fiche dans le groupe
+// « Demandes incomplètes » de Pac Pac. Sans coordonnées, rien n'est enregistré. Ne casse jamais le parcours.
 const TRACK_URL = "https://europe-west9-kachoto-7554c.cloudfunctions.net/trackSimulatorStep";
 export function getVisitId(): string {
   try {
@@ -628,6 +632,9 @@ export const Simulator = ({
     submit?: string;
   }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Étape « coordonnées » intercalée après la question CONTACT_AFTER.
+  const [earlyContact, setEarlyContact] = useState(false);
+  const [contactSaved, setContactSaved] = useState(false);
 
   // Source réelle du lead : un paramètre d'URL « ?src= » (ex. lien SMS)
   // prime sur la source de la page, pour mesurer les campagnes de réactivation.
@@ -640,9 +647,9 @@ export const Simulator = ({
     }
   })();
 
-  // Chaque étape franchie est signalée (fiche « incomplète » côté CRM, sans coordonnées).
+  // Une fois les coordonnées données, chaque étape franchie met à jour la fiche « incomplète » du CRM.
   useEffect(() => {
-    if (step >= 2 && step <= TOTAL_QUESTIONS + 1 && !isCalculating) trackStep(effectiveSource, step - 1, formData);
+    if (contactSaved && step >= 2 && step <= TOTAL_QUESTIONS + 1 && !isCalculating) trackStep(effectiveSource, step - 1, formData);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
@@ -671,7 +678,10 @@ export const Simulator = ({
   // Avance d'une étape en affichant le message d'encouragement lié à la
   // réponse qui vient d'être donnée.
   const advance = (rewardMsg: string | null) => {
-    if (step === TOTAL_QUESTIONS) {
+    if (step === CONTACT_AFTER && !contactSaved) {
+      setReward(rewardMsg);
+      setEarlyContact(true);
+    } else if (step === TOTAL_QUESTIONS) {
       goToResults();
     } else {
       setReward(rewardMsg);
@@ -680,6 +690,11 @@ export const Simulator = ({
   };
 
   const prevStep = () => {
+    if (earlyContact) {
+      setEarlyContact(false);
+      setReward(null);
+      return;
+    }
     if (step > 1 && !isCalculating) {
       setReward(null);
       setStep(step - 1);
@@ -691,9 +706,7 @@ export const Simulator = ({
     advance(rewardFor(key, value));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const validateContact = () => {
     const newErrors: typeof errors = {};
     if (formData.lastName.trim().length < 2) {
       newErrors.lastName = "Merci d'indiquer votre nom.";
@@ -712,7 +725,22 @@ export const Simulator = ({
       newErrors.consent = "Vous devez accepter d'être recontacté pour recevoir votre devis.";
     }
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Coordonnées données en cours de simulation : la fiche est créée tout de suite dans le CRM.
+  const saveEarlyContact = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.company || !validateContact()) return;
+    setContactSaved(true);
+    setEarlyContact(false);
+    setReward(null);
+    setStep(CONTACT_AFTER + 1); // la fiche est créée par l'effet de suivi des étapes
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateContact()) return;
 
     setIsSubmitting(true);
     try {
@@ -734,6 +762,8 @@ export const Simulator = ({
 
   const restart = () => {
     setStep(1);
+    setEarlyContact(false);
+    setContactSaved(false);
     setErrors({});
     setFormData(INITIAL_DATA);
   };
@@ -748,7 +778,157 @@ export const Simulator = ({
     return Math.round(formData.surface * baseMultiplier);
   };
 
+  const contactFields = () => (
+    <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="lead-lastname" className="sr-only">
+                    Nom
+                  </label>
+                  <input
+                    id="lead-lastname"
+                    type="text"
+                    required
+                    autoComplete="family-name"
+                    placeholder="Nom"
+                    value={formData.lastName}
+                    aria-invalid={!!errors.lastName}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.lastName ? "border-red-400" : "border-gray-300"}`}
+                    onChange={(e) =>
+                      setFormData({ ...formData, lastName: e.target.value })
+                    }
+                  />
+                  {errors.lastName && (
+                    <p className="text-red-600 text-xs mt-1">{errors.lastName}</p>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="lead-firstname" className="sr-only">
+                    Prénom
+                  </label>
+                  <input
+                    id="lead-firstname"
+                    type="text"
+                    required
+                    autoComplete="given-name"
+                    placeholder="Prénom"
+                    value={formData.firstName}
+                    aria-invalid={!!errors.firstName}
+                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.firstName ? "border-red-400" : "border-gray-300"}`}
+                    onChange={(e) =>
+                      setFormData({ ...formData, firstName: e.target.value })
+                    }
+                  />
+                  {errors.firstName && (
+                    <p className="text-red-600 text-xs mt-1">{errors.firstName}</p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label htmlFor="lead-phone" className="sr-only">
+                  Numéro de téléphone
+                </label>
+                <input
+                  id="lead-phone"
+                  type="tel"
+                  required
+                  autoComplete="tel"
+                  inputMode="tel"
+                  placeholder="Votre numéro de téléphone"
+                  value={formData.phone}
+                  aria-invalid={!!errors.phone}
+                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.phone ? "border-red-400" : "border-gray-300"}`}
+                  onChange={(e) =>
+                    setFormData({ ...formData, phone: e.target.value })
+                  }
+                />
+                {errors.phone && (
+                  <p className="text-red-600 text-xs mt-1">{errors.phone}</p>
+                )}
+              </div>
+              <div>
+                <label htmlFor="lead-email" className="sr-only">
+                  Adresse e-mail
+                </label>
+                <input
+                  id="lead-email"
+                  type="email"
+                  required
+                  autoComplete="email"
+                  inputMode="email"
+                  placeholder="Votre e-mail"
+                  value={formData.email}
+                  aria-invalid={!!errors.email}
+                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.email ? "border-red-400" : "border-gray-300"}`}
+                  onChange={(e) =>
+                    setFormData({ ...formData, email: e.target.value })
+                  }
+                />
+                {errors.email && (
+                  <p className="text-red-600 text-xs mt-1">{errors.email}</p>
+                )}
+              </div>
+
+              {/* Honeypot anti-spam : caché aux humains, rempli par les bots */}
+              <div className="hidden" aria-hidden="true">
+                <label htmlFor="lead-company">Société</label>
+                <input
+                  id="lead-company"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={formData.company}
+                  onChange={(e) =>
+                    setFormData({ ...formData, company: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="flex items-start gap-3 text-left cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.consent}
+                    aria-invalid={!!errors.consent}
+                    onChange={(e) =>
+                      setFormData({ ...formData, consent: e.target.checked })
+                    }
+                    className="mt-1 w-4 h-4 accent-[#2b5a8f] flex-shrink-0"
+                  />
+                  <span className="text-xs text-gray-600 leading-relaxed">
+                    J'accepte d'être recontacté(e) par IP5 Énergie au sujet de
+                    ma demande de devis. Mes données ne sont jamais revendues
+                    et je peux exercer mes droits (accès, rectification,
+                    suppression) à tout moment.
+                  </span>
+                </label>
+                {errors.consent && (
+                  <p className="text-red-600 text-xs mt-1">{errors.consent}</p>
+                )}
+              </div>
+    </>
+  );
+
   const renderStep = () => {
+    if (earlyContact) {
+      return (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
+            Où vous envoyer votre estimation&nbsp;?
+          </h3>
+          <p className="text-gray-500 text-sm mb-6 text-center">
+            Encore {TOTAL_QUESTIONS - CONTACT_AFTER} questions rapides ensuite. Un conseiller pourra
+            vous rappeler si besoin.
+          </p>
+          <form onSubmit={saveEarlyContact} className="space-y-4" noValidate>
+            {contactFields()}
+            <Button type="submit" className="w-full">
+              Continuer <ArrowRight size={18} />
+            </Button>
+          </form>
+        </div>
+      );
+    }
     switch (step) {
       case 1:
         return (
@@ -1083,132 +1263,7 @@ export const Simulator = ({
                   )}
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label htmlFor="lead-lastname" className="sr-only">
-                    Nom
-                  </label>
-                  <input
-                    id="lead-lastname"
-                    type="text"
-                    required
-                    autoComplete="family-name"
-                    placeholder="Nom"
-                    value={formData.lastName}
-                    aria-invalid={!!errors.lastName}
-                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.lastName ? "border-red-400" : "border-gray-300"}`}
-                    onChange={(e) =>
-                      setFormData({ ...formData, lastName: e.target.value })
-                    }
-                  />
-                  {errors.lastName && (
-                    <p className="text-red-600 text-xs mt-1">{errors.lastName}</p>
-                  )}
-                </div>
-                <div>
-                  <label htmlFor="lead-firstname" className="sr-only">
-                    Prénom
-                  </label>
-                  <input
-                    id="lead-firstname"
-                    type="text"
-                    required
-                    autoComplete="given-name"
-                    placeholder="Prénom"
-                    value={formData.firstName}
-                    aria-invalid={!!errors.firstName}
-                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.firstName ? "border-red-400" : "border-gray-300"}`}
-                    onChange={(e) =>
-                      setFormData({ ...formData, firstName: e.target.value })
-                    }
-                  />
-                  {errors.firstName && (
-                    <p className="text-red-600 text-xs mt-1">{errors.firstName}</p>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label htmlFor="lead-phone" className="sr-only">
-                  Numéro de téléphone
-                </label>
-                <input
-                  id="lead-phone"
-                  type="tel"
-                  required
-                  autoComplete="tel"
-                  inputMode="tel"
-                  placeholder="Votre numéro de téléphone"
-                  value={formData.phone}
-                  aria-invalid={!!errors.phone}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.phone ? "border-red-400" : "border-gray-300"}`}
-                  onChange={(e) =>
-                    setFormData({ ...formData, phone: e.target.value })
-                  }
-                />
-                {errors.phone && (
-                  <p className="text-red-600 text-xs mt-1">{errors.phone}</p>
-                )}
-              </div>
-              <div>
-                <label htmlFor="lead-email" className="sr-only">
-                  Adresse e-mail
-                </label>
-                <input
-                  id="lead-email"
-                  type="email"
-                  required
-                  autoComplete="email"
-                  inputMode="email"
-                  placeholder="Votre e-mail"
-                  value={formData.email}
-                  aria-invalid={!!errors.email}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.email ? "border-red-400" : "border-gray-300"}`}
-                  onChange={(e) =>
-                    setFormData({ ...formData, email: e.target.value })
-                  }
-                />
-                {errors.email && (
-                  <p className="text-red-600 text-xs mt-1">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Honeypot anti-spam : caché aux humains, rempli par les bots */}
-              <div className="hidden" aria-hidden="true">
-                <label htmlFor="lead-company">Société</label>
-                <input
-                  id="lead-company"
-                  type="text"
-                  tabIndex={-1}
-                  autoComplete="off"
-                  value={formData.company}
-                  onChange={(e) =>
-                    setFormData({ ...formData, company: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <label className="flex items-start gap-3 text-left cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.consent}
-                    aria-invalid={!!errors.consent}
-                    onChange={(e) =>
-                      setFormData({ ...formData, consent: e.target.checked })
-                    }
-                    className="mt-1 w-4 h-4 accent-[#2b5a8f] flex-shrink-0"
-                  />
-                  <span className="text-xs text-gray-600 leading-relaxed">
-                    J'accepte d'être recontacté(e) par IP5 Énergie au sujet de
-                    ma demande de devis. Mes données ne sont jamais revendues
-                    et je peux exercer mes droits (accès, rectification,
-                    suppression) à tout moment.
-                  </span>
-                </label>
-                {errors.consent && (
-                  <p className="text-red-600 text-xs mt-1">{errors.consent}</p>
-                )}
-              </div>
+              {contactFields()}
 
               {errors.submit && (
                 <p className="text-red-600 text-sm text-center bg-red-50 border border-red-200 rounded-xl px-4 py-3">
