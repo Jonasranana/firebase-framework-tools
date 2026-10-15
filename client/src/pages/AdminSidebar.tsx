@@ -430,7 +430,7 @@ export default function AdminSidebar({
   // Mode réduit (icônes seules) : liste à plat des éléments.
   if (compact) {
     return (
-      <nav className="py-3 px-2 space-y-0.5 overflow-y-auto h-full">
+      <nav className="crm-scroll py-3 px-2 space-y-0.5 overflow-y-auto h-full">
         {config.folders.flatMap((f) =>
           f.items
             .filter((i) => !i.archived && !i.deletedAt)
@@ -453,7 +453,7 @@ export default function AdminSidebar({
   }
 
   return (
-    <nav className="py-2 overflow-y-auto h-full">
+    <nav className="crm-scroll py-2 overflow-y-auto h-full">
       {/* Espace de travail */}
       <div className="px-2 mb-1">
         <div className="group/item flex items-center gap-2 px-2 py-1.5">

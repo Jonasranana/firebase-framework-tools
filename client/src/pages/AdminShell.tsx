@@ -243,6 +243,43 @@ export default function AdminShell({
       return false;
     }
   });
+  // Largeur du menu ouvert : on tire son bord droit pour l'élargir ou le rétrécir (mémorisée sur l'appareil).
+  const [menuW, setMenuW] = useState(() => {
+    try {
+      const v = Number(localStorage.getItem("admin-menu-width"));
+      return v >= 200 && v <= 520 ? v : 256;
+    } catch {
+      return 256;
+    }
+  });
+  const [resizing, setResizing] = useState(false);
+  const startMenuResize = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const x0 = e.clientX;
+    const w0 = menuW;
+    let w = w0;
+    setResizing(true);
+    const move = (ev: PointerEvent) => {
+      w = Math.max(200, Math.min(520, Math.round(w0 + ev.clientX - x0)));
+      setMenuW(w);
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+      setResizing(false);
+      try {
+        localStorage.setItem("admin-menu-width", String(w));
+      } catch {
+        /* non essentiel */
+      }
+    };
+    document.body.style.cursor = "col-resize";
+    document.body.style.userSelect = "none";
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  };
   const [theme, setTheme] = useAdminTheme();
   const [drawer, setDrawer] = useState(false);
   const [overlay, setOverlay] = useState<SideItem | null>(null);
@@ -304,10 +341,27 @@ export default function AdminShell({
     <div className="min-h-screen bg-gray-50 flex" dir="ltr">
       {/* Menu fixe (ordinateur) */}
       <aside
-        className={`hidden md:flex flex-col shrink-0 sticky top-0 h-screen bg-white border-r border-gray-100 transition-[width] ${
-          compact ? "w-16" : "w-64"
+        className={`hidden md:flex flex-col shrink-0 sticky top-0 h-screen bg-white border-r border-gray-100 ${resizing ? "" : "transition-[width]"} ${
+          compact ? "w-16" : ""
         }`}
+        style={compact ? undefined : { width: menuW }}
       >
+        {/* Poignée pour élargir / rétrécir le menu (double-clic : largeur d'origine). */}
+        {!compact && (
+          <div
+            onPointerDown={startMenuResize}
+            onDoubleClick={() => {
+              setMenuW(256);
+              try {
+                localStorage.setItem("admin-menu-width", "256");
+              } catch {
+                /* non essentiel */
+              }
+            }}
+            title="Tirez pour changer la largeur du menu"
+            className="absolute right-0 top-0 z-40 h-full w-1.5 -mr-0.5 cursor-col-resize hover:bg-[#579bfc]/60 active:bg-[#579bfc]"
+          />
+        )}
         {/* En-tête de marque : logo IP5 Énergie en blanc sur un bandeau dégradé (comme Monday). */}
         <div
           className={`relative flex items-center h-20 text-white overflow-hidden ${compact ? "justify-center" : "pl-5 pr-2 justify-between"}`}
