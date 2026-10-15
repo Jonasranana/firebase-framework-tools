@@ -129,7 +129,7 @@ export const EditableCell = ({
   );
 };
 
-export type StatusOption = { key: string; label: string; hex: string };
+export type StatusOption = { key: string; label: string; hex: string; off?: boolean };
 
 // Permet à la cellule de statut d'ouvrir l'éditeur d'étiquettes de sa colonne
 // (fourni par la page Leads ; absent = pas de bouton « Modifier les étiquettes »).
@@ -167,7 +167,7 @@ export const StatusCell = ({
       >
         <div className="grid gap-1.5" style={{ gridTemplateColumns: options.length > 8 ? "repeat(auto-fill, minmax(140px, 1fr))" : "1fr" }}>
         {options
-          .filter((o) => o.label !== "")
+          .filter((o) => o.label !== "" && (!o.off || o.key === status))
           .map((o) => (
             <button
               key={o.key}

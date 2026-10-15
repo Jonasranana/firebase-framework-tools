@@ -22,18 +22,26 @@ export const boardIdFor = (mondayId: string) => `board_m${mondayId}`;
 // Couleurs d'étiquettes Monday (si la couleur n'est pas déjà en hexadécimal).
 const FALLBACK = ["#fdab3d", "#00c875", "#df2f4a", "#007eb5", "#9d50dd", "#579bfc", "#ffcb00", "#037f4c", "#ff642e", "#7f8794"];
 
+// Étiquettes d'une colonne dans l'ordre de Monday, avec leurs couleurs ; les étiquettes désactivées
+// dans Monday restent affichées sur les lignes qui les ont mais ne sont plus proposées au choix.
+// (Même règle que scripts/sync-monday-to-crm.mjs, qui garde ces réglages à jour ensuite.)
 function labelsOf(col: MCol): Opt[] {
   try {
     const st = JSON.parse(col.settings_str || "{}");
-    let names: [string, string][] = [];
-    if (Array.isArray(st.labels)) names = st.labels.map((l: any) => [String(l.id), String(l.name ?? l.label ?? "")]);
-    else if (st.labels && typeof st.labels === "object") names = Object.entries(st.labels).map(([k, v]) => [k, String(v)]);
+    let names: { id: string; label: string }[] = [];
+    if (Array.isArray(st.labels)) names = st.labels.map((l: any) => ({ id: String(l.id), label: String(l.name ?? l.label ?? "") }));
+    else if (st.labels && typeof st.labels === "object") names = Object.entries(st.labels).map(([id, v]) => ({ id, label: String(v) }));
     const colors = st.labels_colors ?? {};
+    const pos = st.labels_positions_v2 ?? st.labels_positions ?? {};
+    const off = new Set((st.deactivated_labels ?? []).map(String));
+    const seen = new Set<string>();
     return names
-      .filter(([, label]) => label)
-      .map(([k, label], i) => {
-        const c = colors[k]?.color;
-        return { key: label, label, hex: typeof c === "string" && c.startsWith("#") ? c : FALLBACK[i % FALLBACK.length] };
+      .filter((n) => n.label)
+      .sort((a, b) => (pos[a.id] ?? 999) - (pos[b.id] ?? 999) || Number(a.id) - Number(b.id))
+      .filter((n) => (seen.has(n.label) ? false : (seen.add(n.label), true)))
+      .map((n, i) => {
+        const c = colors[n.id]?.color;
+        return { key: n.label, label: n.label, hex: typeof c === "string" && c.startsWith("#") ? c : FALLBACK[i % FALLBACK.length], ...(off.has(n.id) ? { off: true } : {}) };
       });
   } catch {
     return [];
