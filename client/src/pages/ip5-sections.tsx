@@ -731,9 +731,6 @@ export const Simulator = ({
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
       newErrors.email = "Merci d'indiquer une adresse e-mail valide.";
     }
-    if (!formData.consent) {
-      newErrors.consent = "Vous devez accepter d'être recontacté pour recevoir votre devis.";
-    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -742,6 +739,8 @@ export const Simulator = ({
   const saveEarlyContact = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.company || !validateContact()) return;
+    // Accord donné en cliquant sur « Continuer » (mention affichée au-dessus du bouton).
+    setFormData({ ...formData, consent: true });
     setContactSaved(true);
     setEarlyContact(false);
     setReward(null);
@@ -773,8 +772,9 @@ export const Simulator = ({
 
     setIsSubmitting(true);
     try {
-      await submitLead(formData, effectiveSource, {
-        simulationResult: describeSimulationResult(computeSimulationResult(formData)),
+      const data = { ...formData, consent: true }; // accord donné en cliquant sur le bouton
+      await submitLead(data, effectiveSource, {
+        simulationResult: describeSimulationResult(computeSimulationResult(data)),
         sessionId: getVisitId(),
       });
       setStep(TOTAL_QUESTIONS + 2);
@@ -913,28 +913,12 @@ export const Simulator = ({
                 />
               </div>
 
-              <div>
-                <label className="flex items-start gap-3 text-left cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.consent}
-                    aria-invalid={!!errors.consent}
-                    onChange={(e) =>
-                      setFormData({ ...formData, consent: e.target.checked })
-                    }
-                    className="mt-1 w-4 h-4 accent-[#2b5a8f] flex-shrink-0"
-                  />
-                  <span className="text-xs text-gray-600 leading-relaxed">
-                    J'accepte d'être recontacté(e) par IP5 Énergie au sujet de
-                    ma demande de devis. Mes données ne sont jamais revendues
-                    et je peux exercer mes droits (accès, rectification,
-                    suppression) à tout moment.
-                  </span>
-                </label>
-                {errors.consent && (
-                  <p className="text-red-600 text-xs mt-1">{errors.consent}</p>
-                )}
-              </div>
+              {/* Pas de case à cocher : l'accord est donné en cliquant sur le bouton (mention claire juste au-dessus). */}
+              <p className="text-xs text-gray-500 leading-relaxed text-left">
+                En cliquant ci-dessous, j'accepte d'être recontacté(e) par IP5 Énergie au sujet de ma
+                demande de devis. Mes données ne sont jamais revendues et je peux exercer mes droits
+                (accès, rectification, suppression) à tout moment.
+              </p>
     </>
   );
 
