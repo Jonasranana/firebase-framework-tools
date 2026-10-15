@@ -22,7 +22,8 @@ export type ColType =
   | "people"
   | "timeline"
   | "tags"
-  | "appels";
+  | "appels"
+  | "filecol";
 
 export type LeadColumn = {
   key: string;
@@ -210,6 +211,10 @@ export const APPEL_SLOTS = [
 
 export function cellValue(l: Lead, c: LeadColumn): string {
   if (c.type === "appels") return APPEL_SLOTS.filter((s) => l.fields[s.key]).map((s) => `${s.short} : ${l.fields[s.key]}`).join(" | ");
+  if (c.type === "filecol") {
+    const n = l.fileCols?.[c.key]?.length ?? 0;
+    return n ? `${n} fichier${n > 1 ? "s" : ""}` : "";
+  }
   if (c.core) return String((l as any)[c.core] ?? "");
   return String(l.fields[c.key] ?? "");
 }

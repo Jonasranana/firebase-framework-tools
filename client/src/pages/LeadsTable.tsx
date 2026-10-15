@@ -1,3 +1,4 @@
+import FileColCell from "./FileColCell";
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import StatusLabelEditor from "./StatusLabelEditor";
 import { startPointerDrag } from "@/lib/pointerDrag";
@@ -1025,6 +1026,8 @@ function Cell({
         </div>
       );
     }
+    case "filecol":
+      return <FileColCell lead={lead} col={col} />;
     case "files":
       return (
         <div className="flex items-center h-full px-2 text-xs" title={lead.docCats.join(", ") || "Aucun document"}>
