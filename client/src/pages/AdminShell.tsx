@@ -443,15 +443,15 @@ export default function AdminShell({
       </Dialog>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-20 h-14 bg-white border-b border-gray-100 flex items-center gap-3 px-4">
+        <header className="sticky top-0 z-20 h-14 bg-white border-b border-gray-100 flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4">
           <button
             onClick={() => setDrawer(true)}
             aria-label="Ouvrir le menu"
-            className="md:hidden p-1.5 -ml-1.5 text-gray-500"
+            className="md:hidden p-1.5 -ml-1 text-gray-500"
           >
             <Menu size={22} />
           </button>
-          <h1 className="text-lg font-bold text-gray-900 truncate">{title}</h1>
+          <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{title}</h1>
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
             <button
@@ -466,7 +466,7 @@ export default function AdminShell({
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
           </div>
         </header>
-        <main className="flex-1 min-w-0 p-4 md:p-6">{waitingView ? <BrandLoader /> : renderPage(page, activeItem, tools)}</main>
+        <main className="flex-1 min-w-0 p-2 sm:p-4 md:p-6">{waitingView ? <BrandLoader /> : renderPage(page, activeItem, tools)}</main>
       </div>
     </div>
   );

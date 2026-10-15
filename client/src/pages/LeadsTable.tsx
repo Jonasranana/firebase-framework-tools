@@ -38,6 +38,7 @@ import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
 import { LEAD_STATUSES } from "@/lib/crm";
 import { useTeam } from "@/lib/crmTeam";
 import { AddTypeList } from "./ColumnMenu";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { ColType } from "@/lib/crmColumns";
 import Avatar from "@/components/Avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -153,19 +154,23 @@ export const StatusCell = ({
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const zoom = useContext(TableZoomContext);
+  const isMobile = useIsMobile();
   const s = options.find((o) => o.key === status);
   const visibleOptions = options.filter((o) => o.label !== "" && (!o.off || o.key === status));
 
   // Nombre de colonnes et largeur de base (au zoom 100%)
   // Chaque étiquette fait la taille exacte d'une cellule du tableau (hauteur h-9 / 36px, texte text-sm font-semibold)
-  const { baseWidth, gridCols } =
-    visibleOptions.length <= 4
-      ? { baseWidth: 160, gridCols: "grid-cols-1" }
-      : visibleOptions.length <= 8
-      ? { baseWidth: 300, gridCols: "grid-cols-2" }
-      : visibleOptions.length <= 15
-      ? { baseWidth: 580, gridCols: "grid-cols-4" }
-      : { baseWidth: 700, gridCols: "grid-cols-5" };
+  // Sur mobile, 2 colonnes confortables adaptées à l'écran du smartphone sans déborder
+  const { baseWidth, gridCols } = useMemo(() => {
+    if (isMobile) {
+      if (visibleOptions.length <= 4) return { baseWidth: 160, gridCols: "grid-cols-1" };
+      return { baseWidth: Math.min(320, typeof window !== "undefined" ? window.innerWidth - 32 : 320), gridCols: "grid-cols-2" };
+    }
+    if (visibleOptions.length <= 4) return { baseWidth: 160, gridCols: "grid-cols-1" };
+    if (visibleOptions.length <= 8) return { baseWidth: 300, gridCols: "grid-cols-2" };
+    if (visibleOptions.length <= 15) return { baseWidth: 580, gridCols: "grid-cols-4" };
+    return { baseWidth: 700, gridCols: "grid-cols-5" };
+  }, [isMobile, visibleOptions.length]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -182,7 +187,7 @@ export const StatusCell = ({
         align="start"
       >
         <div
-          style={{ zoom }}
+          style={{ zoom: isMobile ? 1 : zoom }}
           className="p-2.5 max-h-[440px] overflow-y-auto"
         >
           <div className={`grid ${gridCols} gap-1.5`} style={{ width: baseWidth }}>
@@ -266,7 +271,7 @@ const LongTextCell = ({ value, onSave }: { value: string; onSave: (v: string) =>
   );
 };
 
-const AddRow = ({ color, onAdd, focus }: { color: string; onAdd: (name: string) => void; focus?: boolean }) => {
+const AddRow = ({ color, onAdd, focus, nameWidth = 300 }: { color: string; onAdd: (name: string) => void; focus?: boolean; nameWidth?: number }) => {
   const [v, setV] = useState("");
   const ref = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -274,7 +279,7 @@ const AddRow = ({ color, onAdd, focus }: { color: string; onAdd: (name: string) 
   }, [focus]);
   return (
     <div className="border-t border-[#d0d4e4] h-9 flex">
-      <div className="sticky left-0 z-10 bg-white flex items-center gap-2 px-2 border-r border-[#d0d4e4]" style={{ borderLeft: `6px solid ${color}`, width: 300 }}>
+      <div className="sticky left-0 z-10 bg-white flex items-center gap-2 px-2 border-r border-[#d0d4e4]" style={{ borderLeft: `6px solid ${color}`, width: nameWidth }}>
         <Plus size={14} className="text-gray-400 shrink-0" />
         <input
           ref={ref}
@@ -599,7 +604,8 @@ const TagsCell = ({ value, onSave }: { value: string; onSave: (v: string) => voi
   );
 };
 
-const colsTemplate = (cols: LeadColumn[]) => cols.map((c) => `${c.width}px`).join(" ");
+const colsTemplate = (cols: LeadColumn[], isMobile = false) =>
+  cols.map((c) => `${isMobile && c.type === "name" ? Math.min(c.width, 185) : c.width}px`).join(" ");
 
 // Colonnes masquées : choix mémorisé sur l'appareil, SÉPARÉMENT pour chaque tableau (avant, un
 // seul choix pour tous les tableaux : les colonnes masquées sur un autre tableau, ou une liste
@@ -1169,6 +1175,7 @@ export default function LeadsTable({
       clearTimeout(t);
     };
   }, [fitZoom, leads.length]);
+  const isMobile = useIsMobile();
   const [dragGroup, setDragGroup] = useState<string | null>(null);
   const [dropGroup, setDropGroup] = useState<string | null>(null);
   const collapsedBeforeDrag = useRef<Record<string, boolean> | null>(null);
@@ -1240,7 +1247,7 @@ export default function LeadsTable({
       let b = cols.length - 1;
       let foundA = false;
       for (let i = 0; i < cols.length; i++) {
-        const w = cols[i].width;
+        const w = isMobile && cols[i].type === "name" ? Math.min(cols[i].width, 185) : cols[i].width;
         if (!foundA && x + w > left) {
           a = i;
           foundA = true;
@@ -1265,9 +1272,9 @@ export default function LeadsTable({
       window.removeEventListener("resize", onScroll);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [cols, maxH]);
-  const template = `${colsTemplate(cols)} 44px`;
-  const totalWidth = cols.reduce((n, c) => n + c.width, 0) + 52;
+  }, [cols, maxH, isMobile]);
+  const template = `${colsTemplate(cols, isMobile)} 44px`;
+  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? Math.min(c.width, 185) : c.width), 0) + 52;
 
   const [focusAdd, setFocusAdd] = useState<string | null>(null);
   const visibleGroups = groups.filter((g) => !g.archived);
@@ -1347,7 +1354,11 @@ export default function LeadsTable({
 
   return (
     <TableZoomContext.Provider value={fitZoom || 1}>
-      <div ref={scrollRef} className="crm-scroll overflow-auto" style={maxH ? { maxHeight: maxH, marginBottom: -((typeof window !== "undefined" && window.innerWidth >= 768 ? 24 : 16) / (fitZoom || 1)) } : undefined}>
+      <div
+        ref={scrollRef}
+        className="crm-scroll overflow-auto touch-pan-x touch-pan-y overscroll-x-contain [-webkit-overflow-scrolling:touch]"
+        style={maxH ? { maxHeight: maxH, marginBottom: -((typeof window !== "undefined" && window.innerWidth >= 768 ? 24 : 16) / (fitZoom || 1)) } : undefined}
+      >
       <div style={{ minWidth: totalWidth }} className="space-y-6">
         <div className="sticky left-0 flex flex-wrap items-center gap-2">
           <button
@@ -1593,7 +1604,14 @@ export default function LeadsTable({
                     />
                   )}
 
-                  {!readOnlyGroups && <AddRow color={st.color} focus={focusAdd === st.id} onAdd={(name) => onCreate(st.id, name)} />}
+                  {!readOnlyGroups && (
+                    <AddRow
+                      color={st.color}
+                      focus={focusAdd === st.id}
+                      onAdd={(name) => onCreate(st.id, name)}
+                      nameWidth={isMobile ? Math.min(cols[0]?.width ?? 300, 185) : (cols[0]?.width ?? 300)}
+                    />
+                  )}
                 </div>
                 </div>
               )}

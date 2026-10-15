@@ -215,7 +215,7 @@ const LeadCard = ({
 
 // ── Fiche lead ─────────────────────────────────────────────────────────────
 const inputCls =
-  "w-full text-sm bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#2b5a8f]";
+  "w-full text-base sm:text-sm bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#2b5a8f]";
 
 const Field = ({
   label,
@@ -556,13 +556,13 @@ const LeadSheet = ({
 
         <div className="mt-4 space-y-4">
           {lead && (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
               {tel && (
                 <a
                   href={tel}
-                  className="inline-flex items-center gap-1.5 bg-[#2b5a8f] text-white text-sm font-bold px-4 py-2 rounded-full"
+                  className="inline-flex items-center justify-center gap-1.5 bg-[#2b5a8f] text-white text-sm font-bold px-3 py-2.5 rounded-xl shadow-sm active:scale-95 transition"
                 >
-                  <Phone size={14} /> Appeler
+                  <Phone size={15} /> Appeler
                 </a>
               )}
               {tel && (
@@ -570,35 +570,35 @@ const LeadSheet = ({
                   href={whatsappHref(lead.phone)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 bg-green-500 text-white text-sm font-bold px-4 py-2 rounded-full"
+                  className="inline-flex items-center justify-center gap-1.5 bg-[#25D366] text-white text-sm font-bold px-3 py-2.5 rounded-xl shadow-sm active:scale-95 transition"
                 >
-                  <MessageCircle size={14} /> WhatsApp
+                  <MessageCircle size={15} /> WhatsApp
                 </a>
               )}
               {lead.email && (
                 <a
                   href={`mailto:${lead.email}`}
-                  className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-700 text-sm font-bold px-4 py-2 rounded-full hover:bg-gray-200 transition"
+                  className="inline-flex items-center justify-center gap-1.5 bg-gray-100 text-gray-800 text-sm font-bold px-3 py-2.5 rounded-xl hover:bg-gray-200 transition"
                 >
-                  <Mail size={14} /> Mail
+                  <Mail size={15} /> Mail
                 </a>
               )}
               <button
                 type="button"
                 onClick={sendToPraimy}
                 disabled={praimyBusy || praimySuccess || !!lead.praimyClientId}
-                className={`inline-flex items-center gap-1.5 text-sm font-bold px-4 py-2 rounded-full transition ${
+                className={`inline-flex items-center justify-center gap-1.5 text-sm font-bold px-3 py-2.5 rounded-xl transition ${
                   praimySuccess || lead.praimyClientId
                     ? "bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default"
                     : "bg-[#0f2b4a] text-white hover:bg-[#1a3d66] disabled:opacity-50"
                 }`}
               >
                 {praimyBusy ? (
-                  <Loader2 size={14} className="animate-spin" />
+                  <Loader2 size={15} className="animate-spin" />
                 ) : praimySuccess || lead.praimyClientId ? (
-                  <Check size={14} className="text-emerald-600" />
+                  <Check size={15} className="text-emerald-600" />
                 ) : (
-                  <SendHorizonal size={14} />
+                  <SendHorizonal size={15} />
                 )}
                 {praimySuccess || lead.praimyClientId ? "Envoyé à PRAIMY" : "Envoyer à PRAIMY"}
               </button>
@@ -1283,7 +1283,7 @@ export default function LeadsCRM({
   return (
     <div>
       {/* Barre d'outils façon Monday */}
-      <div className="flex flex-wrap items-center gap-1 mb-2">
+      <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1.5 no-scrollbar sm:flex-wrap sm:overflow-visible">
         <AddSplit
           onAddLead={() => setCreating(true)}
           onAddGroup={() => saveGroups([...groups, { id: `g_${newId()}`, title: "Nouveau groupe", color: "#579bfc" }])}
