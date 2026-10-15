@@ -122,7 +122,7 @@ export const EditableCell = ({
   return (
     <button
       onClick={() => setEditing(true)}
-      className={`w-full h-full px-2 py-1 text-left text-sm text-gray-700 hover:bg-gray-100 ${wrap ? "whitespace-normal break-words" : "truncate"}`}
+      className={`w-full h-full px-1.5 py-0.5 text-left text-xs sm:text-sm text-gray-800 hover:bg-gray-100 font-medium ${wrap ? "whitespace-normal break-words" : "truncate"}`}
       title={value}
     >
       {value || <span className="text-gray-300">{placeholder}</span>}
@@ -605,7 +605,7 @@ const TagsCell = ({ value, onSave }: { value: string; onSave: (v: string) => voi
 };
 
 const colsTemplate = (cols: LeadColumn[], isMobile = false) =>
-  cols.map((c) => `${isMobile && c.type === "name" ? Math.min(c.width, 135) : c.width}px`).join(" ");
+  cols.map((c) => `${isMobile && c.type === "name" ? Math.min(c.width, 175) : c.width}px`).join(" ");
 
 // Colonnes masquées : choix mémorisé sur l'appareil, SÉPARÉMENT pour chaque tableau (avant, un
 // seul choix pour tous les tableaux : les colonnes masquées sur un autre tableau, ou une liste
@@ -1159,8 +1159,6 @@ export default function LeadsTable({
   const [limits, setLimits] = useState<Record<string, number>>({});
   const [dropOver, setDropOver] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const pinchDist = useRef<number | null>(null);
-  const pinchZoom = useRef<number>(fitZoom || 1);
   const [maxH, setMaxH] = useState<number | null>(null);
   useEffect(() => {
     if (!fitZoom) return;
@@ -1250,7 +1248,7 @@ export default function LeadsTable({
       let b = cols.length - 1;
       let foundA = false;
       for (let i = 0; i < cols.length; i++) {
-        const w = isMobile && cols[i].type === "name" ? Math.min(cols[i].width, 135) : cols[i].width;
+        const w = isMobile && cols[i].type === "name" ? Math.min(cols[i].width, 175) : cols[i].width;
         if (!foundA && x + w > left) {
           a = i;
           foundA = true;
@@ -1277,7 +1275,7 @@ export default function LeadsTable({
     };
   }, [cols, maxH, isMobile]);
   const template = `${colsTemplate(cols, isMobile)} 44px`;
-  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? Math.min(c.width, 135) : c.width), 0) + 52;
+  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? Math.min(c.width, 175) : c.width), 0) + 52;
 
   const [focusAdd, setFocusAdd] = useState<string | null>(null);
   const visibleGroups = groups.filter((g) => !g.archived);
@@ -1355,41 +1353,74 @@ export default function LeadsTable({
     if (copyLeads) onDuplicateLeads(src.id, copy.id);
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const d = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      pinchDist.current = d;
-      pinchZoom.current = fitZoom || 1;
-    }
-  };
+  // Gestion fluide du pincement à deux doigts (Pinch-to-zoom) sur smartphone
+  const zoomRef = useRef(fitZoom || 1);
+  zoomRef.current = fitZoom || 1;
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && pinchDist.current && onChangeZoom) {
-      const d = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      );
-      const ratio = d / pinchDist.current;
-      const target = Math.min(1.4, Math.max(0.5, Math.round(pinchZoom.current * ratio * 100) / 100));
-      onChangeZoom(target);
-    }
-  };
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el || !onChangeZoom) return;
 
-  const handleTouchEnd = () => {
-    pinchDist.current = null;
-  };
+    let startDist = 0;
+    let startZoom = 1;
+    let isPinching = false;
+    let rafId = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        isPinching = true;
+        startDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        startZoom = zoomRef.current;
+      }
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && isPinching && startDist > 0) {
+        // Bloque le zoom de la page globale du navigateur pour zoomer le tableau !
+        if (e.cancelable) e.preventDefault();
+        const currentDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        const scale = currentDist / startDist;
+        const targetZoom = Math.min(1.4, Math.max(0.45, Math.round(startZoom * scale * 100) / 100));
+
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          onChangeZoom(targetZoom);
+        });
+      }
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) {
+        isPinching = false;
+        startDist = 0;
+        if (rafId) cancelAnimationFrame(rafId);
+      }
+    };
+
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd, { passive: true });
+    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
+
+    return () => {
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+      el.removeEventListener("touchcancel", onTouchEnd);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [onChangeZoom]);
 
   return (
     <TableZoomContext.Provider value={fitZoom || 1}>
       <div
         ref={scrollRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={handleTouchEnd}
         className="crm-scroll overflow-auto touch-pan-x touch-pan-y overscroll-x-contain [-webkit-overflow-scrolling:touch] pb-24 md:pb-4"
         style={maxH ? { maxHeight: maxH, marginBottom: -((typeof window !== "undefined" && window.innerWidth >= 768 ? 24 : 16) / (fitZoom || 1)) } : undefined}
       >
@@ -1643,7 +1674,7 @@ export default function LeadsTable({
                       color={st.color}
                       focus={focusAdd === st.id}
                       onAdd={(name) => onCreate(st.id, name)}
-                      nameWidth={isMobile ? Math.min(cols[0]?.width ?? 300, 135) : (cols[0]?.width ?? 300)}
+                      nameWidth={isMobile ? Math.min(cols[0]?.width ?? 300, 175) : (cols[0]?.width ?? 300)}
                     />
                   )}
                 </div>
