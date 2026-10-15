@@ -177,26 +177,24 @@ html.crm-dark .shadow-xl, html.crm-dark .shadow-2xl { box-shadow: 0 12px 40px rg
 html.crm-dark .bg-black\/40 { background-color: rgba(10,12,20,.6) !important; }
 html.crm-dark .crm-soft { background: var(--soft-dark) !important; }
 
-/* Écran de chargement animé (logo IP5 Énergie qui « respire » + barre lumineuse), comme les écrans de chargement de Monday. */
-@keyframes ip5-breathe {
-  0%, 100% { opacity: 0.5; transform: scale(0.96); }
-  50% { opacity: 1; transform: scale(1.04); }
-}
-@keyframes ip5-sweep {
-  0% { transform: translateX(-120%); }
-  100% { transform: translateX(300%); }
-}
-.ip5-loader-logo { animation: ip5-breathe 1.7s ease-in-out infinite; transform-origin: center; }
-.ip5-loader-bar { position: relative; overflow: hidden; background: rgba(43, 90, 143, 0.12); }
-.ip5-loader-bar::after {
-  content: "";
+/* Écran de chargement : le logo IP5 Énergie, pâle, traversé par un reflet qui passe en boucle (comme Monday). */
+.ip5-loader { position: relative; display: inline-block; }
+.ip5-loader-base { opacity: 0.3; }
+.ip5-loader-shine {
   position: absolute;
-  inset: 0 auto 0 0;
-  width: 38%;
-  border-radius: 9999px;
-  background: linear-gradient(90deg, transparent, #2b5a8f, transparent);
-  animation: ip5-sweep 1.4s ease-in-out infinite;
+  inset: 0;
+  -webkit-mask-image: linear-gradient(100deg, transparent 30%, #000 50%, transparent 70%);
+  mask-image: linear-gradient(100deg, transparent 30%, #000 50%, transparent 70%);
+  -webkit-mask-size: 250% 100%;
+  mask-size: 250% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  animation: ip5-shine 1.9s ease-in-out infinite;
+}
+@keyframes ip5-shine {
+  0% { -webkit-mask-position: 130% 0; mask-position: 130% 0; }
+  100% { -webkit-mask-position: -30% 0; mask-position: -30% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ip5-loader-logo, .ip5-loader-bar::after { animation: none; }
+  .ip5-loader-shine { animation: none; -webkit-mask-image: none; mask-image: none; opacity: 0.6; }
 }
