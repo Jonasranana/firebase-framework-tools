@@ -10,7 +10,8 @@ export const CRM_LEADS_COLLECTION = "crm_leads";
 
 // Statuts « 📞 Statut Appel » : exactement ceux du tableau Monday « Pac Pac »
 // (mêmes libellés, même ordre, mêmes couleurs). La clé est ce qui est stocké.
-export type Opt = { key: string; label: string; hex: string };
+// off : étiquette désactivée dans Monday (n'apparaît plus dans la liste de choix, mais les lignes qui l'ont gardent son affichage).
+export type Opt = { key: string; label: string; hex: string; off?: boolean };
 
 export const LEAD_STATUSES = [
   { key: "a_appeler", label: "À appeler", hex: "#225091" },
@@ -44,6 +45,8 @@ export const LEAD_STATUSES = [
   { key: "pas_bon", label: "PAS BON", hex: "#a9bee8" },
   { key: "whatsapp_envoye", label: "whattapp envoyé", hex: "#a1e3f6" },
   { key: "attente_revenus", label: "Attente revenus", hex: "#bca58a" },
+  { key: "vt_praimy", label: "VT PRAIMY", hex: "#9cd326" },
+  { key: "a_rap_carole", label: "A RAP CAROLE", hex: "#faa1f1" },
   { key: "vide", label: "", hex: "#c4c4c4" },
 ] as const satisfies readonly Opt[];
 

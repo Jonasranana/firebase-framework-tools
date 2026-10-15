@@ -19,7 +19,7 @@ import {
   Repeat,
   Settings2,
   Star,
-  Table2,
+  Rows3 as BoardIcon,
   Trash2,
   UserPlus,
   Users,
@@ -42,9 +42,9 @@ import {
 
 // Menu de gauche façon Monday : espace de travail, favoris, dossiers colorés,
 // tableaux. Chaque dossier et chaque tableau a son menu « ⋯ ».
-const ICONS: Record<AdminPageKey, typeof Table2> = {
-  leads: Table2,
-  artisans: Table2,
+const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
+  leads: BoardIcon,
+  artisans: BoardIcon,
   documents: FolderOpen,
   corbeille: Trash2,
   bareme: Percent,
@@ -116,7 +116,7 @@ type Ctx = {
 
 const ItemRow = ({ it, inFav, ctx }: { it: SideItem; inFav?: boolean; ctx: Ctx }) => {
   const { activeId, renaming, draft, setDraft, commit, setRenaming, onSelect } = ctx;
-    const Icon = it.kind === "view" ? Table2 : ICONS[it.page];
+    const Icon = it.kind === "view" ? BoardIcon : ICONS[it.page];
     const active = it.id === activeId;
     return (
       <li className="group/item relative">
@@ -244,7 +244,7 @@ const FolderMenu = ({ f, index, ctx }: { f: SideFolder; index: number; ctx: Ctx 
               <Entry icon={Palette} label="Modifier la couleur" more onClick={() => setPanel("color")} />
               <Sep />
               <Entry icon={ArrowRight} label="Déplacer vers" more onClick={() => setPanel("move")} />
-              <Entry icon={Table2} label="Ajouter un tableau" onClick={() => { close(); addBoard(f.id); }} />
+              <Entry icon={BoardIcon} label="Ajouter un tableau" onClick={() => { close(); addBoard(f.id); }} />
               <Entry icon={FolderPlus} label="Ajouter un dossier (en dessous)" onClick={() => { close(); addFolder(f.id); }} />
               <Sep />
               <Entry icon={ChevronsDownUp} label="Réduire tous les dossiers" onClick={() => { close(); collapseAll(true); }} />
@@ -287,7 +287,7 @@ const FolderMenu = ({ f, index, ctx }: { f: SideFolder; index: number; ctx: Ctx 
           )}
           {panel === "create" && (
             <>
-              <Entry icon={Table2} label="Nouveau tableau de leads" onClick={() => { close(); addBoard(f.id); }} />
+              <Entry icon={BoardIcon} label="Nouveau tableau de leads" onClick={() => { close(); addBoard(f.id); }} />
               <Entry icon={FolderPlus} label="Nouveau dossier (en dessous)" onClick={() => { close(); addFolder(f.id); }} />
             </>
           )}
@@ -435,7 +435,7 @@ export default function AdminSidebar({
           f.items
             .filter((i) => !i.archived && !i.deletedAt)
             .map((it) => {
-              const Icon = it.kind === "view" ? Table2 : ICONS[it.page];
+              const Icon = it.kind === "view" ? BoardIcon : ICONS[it.page];
               return (
                 <button
                   key={it.id}

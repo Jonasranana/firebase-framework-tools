@@ -119,6 +119,8 @@ const STATUS_KEY = {
   "pas bon": "pas_bon",
   "whattapp envoyé": "whatsapp_envoye",
   "attente revenus": "attente_revenus",
+  "vt praimy": "vt_praimy",
+  "a rap carole": "a_rap_carole",
 };
 
 // Groupe Monday → groupe du tableau CRM (identifiants de DEFAULT_LEAD_GROUPS
