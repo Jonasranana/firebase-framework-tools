@@ -600,7 +600,7 @@ const LeadSheet = ({
                 ) : (
                   <SendHorizonal size={14} />
                 )}
-                {praimySuccess || lead.praimyClientId ? "Envoyé à Prémi" : "Envoyer à Prémi"}
+                {praimySuccess || lead.praimyClientId ? "Envoyé à PRAIMY" : "Envoyer à PRAIMY"}
               </button>
             </div>
           )}

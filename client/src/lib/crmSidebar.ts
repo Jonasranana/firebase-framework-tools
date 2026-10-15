@@ -81,7 +81,7 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       color: "#fb275d",
       items: [item("documents", "Documents"), item("stats", "Statistiques"), item("bareme", "Barème"), item("corbeille", "Corbeille et doublons")],
     },
-    { id: "f_pac", title: "Outils pompe à chaleur", color: "#fdab3d", items: [item("marges", "Marges Prémi"), item("praimy", "Dossiers Prémi")] },
+    { id: "f_pac", title: "PRAIMY", color: "#fdab3d", items: [item("marges", "Marges PRAIMY"), item("praimy", "Dossiers PRAIMY")] },
     { id: "f_autres", title: "Autres métiers", color: "#9d50dd", items: [item("gonflage", "Station de gonflage")] },
     { id: "f_archives", title: "Archives Monday", color: "#7f8794", items: [item("archives", "Archives Monday"), item("clients", "Clients (copie Monday)")] },
   ],
@@ -138,6 +138,14 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
         const target = folders.find((f) => f.id === df.id) ?? folders[0];
         target.items.push(di);
       }
+    }
+  for (const f of folders) {
+    if (f.id === "f_pac" && (f.title === "Outils pompe à chaleur" || f.title === "Outils PAC")) {
+      f.title = "PRAIMY";
+    }
+    for (const i of f.items) {
+      if (i.core && i.page === "praimy") i.title = "Dossiers PRAIMY";
+      if (i.core && i.page === "marges") i.title = "Marges PRAIMY";
     }
   }
   return {

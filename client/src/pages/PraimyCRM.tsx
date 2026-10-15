@@ -128,13 +128,13 @@ export default function PraimyCRM({ email }: { email: string }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Dossiers Prémi</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Dossiers PRAIMY</h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-[#0f2b4a] border border-blue-200">
               API Directe Live
             </span>
           </div>
           <p className="text-sm text-gray-500 mt-1">
-            Synchronisation en direct avec la plateforme Prémi / Praimy pour IP5 Conseils.
+            Synchronisation en direct avec la plateforme PRAIMY pour IP5 Conseils.
           </p>
         </div>
 
