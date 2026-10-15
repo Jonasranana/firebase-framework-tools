@@ -241,8 +241,8 @@ const AddRow = ({ color, onAdd, focus }: { color: string; onAdd: (name: string) 
     if (focus) ref.current?.focus();
   }, [focus]);
   return (
-    <div className="border-t border-gray-100 h-9 flex">
-      <div className="sticky left-0 z-10 bg-white flex items-center gap-2 px-2" style={{ borderLeft: `6px solid ${color}`, width: 300 }}>
+    <div className="border-t border-[#d0d4e4] h-9 flex">
+      <div className="sticky left-0 z-10 bg-white flex items-center gap-2 px-2 border-r border-[#d0d4e4]" style={{ borderLeft: `6px solid ${color}`, width: 300 }}>
         <Plus size={14} className="text-gray-400 shrink-0" />
         <input
           ref={ref}
@@ -795,16 +795,16 @@ const LeadRow = memo(function LeadRow({
   const notes = l.notes.reduce((n, x) => n + (x.kind === "note" || x.kind === "mail" ? 1 : 0), 0);
   return (
     <div
-      className={`group grid items-stretch border-b border-gray-100 h-9 ${selected ? "bg-blue-50" : "hover:bg-gray-50"}`}
+      className={`group grid items-stretch border-b border-[#d0d4e4] h-9 ${selected ? "bg-blue-50" : "hover:bg-gray-50"}`}
       style={{ gridTemplateColumns: template }}
     >
       {cols.map((c, i) =>
         c.type !== "name" && (i < colA || i > colB) ? (
-          <div key={c.key} className={i === 0 ? "" : "border-l border-gray-100"} />
+          <div key={c.key} className={i === 0 ? "" : "border-l border-[#d0d4e4]"} />
         ) : c.type === "name" ? (
           <div
             key={c.key}
-            className={`sticky left-0 z-10 group-hover:bg-gray-50 flex items-center gap-1 pr-1 ${selected ? "bg-blue-50" : "bg-white"}`}
+            className={`sticky left-0 z-10 group-hover:bg-gray-50 flex items-center gap-1 pr-1 border-r border-[#d0d4e4] ${selected ? "bg-blue-50" : "bg-white"}`}
             style={{ borderLeft: `6px solid ${color}` }}
           >
             {selectable && (
@@ -854,7 +854,7 @@ const LeadRow = memo(function LeadRow({
             </button>
           </div>
         ) : c.type === "phone" ? (
-          <div key={c.key} className="border-l border-gray-100 flex items-center min-w-0">
+          <div key={c.key} className="border-l border-[#d0d4e4] flex items-center min-w-0">
             <div className="flex-1 min-w-0 h-full">
               <EditableCell value={l.phone} type="tel" onSave={(v) => onPatch(l.id, { phone: v })} />
             </div>
@@ -870,12 +870,12 @@ const LeadRow = memo(function LeadRow({
             )}
           </div>
         ) : (
-          <div key={c.key} className={`${i === 0 ? "" : "border-l"} border-gray-100 min-w-0`}>
+          <div key={c.key} className={`${i === 0 ? "" : "border-l"} border-[#d0d4e4] min-w-0`}>
             <Cell lead={l} col={c} onPatch={onPatch} onStatus={onStatus} />
           </div>
         ),
       )}
-      <div className="border-l border-gray-100" />
+      <div className="border-l border-[#d0d4e4]" />
     </div>
   );
 });
@@ -1420,9 +1420,9 @@ export default function LeadsTable({
 
               {!isCollapsed && (
                 <div>
-                <div className="bg-white rounded-lg border border-gray-200 overflow-clip">
+                <div className="bg-white rounded-lg border border-[#d0d4e4] overflow-clip">
                   <div
-                    className="grid text-xs font-semibold text-gray-500 bg-white border-b border-gray-200 h-10 items-center"
+                    className="grid text-xs font-semibold text-gray-500 bg-white border-b border-[#d0d4e4] h-10 items-center"
                     style={{ gridTemplateColumns: template }}
                   >
                     {cols.map((c, i) => {
@@ -1451,7 +1451,7 @@ export default function LeadsTable({
                               },
                             });
                           }}
-                          className={`group/col relative h-full pt-2 px-2 border-l border-gray-100 flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white" : ""} ${movable ? "cursor-grab" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
+                          className={`group/col relative h-full pt-2 px-2 border-l border-[#d0d4e4] flex items-center gap-1 min-w-0 ${i === 0 ? "sticky left-0 z-10 bg-white border-r border-[#d0d4e4]" : ""} ${movable ? "cursor-grab" : ""} ${dragCol === c.key ? "opacity-40" : ""}`}
                           style={{
                             ...(i === 0 ? { borderLeft: `6px solid ${st.color}` } : {}),
                             ...(overCol === c.key && dragCol !== c.key ? { boxShadow: "inset 3px 0 0 #0073ea", background: "#eef5ff" } : {}),
@@ -1514,7 +1514,7 @@ export default function LeadsTable({
                         </div>
                       );
                     })}
-                    <div className="border-l border-gray-100 flex items-center justify-center">
+                    <div className="border-l border-[#d0d4e4] flex items-center justify-center">
                       {onAddColumn && (
                         <Popover>
                           <PopoverTrigger asChild>
