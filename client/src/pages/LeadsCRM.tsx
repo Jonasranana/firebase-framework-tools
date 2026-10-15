@@ -43,6 +43,7 @@ import { AddSplit, GroupByMenu, MoreMenu, QuickFilter, SearchToggle, SortMenu } 
 import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
 import { ROOT_ADMINS, memberName } from "@/lib/crmTeam";
 import LeadsTable, { ColumnsMenu, StatusEditContext, useVisibleColumns } from "./LeadsTable";
+import { useIsMobile } from "@/hooks/use-mobile";
 import DocumentsPanel from "./DocumentsPanel";
 import {
   CRM_BOARDS_COLLECTION,
@@ -995,27 +996,42 @@ export default function LeadsCRM({
   columnsApiRef.current = columnsApi;
   const editLabels = useCallback((key: string, opts: any[]) => columnsApiRef.current.setOptions(key, opts), []);
   const [visibleCols, setVisibleCols] = useVisibleColumns(columnsVersion, boardId);
-  // Zoom du tableau (50 % à 140 %), mémorisé sur l'appareil (séparément sur mobile et PC).
+  const isMobile = useIsMobile();
+  // Zoom du tableau : STRICTEMENT DISSOCIÉ entre smartphone et ordinateur.
   const [zoom, setZoom] = useState(() => {
     try {
-      const isMob = typeof window !== "undefined" && window.innerWidth < 768;
-      const key = isMob ? "crm-table-zoom-mobile" : "crm-table-zoom";
-      const saved = localStorage.getItem(key);
-      if (saved) {
-        const z = parseFloat(saved);
-        if (z >= 0.5 && z <= 1.5) return z;
+      const isMob = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+      if (isMob) {
+        const saved = localStorage.getItem("crm-table-zoom-mobile");
+        if (saved) {
+          const z = parseFloat(saved);
+          if (z >= 0.5 && z <= 1.5) return z;
+        }
+        return 0.75; // 75% par défaut sur smartphone
+      } else {
+        const saved = localStorage.getItem("crm-table-zoom-desktop") ?? localStorage.getItem("crm-table-zoom");
+        if (saved) {
+          const z = parseFloat(saved);
+          if (z >= 0.6 && z <= 1.5) return z;
+        }
+        return 1; // 100% par défaut sur ordinateur
       }
-      return isMob ? 0.75 : 1; // 75% par défaut sur smartphone (affichage compact façon Monday)
     } catch {
       return 1;
     }
   });
+
   const changeZoom = (z: number) => {
-    const v = Math.min(1.4, Math.max(0.5, Math.round(z * 100) / 100));
+    const minZ = isMobile ? 0.5 : 0.6;
+    const v = Math.min(1.4, Math.max(minZ, Math.round(z * 100) / 100));
     setZoom(v);
     try {
-      const isMob = typeof window !== "undefined" && window.innerWidth < 768;
-      localStorage.setItem(isMob ? "crm-table-zoom-mobile" : "crm-table-zoom", String(v));
+      if (isMobile) {
+        localStorage.setItem("crm-table-zoom-mobile", String(v));
+      } else {
+        localStorage.setItem("crm-table-zoom-desktop", String(v));
+        localStorage.setItem("crm-table-zoom", String(v));
+      }
     } catch {
       /* non essentiel */
     }
@@ -1541,7 +1557,10 @@ export default function LeadsCRM({
           onChangeZoom={changeZoom}
           onMoveColumn={(k, t) => columnsApi.move(k, t)}
           onRenameColumn={(k, title) => columnsApi.rename(k, title)}
-          onResizeColumn={(k, w) => columnsApi.setWidth(k, w)}
+          onResizeColumn={(k, w) => {
+            if (isMobile) return;
+            columnsApi.setWidth(k, w);
+          }}
           onOpen={(id, focus) => {
             if (focus === "updates") {
               setChatId(id);

@@ -193,7 +193,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined) {
   const next = ordered.map((col) => ({
     ...col,
     title: c.titles?.[col.key] ?? col.title,
-    width: c.collapsed?.[col.key] ? 52 : c.widths?.[col.key] ?? col.width,
+    width: col.key === "name" ? Math.max(300, c.widths?.[col.key] ?? 300) : c.collapsed?.[col.key] ? 52 : c.widths?.[col.key] ?? col.width,
     wrap: !!c.wrap?.[col.key],
     collapsed: !!c.collapsed?.[col.key],
     options: col.key === "status" ? LEAD_STATUSES : c.options?.[col.key] ?? col.options,
