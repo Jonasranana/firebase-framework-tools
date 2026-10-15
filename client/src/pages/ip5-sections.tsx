@@ -613,15 +613,20 @@ export function trackStep(source: string, step: number, answers: Record<string, 
 export const Simulator = ({
   source = "simulateur-landing",
   tone = "default",
+  initialHeating = "",
 }: {
   source?: string;
+  // Chauffage déjà choisi avant le simulateur (question rapide de /pac) : la question n'est pas reposée.
+  initialHeating?: string;
   // « pro » : présentation plus sobre (page d'accueil) ; défaut : présentation d'origine des pages de campagne.
   tone?: "default" | "pro";
 } = {}) => {
   const pro = tone === "pro";
   const [step, setStep] = useState(1);
   const [isCalculating, setIsCalculating] = useState(false);
-  const [formData, setFormData] = useState<SimulatorData>(INITIAL_DATA);
+  const [formData, setFormData] = useState<SimulatorData>({ ...INITIAL_DATA, currentHeating: initialHeating });
+  const HEATING_STEP = 4;
+  const heatingPreset = !!initialHeating;
   const [reward, setReward] = useState<string | null>(null);
   const [errors, setErrors] = useState<{
     firstName?: string;
@@ -666,28 +671,32 @@ export const Simulator = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const goToResults = () => {
+  const goToResults = (data: SimulatorData = formData) => {
     setReward(null);
     setIsCalculating(true);
-    setTimeout(() => {
+    // Coordonnées déjà données en cours de route : la demande part directement, sans les redemander.
+    const send = contactSaved ? sendLead(data) : Promise.resolve(false);
+    Promise.all([send, new Promise((r) => setTimeout(r, 1800))]).then(([sent]) => {
       setIsCalculating(false);
-      setStep(TOTAL_QUESTIONS + 1);
-    }, 1800); // Simule le temps de calcul
+      setStep(sent ? TOTAL_QUESTIONS + 2 : TOTAL_QUESTIONS + 1);
+    });
   };
 
   // Avance d'une étape en affichant le message d'encouragement lié à la
   // réponse qui vient d'être donnée.
-  const advance = (rewardMsg: string | null) => {
+  const advance = (rewardMsg: string | null, data: SimulatorData = formData) => {
     if (step === CONTACT_AFTER && !contactSaved) {
       setReward(rewardMsg);
       setEarlyContact(true);
     } else if (step === TOTAL_QUESTIONS) {
-      goToResults();
+      goToResults(data);
     } else {
       setReward(rewardMsg);
-      setStep(step + 1);
+      setStep(nextStep(step));
     }
   };
+
+  const nextStep = (from: number) => (heatingPreset && from + 1 === HEATING_STEP ? from + 2 : from + 1);
 
   const prevStep = () => {
     if (earlyContact) {
@@ -697,13 +706,14 @@ export const Simulator = ({
     }
     if (step > 1 && !isCalculating) {
       setReward(null);
-      setStep(step - 1);
+      setStep(heatingPreset && step - 1 === HEATING_STEP ? step - 2 : step - 1);
     }
   };
 
   const choose = (key: keyof SimulatorData, value: string) => {
-    setFormData({ ...formData, [key]: value });
-    advance(rewardFor(key, value));
+    const next = { ...formData, [key]: value };
+    setFormData(next);
+    advance(rewardFor(key, value), next);
   };
 
   const validateContact = () => {
@@ -735,7 +745,26 @@ export const Simulator = ({
     setContactSaved(true);
     setEarlyContact(false);
     setReward(null);
-    setStep(CONTACT_AFTER + 1); // la fiche est créée par l'effet de suivi des étapes
+    setStep(nextStep(CONTACT_AFTER)); // la fiche est créée par l'effet de suivi des étapes
+  };
+
+  const sendLead = async (data: SimulatorData): Promise<boolean> => {
+    try {
+      // Sans réseau, l'envoi Firestore ne répond jamais : au bout de 20 s, le formulaire final prend le relais.
+      await Promise.race([
+        submitLead(data, effectiveSource, {
+          simulationResult: describeSimulationResult(computeSimulationResult(data)),
+          sessionId: getVisitId(),
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("délai dépassé")), 20000)),
+      ]);
+      return true;
+    } catch (err) {
+      console.error("Échec de l'enregistrement du lead:", err);
+      // Repli : le formulaire final (déjà rempli) s'affiche avec un message d'erreur.
+      setErrors({ submit: "Une erreur est survenue lors de l'envoi. Réessayez, ou appelez-nous directement au 07 49 52 52 67." });
+      return false;
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -917,7 +946,7 @@ export const Simulator = ({
             Où vous envoyer votre estimation&nbsp;?
           </h3>
           <p className="text-gray-500 text-sm mb-6 text-center">
-            Encore {TOTAL_QUESTIONS - CONTACT_AFTER} questions rapides ensuite. Un conseiller pourra
+            Encore {TOTAL_QUESTIONS - CONTACT_AFTER - (heatingPreset ? 1 : 0)} questions rapides ensuite. Un conseiller pourra
             vous rappeler si besoin.
           </p>
           <form onSubmit={saveEarlyContact} className="space-y-4" noValidate>
