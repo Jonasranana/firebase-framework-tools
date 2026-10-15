@@ -1023,6 +1023,8 @@ export default function LeadsCRM({
     }
   });
 
+  // Élément qui porte le zoom : modifié directement pendant le pincement à deux doigts (fluide, sans redessiner le tableau).
+  const zoomWrapRef = useRef<HTMLDivElement>(null);
   const changeZoom = useCallback((z: number) => {
     const minZ = isMobile ? 0.45 : 0.6;
     const v = Math.min(1.4, Math.max(minZ, Math.round(z * 100) / 100));
@@ -1524,7 +1526,7 @@ export default function LeadsCRM({
       {/* Vue tableau façon Monday */}
       {leads && columnsReady && groupsReady && view === "tableau" && (
         <StatusEditContext.Provider value={editLabels}>
-        <div style={{ zoom: Number.isFinite(zoom) && zoom >= 0.45 && zoom <= 1.5 ? zoom : 1 }}>
+        <div ref={zoomWrapRef} style={{ zoom: Number.isFinite(zoom) && zoom >= 0.45 && zoom <= 1.5 ? zoom : 1 }}>
         <LeadsTable
           leads={filtered}
           groups={grouping ? grouping.groups : groups}
@@ -1557,6 +1559,9 @@ export default function LeadsCRM({
           bulk={bulk}
           fitZoom={zoom}
           onChangeZoom={changeZoom}
+          onZoomLive={(z) => {
+            if (zoomWrapRef.current) zoomWrapRef.current.style.zoom = String(z);
+          }}
           onMoveColumn={(k, t) => columnsApi.move(k, t)}
           onRenameColumn={(k, title) => columnsApi.rename(k, title)}
           onResizeColumn={(k, w) => {

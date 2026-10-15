@@ -604,8 +604,8 @@ const TagsCell = ({ value, onSave }: { value: string; onSave: (v: string) => voi
   );
 };
 
-const colsTemplate = (cols: LeadColumn[], isMobile = false) =>
-  cols.map((c) => `${isMobile && c.type === "name" ? Math.min(c.width, 185) : c.width}px`).join(" ");
+const colsTemplate = (cols: LeadColumn[], isMobile = false, nameW?: (c: LeadColumn) => number) =>
+  cols.map((c) => `${isMobile && c.type === "name" && nameW ? nameW(c) : c.width}px`).join(" ");
 
 // Colonnes masquées : choix mémorisé sur l'appareil, SÉPARÉMENT pour chaque tableau (avant, un
 // seul choix pour tous les tableaux : les colonnes masquées sur un autre tableau, ou une liste
@@ -1117,6 +1117,8 @@ export default function LeadsTable({
   setVisible,
   bulk,
   fitZoom,
+  onChangeZoom,
+  onZoomLive,
   onMoveColumn,
   onRenameColumn,
   onResizeColumn,
@@ -1153,7 +1155,9 @@ export default function LeadsTable({
   onDuplicateLeads: (fromGroupId: string, toGroupId: string) => void;
   visible: string[];
   setVisible: (v: string[]) => void;
+  // Zoom enregistré (appelé à la fin du pincement) et zoom « en direct » pendant le pincement (sans redessiner le tableau).
   onChangeZoom?: (z: number) => void;
+  onZoomLive?: (z: number) => void;
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [limits, setLimits] = useState<Record<string, number>>({});
@@ -1282,8 +1286,11 @@ export default function LeadsTable({
       if (raf) cancelAnimationFrame(raf);
     };
   }, [cols, maxH, isMobile]);
-  const template = `${colsTemplate(cols, isMobile)} 44px`;
-  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? Math.min(c.width, 185) : c.width), 0) + 52;
+  // Téléphone : la colonne des noms garde environ 165 px À L'ÉCRAN quel que soit le zoom (elle s'élargit quand on
+  // dézoome), pour que les noms restent lisibles ; limitée à sa largeur d'origine.
+  const mobileNameW = (c: LeadColumn) => Math.round(Math.min(c.width, Math.max(150, 165 / (fitZoom || 1))));
+  const template = `${colsTemplate(cols, isMobile, mobileNameW)} 44px`;
+  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? mobileNameW(c) : c.width), 0) + 52;
 
   const [focusAdd, setFocusAdd] = useState<string | null>(null);
   const visibleGroups = groups.filter((g) => !g.archived);
@@ -1361,98 +1368,85 @@ export default function LeadsTable({
     if (copyLeads) onDuplicateLeads(src.id, copy.id);
   };
 
-  // Gestion fluide du pincement à deux doigts (Pinch-to-zoom) sur smartphone (iOS Safari + Android)
+  // Pincement à deux doigts (écarter = agrandir, pincer = rapetisser), façon appli Monday.
+  // Pendant le geste, le zoom est appliqué directement à l'élément (onZoomLive) : aucun redessin du tableau,
+  // donc fluide même avec des centaines de lignes. Le zoom n'est enregistré qu'à la fin du geste.
+  // iPhone / iPad : événements « gesture » de Safari ; Android et autres : événements tactiles standards.
   const zoomRef = useRef(fitZoom || 1);
   zoomRef.current = fitZoom || 1;
+  const liveRef = useRef(onZoomLive);
+  liveRef.current = onZoomLive;
+  const commitRef = useRef(onChangeZoom);
+  commitRef.current = onChangeZoom;
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || !onChangeZoom) return;
-
-    let startDist = 0;
+    if (!el || !isMobile) return;
+    const MIN = 0.45;
+    const MAX = 1.4;
+    const clamp = (z: number) => Math.min(MAX, Math.max(MIN, Math.round(z * 100) / 100));
     let startZoom = 1;
-    let isPinching = false;
-    let rafId = 0;
+    let startDist = 0;
+    let current = 1;
+    let active = false;
+    let raf = 0;
 
-    // Événements natifs de gestes WebKit pour iOS Safari (évite le zoom de la page globale)
-    const onGestureStart = (e: any) => {
-      if (e.cancelable) e.preventDefault();
-      startZoom = zoomRef.current;
-      isPinching = true;
-    };
-
-    const onGestureChange = (e: any) => {
-      if (e.cancelable) e.preventDefault();
-      const scale = typeof e.scale === "number" ? e.scale : 1;
-      const targetZoom = Math.min(1.4, Math.max(0.45, Math.round(startZoom * scale * 100) / 100));
-      if (rafId) cancelAnimationFrame(rafId);
-      rafId = requestAnimationFrame(() => {
-        onChangeZoom(targetZoom);
+    const apply = (z: number) => {
+      current = z;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        // Garde le centre de l'écran en place pendant le zoom (défilement horizontal).
+        const center = el.scrollLeft + el.clientWidth / 2;
+        liveRef.current?.(current);
+        el.scrollLeft = Math.max(0, center - el.clientWidth / 2);
       });
     };
-
-    const onGestureEnd = (e: any) => {
-      if (e.cancelable) e.preventDefault();
-      isPinching = false;
-      if (rafId) cancelAnimationFrame(rafId);
+    const begin = () => {
+      startZoom = zoomRef.current;
+      current = startZoom;
+      active = true;
     };
-
-    // Événements tactiles standards (Android / Chrome / Edge)
-    const onTouchStart = (e: TouchEvent) => {
-      if (e.touches.length === 2) {
-        isPinching = true;
-        startDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        startZoom = zoomRef.current;
+    const finish = () => {
+      if (!active) return;
+      active = false;
+      startDist = 0;
+      if (raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+        liveRef.current?.(current);
       }
+      commitRef.current?.(current);
+    };
+    const dist = (e: TouchEvent) => Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+
+    const hasGestureEvents = typeof window !== "undefined" && "ongesturestart" in window;
+    const cleanup: (() => void)[] = [];
+    const on = (type: string, fn: (e: any) => void, passive: boolean) => {
+      el.addEventListener(type, fn, { passive });
+      cleanup.push(() => el.removeEventListener(type, fn));
     };
 
-    const onTouchMove = (e: TouchEvent) => {
-      if (e.touches.length === 2 && isPinching && startDist > 0) {
-        if (e.cancelable) e.preventDefault();
-        const currentDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        const scale = currentDist / startDist;
-        const targetZoom = Math.min(1.4, Math.max(0.45, Math.round(startZoom * scale * 100) / 100));
-
-        if (rafId) cancelAnimationFrame(rafId);
-        rafId = requestAnimationFrame(() => {
-          onChangeZoom(targetZoom);
-        });
-      }
-    };
-
-    const onTouchEnd = (e: TouchEvent) => {
-      if (e.touches.length < 2) {
-        isPinching = false;
-        startDist = 0;
-        if (rafId) cancelAnimationFrame(rafId);
-      }
-    };
-
-    el.addEventListener("gesturestart", onGestureStart as EventListener, { passive: false });
-    el.addEventListener("gesturechange", onGestureChange as EventListener, { passive: false });
-    el.addEventListener("gestureend", onGestureEnd as EventListener, { passive: false });
-    el.addEventListener("touchstart", onTouchStart, { passive: true });
-    el.addEventListener("touchmove", onTouchMove, { passive: false });
-    el.addEventListener("touchend", onTouchEnd, { passive: true });
-    el.addEventListener("touchcancel", onTouchEnd, { passive: true });
-
+    if (hasGestureEvents) {
+      on("gesturestart", (e) => { e.preventDefault(); begin(); }, false);
+      on("gesturechange", (e) => { e.preventDefault(); if (active && typeof e.scale === "number") apply(clamp(startZoom * e.scale)); }, false);
+      on("gestureend", (e) => { e.preventDefault(); finish(); }, false);
+    } else {
+      on("touchstart", (e) => { if (e.touches.length === 2) { startDist = dist(e); begin(); } }, true);
+      on("touchmove", (e) => {
+        if (active && e.touches.length === 2 && startDist > 0) {
+          if (e.cancelable) e.preventDefault();
+          apply(clamp(startZoom * (dist(e) / startDist)));
+        }
+      }, false);
+      on("touchend", (e) => { if (e.touches.length < 2) finish(); }, true);
+      on("touchcancel", () => finish(), true);
+    }
     return () => {
-      el.removeEventListener("gesturestart", onGestureStart as EventListener);
-      el.removeEventListener("gesturechange", onGestureChange as EventListener);
-      el.removeEventListener("gestureend", onGestureEnd as EventListener);
-      el.removeEventListener("touchstart", onTouchStart);
-      el.removeEventListener("touchmove", onTouchMove);
-      el.removeEventListener("touchend", onTouchEnd);
-      el.removeEventListener("touchcancel", onTouchEnd);
-      if (rafId) cancelAnimationFrame(rafId);
+      cleanup.forEach((f) => f());
+      if (raf) cancelAnimationFrame(raf);
     };
-  }, [onChangeZoom]);
+  }, [isMobile]);
 
   return (
     <TableZoomContext.Provider value={fitZoom || 1}>
@@ -1711,7 +1705,7 @@ export default function LeadsTable({
                       color={st.color}
                       focus={focusAdd === st.id}
                       onAdd={(name) => onCreate(st.id, name)}
-                      nameWidth={isMobile ? Math.min(cols[0]?.width ?? 300, 185) : (cols[0]?.width ?? 300)}
+                      nameWidth={isMobile && cols[0] ? mobileNameW(cols[0]) : (cols[0]?.width ?? 300)}
                     />
                   )}
                 </div>
