@@ -605,7 +605,7 @@ const TagsCell = ({ value, onSave }: { value: string; onSave: (v: string) => voi
 };
 
 const colsTemplate = (cols: LeadColumn[], isMobile = false) =>
-  cols.map((c) => `${isMobile && c.type === "name" ? Math.min(c.width, 175) : c.width}px`).join(" ");
+  cols.map((c) => `${isMobile && c.type === "name" ? Math.min(c.width, 185) : c.width}px`).join(" ");
 
 // Colonnes masquées : choix mémorisé sur l'appareil, SÉPARÉMENT pour chaque tableau (avant, un
 // seul choix pour tous les tableaux : les colonnes masquées sur un autre tableau, ou une liste
@@ -1160,8 +1160,12 @@ export default function LeadsTable({
   const [dropOver, setDropOver] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [maxH, setMaxH] = useState<number | null>(null);
+  const isMobile = useIsMobile();
   useEffect(() => {
-    if (!fitZoom) return;
+    if (!fitZoom || isMobile) {
+      setMaxH(null);
+      return;
+    }
     const fit = () => {
       const el = scrollRef.current;
       if (!el) return;
@@ -1175,8 +1179,7 @@ export default function LeadsTable({
       window.removeEventListener("resize", fit);
       clearTimeout(t);
     };
-  }, [fitZoom, leads.length]);
-  const isMobile = useIsMobile();
+  }, [fitZoom, leads.length, isMobile]);
   const [dragGroup, setDragGroup] = useState<string | null>(null);
   const [dropGroup, setDropGroup] = useState<string | null>(null);
   const collapsedBeforeDrag = useRef<Record<string, boolean> | null>(null);
@@ -1232,12 +1235,17 @@ export default function LeadsTable({
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
-  // Colonnes à dessiner selon le défilement horizontal (virtualisation des colonnes).
-  const [colRange, setColRange] = useState<[number, number]>([0, 14]);
+  // Colonnes à dessiner : sur mobile, on affiche toujours toutes les colonnes pour une fluidité totale sans disparition
+  const [colRange, setColRange] = useState<[number, number]>([0, 30]);
   const [viewW, setViewW] = useState(0);
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    if (isMobile) {
+      setColRange([0, Math.max(0, cols.length - 1)]);
+      setViewW(el.clientWidth || (typeof window !== "undefined" ? window.innerWidth : 400));
+      return;
+    }
     let raf = 0;
     const compute = () => {
       raf = 0;
@@ -1248,7 +1256,7 @@ export default function LeadsTable({
       let b = cols.length - 1;
       let foundA = false;
       for (let i = 0; i < cols.length; i++) {
-        const w = isMobile && cols[i].type === "name" ? Math.min(cols[i].width, 175) : cols[i].width;
+        const w = cols[i].width;
         if (!foundA && x + w > left) {
           a = i;
           foundA = true;
@@ -1275,7 +1283,7 @@ export default function LeadsTable({
     };
   }, [cols, maxH, isMobile]);
   const template = `${colsTemplate(cols, isMobile)} 44px`;
-  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? Math.min(c.width, 175) : c.width), 0) + 52;
+  const totalWidth = cols.reduce((n, c) => n + (isMobile && c.type === "name" ? Math.min(c.width, 185) : c.width), 0) + 52;
 
   const [focusAdd, setFocusAdd] = useState<string | null>(null);
   const visibleGroups = groups.filter((g) => !g.archived);
@@ -1353,7 +1361,7 @@ export default function LeadsTable({
     if (copyLeads) onDuplicateLeads(src.id, copy.id);
   };
 
-  // Gestion fluide du pincement à deux doigts (Pinch-to-zoom) sur smartphone
+  // Gestion fluide du pincement à deux doigts (Pinch-to-zoom) sur smartphone (iOS Safari + Android)
   const zoomRef = useRef(fitZoom || 1);
   zoomRef.current = fitZoom || 1;
 
@@ -1366,6 +1374,30 @@ export default function LeadsTable({
     let isPinching = false;
     let rafId = 0;
 
+    // Événements natifs de gestes WebKit pour iOS Safari (évite le zoom de la page globale)
+    const onGestureStart = (e: any) => {
+      if (e.cancelable) e.preventDefault();
+      startZoom = zoomRef.current;
+      isPinching = true;
+    };
+
+    const onGestureChange = (e: any) => {
+      if (e.cancelable) e.preventDefault();
+      const scale = typeof e.scale === "number" ? e.scale : 1;
+      const targetZoom = Math.min(1.4, Math.max(0.45, Math.round(startZoom * scale * 100) / 100));
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(() => {
+        onChangeZoom(targetZoom);
+      });
+    };
+
+    const onGestureEnd = (e: any) => {
+      if (e.cancelable) e.preventDefault();
+      isPinching = false;
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+
+    // Événements tactiles standards (Android / Chrome / Edge)
     const onTouchStart = (e: TouchEvent) => {
       if (e.touches.length === 2) {
         isPinching = true;
@@ -1379,7 +1411,6 @@ export default function LeadsTable({
 
     const onTouchMove = (e: TouchEvent) => {
       if (e.touches.length === 2 && isPinching && startDist > 0) {
-        // Bloque le zoom de la page globale du navigateur pour zoomer le tableau !
         if (e.cancelable) e.preventDefault();
         const currentDist = Math.hypot(
           e.touches[0].clientX - e.touches[1].clientX,
@@ -1403,12 +1434,18 @@ export default function LeadsTable({
       }
     };
 
+    el.addEventListener("gesturestart", onGestureStart as EventListener, { passive: false });
+    el.addEventListener("gesturechange", onGestureChange as EventListener, { passive: false });
+    el.addEventListener("gestureend", onGestureEnd as EventListener, { passive: false });
     el.addEventListener("touchstart", onTouchStart, { passive: true });
     el.addEventListener("touchmove", onTouchMove, { passive: false });
     el.addEventListener("touchend", onTouchEnd, { passive: true });
     el.addEventListener("touchcancel", onTouchEnd, { passive: true });
 
     return () => {
+      el.removeEventListener("gesturestart", onGestureStart as EventListener);
+      el.removeEventListener("gesturechange", onGestureChange as EventListener);
+      el.removeEventListener("gestureend", onGestureEnd as EventListener);
       el.removeEventListener("touchstart", onTouchStart);
       el.removeEventListener("touchmove", onTouchMove);
       el.removeEventListener("touchend", onTouchEnd);
@@ -1421,8 +1458,8 @@ export default function LeadsTable({
     <TableZoomContext.Provider value={fitZoom || 1}>
       <div
         ref={scrollRef}
-        className="crm-scroll overflow-auto touch-pan-x touch-pan-y overscroll-x-contain [-webkit-overflow-scrolling:touch] pb-24 md:pb-4"
-        style={maxH ? { maxHeight: maxH, marginBottom: -((typeof window !== "undefined" && window.innerWidth >= 768 ? 24 : 16) / (fitZoom || 1)) } : undefined}
+        className="crm-scroll overflow-auto touch-pan-x touch-pan-y overscroll-x-contain pb-28 md:pb-4"
+        style={!isMobile && maxH ? { maxHeight: maxH, marginBottom: -((typeof window !== "undefined" && window.innerWidth >= 768 ? 24 : 16) / (fitZoom || 1)) } : undefined}
       >
       <div style={{ minWidth: totalWidth }} className="space-y-6">
         <div className="sticky left-0 flex flex-wrap items-center gap-2">
@@ -1674,7 +1711,7 @@ export default function LeadsTable({
                       color={st.color}
                       focus={focusAdd === st.id}
                       onAdd={(name) => onCreate(st.id, name)}
-                      nameWidth={isMobile ? Math.min(cols[0]?.width ?? 300, 175) : (cols[0]?.width ?? 300)}
+                      nameWidth={isMobile ? Math.min(cols[0]?.width ?? 300, 185) : (cols[0]?.width ?? 300)}
                     />
                   )}
                 </div>

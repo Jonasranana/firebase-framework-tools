@@ -1023,8 +1023,8 @@ export default function LeadsCRM({
     }
   });
 
-  const changeZoom = (z: number) => {
-    const minZ = isMobile ? 0.5 : 0.6;
+  const changeZoom = useCallback((z: number) => {
+    const minZ = isMobile ? 0.45 : 0.6;
     const v = Math.min(1.4, Math.max(minZ, Math.round(z * 100) / 100));
     setZoom(v);
     try {
@@ -1037,7 +1037,7 @@ export default function LeadsCRM({
     } catch {
       /* non essentiel */
     }
-  };
+  }, [isMobile]);
 
   const setViewPersist = (v: "tableau" | "liste" | "colonnes") => {
     setView(v);
@@ -1524,7 +1524,7 @@ export default function LeadsCRM({
       {/* Vue tableau façon Monday */}
       {leads && columnsReady && groupsReady && view === "tableau" && (
         <StatusEditContext.Provider value={editLabels}>
-        <div style={{ zoom }}>
+        <div style={{ zoom: Number.isFinite(zoom) && zoom >= 0.45 && zoom <= 1.5 ? zoom : 1 }}>
         <LeadsTable
           leads={filtered}
           groups={grouping ? grouping.groups : groups}
