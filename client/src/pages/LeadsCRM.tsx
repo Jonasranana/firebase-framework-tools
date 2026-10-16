@@ -35,7 +35,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
-import { LEAD_COLUMNS, cellValue, formulaValue, type ColType, type LeadColumn } from "@/lib/crmColumns";
+import { ATTRIBUE_KEY, LEAD_COLUMNS, cellValue, formulaValue, type ColType, type LeadColumn } from "@/lib/crmColumns";
 import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 import ColumnMenu from "./ColumnMenu";
 import { PersonBar } from "./LeadsFilter";
@@ -983,6 +983,8 @@ export default function LeadsCRM({
   }, []);
   const [filters, setFilters] = useState<LeadFilter[]>(boardView?.filters ?? []);
   const [personKey, setPersonKey] = useState(boardView?.personKey ?? "");
+  // Onglets « Mes clients — … » : clients attribués à quelqu'un (colonne « Attribué à »), tableau Pac Pac seulement.
+  const [attribTab, setAttribTab] = useState("");
   const [sorts, setSorts] = useState<LeadSort[]>(boardView?.sorts ?? []);
   const [groupBy, setGroupBy] = useState(boardView?.groupBy ?? "");
   const [rappelsOnly, setRappelsOnly] = useState(false);
@@ -1061,6 +1063,7 @@ export default function LeadsCRM({
     const q = normalize(query.trim());
     return leads.filter((l) => {
       if (filters.length && !applyFilters(l, filters)) return false;
+      if (attribTab && l.fields[ATTRIBUE_KEY] !== attribTab) return false;
       if (personKey) {
         const p = people.find((x) => x.key === personKey);
         if (p && !leadMatchesPerson(l, p)) return false;
@@ -1075,7 +1078,7 @@ export default function LeadsCRM({
       );
       return hay.includes(q);
     });
-  }, [leads, query, filters, personKey, people, rappelsOnly]);
+  }, [leads, query, filters, personKey, people, rappelsOnly, attribTab]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -1092,7 +1095,7 @@ export default function LeadsCRM({
   const grouping = useMemo(() => (groupBy ? groupByColumn(filtered, groupBy) : null), [groupBy, filtered]);
 
   // Retour en haut de liste quand un filtre change.
-  useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, filters, personKey, rappelsOnly]);
+  useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, filters, personKey, rappelsOnly, attribTab]);
 
   const rappelsCount = useMemo(() => (leads ?? []).filter(isOverdue).length, [leads]);
   const openLead = leads?.find((l) => l.id === openId) ?? null;
@@ -1438,8 +1441,26 @@ export default function LeadsCRM({
 
   const total = leads?.length ?? 0;
 
+  const attribCol = boardId === LEADS_BOARD_ID ? LEAD_COLUMNS.find((c) => c.key === ATTRIBUE_KEY) : undefined;
+  const attribCount = (name: string) => (leads ?? []).filter((l) => l.fields[ATTRIBUE_KEY] === name).length;
   return (
     <div>
+      {attribCol && (
+        <div className="flex items-center gap-1 mb-2 overflow-x-auto no-scrollbar border-b border-gray-200">
+          {[{ key: "", label: "Tableau principal" }, ...(attribCol.options ?? []).filter((x) => !x.off).map((x) => ({ key: x.key, label: `Mes clients — ${x.label}` }))].map((t) => (
+            <button
+              key={t.key || "all"}
+              onClick={() => setAttribTab(t.key)}
+              className={`whitespace-nowrap text-sm px-3 py-1.5 -mb-px border-b-2 ${
+                attribTab === t.key ? "border-[#0073ea] text-[#0073ea] font-semibold" : "border-transparent text-gray-600 hover:bg-gray-100 rounded-t"
+              }`}
+            >
+              {t.label}
+              {t.key ? <span className="ml-1.5 text-xs text-gray-400">{attribCount(t.key)}</span> : null}
+            </button>
+          ))}
+        </div>
+      )}
       {/* Barre d'outils façon Monday */}
       <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1.5 no-scrollbar sm:flex-wrap sm:overflow-visible">
         <AddSplit

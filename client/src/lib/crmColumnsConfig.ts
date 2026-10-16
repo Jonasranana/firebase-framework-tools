@@ -51,7 +51,7 @@ export function useColumnsConfig(email: string, boardId = "leads") {
           (snap) => {
             if (cancelled) return;
             const c = (snap.data()?.config as ColumnsConfig | undefined) ?? {};
-            applyColumnsConfig(c);
+            applyColumnsConfig(c, boardId);
             setConfig(c);
             setVersion((v) => v + 1);
             setReady(true);
@@ -71,7 +71,7 @@ export function useColumnsConfig(email: string, boardId = "leads") {
 
   const save = async (next: ColumnsConfig) => {
     const previous = ref.current;
-    applyColumnsConfig(next);
+    applyColumnsConfig(next, boardId);
     setConfig(next);
     setVersion((v) => v + 1);
     try {
@@ -80,7 +80,7 @@ export function useColumnsConfig(email: string, boardId = "leads") {
       setError("");
     } catch (e) {
       console.error(e);
-      applyColumnsConfig(previous);
+      applyColumnsConfig(previous, boardId);
       setConfig(previous);
       setVersion((v) => v + 1);
       setError("Impossible d'enregistrer les colonnes (règle Firestore crm_boards ?).");

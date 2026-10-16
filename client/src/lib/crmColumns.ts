@@ -63,6 +63,13 @@ export const COMMERCIAL: Opt[] = [
   o("Alexis", "#ff6d3b"),
   o("Jonas", "#00c875"),
 ];
+// « Attribué à » : clients donnés à appeler à quelqu'un (onglets « Mes clients »), sans toucher à « Commercial ».
+export const ATTRIBUE: Opt[] = [
+  o("Mebarek", "#007eb5"),
+  o("Carole", "#9d50dd"),
+  o("Alexis", "#ff6d3b"),
+];
+export const ATTRIBUE_KEY = "attribue";
 export const MAIL_AUTO: Opt[] = [
   o("1 - Relance injoignable", "#fdab3d"),
   o("2 - Relance injoignable", "#ff007f"),
@@ -146,6 +153,7 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "prenom", title: "🙋 Prénom (Auto)", type: "formula", width: 130 },
   { key: "region", title: "🗺️ Région", type: "formula", width: 140 },
   { key: "ressenti", title: "🎭 Ressenti de l'appel", type: "status", width: 160, options: RESSENTI },
+  { key: ATTRIBUE_KEY, title: "🎯 Attribué à", type: "status", width: 130, options: ATTRIBUE },
 ];
 
 // Colonnes affichées = colonnes d'origine + colonnes ajoutées, dans l'ordre choisi
@@ -169,7 +177,7 @@ export type ColumnsConfig = {
 
 const BASE_STATUSES: Opt[] = LEAD_STATUSES.map((x) => ({ ...x }));
 
-export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined) {
+export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardId = "leads") {
   const c = cfg ?? {};
   // « Statut Appel » : la liste partagée des statuts suit les étiquettes modifiées
   // (mise à jour sur place : tout le CRM la lit).
@@ -177,7 +185,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined) {
   st.length = 0;
   st.push(...(c.options?.status ?? BASE_STATUSES).map((x) => ({ ...x })));
   const deleted = new Set(c.deleted ?? []);
-  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
+  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || (x.key === ATTRIBUE_KEY && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
   const byKey = new Map(all.map((x) => [x.key, x]));
   const ordered: LeadColumn[] = [];
   for (const k of c.order ?? []) {
