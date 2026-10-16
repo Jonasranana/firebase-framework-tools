@@ -2965,48 +2965,126 @@ exports.exportLeadToPraimy = onCall(
     const firstName = parts.length > 1 ? parts[0] : "";
     const lastName = parts.length > 1 ? parts.slice(1).join(" ") : fullName || "Client";
 
-    const key = PRAIMY_API_KEY.value();
-    const url = "https://portail.praimy.fr/api/v1/clients/";
-    const res = await fetch(url, {
-      method: "POST",
-      headers: {
-        "X-API-Key": key,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-      },
-      body: JSON.stringify({
-        first_name: firstName || "—",
-        last_name: lastName || "Client",
-        phone: lead.phone || undefined,
-        email: lead.email || undefined,
-        ville: lead.city || undefined,
-        code_postal: lead.postalCode || undefined,
-      }),
-    });
+    // Réponses de qualification (simulateur / appel) → champs du prospect Praimy.
+    const d = lead.details ?? {};
+    const fl = lead.fields ?? {};
+    const pick = (...keys) => {
+      for (const k of keys) {
+        const v = String(d[k] ?? fl[k] ?? "").trim();
+        if (v) return v;
+      }
+      return "";
+    };
+    const norm = (v) => v.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+    const num = (v) => {
+      const m = String(v).replace(",", ".").match(/\d+(\.\d+)?/);
+      return m ? Math.round(Number(m[0])) : null;
+    };
+    const owner = norm(pick("Propriétaire"));
+    const statutOccupation = owner.includes("bailleur")
+      ? "bailleur"
+      : owner.includes("locataire")
+        ? "loc"
+        : owner.includes("propri")
+          ? "prop"
+          : null;
+    const heat = norm(pick("Chauffage", "chauffage"));
+    const chauffage = !heat
+      ? null
+      : heat.includes("gaz")
+        ? "gaz"
+        : heat.includes("fioul") || heat.includes("mazout")
+          ? "fioul"
+          : heat.includes("charbon")
+            ? "charbon"
+            : "autre";
+    const logement = norm(pick("Logement"));
+    const typologie = logement.includes("maison") ? "Maison individuelle" : null;
+    const surface = num(pick("Surface", "surface"));
+    const foyer = num(pick("Foyer", "foyer"));
 
-    const data = await res.json().catch(() => ({}));
+    // Résumé de tout ce qui n'a pas de case dédiée chez Praimy.
+    const resume = [];
+    for (const [k, v] of Object.entries(d)) {
+      if (v && k !== "Progression") resume.push(`${k} : ${v}`);
+    }
+    if (lead.projet) resume.push(`Projet : ${lead.projet}`);
+    const lastNotes = (Array.isArray(lead.notes) ? lead.notes : [])
+      .filter((n) => !n.kind || n.kind === "note")
+      .slice(-5)
+      .map((n) => `• ${n.text}`);
+    const notes = [
+      "Envoyé depuis le CRM IP5 Énergie.",
+      ...resume,
+      ...(lastNotes.length ? ["Notes :", ...lastNotes] : []),
+    ].join("\n").slice(0, 3000);
+
+    const payload = {
+      civility: null,
+      first_name: firstName || null,
+      last_name: lastName || null,
+      phone: lead.phone || "",
+      email: lead.email || null,
+      code_postal: lead.postalCode || null,
+      ville: lead.city || null,
+      source: "IP5 Énergie – CRM",
+      notes,
+      statut_occupation: statutOccupation,
+      typologie,
+      surface_m2: surface && surface < 5000 ? surface : null,
+      chauffage_actuel: chauffage,
+      foyer_size: foyer && foyer < 20 ? foyer : null,
+      force: request.data?.force === true,
+    };
+    if (!payload.phone) {
+      throw new HttpsError("failed-precondition", "Praimy exige un numéro de téléphone : ajoutez-le sur la fiche.");
+    }
+
+    const key = PRAIMY_API_KEY.value();
+    const post = (body) =>
+      fetch("https://portail.praimy.fr/api/v1/leads/", {
+        method: "POST",
+        headers: { "X-API-Key": key, "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(body),
+      });
+    let res = await post(payload);
+    let data = await res.json().catch(() => ({}));
+    // Valeur refusée par le formulaire de qualification : on renvoie sans la typologie (le reste passe).
+    if (res.status === 422 && payload.typologie) {
+      res = await post({ ...payload, typologie: null });
+      data = await res.json().catch(() => ({}));
+    }
+    if (res.status === 409) {
+      logger.warn("Prospect Praimy déjà existant", { leadId, data });
+      throw new HttpsError(
+        "already-exists",
+        "Ce contact existe déjà chez Praimy (même téléphone ou e-mail). Rien n'a été créé.",
+      );
+    }
     if (!res.ok) {
-      logger.error("Erreur création client Praimy", { status: res.status, data });
-      throw new HttpsError("internal", data.detail || `Erreur Praimy: ${res.status}`);
+      logger.error("Erreur création prospect Praimy", { status: res.status, data });
+      const detail = typeof data.detail === "string" ? data.detail : `code ${res.status}`;
+      throw new HttpsError("internal", `Praimy a refusé l'envoi : ${detail}`);
     }
 
     // Trace dans la fiche du lead + mise à jour de la colonne Pipeline et Poseur
     const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+    const praimyId = String(data.id ?? data.lead?.id ?? "");
     await db.doc(`crm_leads/${leadId}`).update({
-      praimyClientId: data.id,
+      praimyClientId: praimyId || "envoye",
       praimyExportedAt: new Date().toISOString(),
       "fields.pipeline": "PRAIMY",
       "fields.poseur": "PRAIMY",
       notes: require("firebase-admin/firestore").FieldValue.arrayUnion({
         id: Math.random().toString(36).slice(2, 9),
-        text: `Transféré à PRAIMY (Réf client: ${data.id})`,
+        text: `Envoyé à PRAIMY comme prospect${praimyId ? ` (Réf : ${praimyId})` : ""}`,
         by: caller,
         at: new Date().toISOString(),
         kind: "statut",
       }),
     });
 
-    return { success: true, clientId: data.id };
+    return { success: true, clientId: praimyId };
   }
 );
 
