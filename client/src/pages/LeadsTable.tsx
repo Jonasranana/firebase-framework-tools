@@ -72,7 +72,8 @@ import {
 // « Colonnes » pour afficher/masquer. Le nom reste collé à gauche.
 // ─────────────────────────────────────────────────────────────────────────
 
-const GROUP_PAGE = 50;
+const GROUP_PAGE = 30; // lignes montrées au départ dans chaque groupe
+const GROUP_STEP = 40; // lignes ajoutées à chaque « Afficher plus »
 const COLS_STORAGE = "crm-leads-columns";
 
 // Cellule texte : s'édite au clic, Entrée ou clic ailleurs enregistre, Échap annule.
@@ -848,7 +849,7 @@ const LeadRow = memo(function LeadRow({
             {selectable && (
               <RowCheck
                 label="Sélectionner"
-                className={selected ? "" : "opacity-0 group-hover:opacity-100 focus:opacity-100"}
+                className={`ml-2.5 mr-0.5 ${selected ? "" : "opacity-0 group-hover:opacity-100 focus:opacity-100"}`}
                 checked={selected}
                 onChange={(v) => onToggle([l.id], v)}
               />
@@ -919,7 +920,7 @@ const LeadRow = memo(function LeadRow({
 });
 
 // Bandeau bien visible sous les lignes d'un groupe : il reste des leads à afficher.
-// Les lignes suivantes se chargent aussi toutes seules quand on arrive en bas.
+// Les lignes suivantes ne s'ajoutent que sur clic (pas de défilement automatique).
 const MoreRows = ({
   shown,
   total,
@@ -933,25 +934,16 @@ const MoreRows = ({
   onMore: () => void;
   onAll: () => void;
 }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-    const io = new IntersectionObserver((e) => e[0].isIntersecting && onMore(), { rootMargin: "200px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [shown]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div
-      ref={ref}
       className="sticky left-0 flex flex-wrap items-center justify-center gap-3 px-3 py-3 border-y-2"
       style={{ background: `${color}22`, borderColor: color }}
     >
       <span className="text-sm font-bold text-gray-900">
-        ⬇ {shown} leads affichés sur {total} — il en reste {total - shown} dans ce groupe
+        {shown} affichés sur {total} — il en reste {total - shown}
       </span>
       <button onClick={onMore} className="text-sm font-bold text-white rounded-md px-4 py-1.5 shadow-sm hover:brightness-95" style={{ background: color }}>
-        Afficher 300 de plus
+        Afficher {Math.min(GROUP_STEP, total - shown)} de plus
       </button>
       <button onClick={onAll} className="text-sm font-bold rounded-md px-4 py-1.5 bg-white border-2 hover:bg-gray-50" style={{ color, borderColor: color }}>
         Tout afficher ({total})
@@ -1695,7 +1687,7 @@ export default function LeadsTable({
                       shown={limit}
                       total={rows.length}
                       color={st.color}
-                      onMore={() => setLimits((m) => ({ ...m, [st.id]: limit + 300 }))}
+                      onMore={() => setLimits((m) => ({ ...m, [st.id]: limit + GROUP_STEP }))}
                       onAll={() => setLimits((m) => ({ ...m, [st.id]: rows.length }))}
                     />
                   )}
