@@ -381,7 +381,7 @@ export default function AdminShell({
         {/* En-tête de marque : logo IP5 Énergie en blanc sur un bandeau dégradé (comme Monday). */}
         <div
           className={`relative flex items-center h-20 text-white overflow-hidden ${compact ? "justify-center" : "pl-5 pr-2 justify-between"}`}
-          style={{ background: "linear-gradient(120deg,#16396a 0%,#1f4f8f 40%,#2f7fd6 100%)" }}
+          style={{ background: "linear-gradient(120deg,#ff8a00 0%,#ff4d4d 45%,#e0218a 100%)" }}
         >
           <span className="pointer-events-none absolute -right-8 -top-10 w-32 h-32 rounded-full bg-white/10" />
           <span className="pointer-events-none absolute right-10 -bottom-12 w-24 h-24 rounded-full bg-white/[0.07]" />
@@ -395,19 +395,19 @@ export default function AdminShell({
               <LogoMark className="h-11 w-auto text-white drop-shadow-sm" />
             </a>
           )}
-          <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ff9f1c,#ff5ac4,#9d50dd,#579bfc)" }} />
+          <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ffd166,#ffffff80,#ffd166)" }} />
         </div>
         {/* Réduire / agrandir : grand bouton franc, bien visible dans les deux états. */}
         <button
           onClick={() => setCompact((v) => !v)}
           aria-label={compact ? "Agrandir le menu" : "Réduire le menu"}
           title={compact ? "Agrandir le menu" : "Réduire le menu"}
-          className={`shrink-0 flex items-center gap-2 border-b border-gray-100 text-[#1f4f8f] font-bold text-xs hover:bg-blue-50 transition-colors ${
+          className={`shrink-0 flex items-center gap-2 border-b border-gray-100 text-[#d6246e] font-bold text-xs hover:bg-pink-50 transition-colors ${
             compact ? "justify-center h-11" : "px-4 h-10"
           }`}
         >
           {compact ? (
-            <span className="w-8 h-8 rounded-lg bg-[#1f4f8f] text-white flex items-center justify-center shadow-sm">
+            <span className="w-8 h-8 rounded-lg bg-[#e0218a] text-white flex items-center justify-center shadow-sm">
               <ChevronsRight size={18} strokeWidth={2.5} />
             </span>
           ) : (
@@ -423,10 +423,10 @@ export default function AdminShell({
       <Sheet open={drawer} onOpenChange={setDrawer}>
         <SheetContent side="left" className="w-72 p-0" dir="ltr">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <div className="relative h-20 flex items-center gap-2.5 px-5 text-white overflow-hidden" style={{ background: "linear-gradient(120deg,#16396a 0%,#1f4f8f 40%,#2f7fd6 100%)" }}>
+          <div className="relative h-20 flex items-center gap-2.5 px-5 text-white overflow-hidden" style={{ background: "linear-gradient(120deg,#ff8a00 0%,#ff4d4d 45%,#e0218a 100%)" }}>
             <LogoIP5 className="!h-12 !text-white" />
             <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/90 bg-white/15 rounded-full px-2 py-0.5">CRM</span>
-            <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ff9f1c,#ff5ac4,#9d50dd,#579bfc)" }} />
+            <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ffd166,#ffffff80,#ffd166)" }} />
           </div>
           <div className="h-[calc(100%-5rem)]">{body(false)}</div>
         </SheetContent>
@@ -443,7 +443,7 @@ export default function AdminShell({
       </Dialog>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-20 h-14 bg-white border-b border-gray-100 flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4">
+        <header className="sticky top-0 z-20 h-14 bg-white border-b-[3px] border-b-[#ff5a4d] flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4">
           <button
             onClick={() => setDrawer(true)}
             aria-label="Ouvrir le menu"
