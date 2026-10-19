@@ -179,7 +179,7 @@ html.crm-dark .crm-soft { background: var(--soft-dark) !important; }
 
 /* Écran de chargement : le logo IP5 Énergie, pâle, traversé par un reflet qui passe en boucle (comme Monday). */
 .ip5-loader { position: relative; display: inline-block; }
-.ip5-loader-base { opacity: 0.3; }
+.ip5-loader-base { opacity: 0.35; }
 .ip5-loader-shine {
   position: absolute;
   inset: 0;
