@@ -169,12 +169,12 @@ module.exports = function buildCrmTeam({
         updatedBy: author,
       });
 
-      // E-mail à toute l'équipe (sauf l'auteur). Un échec d'envoi ne doit jamais
-      // empêcher l'enregistrement de la mise à jour.
+      // E-mail uniquement dans la boîte partagée contact@ (plus dans les boîtes personnelles de l'équipe).
+      // Un échec d'envoi ne doit jamais empêcher l'enregistrement de la mise à jour.
       let notified = 0;
       try {
         const name = snap.get("name") || "(sans nom)";
-        const to = members.filter((m) => m.notify !== false).map((m) => m.email).filter((e) => e !== author);
+        const to = ["contact@ip5energie.com"];
         if (to.length) {
           const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
           oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
