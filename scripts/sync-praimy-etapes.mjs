@@ -1,8 +1,7 @@
 // Met à jour la colonne « 🧭 Étape » des clients PRAIMY d'après l'avancement de leur dossier chez Praimy.
-// - Seuls les clients PRAIMY du CRM sont concernés (Poseur = PRAIMY/Premy, ou référence/identifiant Praimy déjà enregistré,
-//   ou ancien Pipeline PRAIMY). Les autres clients ne sont jamais touchés.
+// - Seuls les clients qui ont un dossier chez Praimy sont concernés : les autres clients du CRM ne sont jamais touchés.
 // - Rapprochement : référence Praimy déjà enregistrée sur la fiche, sinon nom identique (sans accents ni majuscules,
-//   prénom/nom dans n'importe quel ordre) avec UNE seule fiche PRAIMY possible. Les cas douteux sont listés, jamais modifiés.
+//   prénom/nom dans n'importe quel ordre) avec UNE seule fiche possible. Les cas douteux sont listés, jamais modifiés.
 // - Praimy → CRM seulement. Chaque changement laisse une ligne dans l'historique et remet la couleur de ligne à zéro.
 // Variables : GOOGLE_APPLICATION_CREDENTIALS, PRAIMY_API_KEY, DRY_RUN (1 = n'écrit rien).
 import { createRequire } from "node:module";
@@ -64,13 +63,8 @@ if (missing.includes("e_audit_cours") && !DRY) {
 
 // ── clients PRAIMY du CRM ──
 const snap = await db.collection("crm_leads").get();
-const praimyLeads = snap.docs.filter((x) => {
-  const v = x.data();
-  if (v.deletedAt || (v.board || "leads") !== "leads") return false;
-  const f = v.fields ?? {};
-  return ["PRAIMY", "PREMY"].includes(String(f.poseur ?? "").toUpperCase()) || v.praimyClientId || f.refPraimy || ["PRAIMY", "PRAYMI"].includes(String(f.pipeline ?? "").toUpperCase());
-});
-console.log("clients PRAIMY dans le CRM :", praimyLeads.length);
+const praimyLeads = snap.docs.filter((x) => { const v = x.data(); return !v.deletedAt && (v.board || "leads") === "leads"; });
+console.log("fiches du CRM (tableau Pac Pac) :", praimyLeads.length);
 const byRef = new Map(praimyLeads.filter((x) => x.get("fields.refPraimy")).map((x) => [String(x.get("fields.refPraimy")), x]));
 const byName = new Map();
 for (const x of praimyLeads) { const k = norm(x.get("name")); byName.set(k, [...(byName.get(k) ?? []), x]); }
