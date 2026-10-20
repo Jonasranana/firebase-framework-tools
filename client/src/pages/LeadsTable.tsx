@@ -648,8 +648,8 @@ export const ColumnsMenu = ({ visible, onChange }: { visible: string[]; onChange
   <Popover>
     <PopoverTrigger asChild>
       <button
-        className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md hover:bg-gray-100 data-[state=open]:bg-gray-100 ${
-          visible.length < LEAD_COLUMNS.length ? "bg-[#e5efff] text-[#1f4f8f]" : "text-gray-700"
+        className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md hover:bg-orange-50 hover:text-[#c2410c] data-[state=open]:bg-orange-50 ${
+          visible.length < LEAD_COLUMNS.length ? "bg-[#fff0e6] text-[#c2410c]" : "text-gray-700"
         }`}
       >
         <EyeOff size={15} /> Masquer{visible.length < LEAD_COLUMNS.length ? ` / ${LEAD_COLUMNS.length - visible.length}` : ""}

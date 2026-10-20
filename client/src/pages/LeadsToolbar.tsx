@@ -35,20 +35,20 @@ import type { Lead } from "@/lib/crm";
 
 const POP = "bg-white text-gray-900 border border-gray-200 shadow-xl";
 const btn =
-  "inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md text-gray-700 hover:bg-gray-100 data-[state=open]:bg-gray-100";
-const btnOn = "inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md bg-[#e5efff] text-[#1f4f8f]";
+  "inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md text-gray-700 hover:bg-orange-50 hover:text-[#c2410c] data-[state=open]:bg-orange-50 data-[state=open]:text-[#c2410c]";
+const btnOn = "inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md bg-[#fff0e6] text-[#c2410c]";
 
 // ── Ajouter ▾ ──────────────────────────────────────────────────────────────
 export function AddSplit({ onAddLead, onAddGroup }: { onAddLead: () => void; onAddGroup: () => void }) {
   return (
     <div className="inline-flex rounded-md overflow-hidden shadow-sm">
-      <button onClick={onAddLead} className="inline-flex items-center gap-1.5 bg-[#0073ea] hover:bg-[#0060c2] text-white text-sm font-semibold px-3 py-1.5">
+      <button onClick={onAddLead} className="inline-flex items-center gap-1.5 bg-[#ff6a1a] hover:bg-[#e85a0c] text-white text-sm font-semibold px-3 py-1.5">
         <Plus size={15} /> <span className="hidden sm:inline">Ajouter noms sociétés</span>
         <span className="sm:hidden">Ajouter</span>
       </button>
       <Popover>
         <PopoverTrigger asChild>
-          <button aria-label="Plus d'options" className="bg-[#0073ea] hover:bg-[#0060c2] text-white px-1.5 border-l border-white/30">
+          <button aria-label="Plus d'options" className="bg-[#ff6a1a] hover:bg-[#e85a0c] text-white px-1.5 border-l border-white/30">
             <ChevronDown size={15} />
           </button>
         </PopoverTrigger>

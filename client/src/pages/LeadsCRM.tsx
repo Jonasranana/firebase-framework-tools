@@ -1459,17 +1459,20 @@ export default function LeadsCRM({
         </div>
       )}
       {/* Barre d'outils façon Monday */}
-      <div className="flex items-center gap-1.5 mb-2 overflow-x-auto pb-1.5 no-scrollbar sm:flex-wrap sm:overflow-visible">
+      <div className="flex items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible rounded-xl border border-gray-200 bg-white shadow-sm px-2 py-1.5">
         <AddSplit
           onAddLead={() => setCreating(true)}
           onAddGroup={() => saveGroups([...groups, { id: `g_${newId()}`, title: "Nouveau groupe", color: "#579bfc" }])}
         />
+        <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
         <SearchToggle value={query} onChange={setQuery} />
         <PersonBar people={people} selected={personKey} onSelect={setPersonKey} meKey={email.toLowerCase()} />
         <QuickFilter leads={leads ?? []} filters={filters} onFilters={setFilters} onSaveView={saveView} />
+        <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
         <SortMenu sorts={sorts} onChange={setSorts} />
         {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
         <GroupByMenu value={groupBy} onChange={setGroupBy} />
+        <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
         <MoreMenu onExport={exportCsv} count={filtered.length} zoom={zoom} onZoom={changeZoom} />
         {views.length > 0 && (
           <select
@@ -1478,7 +1481,7 @@ export default function LeadsCRM({
               const v = views.find((x) => x.id === e.target.value);
               if (v) applyView(v);
             }}
-            className="text-sm font-semibold text-gray-700 bg-transparent border border-gray-200 rounded-md px-2 py-1.5"
+            className="text-sm font-semibold text-gray-700 bg-transparent border border-gray-200 hover:border-[#ff9a5a] rounded-md px-2 py-1.5"
           >
             <option value="">Affichages…</option>
             {views.map((v) => (

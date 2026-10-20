@@ -118,7 +118,7 @@ export function FilterMenu({ filters, onChange }: { filters: LeadFilter[]; onCha
       <PopoverTrigger asChild>
         <button
           className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border ${
-            filters.length ? "bg-[#e5efff] text-[#1f4f8f] border-[#579bfc]" : "bg-white text-gray-600 border-gray-200"
+            filters.length ? "bg-[#fff0e6] text-[#c2410c] border-[#ff9a5a]" : "bg-white text-gray-600 border-gray-200"
           }`}
         >
           <Filter size={13} /> Filtre{filters.length ? ` (${filters.length})` : ""}
@@ -148,7 +148,7 @@ export function PersonBar({
       <PopoverTrigger asChild>
         <button
           className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md ${
-            selected ? "bg-[#e5efff] text-[#1f4f8f]" : "text-gray-700 hover:bg-gray-100 data-[state=open]:bg-gray-100"
+            selected ? "bg-[#fff0e6] text-[#c2410c]" : "text-gray-700 hover:bg-orange-50 hover:text-[#c2410c] data-[state=open]:bg-orange-50 data-[state=open]:text-[#c2410c]"
           }`}
         >
           <User size={15} /> {selected ? people.find((p) => p.key === selected)?.label : "Personne"}
