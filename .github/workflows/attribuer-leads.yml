@@ -13,6 +13,10 @@ on:
         description: "Nombre de fiches"
         type: string
         default: "50"
+      deplacer:
+        description: "Au lieu d'attribuer : déplacer dans « Nouveaux leads » les fiches déjà attribuées à cette personne aujourd'hui"
+        type: boolean
+        default: false
       who:
         description: "Attribuer à (Mebarek, Carole, Alexis)"
         type: string
@@ -34,6 +38,7 @@ jobs:
         run: |
           printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
       - name: Attribuer
+        if: ${{ !inputs.deplacer }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
@@ -41,3 +46,11 @@ jobs:
           COUNT: ${{ inputs.count }}
           WHO: ${{ inputs.who }}
         run: node scripts/attribuer-leads.mjs
+      - name: Déplacer vers Nouveaux leads
+        if: ${{ inputs.deplacer }}
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          DRY_RUN: ${{ inputs.dry_run }}
+          WHO: ${{ inputs.who }}
+        run: node scripts/deplacer-attribuees.mjs
