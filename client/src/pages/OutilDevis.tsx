@@ -871,6 +871,8 @@ export default function OutilDevis() {
     if (!authApi) return;
     setError("");
     const provider = new authApi.GoogleAuthProvider();
+    // Toujours proposer le choix du compte Google (sinon Chrome reprend le compte du profil, ex. contact@).
+    provider.setCustomParameters({ prompt: "select_account" });
     try {
       // Uniquement pop-up : session fiable même quand le domaine du site
       // diffère de l'authDomain Firebase, et aucun résidu de redirection.
