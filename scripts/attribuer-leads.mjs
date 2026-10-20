@@ -27,7 +27,7 @@ for (const d of snap.docs) {
   if ((x.status || "vide") !== STATUT) { f.avecStatut++; continue; }
   if (x.fields?.attribue) { f.dejaAttribuee++; continue; }
   if (!String(x.phone ?? "").replace(/\D/g, "")) { f.sansTel++; continue; }
-  const hist = (x.notes ?? []).filter((n) => ["statut", "message", "mail"].includes(n?.kind));
+  const hist = (x.notes ?? []).filter((n) => ["message", "mail"].includes(n?.kind));
   for (const n of x.notes ?? []) kinds[n?.kind ?? "?"] = (kinds[n?.kind ?? "?"] ?? 0) + 1;
   if (hist.length) { f.avecHistorique++; continue; }
   ok.push({ id: d.id, name: x.name, phone: x.phone, group: x.group, at: x.createdAt?.toMillis?.() ?? 0 });
