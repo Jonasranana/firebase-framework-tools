@@ -182,11 +182,13 @@ export const StatusCell = ({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <button
-          className="w-full h-full text-sm font-semibold text-white truncate px-2 hover:brightness-95"
-          style={{ background: s ? s.hex : "#c4c4c4" }}
-        >
-          {s?.label ?? ""}
+        <button className="w-full h-full px-1.5 py-[3px] group/pill" title={s?.label}>
+          <span
+            className="flex items-center justify-center w-full h-full rounded-md text-[13px] font-semibold text-white px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] group-hover/pill:brightness-95 transition"
+            style={{ background: s ? s.hex : "#d9dce3" }}
+          >
+            <span className="truncate">{s?.label ?? ""}</span>
+          </span>
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -1572,7 +1574,7 @@ export default function LeadsTable({
                 >
                   {isCollapsed ? <ChevronRight size={18} /> : <ChevronDown size={18} />}
                   <span className="text-lg font-bold">{st.title}</span>
-                  <span className="text-xs font-normal text-gray-400">
+                  <span className="text-xs font-bold rounded-full px-2.5 py-0.5" style={{ background: `${st.color}1f`, color: st.color }}>
                     {rows.length} lead{rows.length > 1 ? "s" : ""}
                   </span>
                 </button>

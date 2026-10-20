@@ -1453,12 +1453,16 @@ export default function LeadsCRM({
             <button
               key={t.key || "all"}
               onClick={() => setAttribTab(t.key)}
-              className={`whitespace-nowrap text-sm px-3 py-1.5 -mb-px border-b-2 ${
-                attribTab === t.key ? "border-[#0073ea] text-[#0073ea] font-semibold" : "border-transparent text-gray-600 hover:bg-gray-100 rounded-t"
+              className={`whitespace-nowrap text-sm px-3.5 py-2 -mb-px border-b-[3px] transition-colors ${
+                attribTab === t.key ? "border-[#ff6a1a] text-[#c2410c] font-bold bg-[#fff6ef] rounded-t-md" : "border-transparent text-gray-600 hover:bg-orange-50 hover:text-[#c2410c] rounded-t-md"
               }`}
             >
               {t.label}
-              {t.key ? <span className="ml-1.5 text-xs text-gray-400">{attribCount(t.key)}</span> : null}
+              {t.key ? (
+                <span className={`ml-2 text-[11px] font-bold rounded-full px-2 py-0.5 ${attribTab === t.key ? "bg-[#ff6a1a] text-white" : "bg-gray-100 text-gray-600"}`}>
+                  {attribCount(t.key)}
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
