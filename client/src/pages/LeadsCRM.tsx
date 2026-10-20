@@ -1473,15 +1473,6 @@ export default function LeadsCRM({
         <SearchToggle value={query} onChange={setQuery} />
         <PersonBar people={people} selected={personKey} onSelect={setPersonKey} meKey={email.toLowerCase()} />
         <QuickFilter leads={leads ?? []} filters={filters} onFilters={setFilters} onSaveView={saveView} />
-        <button
-          onClick={() => setRappelsOnly((v) => !v)}
-          title="Clients dont la date de rappel est arrivée"
-          className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md ${
-            rappelsOnly ? "bg-red-100 text-red-700" : "text-gray-700 hover:bg-orange-50 hover:text-[#c2410c]"
-          }`}
-        >
-          <BellRing size={15} /> Rappels{rappelsCount ? ` (${rappelsCount})` : ""}
-        </button>
         <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
         <SortMenu sorts={sorts} onChange={setSorts} />
         {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
