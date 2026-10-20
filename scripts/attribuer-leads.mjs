@@ -8,6 +8,7 @@ const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestor
 const N = Number(process.env.COUNT || 50);
 const WHO = process.env.WHO || "Mebarek";
 const BY = process.env.BY || "contact@ip5energie.com";
+const STATUT = process.env.STATUT || "a_appeler";
 const dry = process.env.DRY_RUN !== "false";
 initializeApp();
 const db = getFirestore();
@@ -23,7 +24,7 @@ for (const d of snap.docs) {
   if ((x.board ?? "leads") !== "leads") { f.autreTableau++; continue; }
   if (x.deletedAt) { f.corbeille++; continue; }
   statuts[x.status || "(absent)"] = (statuts[x.status || "(absent)"] ?? 0) + 1;
-  if (x.status && x.status !== "vide") { f.avecStatut++; continue; }
+  if ((x.status || "vide") !== STATUT) { f.avecStatut++; continue; }
   if (x.fields?.attribue) { f.dejaAttribuee++; continue; }
   if (!String(x.phone ?? "").replace(/\D/g, "")) { f.sansTel++; continue; }
   const hist = (x.notes ?? []).filter((n) => ["statut", "message", "mail"].includes(n?.kind));
