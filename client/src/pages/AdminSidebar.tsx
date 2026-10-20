@@ -458,13 +458,7 @@ export default function AdminSidebar({
     <nav className="crm-scroll py-2 overflow-y-auto h-full">
       {/* Espace de travail */}
       <div className="px-2 mb-1">
-        <div className="group/item flex items-center gap-2 px-2 py-1.5">
-          <span
-            className="w-7 h-7 rounded-lg text-white text-[11px] font-extrabold flex items-center justify-center shrink-0 shadow-sm"
-            style={{ background: "linear-gradient(135deg,#ff8a00,#ff4d4d 55%,#e0218a)" }}
-          >
-            IP5
-          </span>
+        <div className="group/item flex items-center justify-end gap-2 px-2 py-1">
           {renaming === "ws" ? (
             <input
               autoFocus
@@ -477,9 +471,7 @@ export default function AdminSidebar({
               }}
               className="flex-1 min-w-0 text-sm font-bold bg-white text-gray-900 border-2 border-[#ff6a1a] rounded-md px-2 py-0.5 outline-none"
             />
-          ) : (
-            <span className="flex-1 min-w-0 truncate text-sm font-bold text-gray-800">{config.workspaceName}</span>
-          )}
+          ) : null}
           <Popover>
             <PopoverTrigger asChild>
               <button aria-label="Options de l'espace de travail" className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200">
