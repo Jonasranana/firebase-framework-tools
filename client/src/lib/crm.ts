@@ -391,7 +391,10 @@ const NO_COLOR_STATUSES = new Set([
   "instal_prevu", "installer_bets",
 ]);
 export type AgeLevel = "vert" | "orange" | "rouge";
-export const AGE_COLORS: Record<AgeLevel, string> = { vert: "#dcf5e4", orange: "#ffd7ab", rouge: "#ff9d9d" };
+export const AGE_COLORS: Record<AgeLevel, string> = { vert: "#b4ebc6", orange: "#ffc277", rouge: "#ff8c8c" };
+// Fond de ligne avec une légère brillance (reflet clair en haut) pour bien distinguer vert / orange / rouge.
+export const ageBackground = (level: AgeLevel) =>
+  `linear-gradient(180deg, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.08) 55%, rgba(0,0,0,0.04) 100%), ${AGE_COLORS[level]}`;
 export function ageLevel(l: Lead, now: number = Date.now()): AgeLevel | null {
   if (NO_COLOR_STATUSES.has(l.status ?? "")) return null;
   const etape = Object.entries(l.fields ?? {}).find(([k, v]) => k.startsWith("c_") && (v === "termine"))?.[1];
