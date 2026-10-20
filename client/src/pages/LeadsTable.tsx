@@ -1563,7 +1563,7 @@ export default function LeadsTable({
               className={`rounded-lg transition-colors ${dropOver === st.id ? "bg-blue-50 ring-2 ring-[#579bfc]" : ""} ${dropGroup === st.id && dragGroup !== st.id ? "ring-2 ring-[#0073ea] bg-blue-50/60" : ""} ${dragGroup === st.id ? "opacity-50" : ""}`}
             >
               <div
-                className={`group/head flex items-center gap-1 mb-1 px-1 sticky left-0 ${readOnlyGroups ? "" : "cursor-grab"}`}
+                className={`group/head flex items-center gap-1 h-9 px-1 sticky left-0 top-0 z-30 bg-gray-50 ${readOnlyGroups ? "" : "cursor-grab"}`}
                 style={viewW ? { width: viewW } : undefined}
                 onMouseDown={(e) => onGroupMouseDown(e, st)}
               >
@@ -1608,7 +1608,7 @@ export default function LeadsTable({
                 <div>
                 <div className="bg-white rounded-lg border border-[#d0d4e4] overflow-clip">
                   <div
-                    className="grid text-xs font-semibold text-gray-500 bg-white border-b border-[#d0d4e4] h-10 items-center sticky top-0 z-20"
+                    className="grid text-xs font-semibold text-gray-500 bg-white border-b border-[#d0d4e4] h-10 items-center sticky top-9 z-20"
                     style={{ gridTemplateColumns: template }}
                   >
                     {cols.map((c, i) => {
