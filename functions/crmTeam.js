@@ -182,9 +182,9 @@ module.exports = function buildCrmTeam({
           const hhmm = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" }).format(new Date());
           const initial = escapeHtmlText((authorName.trim()[0] ?? "?").toUpperCase());
           const html = `<!DOCTYPE html>
-<html lang="fr"><body style="margin:0; padding:0; background:#efeae2; font-family:Arial,Helvetica,sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#efeae2;"><tr><td align="center" style="padding:0;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+<html lang="fr"><body style="margin:0; padding:0; background:#ffffff; font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff;"><tr><td align="center" style="padding:0;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px; background:#efeae2;">
     <tr><td style="background:linear-gradient(120deg,#ff8a00,#ff4d4d 50%,#e0218a); background-color:#ff5a4d; padding:14px 18px; color:#ffffff;">
       <table role="presentation" cellpadding="0" cellspacing="0"><tr>
         <td style="width:40px; height:40px; background:#ffffff33; border-radius:20px; text-align:center; color:#ffffff; font-weight:bold; font-size:18px;" width="40">${initial}</td>
@@ -203,8 +203,11 @@ module.exports = function buildCrmTeam({
         </td>
       </tr></table>
     </td></tr>
-    <tr><td align="left" style="padding:6px 16px 26px 16px;">
-      <a href="${link}" style="display:inline-block; background:#ff5a4d; color:#ffffff; text-decoration:none; padding:10px 20px; border-radius:999px; font-weight:bold; font-size:14px;">Ouvrir la fiche</a>
+    <tr><td style="padding:0 16px 16px 16px; font-size:0; line-height:0;">&nbsp;</td></tr>
+  </table>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+    <tr><td align="left" style="padding:18px 16px 26px 16px;">
+      <a href="${link}" style="display:inline-block; background:#ff5a4d; color:#ffffff; text-decoration:none; padding:10px 20px; border-radius:999px; font-weight:bold; font-size:14px;">Ouvrir dans le CRM</a>
     </td></tr>
   </table>
 </td></tr></table>
