@@ -1,0 +1,46 @@
+name: Synchro Praimy vers CRM (étapes)
+
+# Met à jour la colonne « Étape » des clients PRAIMY d'après leurs dossiers chez Praimy (Praimy est seulement lu).
+# Toutes les heures de 6 h à 22 h, ou à la main (essai à blanc par défaut). Voir scripts/sync-praimy-etapes.mjs.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Essai à blanc (n'écrit rien)"
+        type: boolean
+        default: true
+  schedule:
+    - cron: "11 5-20 * * *"
+
+concurrency:
+  group: sync-praimy-etapes
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+          python3 -m json.tool "$RUNNER_TEMP/sa.json" > /dev/null
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Synchro des étapes
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          # Essai à blanc sauf lancement planifié ou lancement manuel avec dry_run décoché.
+          DRY_RUN: ${{ github.event_name == 'schedule' && '0' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run && '0') || '1' }}
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+          export PRAIMY_API_KEY=$(gcloud secrets versions access latest --secret=PRAIMY_API_KEY --project kachoto-7554c | tr -d '\r\n ')
+          echo "::add-mask::$PRAIMY_API_KEY"
+          node scripts/sync-praimy-etapes.mjs

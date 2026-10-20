@@ -2925,7 +2925,7 @@ exports.listPraimyDossiers = onCall(
     if (!isCrmMember(request)) {
       throw new HttpsError("permission-denied", "Accès refusé.");
     }
-    const key = PRAIMY_API_KEY.value();
+    const key = String(PRAIMY_API_KEY.value()).trim();
     const url = "https://portail.praimy.fr/api/v1/dossiers/";
     const res = await fetch(url, {
       headers: {
@@ -3040,7 +3040,7 @@ exports.exportLeadToPraimy = onCall(
       throw new HttpsError("failed-precondition", "Praimy exige un numéro de téléphone : ajoutez-le sur la fiche.");
     }
 
-    const key = PRAIMY_API_KEY.value();
+    const key = String(PRAIMY_API_KEY.value()).trim();
     const post = (body) =>
       fetch("https://portail.praimy.fr/api/v1/leads/", {
         method: "POST",
@@ -3097,7 +3097,7 @@ exports.syncPraimyToPacPac = onCall(
     if (!isCrmMember(request)) {
       throw new HttpsError("permission-denied", "Accès refusé.");
     }
-    const key = PRAIMY_API_KEY.value();
+    const key = String(PRAIMY_API_KEY.value()).trim();
     const url = "https://portail.praimy.fr/api/v1/dossiers/";
     const res = await fetch(url, {
       headers: {
