@@ -161,6 +161,21 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
 // de configuration, pour que tout le CRM (filtres, tri, export…) voie les mêmes colonnes.
 export const LEAD_COLUMNS: LeadColumn[] = [...BASE_LEAD_COLUMNS];
 
+export type ColTrashEntry = {
+  key: string;
+  title: string;
+  kind: "archive" | "delete";
+  at: string;
+  // Colonne ajoutée à la main (définition complète gardée ici) ; sinon colonne d'origine (simplement masquée).
+  col?: LeadColumn;
+  // Colonne qui la précédait, pour la remettre à la même place.
+  after?: string;
+};
+
+export const COL_TRASH_DAYS = { archive: 60, delete: 30 } as const;
+export const colDaysLeft = (e: ColTrashEntry, now = Date.now()) =>
+  Math.max(0, COL_TRASH_DAYS[e.kind] - Math.floor((now - new Date(e.at).getTime()) / 86400000));
+
 export type ColumnsConfig = {
   custom?: LeadColumn[];
   order?: string[];
@@ -169,6 +184,9 @@ export type ColumnsConfig = {
   wrap?: Record<string, boolean>;
   collapsed?: Record<string, boolean>;
   deleted?: string[];
+  // Corbeille des colonnes : « supprimée » (30 jours) ou « archivée » (60 jours), restaurables avec leurs valeurs
+  // (les valeurs restent dans les fiches : seule la définition de la colonne est mise de côté).
+  colTrash?: ColTrashEntry[];
   // Étiquettes modifiées d'une colonne de statut (clé de colonne → options).
   options?: Record<string, Opt[]>;
   // Tableau à part (ex. intégré depuis Monday) : seules ces colonnes d'origine sont gardées, le reste vient de « custom ».

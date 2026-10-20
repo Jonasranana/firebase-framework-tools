@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { crmFirestore } from "@/lib/crmDb";
-import { LEAD_COLUMNS, applyColumnsConfig, type ColType, type ColumnsConfig, type LeadColumn } from "@/lib/crmColumns";
+import { LEAD_COLUMNS, applyColumnsConfig, colDaysLeft, type ColTrashEntry, type ColType, type ColumnsConfig, type LeadColumn } from "@/lib/crmColumns";
 import type { Opt } from "@/lib/crm";
 
 // Colonnes du tableau Leads modifiables depuis le menu du titre de colonne
@@ -30,6 +30,45 @@ export const CUSTOM_TYPES: ColType[] = ["status", "text", "people", "timeline", 
 // Pac Pac garde son document d'origine ; chaque autre tableau a le sien (crm_boards/<tableau>_columns).
 const columnsDocId = (boardId: string) => (boardId === "leads" ? "leads_columns" : `${boardId}_columns`);
 
+// Corbeille des colonnes : fonctions pures sur la configuration (utilisées par le tableau et par la page Corbeille).
+export function trashColumn(cfg: ColumnsConfig, col: LeadColumn, kind: ColTrashEntry["kind"], order: string[]): ColumnsConfig {
+  const isCustom = (cfg.custom ?? []).some((c) => c.key === col.key);
+  const entry: ColTrashEntry = {
+    key: col.key,
+    title: col.title,
+    kind,
+    at: new Date().toISOString(),
+    after: order[order.indexOf(col.key) - 1],
+    ...(isCustom ? { col: JSON.parse(JSON.stringify((cfg.custom ?? []).find((c) => c.key === col.key))) } : {}),
+  };
+  return {
+    ...cfg,
+    order: order.filter((k) => k !== col.key),
+    custom: isCustom ? (cfg.custom ?? []).filter((c) => c.key !== col.key) : cfg.custom,
+    deleted: isCustom ? cfg.deleted : [...(cfg.deleted ?? []).filter((k) => k !== col.key), col.key],
+    colTrash: [...(cfg.colTrash ?? []).filter((e) => e.key !== col.key), entry],
+  };
+}
+
+export function restoreColumn(cfg: ColumnsConfig, key: string): ColumnsConfig {
+  const e = (cfg.colTrash ?? []).find((x) => x.key === key);
+  if (!e) return cfg;
+  const order = [...(cfg.order ?? [])].filter((k) => k !== key);
+  const at = e.after ? order.indexOf(e.after) : -1;
+  if (order.length) order.splice(at >= 0 ? at + 1 : order.length, 0, key);
+  return {
+    ...cfg,
+    order: order.length ? order : cfg.order,
+    custom: e.col ? [...(cfg.custom ?? []).filter((c) => c.key !== key), e.col] : cfg.custom,
+    deleted: (cfg.deleted ?? []).filter((k) => k !== key),
+    colTrash: (cfg.colTrash ?? []).filter((x) => x.key !== key),
+  };
+}
+
+// Suppression définitive : la colonne quitte la corbeille. Ses valeurs restent dans les fiches (invisibles).
+export const purgeColumn = (cfg: ColumnsConfig, key: string): ColumnsConfig => ({ ...cfg, colTrash: (cfg.colTrash ?? []).filter((e) => e.key !== key) });
+export const expiredColumns = (cfg: ColumnsConfig) => (cfg.colTrash ?? []).filter((e) => colDaysLeft(e) <= 0);
+
 export function useColumnsConfig(email: string, boardId = "leads") {
   const [config, setConfig] = useState<ColumnsConfig>({});
   const [version, setVersion] = useState(0);
@@ -50,7 +89,13 @@ export function useColumnsConfig(email: string, boardId = "leads") {
           m.doc(db, "crm_boards", columnsDocId(boardId)),
           (snap) => {
             if (cancelled) return;
-            const c = (snap.data()?.config as ColumnsConfig | undefined) ?? {};
+            let c = (snap.data()?.config as ColumnsConfig | undefined) ?? {};
+            // Colonnes restées trop longtemps en corbeille : retirées pour de bon (leurs valeurs restent dans les fiches).
+            const old = expiredColumns(c);
+            if (old.length) {
+              c = old.reduce((acc, e) => purgeColumn(acc, e.key), c);
+              m.setDoc(snap.ref, { config: c, updatedAt: m.serverTimestamp(), updatedBy: email }).catch(() => {});
+            }
             applyColumnsConfig(c, boardId);
             setConfig(c);
             setVersion((v) => v + 1);
@@ -157,15 +202,11 @@ export function useColumnsConfig(email: string, boardId = "leads") {
           : { ...ref.current, options: { ...(ref.current.options ?? {}), [key]: options } },
       );
     },
-    remove(key: string) {
-      const order = currentOrder().filter((k) => k !== key);
-      const isCustom = (ref.current.custom ?? []).some((c) => c.key === key);
-      save({
-        ...ref.current,
-        order,
-        custom: isCustom ? (ref.current.custom ?? []).filter((c) => c.key !== key) : ref.current.custom,
-        deleted: isCustom ? ref.current.deleted : [...(ref.current.deleted ?? []), key],
-      });
+    // Supprimer (30 jours en corbeille) ou archiver (60 jours) : la colonne est masquée, pas détruite.
+    remove(key: string, kind: ColTrashEntry["kind"] = "delete") {
+      const col = LEAD_COLUMNS.find((c) => c.key === key);
+      if (!col || key === "name") return;
+      save(trashColumn(ref.current, col, kind, currentOrder()));
     },
   };
 

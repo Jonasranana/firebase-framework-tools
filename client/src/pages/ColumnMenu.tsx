@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Archive,
   ArrowDownAZ,
   ArrowLeft,
   ArrowRight,
@@ -89,7 +90,7 @@ export default function ColumnMenu({
     setCollapsed: (key: string, on: boolean) => void;
     setType: (key: string, type: ColType) => void;
     setOptions: (key: string, options: Opt[]) => void;
-    remove: (key: string) => void;
+    remove: (key: string, kind?: "archive" | "delete") => void;
     moveBy: (key: string, delta: number) => void;
   };
   onDuplicate: (col: LeadColumn) => void;
@@ -158,14 +159,25 @@ export default function ColumnMenu({
             <Sep />
             <Entry icon={Pencil} label="Renommer" onClick={() => { setTitle(col.title); setPanel("rename"); }} />
             <Entry
+              icon={Archive}
+              label="Archiver la colonne (gardée 60 jours)"
+              disabled={col.key === "name"}
+              onClick={() => {
+                if (confirm(`Archiver la colonne « ${col.title} » ? Elle disparaît du tableau mais reste 60 jours dans la Corbeille : vous pourrez la réactiver avec toutes ses valeurs.`)) {
+                  close();
+                  api.remove(col.key, "archive");
+                }
+              }}
+            />
+            <Entry
               icon={Trash2}
-              label="Supprimer"
+              label="Supprimer (corbeille 30 jours)"
               danger
               disabled={col.key === "name"}
               onClick={() => {
-                if (confirm(`Supprimer la colonne « ${col.title} » ?${col.custom ? " Ses valeurs seront perdues." : " (La colonne sera masquée.)"}`)) {
+                if (confirm(`Supprimer la colonne « ${col.title} » ? Elle va dans la Corbeille pendant 30 jours : vous pourrez la réactiver avec toutes ses valeurs.`)) {
                   close();
-                  api.remove(col.key);
+                  api.remove(col.key, "delete");
                 }
               }}
             />

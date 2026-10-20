@@ -1554,7 +1554,7 @@ export default function LeadsTable({
                 <div>
                 <div className="bg-white rounded-lg border border-[#d0d4e4] overflow-clip">
                   <div
-                    className="grid text-xs font-semibold text-gray-500 bg-white border-b border-[#d0d4e4] h-10 items-center"
+                    className="grid text-xs font-semibold text-gray-500 bg-white border-b border-[#d0d4e4] h-10 items-center sticky top-0 z-20"
                     style={{ gridTemplateColumns: template }}
                   >
                     {cols.map((c, i) => {
