@@ -168,12 +168,12 @@ module.exports = function buildCrmTeam({
         updatedBy: author,
       });
 
-      // E-mail à toute l'équipe en privé (sauf l'auteur), présenté comme une bulle de discussion.
+      // E-mail uniquement dans la boîte partagée contact@ (pas dans les boîtes personnelles), présenté comme une bulle de discussion.
       // Un échec d'envoi ne doit jamais empêcher l'enregistrement de la mise à jour.
       let notified = 0;
       try {
         const name = snap.get("name") || "(sans nom)";
-        const to = members.filter((m) => m.notify !== false).map((m) => m.email).filter((e) => e !== author);
+        const to = ["contact@ip5energie.com"];
         if (to.length) {
           const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
           oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
