@@ -119,18 +119,17 @@ const UserChip = ({ name, email, onNavigate, onSignOut }: { name: string; email:
     <>
       <Popover>
         <PopoverTrigger asChild>
-          <button className="flex items-center gap-2.5 pl-1.5 pr-3 py-1 rounded-full border border-gray-200 bg-white hover:bg-gray-50">
-            <Avatar name={shownName} photoUrl={me?.photoUrl} size={34} />
+          <button className="flex items-center gap-2.5 pl-1 pr-3 py-1 rounded-full border border-orange-200 bg-orange-50/60 hover:bg-orange-100 hover:border-orange-300 transition-colors data-[state=open]:bg-orange-100">
+            <span className="rounded-full ring-2 ring-white shadow-sm"><Avatar name={shownName} photoUrl={me?.photoUrl} size={32} /></span>
             <span className="hidden md:block text-left leading-tight max-w-[11rem]">
-              <span className="block text-[10px] text-gray-400">Connecté en tant que</span>
-              <span className="block text-sm font-bold text-gray-800 truncate">{shownName}</span>
-              {me?.title && <span className="block text-[10px] text-gray-500 truncate">{me.title}</span>}
+              <span className="block text-sm font-bold text-gray-900 truncate">{shownName}</span>
+              <span className="block text-[11px] text-[#c2410c] truncate">{me?.title || "Équipe IP5"}</span>
             </span>
-            <ChevronDown size={14} className="text-gray-400 hidden md:block" />
+            <ChevronDown size={14} className="text-[#c2410c] hidden md:block" />
           </button>
         </PopoverTrigger>
         <PopoverContent align="end" className="w-72 p-0 bg-white text-gray-900 border border-gray-200 shadow-xl overflow-hidden">
-          <div className="flex items-center gap-3 p-4 bg-gray-50 border-b border-gray-100">
+          <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-orange-50 to-pink-50 border-b border-orange-100">
             <Avatar name={shownName} photoUrl={me?.photoUrl} size={56} />
             <div className="min-w-0">
               <p className="text-[11px] text-gray-400">Vous êtes connecté en tant que</p>
