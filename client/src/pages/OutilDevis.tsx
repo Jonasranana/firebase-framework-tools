@@ -757,7 +757,7 @@ function useCrmTabColor() {
   useEffect(() => {
     const ORANGE = "#ff6a1a";
     const svg =
-      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ff8a00'/><stop offset='.55' stop-color='#ff4d4d'/><stop offset='1' stop-color='#e0218a'/></linearGradient></defs><rect width='64' height='64' rx='14' fill='url(#g)'/><text x='32' y='43' font-family='Arial,sans-serif' font-size='28' font-weight='800' fill='white' text-anchor='middle'>IP5</text></svg>";
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ff8a00'/><stop offset='.55' stop-color='#ff4d4d'/><stop offset='1' stop-color='#e0218a'/></linearGradient></defs><rect width='64' height='64' rx='15' fill='url(#g)'/><path d='M43 22 A15 15 0 1 0 43 42' fill='none' stroke='white' stroke-width='7' stroke-linecap='round'/><path d='M38 27 A8 8 0 1 0 38 37' fill='none' stroke='white' stroke-opacity='.6' stroke-width='4' stroke-linecap='round'/></svg>";
     const icon = "data:image/svg+xml," + encodeURIComponent(svg);
     let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const createdMeta = !meta;
