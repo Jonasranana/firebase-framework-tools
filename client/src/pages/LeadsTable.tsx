@@ -17,6 +17,7 @@ import {
   ChevronsDownUp,
   ChevronsUp,
   ChevronsUpDown,
+  ChevronLeft,
   Columns3,
   Copy,
   EyeOff,
@@ -74,6 +75,8 @@ import {
 
 const GROUP_PAGE = 30; // lignes montrées au départ dans chaque groupe
 const GROUP_STEP = 40; // lignes ajoutées à chaque « Afficher plus »
+const PAGED_MIN = 150; // au-delà, le groupe est découpé en pages (flèches dans l'en-tête)
+const PAGE_ROWS = 50; // lignes par page
 const COLS_STORAGE = "crm-leads-columns";
 
 // Cellule texte : s'édite au clic, Entrée ou clic ailleurs enregistre, Échap annule.
@@ -922,8 +925,7 @@ const LeadRow = memo(function LeadRow({
   );
 });
 
-// Bandeau bien visible sous les lignes d'un groupe : il reste des leads à afficher.
-// Les lignes suivantes ne s'ajoutent que sur clic (pas de défilement automatique).
+// Ligne discrète sous les lignes d'un petit groupe : il reste des clients à afficher (clic = la suite).
 const MoreRows = ({
   shown,
   total,
@@ -937,21 +939,61 @@ const MoreRows = ({
   onMore: () => void;
   onAll: () => void;
 }) => {
-  // Le fond occupe toute la largeur, mais le texte et les boutons restent collés à gauche quand on fait défiler à droite.
+  const left = total - shown;
+  // La ligne occupe toute la largeur, mais le texte reste visible quand on fait défiler à droite.
   return (
-    <div className="border-y-2" style={{ background: `${color}22`, borderColor: color }}>
-      <div className="sticky left-0 flex w-max max-w-[100vw] flex-wrap items-center gap-3 px-3 py-3">
-        <span className="text-sm font-bold text-gray-900">
-          {shown} affichés sur {total} — il en reste {total - shown}
-        </span>
-        <button onClick={onMore} className="text-sm font-bold text-white rounded-md px-4 py-1.5 shadow-sm hover:brightness-95" style={{ background: color }}>
-          Afficher {Math.min(GROUP_STEP, total - shown)} de plus
+    <div className="border-b border-[#d0d4e4]" style={{ background: `${color}12` }}>
+      <div className="sticky left-0 flex w-max max-w-[100vw] items-center justify-center gap-4 h-9 px-3">
+        <button
+          onClick={onMore}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold hover:underline"
+          style={{ color }}
+        >
+          <ChevronDown size={15} /> {Math.min(GROUP_STEP, left)} clients de plus
+          {left > GROUP_STEP ? <span className="font-normal text-gray-400">· {left} restants</span> : null}
         </button>
-        <button onClick={onAll} className="text-sm font-bold rounded-md px-4 py-1.5 bg-white border-2 hover:bg-gray-50" style={{ color, borderColor: color }}>
-          Tout afficher ({total})
+        <button onClick={onAll} className="text-xs text-gray-500 hover:text-gray-800 hover:underline">
+          Tout voir ({total})
         </button>
       </div>
     </div>
+  );
+};
+
+// Pages d'un très gros groupe : « 1–50 sur 730 » avec flèches (dans l'en-tête du groupe et sous la liste).
+const GroupPager = ({
+  page,
+  pages,
+  total,
+  color,
+  onPage,
+  compact = false,
+}: {
+  page: number;
+  pages: number;
+  total: number;
+  color: string;
+  onPage: (p: number) => void;
+  compact?: boolean;
+}) => {
+  const from = page * PAGE_ROWS + 1;
+  const to = Math.min(total, (page + 1) * PAGE_ROWS);
+  const arrow = "w-7 h-7 inline-flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-orange-50 hover:text-[#c2410c] disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-600";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 ${compact ? "" : "ml-2"}`}
+      onMouseDown={(e) => e.stopPropagation()}
+    >
+      <button onClick={() => onPage(page - 1)} disabled={page <= 0} aria-label="Page précédente" className={arrow}>
+        <ChevronLeft size={15} />
+      </button>
+      <span className="text-xs font-semibold text-gray-600 min-w-[7.5rem] text-center" style={{ color }}>
+        {from}–{to} sur {total}
+      </span>
+      <button onClick={() => onPage(page + 1)} disabled={page >= pages - 1} aria-label="Page suivante" className={arrow}>
+        <ChevronRight size={15} />
+      </button>
+    </span>
   );
 };
 
@@ -1156,6 +1198,7 @@ export default function LeadsTable({
 }) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [limits, setLimits] = useState<Record<string, number>>({});
+  const [pageOf, setPageOf] = useState<Record<string, number>>({});
   const [dropOver, setDropOver] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [maxH, setMaxH] = useState<number | null>(null);
@@ -1492,6 +1535,11 @@ export default function LeadsTable({
           const rows = leads.filter((l) => (groupKeyOf ? groupKeyOf(l) : groupOf(l, groups).id) === st.id);
           const isCollapsed = collapsed[st.id];
           const limit = limits[st.id] ?? GROUP_PAGE;
+          const paged = rows.length > PAGED_MIN;
+          const pages = Math.max(1, Math.ceil(rows.length / PAGE_ROWS));
+          const page = Math.min(pageOf[st.id] ?? 0, pages - 1);
+          const shownRows = paged ? rows.slice(page * PAGE_ROWS, (page + 1) * PAGE_ROWS) : rows.slice(0, limit);
+          const goPage = (p: number) => setPageOf((m) => ({ ...m, [st.id]: Math.max(0, Math.min(pages - 1, p)) }));
           return (
             <section
               key={st.id}
@@ -1528,6 +1576,7 @@ export default function LeadsTable({
                     {rows.length} lead{rows.length > 1 ? "s" : ""}
                   </span>
                 </button>
+                {paged && !isCollapsed && <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} />}
                 {!readOnlyGroups && (
                 <GroupMenu
                   group={st}
@@ -1666,7 +1715,7 @@ export default function LeadsTable({
                     </div>
                   </div>
 
-                  {rows.slice(0, limit).map((l) => (
+                  {shownRows.map((l) => (
                     <LeadRow
                       key={l.id}
                       lead={l}
@@ -1685,7 +1734,15 @@ export default function LeadsTable({
                     />
                   ))}
 
-                  {rows.length > limit && (
+                  {paged && (
+                    <div className="flex items-center justify-center h-10 border-b border-[#d0d4e4]" style={{ background: `${st.color}10` }}>
+                      <div className="sticky left-0 w-max max-w-[100vw] flex items-center justify-center px-3">
+                        <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} compact />
+                      </div>
+                    </div>
+                  )}
+
+                  {!paged && rows.length > limit && (
                     <MoreRows
                       shown={limit}
                       total={rows.length}
