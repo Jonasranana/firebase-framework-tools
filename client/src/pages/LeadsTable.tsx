@@ -934,20 +934,20 @@ const MoreRows = ({
   onMore: () => void;
   onAll: () => void;
 }) => {
+  // Le fond occupe toute la largeur, mais le texte et les boutons restent collés à gauche quand on fait défiler à droite.
   return (
-    <div
-      className="sticky left-0 flex flex-wrap items-center justify-center gap-3 px-3 py-3 border-y-2"
-      style={{ background: `${color}22`, borderColor: color }}
-    >
-      <span className="text-sm font-bold text-gray-900">
-        {shown} affichés sur {total} — il en reste {total - shown}
-      </span>
-      <button onClick={onMore} className="text-sm font-bold text-white rounded-md px-4 py-1.5 shadow-sm hover:brightness-95" style={{ background: color }}>
-        Afficher {Math.min(GROUP_STEP, total - shown)} de plus
-      </button>
-      <button onClick={onAll} className="text-sm font-bold rounded-md px-4 py-1.5 bg-white border-2 hover:bg-gray-50" style={{ color, borderColor: color }}>
-        Tout afficher ({total})
-      </button>
+    <div className="border-y-2" style={{ background: `${color}22`, borderColor: color }}>
+      <div className="sticky left-0 flex w-max max-w-[100vw] flex-wrap items-center gap-3 px-3 py-3">
+        <span className="text-sm font-bold text-gray-900">
+          {shown} affichés sur {total} — il en reste {total - shown}
+        </span>
+        <button onClick={onMore} className="text-sm font-bold text-white rounded-md px-4 py-1.5 shadow-sm hover:brightness-95" style={{ background: color }}>
+          Afficher {Math.min(GROUP_STEP, total - shown)} de plus
+        </button>
+        <button onClick={onAll} className="text-sm font-bold rounded-md px-4 py-1.5 bg-white border-2 hover:bg-gray-50" style={{ color, borderColor: color }}>
+          Tout afficher ({total})
+        </button>
+      </div>
     </div>
   );
 };
