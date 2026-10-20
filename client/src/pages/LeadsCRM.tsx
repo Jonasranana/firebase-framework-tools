@@ -6,8 +6,6 @@ import {
   Mail,
   Search,
   Plus,
-  ZoomIn,
-  ZoomOut,
   Loader2,
   BellRing,
   Check,
@@ -1013,7 +1011,7 @@ export default function LeadsCRM({
         }
         return 0.75; // 75% par défaut sur smartphone
       } else {
-        const saved = localStorage.getItem("crm-table-zoom-desktop") ?? localStorage.getItem("crm-table-zoom");
+        const saved = localStorage.getItem("crm-table-zoom-desktop-v2");
         if (saved) {
           const z = parseFloat(saved);
           if (z >= 0.6 && z <= 1.5) return z;
@@ -1035,8 +1033,7 @@ export default function LeadsCRM({
       if (isMobile) {
         localStorage.setItem("crm-table-zoom-mobile", String(v));
       } else {
-        localStorage.setItem("crm-table-zoom-desktop", String(v));
-        localStorage.setItem("crm-table-zoom", String(v));
+        localStorage.setItem("crm-table-zoom-desktop-v2", String(v));
       }
     } catch {
       /* non essentiel */
@@ -1473,7 +1470,7 @@ export default function LeadsCRM({
         <SortMenu sorts={sorts} onChange={setSorts} />
         {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
         <GroupByMenu value={groupBy} onChange={setGroupBy} />
-        <MoreMenu onExport={exportCsv} count={filtered.length} />
+        <MoreMenu onExport={exportCsv} count={filtered.length} zoom={zoom} onZoom={changeZoom} />
         {views.length > 0 && (
           <select
             value=""
@@ -1507,17 +1504,6 @@ export default function LeadsCRM({
             <X size={12} /> Tout enlever
           </button>
         )}
-        <div className="inline-flex items-center rounded-md border border-gray-200 bg-white" title="Zoom du tableau">
-          <button onClick={() => changeZoom(zoom - 0.1)} aria-label="Dézoomer" className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-l-md">
-            <ZoomOut size={15} />
-          </button>
-          <button onClick={() => changeZoom(1)} className="px-2 text-xs font-semibold text-gray-600 min-w-[3.25rem] whitespace-nowrap hover:bg-gray-100 py-1.5">
-            {Math.round(zoom * 100)}%
-          </button>
-          <button onClick={() => changeZoom(zoom + 0.1)} aria-label="Zoomer" className="px-2 py-1 text-gray-600 hover:bg-gray-100 rounded-r-md">
-            <ZoomIn size={15} />
-          </button>
-        </div>
       </div>
       <div className="flex items-center gap-2 mb-3">
         <button
