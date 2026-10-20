@@ -146,6 +146,8 @@ export type Lead = {
   notes: LeadNote[];
   createdAt: string; // ISO
   updatedAt: string; // ISO
+  // Dernier changement d'un des deux statuts (statut appel, étape) : sert aux couleurs de ligne.
+  statusChangedAt?: string;
   updatedBy: string;
   // Corbeille : date de mise à la corbeille (vide = fiche active). Purge après 30 jours.
   deletedAt: string;
@@ -194,6 +196,7 @@ export function leadFromDoc(id: string, d: Record<string, any>): Lead {
     notes: Array.isArray(d.notes) ? d.notes : [],
     createdAt: toIso(d.createdAt),
     updatedAt: toIso(d.updatedAt),
+    statusChangedAt: toIso(d.statusChangedAt),
     updatedBy: String(d.updatedBy ?? ""),
     deletedAt: toIso(d.deletedAt),
     deletedBy: String(d.deletedBy ?? ""),
@@ -378,3 +381,23 @@ export const GROUP_COLORS = [
 
 export const groupOf = (lead: Lead, groups: LeadGroup[]) =>
   groups.find((g) => g.id === lead.group) ?? groups.find((g) => !g.archived) ?? groups[0];
+
+// ── Couleur de ligne selon l'ancienneté du dernier changement de statut ─────
+// Contacts « froids » (pas encore chauds) et dossiers terminés : pas de couleur.
+const NO_COLOR_STATUSES = new Set([
+  "a_appeler", "nouveau_lead", "vide", "", "nrp", "nrp2", "mauvais_numero", "pas_interesse",
+  "pas_eligible_revenu", "pas_eligible_pac", "pas_adapte", "pas_bon", "whatsapp_envoye",
+  "o_ef1qw", // « Ne donne pas suite »
+  "instal_prevu", "installer_bets",
+]);
+export type AgeLevel = "vert" | "orange" | "rouge";
+export const AGE_COLORS: Record<AgeLevel, string> = { vert: "#dcf5e4", orange: "#ffd7ab", rouge: "#ff9d9d" };
+export function ageLevel(l: Lead, now: number = Date.now()): AgeLevel | null {
+  if (NO_COLOR_STATUSES.has(l.status ?? "")) return null;
+  const etape = Object.entries(l.fields ?? {}).find(([k, v]) => k.startsWith("c_") && (v === "termine"))?.[1];
+  if (etape) return null;
+  const t = Date.parse(l.statusChangedAt || l.updatedAt || "");
+  if (!Number.isFinite(t)) return null;
+  const days = Math.floor((now - t) / 86400000);
+  return days >= 15 ? "rouge" : days >= 6 ? "orange" : "vert";
+}

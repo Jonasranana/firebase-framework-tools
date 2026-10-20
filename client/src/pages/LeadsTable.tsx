@@ -35,7 +35,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
-import { LEAD_STATUSES } from "@/lib/crm";
+import { LEAD_STATUSES, ageLevel, AGE_COLORS } from "@/lib/crm";
 import { useTeam } from "@/lib/crmTeam";
 import { AddTypeList } from "./ColumnMenu";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -833,10 +833,12 @@ const LeadRow = memo(function LeadRow({
   onStatus: (id: string, status: any) => void;
 }) {
   const notes = l.notes.reduce((n, x) => n + (x.kind === "note" || x.kind === "mail" ? 1 : 0), 0);
+  const age = ageLevel(l);
+  const ageBg = age && !selected ? AGE_COLORS[age] : undefined;
   return (
     <div
-      className={`group grid items-stretch border-b border-[#d0d4e4] h-9 ${selected ? "bg-blue-50" : "hover:bg-gray-50"}`}
-      style={{ gridTemplateColumns: template }}
+      className={`group grid items-stretch border-b border-[#d0d4e4] h-9 ${selected ? "bg-blue-50" : ageBg ? "hover:brightness-95" : "hover:bg-gray-50"}`}
+      style={{ gridTemplateColumns: template, background: ageBg }}
     >
       {cols.map((c, i) =>
         c.type !== "name" && (i < colA || i > colB) ? (
@@ -845,7 +847,7 @@ const LeadRow = memo(function LeadRow({
           <div
             key={c.key}
             className={`sticky left-0 z-10 group-hover:bg-gray-50 flex items-center gap-1 pr-1 border-r border-[#d0d4e4] ${selected ? "bg-blue-50" : "bg-white"} shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]`}
-            style={{ borderLeft: `6px solid ${color}` }}
+            style={{ borderLeft: `6px solid ${color}`, background: ageBg }}
           >
             {selectable && (
               <RowCheck

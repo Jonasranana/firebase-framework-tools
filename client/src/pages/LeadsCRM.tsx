@@ -59,6 +59,7 @@ import {
   leadFromDoc,
   statusInfo,
   isClosedStatus,
+  AGE_COLORS,
   groupOf,
   telHref,
   todayYmd,
@@ -93,8 +94,12 @@ async function patchLead(
   patch: Record<string, unknown>,
 ) {
   const { m, db } = await fs();
+  // Le compteur « jours depuis le changement » repart à zéro quand le statut appel ou l'étape change.
+  const etapeKeys = LEAD_COLUMNS.filter((c) => c.type === "status" && /^[^A-Za-z\u00C0-\u00FF]*[EeÉé]tape/.test(c.title)).map((c) => `fields.${c.key}`);
+  const statusTouched = "status" in patch || etapeKeys.some((k) => k in patch);
   await m.updateDoc(m.doc(db, CRM_LEADS_COLLECTION, id), {
     ...patch,
+    ...(statusTouched ? { statusChangedAt: m.serverTimestamp() } : {}),
     updatedAt: m.serverTimestamp(),
     updatedBy: email,
   });
@@ -1520,6 +1525,11 @@ export default function LeadsCRM({
       <div className="flex items-center gap-2 mb-3">
         <span className="text-xs text-gray-400">
           {filtered.length} sur {leads?.length ?? 0} noms sociétés
+        </span>
+        <span className="hidden sm:inline-flex items-center gap-2 text-[11px] text-gray-500 ml-2" title="Couleur de la ligne : temps écoulé depuis le dernier changement de statut ou d'étape (contacts froids et dossiers terminés : pas de couleur)">
+          <span className="inline-flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.vert }} />moins de 6 j</span>
+          <span className="inline-flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.orange }} />6 à 14 j</span>
+          <span className="inline-flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.rouge }} />15 j et plus</span>
         </span>
       </div>
 
