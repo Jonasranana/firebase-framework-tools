@@ -390,8 +390,21 @@ for (const d of (await db.collection("ip5_leads").select("mondayItemId").get()).
   if (mid) siteByMonday.set(String(mid), d.id);
 }
 const crmDocs = new Map();
+// Fiche travaillée à la main dans le CRM (statut/groupe/étiquette changés par un humain) : Monday ne l'écrase plus jamais.
+const humanOwned = (cur) =>
+  cur?.crmOwned === true ||
+  /@/.test(String(cur?.updatedBy ?? "")) ||
+  (Array.isArray(cur?.notes) && cur.notes.some((n) => n?.kind === "statut" && /@/.test(String(n?.by ?? ""))));
+function keepCrmVersion(docId, cur, notes) {
+  stats.fiches_protegees = (stats.fiches_protegees ?? 0) + 1;
+  if (!notes.length && cur?.crmOwned === true) return;
+  // On ajoute seulement les nouveaux commentaires Monday ; ni statut, ni groupe, ni updatedBy ne bougent.
+  const patch = { crmOwned: true };
+  if (notes.length) patch.notes = FieldValue.arrayUnion(...notes);
+  write(() => writer.update(db.doc(`crm_leads/${docId}`), patch));
+}
 const sitePhoneDay = new Map();
-for (const d of (await db.collection("crm_leads").select("phone", "email", "name", "createdAt", "updatedBy", "status", "group", "rappelLe", "postalCode", "city", "type", "source", "projet", "fields", "details", "mondayItemId").get()).docs) {
+for (const d of (await db.collection("crm_leads").select("phone", "email", "name", "createdAt", "updatedBy", "status", "group", "rappelLe", "postalCode", "city", "type", "source", "projet", "fields", "details", "mondayItemId", "notes", "crmOwned").get()).docs) {
   crmDocs.set(d.id, d.data());
   if (/^monday_|^m\d+_/.test(d.id)) continue;
   const iso = d.get("createdAt")?.toDate?.().toISOString() ?? "";
@@ -471,8 +484,9 @@ async function syncPacPac() {
     if (docId) {
       const cur = crmDocs.get(docId);
       // Rattrapage complet : une fiche modifiée à la main dans le CRM n'est pas écrasée.
-      if (full && /@/.test(String(cur?.updatedBy ?? ""))) {
+      if (humanOwned(cur)) {
         stats.pacpac_ignorees_crm++;
+        keepCrmVersion(docId, cur, notes);
         return;
       }
       const patch = diffPatch(cur, base, fields, docId);
@@ -560,7 +574,9 @@ async function syncIntegratedBoards() {
       const notes = (updates.get(String(item.id)) ?? []).map((u) => ({ id: String(u.id).slice(-10), text: String(u.text ?? "").slice(0, 3000), by: u.by || "Monday", at: String(u.at ?? ""), kind: "note" }));
       stats.commentaires += notes.length;
       const cur = crmDocs.get(docId);
-      if (cur) {
+      if (cur && humanOwned(cur)) {
+        keepCrmVersion(docId, cur, notes);
+      } else if (cur) {
         const patch = diffPatch(cur, { ...core, group }, fields, docId);
         if (notes.length) patch.notes = FieldValue.arrayUnion(...notes);
         if (!Object.keys(patch).length) return;
