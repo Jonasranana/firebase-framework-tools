@@ -19,8 +19,9 @@ on:
         description: "Rattrapage complet : comparer toutes les lignes de tous les tableaux à Monday (n'écrit que les différences)"
         type: boolean
         default: false
-  schedule:
-    - cron: "17 4-20/2 * * *"
+  # Passage automatique arrêté à la demande d'Alexis (20/10) : pour le remettre, décommenter les 2 lignes.
+  # schedule:
+  #   - cron: "17 4-20/2 * * *"
 
 concurrency:
   group: sync-monday-crm
