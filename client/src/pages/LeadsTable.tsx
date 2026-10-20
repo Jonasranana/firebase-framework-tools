@@ -35,7 +35,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
-import { LEAD_STATUSES, ageLevel, AGE_COLORS } from "@/lib/crm";
+import { LEAD_STATUSES, ageLevel, ageBackground } from "@/lib/crm";
 import { useTeam } from "@/lib/crmTeam";
 import { AddTypeList } from "./ColumnMenu";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -834,7 +834,7 @@ const LeadRow = memo(function LeadRow({
 }) {
   const notes = l.notes.reduce((n, x) => n + (x.kind === "note" || x.kind === "mail" ? 1 : 0), 0);
   const age = ageLevel(l);
-  const ageBg = age && !selected ? AGE_COLORS[age] : undefined;
+  const ageBg = age && !selected ? ageBackground(age) : undefined;
   return (
     <div
       className={`group grid items-stretch border-b border-[#d0d4e4] h-9 ${selected ? "bg-blue-50" : ageBg ? "hover:brightness-95" : "hover:bg-gray-50"}`}
