@@ -25,7 +25,6 @@ module.exports = function buildCrmTeam({
   CRM_ALLOWED_EMAILS,
   isCrmMember,
   buildRawMessage,
-  buildBrandedEmailShell,
   escapeHtmlText,
   SITE_URL,
   GMAIL_CLIENT_ID,
@@ -169,23 +168,47 @@ module.exports = function buildCrmTeam({
         updatedBy: author,
       });
 
-      // E-mail uniquement dans la boîte partagée contact@ (plus dans les boîtes personnelles de l'équipe).
+      // E-mail à toute l'équipe en privé (sauf l'auteur), présenté comme une bulle de discussion.
       // Un échec d'envoi ne doit jamais empêcher l'enregistrement de la mise à jour.
       let notified = 0;
       try {
         const name = snap.get("name") || "(sans nom)";
-        const to = ["contact@ip5energie.com"];
+        const to = members.filter((m) => m.notify !== false).map((m) => m.email).filter((e) => e !== author);
         if (to.length) {
           const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
           oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
           const gmail = google.gmail({ version: "v1", auth: oauth2Client });
           const link = `${SITE_URL}/admin#${kind === "lead" ? "leads" : "artisans"}`;
-          const html = buildBrandedEmailShell({
-            bodyHtml: `
-              <p style="margin:0 0 12px 0;"><b>${escapeHtmlText(authorName)}</b> a ajouté une mise à jour sur <b>${escapeHtmlText(name)}</b> :</p>
-              <p style="margin:0 0 16px 0; padding:12px 14px; background:#f3f6fb; border-left:4px solid #2b5a8f; white-space:pre-wrap;">${escapeHtmlText(text)}</p>
-              <p style="margin:0;"><a href="${link}" style="display:inline-block; background:#2b5a8f; color:#fff; text-decoration:none; padding:10px 18px; border-radius:999px; font-weight:bold;">Ouvrir le CRM</a></p>`,
-          });
+          const hhmm = new Intl.DateTimeFormat("fr-FR", { timeZone: "Europe/Paris", hour: "2-digit", minute: "2-digit" }).format(new Date());
+          const initial = escapeHtmlText((authorName.trim()[0] ?? "?").toUpperCase());
+          const html = `<!DOCTYPE html>
+<html lang="fr"><body style="margin:0; padding:0; background:#efeae2; font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#efeae2;"><tr><td align="center" style="padding:0;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;">
+    <tr><td style="background:linear-gradient(120deg,#ff8a00,#ff4d4d 50%,#e0218a); background-color:#ff5a4d; padding:14px 18px; color:#ffffff;">
+      <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+        <td style="width:40px; height:40px; background:#ffffff33; border-radius:20px; text-align:center; color:#ffffff; font-weight:bold; font-size:18px;" width="40">${initial}</td>
+        <td style="padding-left:12px; color:#ffffff;">
+          <div style="font-size:16px; font-weight:bold; line-height:1.2;">${escapeHtmlText(authorName)}</div>
+          <div style="font-size:13px; opacity:.92; line-height:1.4;">sur la fiche ${escapeHtmlText(name)}</div>
+        </td>
+      </tr></table>
+    </td></tr>
+    <tr><td style="padding:22px 16px 10px 16px;">
+      <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:88%;"><tr>
+        <td style="background:#ffffff; border-radius:0 14px 14px 14px; padding:10px 14px 6px 14px; color:#1f2a37; font-size:16px; line-height:1.45; box-shadow:0 1px 1px rgba(0,0,0,.13);">
+          <div style="font-size:13px; font-weight:bold; color:#d6246e; margin-bottom:3px;">${escapeHtmlText(authorName)}</div>
+          <div style="white-space:pre-wrap;">${escapeHtmlText(text)}</div>
+          <div style="text-align:right; font-size:11px; color:#8a94a3; padding-top:4px;">${hhmm}</div>
+        </td>
+      </tr></table>
+    </td></tr>
+    <tr><td align="left" style="padding:6px 16px 26px 16px;">
+      <a href="${link}" style="display:inline-block; background:#ff5a4d; color:#ffffff; text-decoration:none; padding:10px 20px; border-radius:999px; font-weight:bold; font-size:14px;">Ouvrir la fiche</a>
+    </td></tr>
+  </table>
+</td></tr></table>
+</body></html>`;
           const from = GMAIL_SENDER_EMAIL.value();
           for (const addr of to) {
             await gmail.users.messages.send({

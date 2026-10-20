@@ -154,7 +154,6 @@ export const StatusCell = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
-  const zoom = useContext(TableZoomContext);
   const isMobile = useIsMobile();
   const s = options.find((o) => o.key === status);
   const visibleOptions = options.filter((o) => o.label !== "" && (!o.off || o.key === status));
@@ -168,10 +167,14 @@ export const StatusCell = ({
       return { baseWidth: Math.min(320, typeof window !== "undefined" ? window.innerWidth - 32 : 320), gridCols: "grid-cols-2" };
     }
     if (visibleOptions.length <= 4) return { baseWidth: 160, gridCols: "grid-cols-1" };
-    if (visibleOptions.length <= 8) return { baseWidth: 300, gridCols: "grid-cols-2" };
-    if (visibleOptions.length <= 15) return { baseWidth: 580, gridCols: "grid-cols-4" };
-    return { baseWidth: 700, gridCols: "grid-cols-5" };
+    // Étiquettes toujours lisibles en entier : colonnes assez larges, texte à la ligne si besoin.
+    if (visibleOptions.length <= 8) return { baseWidth: 400, gridCols: "grid-cols-2" };
+    if (visibleOptions.length <= 15) return { baseWidth: 640, gridCols: "grid-cols-4" };
+    return { baseWidth: 780, gridCols: "grid-cols-5" };
   }, [isMobile, visibleOptions.length]);
+  // Jamais plus large que l'écran (le défilement se fait dans la fenêtre).
+  const fitWidth = Math.min(baseWidth, typeof window !== "undefined" ? window.innerWidth - 32 : baseWidth);
+  const cols = fitWidth < baseWidth ? (visibleOptions.length <= 4 ? "grid-cols-1" : "grid-cols-2") : gridCols;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -186,12 +189,10 @@ export const StatusCell = ({
       <PopoverContent
         className="p-0 overflow-hidden bg-white text-gray-900 border border-[#d0d4e4] rounded-lg shadow-xl w-auto max-w-[96vw]"
         align="start"
+        collisionPadding={12}
       >
-        <div
-          style={{ zoom: isMobile ? 1 : zoom }}
-          className="p-2.5 max-h-[440px] overflow-y-auto"
-        >
-          <div className={`grid ${gridCols} gap-1.5`} style={{ width: baseWidth }}>
+        <div className="p-2.5 max-h-[440px] overflow-y-auto">
+          <div className={`grid ${cols} gap-1.5`} style={{ width: fitWidth }}>
             {visibleOptions.map((o) => {
               const isSelected = o.key === status;
               return (
@@ -201,7 +202,7 @@ export const StatusCell = ({
                     setOpen(false);
                     onChange(o.key);
                   }}
-                  className={`h-9 px-3 text-sm font-semibold text-white rounded truncate transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none ${
+                  className={`min-h-9 px-3 py-1 text-sm leading-tight text-center font-semibold text-white rounded transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none ${
                     isSelected ? "ring-2 ring-gray-900/60 ring-inset font-bold shadow-inner" : ""
                   }`}
                   style={{ background: o.hex }}
@@ -214,7 +215,7 @@ export const StatusCell = ({
           </div>
 
           {(onEditLabels || clearable || options.some((o) => o.label === "")) && (
-            <div className="mt-2.5 pt-2 border-t border-[#d0d4e4] flex items-center justify-between gap-2" style={{ width: baseWidth }}>
+            <div className="mt-2.5 pt-2 border-t border-[#d0d4e4] flex items-center justify-between gap-2" style={{ width: fitWidth }}>
               {onEditLabels ? (
                 <button
                   onClick={() => {
