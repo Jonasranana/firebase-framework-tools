@@ -1468,6 +1468,15 @@ export default function LeadsCRM({
         <SearchToggle value={query} onChange={setQuery} />
         <PersonBar people={people} selected={personKey} onSelect={setPersonKey} meKey={email.toLowerCase()} />
         <QuickFilter leads={leads ?? []} filters={filters} onFilters={setFilters} onSaveView={saveView} />
+        <button
+          onClick={() => setRappelsOnly((v) => !v)}
+          title="Clients dont la date de rappel est arrivée"
+          className={`inline-flex items-center gap-1.5 text-sm font-semibold px-2.5 py-1.5 rounded-md ${
+            rappelsOnly ? "bg-red-100 text-red-700" : "text-gray-700 hover:bg-orange-50 hover:text-[#c2410c]"
+          }`}
+        >
+          <BellRing size={15} /> Rappels{rappelsCount ? ` (${rappelsCount})` : ""}
+        </button>
         <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
         <SortMenu sorts={sorts} onChange={setSorts} />
         {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
@@ -1509,14 +1518,6 @@ export default function LeadsCRM({
         )}
       </div>
       <div className="flex items-center gap-2 mb-3">
-        <button
-          onClick={() => setRappelsOnly((v) => !v)}
-          className={`inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full border ${
-            rappelsOnly ? "bg-red-100 text-red-700 border-red-200" : "bg-white text-gray-600 border-gray-200"
-          }`}
-        >
-          <BellRing size={12} /> Rappels{rappelsCount ? ` (${rappelsCount})` : ""}
-        </button>
         <span className="text-xs text-gray-400">
           {filtered.length} sur {leads?.length ?? 0} noms sociétés
         </span>
