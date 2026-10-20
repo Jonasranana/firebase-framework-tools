@@ -13,6 +13,8 @@ import {
   Search,
   Trash2,
   X,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { LEAD_COLUMNS, formulaValue } from "@/lib/crmColumns";
@@ -377,7 +379,7 @@ export function GroupByMenu({ value, onChange }: { value: string; onChange: (v: 
 }
 
 // ── « … » : export, actualiser ─────────────────────────────────────────────
-export function MoreMenu({ onExport, count }: { onExport: () => void; count: number }) {
+export function MoreMenu({ onExport, count, zoom, onZoom }: { onExport: () => void; count: number; zoom?: number; onZoom?: (z: number) => void }) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -392,6 +394,27 @@ export function MoreMenu({ onExport, count }: { onExport: () => void; count: num
         <button onClick={() => window.location.reload()} className="w-full flex items-center gap-2 text-left text-sm px-2.5 py-1.5 rounded-md hover:bg-gray-100">
           <RefreshCw size={15} /> Recharger la page
         </button>
+        {zoom !== undefined && onZoom && (
+          <div className="mt-1 pt-2 px-2.5 pb-1.5 border-t border-gray-200">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-medium text-gray-700">Zoom du tableau</span>
+              <span className="inline-flex items-center rounded-md border border-gray-200">
+                <button onClick={() => onZoom(zoom - 0.1)} aria-label="Dézoomer" className="px-2 py-1 hover:bg-gray-100 rounded-l-md">
+                  <ZoomOut size={14} />
+                </button>
+                <button onClick={() => onZoom(1)} title="Revenir à 100 %" className="px-2 text-xs font-semibold min-w-[3rem] hover:bg-gray-100 py-1.5">
+                  {Math.round(zoom * 100)}%
+                </button>
+                <button onClick={() => onZoom(zoom + 0.1)} aria-label="Zoomer" className="px-2 py-1 hover:bg-gray-100 rounded-r-md">
+                  <ZoomIn size={14} />
+                </button>
+              </span>
+            </div>
+            <p className="mt-1.5 text-xs leading-snug text-gray-500">
+              Astuce : pour zoomer ou dézoomer, utilisez plutôt le zoom de Chrome (Ctrl et + / −, ou ⌘ sur Mac). C'est plus fluide.
+            </p>
+          </div>
+        )}
       </PopoverContent>
     </Popover>
   );
