@@ -14,16 +14,26 @@ const db = getFirestore();
 
 const snap = await db.collection("crm_leads").get();
 const ok = [];
+const f = { total: 0, autreTableau: 0, corbeille: 0, avecStatut: 0, dejaAttribuee: 0, sansTel: 0, avecHistorique: 0 };
+const statuts = {};
+const kinds = {};
 for (const d of snap.docs) {
   const x = d.data();
-  if ((x.board ?? "leads") !== "leads") continue;
-  if (x.deletedAt) continue;
-  if (x.status && x.status !== "vide") continue;
-  if (x.fields?.attribue) continue;
-  if (!String(x.phone ?? "").replace(/\D/g, "")) continue;
-  if ((x.notes ?? []).some((n) => ["statut", "message", "mail"].includes(n?.kind))) continue;
+  f.total++;
+  if ((x.board ?? "leads") !== "leads") { f.autreTableau++; continue; }
+  if (x.deletedAt) { f.corbeille++; continue; }
+  statuts[x.status || "(absent)"] = (statuts[x.status || "(absent)"] ?? 0) + 1;
+  if (x.status && x.status !== "vide") { f.avecStatut++; continue; }
+  if (x.fields?.attribue) { f.dejaAttribuee++; continue; }
+  if (!String(x.phone ?? "").replace(/\D/g, "")) { f.sansTel++; continue; }
+  const hist = (x.notes ?? []).filter((n) => ["statut", "message", "mail"].includes(n?.kind));
+  for (const n of x.notes ?? []) kinds[n?.kind ?? "?"] = (kinds[n?.kind ?? "?"] ?? 0) + 1;
+  if (hist.length) { f.avecHistorique++; continue; }
   ok.push({ id: d.id, name: x.name, phone: x.phone, group: x.group, at: x.createdAt?.toMillis?.() ?? 0 });
 }
+console.log("Entonnoir :", JSON.stringify(f));
+console.log("Statuts (tableau Pac Pac actif) :", JSON.stringify(statuts));
+console.log("Types de notes des fiches sans statut :", JSON.stringify(kinds));
 ok.sort((a, b) => b.at - a.at);
 const pick = ok.slice(0, N);
 console.log(`Fiches jamais appelées et non attribuées : ${ok.length}. Retenues (les plus récentes) : ${pick.length}. Mode : ${dry ? "ESSAI À BLANC" : "ÉCRITURE"}`);
