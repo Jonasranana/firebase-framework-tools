@@ -84,7 +84,8 @@ for (const d of dossiers) {
   if (cur === etape && lead.get("fields.refPraimy") === d.reference) { same.push(lead.id); continue; }
   changes.push({ ref: lead.ref, name: lead.get("name"), from: cur, to: etape, reference: d.reference, dossier: d.client_nom });
 }
-const lbl = (k) => ETAPES[k] ?? (k ? k : "vide");
+const LABELS = Object.fromEntries((col.options ?? []).map((o) => [o.key, o.label]));
+const lbl = (k) => ETAPES[k] ?? LABELS[k] ?? (k ? k : "vide");
 console.log(`déjà à jour : ${same.length} · à modifier : ${changes.length} · douteux : ${doubtful.length} · sans fiche PRAIMY dans le CRM : ${unmatched.length}`);
 for (const c of changes) console.log(` • ${c.name} (dossier « ${c.dossier} », réf ${c.reference}) : ${lbl(c.from)} → ${lbl(c.to)}`);
 if (doubtful.length) console.log("douteux (non modifiés) :", doubtful.join(" | "));

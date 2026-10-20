@@ -11,9 +11,6 @@ on:
         default: true
   schedule:
     - cron: "11 5-20 * * *"
-  push:
-    branches: [claude/ip5-energie-landing-8fhstc]
-    paths: [".github/workflows/sync-praimy-etapes.yml"]
 
 concurrency:
   group: sync-praimy-etapes
@@ -47,4 +44,3 @@ jobs:
           export PRAIMY_API_KEY=$(gcloud secrets versions access latest --secret=PRAIMY_API_KEY --project kachoto-7554c | tr -d '\r\n ')
           echo "::add-mask::$PRAIMY_API_KEY"
           node scripts/sync-praimy-etapes.mjs
-# relance
