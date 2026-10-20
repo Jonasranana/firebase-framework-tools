@@ -132,15 +132,15 @@ const ItemRow = ({ it, inFav, ctx }: { it: SideItem; inFav?: boolean; ctx: Ctx }
               if (e.key === "Enter") commit();
               if (e.key === "Escape") setRenaming(null);
             }}
-            className="w-full text-sm bg-white text-gray-900 border-2 border-[#0073ea] rounded-md px-2 py-1.5 outline-none"
+            className="w-full text-sm bg-white text-gray-900 border-2 border-[#ff6a1a] rounded-md px-2 py-1.5 outline-none"
           />
         ) : (
           <div
-            className={`flex items-center rounded-md ${active ? "bg-[#e5efff]" : "hover:bg-gray-100"}`}
+            className={`flex items-center rounded-md ${active ? "bg-[#fff0e6] shadow-[inset_3px_0_0_#ff6a1a]" : "hover:bg-orange-50"}`}
           >
             <button
               onClick={() => onSelect(it)}
-              className={`flex-1 min-w-0 flex items-center gap-2.5 text-sm font-semibold px-2.5 py-1.5 text-left ${active ? "text-[#1f4f8f]" : "text-gray-600"}`}
+              className={`flex-1 min-w-0 flex items-center gap-2.5 text-sm font-semibold px-2.5 py-1.5 text-left ${active ? "text-[#c2410c]" : "text-gray-600"}`}
             >
               {inFav ? <Star size={15} className="shrink-0 text-amber-400" fill="currentColor" /> : <Icon size={16} className="shrink-0" />}
               <span className="truncate">{it.title}</span>
@@ -443,7 +443,7 @@ export default function AdminSidebar({
                   key={it.id}
                   onClick={() => onSelect(it)}
                   title={it.title}
-                  className={`w-full flex justify-center py-2.5 rounded-md ${it.id === activeId ? "bg-[#e5efff] text-[#1f4f8f]" : "text-gray-600 hover:bg-gray-100"}`}
+                  className={`w-full flex justify-center py-2.5 rounded-md ${it.id === activeId ? "bg-[#fff0e6] text-[#c2410c]" : "text-gray-600 hover:bg-orange-50"}`}
                 >
                   <Icon size={18} />
                 </button>
@@ -461,7 +461,7 @@ export default function AdminSidebar({
         <div className="group/item flex items-center gap-2 px-2 py-1.5">
           <span
             className="w-7 h-7 rounded-lg text-white text-[11px] font-extrabold flex items-center justify-center shrink-0 shadow-sm"
-            style={{ background: "linear-gradient(135deg,#2b5a8f,#3f8be0)" }}
+            style={{ background: "linear-gradient(135deg,#ff8a00,#ff4d4d 55%,#e0218a)" }}
           >
             IP5
           </span>
@@ -475,7 +475,7 @@ export default function AdminSidebar({
                 if (e.key === "Enter") commit();
                 if (e.key === "Escape") setRenaming(null);
               }}
-              className="flex-1 min-w-0 text-sm font-bold bg-white text-gray-900 border-2 border-[#0073ea] rounded-md px-2 py-0.5 outline-none"
+              className="flex-1 min-w-0 text-sm font-bold bg-white text-gray-900 border-2 border-[#ff6a1a] rounded-md px-2 py-0.5 outline-none"
             />
           ) : (
             <span className="flex-1 min-w-0 truncate text-sm font-bold text-gray-800">{config.workspaceName}</span>
@@ -503,7 +503,7 @@ export default function AdminSidebar({
                     >
                       <Trash2 size={14} className="shrink-0 text-gray-400" />
                       <span className="truncate flex-1">{a.title}</span>
-                      <span className="text-xs font-bold text-[#0073ea]">Restaurer</span>
+                      <span className="text-xs font-bold text-[#e0511a]">Restaurer</span>
                     </button>
                   ))}
                 </>
@@ -520,7 +520,7 @@ export default function AdminSidebar({
                     >
                       <Archive size={14} className="shrink-0 text-gray-400" />
                       <span className="truncate flex-1">{a.title}</span>
-                      <span className="text-xs font-bold text-[#0073ea]">Restaurer</span>
+                      <span className="text-xs font-bold text-[#e0511a]">Restaurer</span>
                     </button>
                   ))}
                 </>
@@ -566,7 +566,7 @@ export default function AdminSidebar({
                     if (e.key === "Enter") commit();
                     if (e.key === "Escape") setRenaming(null);
                   }}
-                  className="flex-1 min-w-0 text-sm font-bold bg-white text-gray-900 border-2 border-[#0073ea] rounded-md px-2 py-1 outline-none"
+                  className="flex-1 min-w-0 text-sm font-bold bg-white text-gray-900 border-2 border-[#ff6a1a] rounded-md px-2 py-1 outline-none"
                 />
               ) : (
                 <button
