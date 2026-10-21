@@ -450,7 +450,13 @@ export default function AdminShell({
           >
             <Menu size={22} />
           </button>
-          <h1 className="text-base sm:text-lg font-bold text-gray-900 truncate">{title}</h1>
+          <span aria-hidden className="hidden sm:block w-1.5 h-7 rounded-full shrink-0" style={{ background: "linear-gradient(180deg,#ff8a00,#e0218a)" }} />
+          <h1
+            className="text-lg sm:text-2xl font-extrabold tracking-tight truncate bg-clip-text text-transparent"
+            style={{ backgroundImage: "linear-gradient(100deg,#ff8a00 0%,#ff4d4d 55%,#e0218a 100%)", WebkitBackgroundClip: "text" }}
+          >
+            {title}
+          </h1>
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
             <button
