@@ -66,16 +66,20 @@ for (const f of mine) {
   const size = Number(meta.size);
   const existing = await listAll(`'${fid}' in parents and name='${target.replace(/'/g, "\\'")}' and trashed=false`, "id,size");
   if (existing.some((e) => Number(e.size) === size)) { skipped++; continue; }
-  try {
-    const [buf] = await f.download();
-    const res = await drive.files.create({ requestBody: { name: target, parents: [fid] }, media: { mimeType: meta.contentType || "application/octet-stream", body: Readable.from(buf) }, fields: "id,size", supportsAllDrives: true });
-    if (Number(res.data.size) !== buf.length) throw new Error(`taille différente (${res.data.size} / ${buf.length})`);
-    copied++; bytes += buf.length;
-    console.log(`copié : ${client} / ${target} (${Math.round(buf.length / 1024)} ko)`);
-  } catch (e) {
-    failed++;
-    console.error(`ÉCHEC : ${target} : ${e.message}`);
+  let ok = false;
+  for (let essai = 1; essai <= 4 && !ok; essai++) {
+    try {
+      const [buf] = await f.download();
+      const res = await drive.files.create({ requestBody: { name: target, parents: [fid] }, media: { mimeType: meta.contentType || "application/octet-stream", body: Readable.from(buf) }, fields: "id,size", supportsAllDrives: true });
+      if (Number(res.data.size) !== buf.length) throw new Error(`taille différente (${res.data.size} / ${buf.length})`);
+      copied++; bytes += buf.length; ok = true;
+      console.log(`copié : ${client} / ${target} (${Math.round(buf.length / 1024)} ko)`);
+    } catch (e) {
+      console.error(`essai ${essai}/4 raté : ${target} : ${e.message}`);
+      if (essai < 4) await new Promise((r) => setTimeout(r, 4000 * essai));
+    }
   }
+  if (!ok) { failed++; console.error(`ÉCHEC : ${target}`); }
 }
 console.log(`Terminé : ${copied} copiés (${Math.round(bytes / 1024)} ko), ${skipped} déjà là ou en corbeille, ${failed} échecs.`);
 if (failed) process.exit(1);
