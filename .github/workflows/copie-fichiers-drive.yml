@@ -1,0 +1,54 @@
+name: Copie des fichiers clients vers Google Drive
+
+# Chaque nuit (après la sauvegarde), copie dans le Drive partagé « Sauvegardes CRM IP5 » tous les fichiers joints
+# aux fiches, rangés par nom de client. Incrémental : ne recopie que les nouveaux fichiers. Rien n'est supprimé dans Drive.
+on:
+  schedule:
+    - cron: "40 2 * * *"
+  workflow_dispatch:
+  push:
+    branches: [claude/ip5-energie-landing-8fhstc]
+    paths: [".github/workflows/copie-fichiers-drive.yml"]
+
+concurrency:
+  group: copie-fichiers-drive
+  cancel-in-progress: false
+
+jobs:
+  copie:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+          python3 -m json.tool "$RUNNER_TEMP/sa.json" > /dev/null
+      - name: Copie des fichiers vers Drive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          DRIVE_FOLDER_ID: "0AAbbtoyad7dUUk9PVA"
+        run: node scripts/copie-fichiers-drive.mjs
+      - uses: google-github-actions/setup-gcloud@v2
+        if: always()
+      - name: Mail en français simple
+        if: always()
+        env:
+          NOM: "copie-fichiers"
+          STATUT: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+          for s in GMAIL_CLIENT_ID GMAIL_CLIENT_SECRET GMAIL_REFRESH_TOKEN GMAIL_SENDER_EMAIL; do
+            v=$(gcloud secrets versions access latest --secret=$s --project kachoto-7554c | tr -d '\r\n')
+            echo "::add-mask::$v"
+            echo "$s=$v" >> "$GITHUB_ENV"
+          done
+          node scripts/alerte-mail.mjs

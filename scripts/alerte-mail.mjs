@@ -34,6 +34,16 @@ const MSG = {
     },
   },
 };
+MSG["copie-fichiers"] = {
+  ok: null, // pas de mail chaque nuit quand tout va bien
+  ko: {
+    sujet: "⚠️ La copie des fichiers clients sur Google Drive a échoué",
+    titre: "La copie de vos fichiers clients sur Google Drive n'a pas marché.",
+    quoi: "Chaque nuit, les fichiers joints aux fiches (avis d'imposition, devis, photos…) sont copiés dans le Drive partagé « Sauvegardes CRM IP5 », rangés par nom de client. Cette nuit, un ou plusieurs fichiers n'ont pas pu être copiés.",
+    rassure: "Vos fichiers ne sont pas en danger : les originaux sont toujours dans le CRM. Seule la copie de secours sur Drive est en retard. Elle rattrapera le retard la nuit suivante si le problème est passager.",
+    faire: "Si ce mail revient deux nuits de suite, dites à Claude « la copie des fichiers sur Drive échoue » : il regardera pourquoi.",
+  },
+};
 const m = (MSG[NOM] ?? {})[ok ? "ok" : "ko"];
 if (!m) { console.log(`Pas de mail pour ${NOM} / ${STATUT}`); process.exit(0); }
 if (!["success", "failure"].includes(STATUT)) { console.log("Statut ignoré :", STATUT); process.exit(0); }
