@@ -134,9 +134,9 @@ export default function ColumnMenu({
       <PopoverTrigger asChild>
         <button
           aria-label={`Options de la colonne ${col.title}`}
-          className="shrink-0 p-0.5 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover/col:opacity-100 data-[state=open]:opacity-100 focus:opacity-100"
+          className="shrink-0 p-1 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-200 data-[state=open]:bg-gray-200 data-[state=open]:text-gray-900"
         >
-          <MoreHorizontal size={14} />
+          <MoreHorizontal size={16} />
         </button>
       </PopoverTrigger>
       <PopoverContent align="start" className={`w-64 p-1.5 ${POP}`}>
