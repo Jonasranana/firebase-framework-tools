@@ -6,9 +6,6 @@ on:
   schedule:
     - cron: "40 2 * * *"
   workflow_dispatch:
-  push:
-    branches: [claude/ip5-energie-landing-8fhstc]
-    paths: [".github/workflows/copie-fichiers-drive.yml"]
 
 concurrency:
   group: copie-fichiers-drive
@@ -52,4 +49,3 @@ jobs:
             export "$s=$v"
           done
           node scripts/alerte-mail.mjs
-# relance
