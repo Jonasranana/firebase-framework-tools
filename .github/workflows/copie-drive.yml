@@ -6,9 +6,6 @@ on:
   schedule:
     - cron: "15 3 * * 0"
   workflow_dispatch:
-  push:
-    branches: [claude/ip5-energie-landing-8fhstc]
-    paths: [".github/workflows/copie-drive.yml"]
 
 concurrency:
   group: copie-drive
@@ -36,4 +33,3 @@ jobs:
           GCLOUD_PROJECT: kachoto-7554c
           DRIVE_FOLDER_ID: "0AAbbtoyad7dUUk9PVA"
         run: node scripts/copie-drive.mjs
-# relance
