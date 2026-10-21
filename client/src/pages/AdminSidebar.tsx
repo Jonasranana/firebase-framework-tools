@@ -10,6 +10,7 @@ import {
   FileCheck2,
   FolderOpen,
   FolderPlus,
+  Plus,
   Gauge,
   Layers,
   MoreHorizontal,
@@ -140,9 +141,9 @@ const ItemRow = ({ it, inFav, ctx }: { it: SideItem; inFav?: boolean; ctx: Ctx }
           >
             <button
               onClick={() => onSelect(it)}
-              className={`flex-1 min-w-0 flex items-center gap-2.5 text-sm font-semibold px-2.5 py-1.5 text-left ${active ? "text-[#c2410c]" : "text-gray-600"}`}
+              className={`flex-1 min-w-0 flex items-center gap-3 text-[14px] font-semibold px-3 py-2 text-left ${active ? "text-[#c2410c]" : "text-gray-700"}`}
             >
-              {inFav ? <Star size={15} className="shrink-0 text-amber-400" fill="currentColor" /> : <Icon size={16} className="shrink-0" />}
+              {inFav ? <Star size={15} className="shrink-0 text-amber-400" fill="currentColor" /> : <Icon size={18} className="shrink-0" />}
               <span className="truncate">{it.title}</span>
             </button>
             <ItemMenu it={it} ctx={ctx} />
@@ -458,7 +459,32 @@ export default function AdminSidebar({
     <nav className="crm-scroll py-2 overflow-y-auto h-full">
       {/* Espace de travail */}
       <div className="px-2 mb-1">
-        <div className="group/item flex items-center justify-end gap-2 px-2 py-1">
+        <div className="group/item flex items-center gap-2 px-1 py-1">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white rounded-lg px-3 py-2 shadow-sm hover:brightness-105 active:scale-[0.99] transition"
+                style={{ background: "linear-gradient(120deg,#ff8a00,#ff4d4d 55%,#e0218a)" }}
+              >
+                <Plus size={16} strokeWidth={3} /> Nouveau
+              </button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className={`w-64 p-1.5 ${POP}`}>
+              <p className="text-[11px] font-semibold text-gray-400 px-2.5 py-1">Nouveau tableau dans le dossier…</p>
+              {config.folders.map((f) => (
+                <button
+                  key={f.id}
+                  onClick={() => addBoard(f.id)}
+                  className="w-full flex items-center gap-2 text-left text-sm px-2.5 py-1.5 rounded-md hover:bg-orange-50"
+                >
+                  <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: f.color }} />
+                  <span className="truncate flex-1">{f.title}</span>
+                </button>
+              ))}
+              <Sep />
+              <Entry icon={FolderPlus} label="Nouveau dossier" onClick={() => addFolder()} />
+            </PopoverContent>
+          </Popover>
           {renaming === "ws" ? (
             <input
               autoFocus
@@ -571,6 +597,19 @@ export default function AdminSidebar({
                   <span className="truncate text-sm font-bold uppercase tracking-wide" style={{ color: f.color }}>
                     {f.title}
                   </span>
+                  <span className="shrink-0 text-[11px] font-bold rounded-full px-1.5" style={{ background: `${f.color}1f`, color: f.color }}>
+                    {visible.length}
+                  </span>
+                </button>
+              )}
+              {renaming !== f.id && (
+                <button
+                  onClick={() => addBoard(f.id)}
+                  aria-label={`Ajouter un tableau dans ${f.title}`}
+                  title="Ajouter un tableau"
+                  className="p-1 rounded text-gray-400 hover:text-[#c2410c] hover:bg-orange-50 opacity-0 group-hover/folder:opacity-100 focus:opacity-100"
+                >
+                  <Plus size={15} />
                 </button>
               )}
               <FolderMenu f={f} index={fi} ctx={ctx} />
@@ -590,7 +629,7 @@ export default function AdminSidebar({
       <div className="px-2 mt-2">
         <button
           onClick={() => addFolder()}
-          className="w-full flex items-center gap-2 text-sm font-semibold text-gray-500 hover:bg-gray-100 rounded-md px-2.5 py-1.5"
+          className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#c2410c] hover:bg-orange-50 border border-dashed border-gray-300 hover:border-[#ff9a5a] rounded-lg px-2.5 py-2"
         >
           <FolderPlus size={15} /> Ajouter un dossier
         </button>
