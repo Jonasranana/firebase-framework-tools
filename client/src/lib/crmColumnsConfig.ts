@@ -15,6 +15,7 @@ export const ADD_TYPES: { type: ColType; label: string; color: string; letter: s
   { type: "date", label: "Date", color: "#9d50dd", letter: "▦" },
   { type: "tags", label: "Hashtags", color: "#00c875", letter: "#" },
   { type: "number", label: "Chiffres", color: "#fdab3d", letter: "#" },
+  { type: "filecol", label: "Fichiers", color: "#ff642e", letter: "📎" },
 ];
 
 export const DEFAULT_STATUS_OPTIONS: Opt[] = [
@@ -23,7 +24,7 @@ export const DEFAULT_STATUS_OPTIONS: Opt[] = [
   { key: "bloque", label: "Bloqué", hex: "#df2f4a" },
 ];
 
-const WIDTHS: Partial<Record<ColType, number>> = { status: 150, text: 180, people: 150, timeline: 210, date: 130, tags: 170, number: 110 };
+const WIDTHS: Partial<Record<ColType, number>> = { status: 150, text: 180, people: 150, timeline: 210, date: 130, tags: 170, number: 110, filecol: 130 };
 
 export const CUSTOM_TYPES: ColType[] = ["status", "text", "people", "timeline", "date", "tags", "number"];
 

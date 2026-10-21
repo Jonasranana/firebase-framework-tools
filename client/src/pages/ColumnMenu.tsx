@@ -104,7 +104,7 @@ export default function ColumnMenu({
   };
   const groupable = GROUPABLE.includes(col.key) || (col.custom && col.type === "status");
   const sortNow = sorts.find((s) => s.col === col.key)?.dir;
-  const duplicable = !["name", "files", "autodate"].includes(col.type);
+  const duplicable = !["name", "files", "autodate", "filecol"].includes(col.type);
   const isDate = col.type === "date";
 
   // Valeurs de la colonne et compteurs, pour le panneau « Filtre ».
