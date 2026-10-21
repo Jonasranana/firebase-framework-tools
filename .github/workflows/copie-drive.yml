@@ -36,3 +36,4 @@ jobs:
           GCLOUD_PROJECT: kachoto-7554c
           DRIVE_FOLDER_ID: "0AAbbtoyad7dUUk9PVA"
         run: node scripts/copie-drive.mjs
+# relance
