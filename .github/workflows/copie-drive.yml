@@ -33,3 +33,19 @@ jobs:
           GCLOUD_PROJECT: kachoto-7554c
           DRIVE_FOLDER_ID: "0AAbbtoyad7dUUk9PVA"
         run: node scripts/copie-drive.mjs
+      - uses: google-github-actions/setup-gcloud@v2
+        if: always()
+      - name: Mail en français simple
+        if: always()
+        env:
+          NOM: "copie-drive"
+          STATUT: ${{ job.status }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+          for s in GMAIL_CLIENT_ID GMAIL_CLIENT_SECRET GMAIL_REFRESH_TOKEN GMAIL_SENDER_EMAIL; do
+            v=$(gcloud secrets versions access latest --secret=$s --project kachoto-7554c | tr -d '\r\n')
+            echo "::add-mask::$v"
+            export "$s=$v"
+          done
+          node scripts/alerte-mail.mjs
