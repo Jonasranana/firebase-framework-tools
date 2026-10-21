@@ -1737,9 +1737,10 @@ export default function LeadsTable({
                   ))}
 
                   {paged && (
-                    <div className="flex items-center justify-center h-10 border-b border-[#d0d4e4]" style={{ background: `${st.color}10` }}>
-                      <div className="sticky left-0 w-max max-w-[100vw] flex items-center justify-center px-3">
+                    <div className="h-10 border-b border-[#d0d4e4]" style={{ background: `${st.color}10` }}>
+                      <div className="sticky left-0 w-max max-w-[100vw] h-10 flex items-center gap-3 px-3">
                         <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} compact />
+                        <span className="text-xs text-gray-500">Page {page + 1} sur {pages} · il reste {Math.max(0, rows.length - (page + 1) * PAGE_ROWS)} clients après cette page</span>
                       </div>
                     </div>
                   )}
