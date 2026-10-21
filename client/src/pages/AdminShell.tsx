@@ -14,9 +14,7 @@ import {
   UserPlus,
   LogOut,
   Menu,
-  Moon,
   Percent,
-  Sun,
   Users,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
@@ -283,7 +281,7 @@ export default function AdminShell({
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   };
-  const [theme, setTheme] = useAdminTheme();
+  useAdminTheme();
   const [drawer, setDrawer] = useState(false);
   const [overlay, setOverlay] = useState<SideItem | null>(null);
   const { config, save, loaded, error } = useSidebar(email);
@@ -459,14 +457,6 @@ export default function AdminShell({
           </h1>
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              aria-label={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
-              title={theme === "dark" ? "Mode clair" : "Mode sombre"}
-              className="h-9 w-9 rounded-full border border-gray-200 bg-white text-gray-600 hover:bg-gray-100 flex items-center justify-center transition-colors"
-            >
-              {theme === "dark" ? <Sun size={17} /> : <Moon size={17} />}
-            </button>
             <MailSyncStatus email={email} />
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
           </div>
