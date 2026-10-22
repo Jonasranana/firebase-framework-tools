@@ -51,7 +51,7 @@ export default function StatusLabelEditor({
       <DialogContent className="max-w-3xl bg-white text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier les étiquettes</DialogTitle>
-          <p className="text-xs text-gray-500">Glissez pour changer l'ordre. Chaque couleur ne peut servir qu'une seule fois dans cette colonne.</p>
+          <p className="text-xs text-gray-500">Glissez pour changer l'ordre. Chaque couleur ne sert qu'une seule fois dans cette colonne : seules les couleurs libres sont proposées.</p>
         </DialogHeader>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {empty && (
@@ -78,8 +78,8 @@ export default function StatusLabelEditor({
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-2 bg-white border border-gray-200 shadow-xl" align="start">
                     <div className="grid grid-cols-6 gap-1.5">
-                      {LABEL_COLORS.map((c) => {
-                        const isTaken = taken.has(c) && c !== o.hex.toLowerCase();
+                      {LABEL_COLORS.filter((c) => !taken.has(c) || c === o.hex.toLowerCase()).map((c) => {
+                        const isTaken = false;
                         return (
                           <button
                             key={c}
@@ -97,8 +97,17 @@ export default function StatusLabelEditor({
                 <input
                   value={o.label}
                   onChange={(e) => patch(i, { label: e.target.value })}
-                  className="flex-1 min-w-0 text-sm bg-white text-gray-900 outline-none px-1 py-0.5 rounded focus:ring-1 focus:ring-[#579bfc]"
+                  className="flex-1 min-w-0 text-sm bg-white text-gray-900 outline-none px-1 py-0.5 rounded focus:ring-1 focus:ring-[#ff6a1a]"
                 />
+                {o.off && (
+                  <button
+                    onClick={() => patch(i, { off: false })}
+                    title="Étiquette cachée de la liste de choix : cliquer pour la réafficher"
+                    className="shrink-0 text-[10px] font-bold text-gray-500 bg-gray-100 hover:bg-orange-100 rounded px-1.5 py-0.5"
+                  >
+                    cachée
+                  </button>
+                )}
                 <button onClick={() => setList(list.filter((_, k) => k !== i))} aria-label="Supprimer l'étiquette" className="text-gray-300 hover:text-red-600 shrink-0">
                   <X size={14} />
                 </button>
@@ -118,7 +127,7 @@ export default function StatusLabelEditor({
               onApply([...list.filter((o) => o.label.trim()), ...(empty ? [empty] : [])]);
               onClose();
             }}
-            className="text-sm font-semibold text-white bg-[#0073ea] hover:bg-[#0060c2] rounded-md px-5 py-2"
+            className="text-sm font-semibold text-white bg-[#ff6a1a] hover:bg-[#e85a0c] rounded-md px-5 py-2"
           >
             Appliquer
           </button>

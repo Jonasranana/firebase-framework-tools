@@ -11,6 +11,7 @@ import {
   Filter,
   Layers,
   MoreHorizontal,
+  Palette,
   Pencil,
   Plus,
   Repeat,
@@ -25,7 +26,7 @@ import { ADD_TYPES, CUSTOM_TYPES } from "@/lib/crmColumnsConfig";
 import type { ColType, LeadColumn } from "@/lib/crmColumns";
 import { DATE_BUCKETS, GROUPABLE, dateInBucket, valueOf, type LeadFilter, type LeadSort } from "@/lib/crmFilters";
 import type { Lead, Opt } from "@/lib/crm";
-import { GROUP_COLORS } from "@/lib/crm";
+import StatusLabelEditor from "./StatusLabelEditor";
 
 // Menu « ⋯ » à côté du titre de chaque colonne, comme dans Monday : paramètres,
 // filtre, tri, réduire, retour à la ligne, grouper par, dupliquer, ajouter une
@@ -98,6 +99,7 @@ export default function ColumnMenu({
   const [open, setOpen] = useState(false);
   const [panel, setPanel] = useState<"" | "settings" | "filter" | "sort" | "add" | "type" | "rename">("");
   const [title, setTitle] = useState(col.title);
+  const [labelsOpen, setLabelsOpen] = useState(false);
   const close = () => {
     setOpen(false);
     setPanel("");
@@ -143,6 +145,16 @@ export default function ColumnMenu({
         {panel === "" && (
           <>
             <Entry icon={Settings} label="Paramètres" more onClick={() => setPanel("settings")} />
+            {col.type === "status" && (
+              <Entry
+                icon={Palette}
+                label="Modifier les étiquettes"
+                onClick={() => {
+                  close();
+                  setLabelsOpen(true);
+                }}
+              />
+            )}
             <Sep />
             <Entry icon={Filter} label="Filtre" more disabled={["files", "autodate"].includes(col.type)} onClick={() => setPanel("filter")} />
             <Entry icon={ArrowDownUp} label="Trier" more disabled={col.type === "files"} onClick={() => setPanel("sort")} />
@@ -187,42 +199,16 @@ export default function ColumnMenu({
         {panel === "settings" && (
           <div className="p-2 space-y-3">
             <p className="text-sm font-bold">Paramètres de la colonne</p>
-            {col.custom && col.type === "status" && (
-              <div>
-                <p className="text-[11px] font-semibold text-gray-500 mb-1.5">Étiquettes</p>
-                <div className="space-y-1.5 max-h-56 overflow-y-auto">
-                  {(col.options ?? []).map((o, i) => (
-                    <div key={o.key} className="flex items-center gap-1.5">
-                      <select
-                        value={o.hex}
-                        onChange={(e) => api.setOptions(col.key, (col.options ?? []).map((x, k) => (k === i ? { ...x, hex: e.target.value } : x)))}
-                        className="w-9 h-7 rounded border border-gray-200 text-transparent"
-                        style={{ background: o.hex }}
-                      >
-                        {GROUP_COLORS.map((c) => (
-                          <option key={c} value={c} style={{ background: c }}>
-                            {c}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        value={o.label}
-                        onChange={(e) => api.setOptions(col.key, (col.options ?? []).map((x, k) => (k === i ? { ...x, label: e.target.value } : x)))}
-                        className="flex-1 min-w-0 text-sm border border-gray-200 rounded-md px-2 py-1"
-                      />
-                      <button onClick={() => api.setOptions(col.key, (col.options ?? []).filter((_, k) => k !== i))} aria-label="Retirer" className="text-gray-400 hover:text-red-600">
-                        <X size={14} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  onClick={() => api.setOptions(col.key, [...(col.options ?? []), { key: `o_${Math.random().toString(36).slice(2, 6)}`, label: "Nouvelle étiquette", hex: GROUP_COLORS[(col.options?.length ?? 0) % GROUP_COLORS.length] }])}
-                  className="mt-2 text-xs font-bold text-[#0073ea] inline-flex items-center gap-1"
-                >
-                  <Plus size={12} /> Ajouter une étiquette
-                </button>
-              </div>
+            {col.type === "status" && (
+              <button
+                onClick={() => {
+                  close();
+                  setLabelsOpen(true);
+                }}
+                className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white rounded-lg py-1.5 bg-[#ff6a1a] hover:bg-[#e85a0c]"
+              >
+                <Palette size={14} /> Modifier les étiquettes
+              </button>
             )}
             <p className="text-[11px] text-gray-400">
               {col.custom ? "Colonne ajoutée par l'équipe." : "Colonne d'origine (reprise de Monday)."} Type : {ADD_TYPES.find((t) => t.type === col.type)?.label ?? col.type}.
@@ -311,6 +297,9 @@ export default function ColumnMenu({
           </div>
         )}
       </PopoverContent>
+      {labelsOpen && (
+        <StatusLabelEditor options={col.options ?? []} onApply={(next) => api.setOptions(col.key, next)} onClose={() => setLabelsOpen(false)} />
+      )}
     </Popover>
   );
 }
