@@ -33,6 +33,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
+import { RappelPicker } from "@/components/RappelCell";
+import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelPhraseNote } from "@/lib/rappel";
 import { ATTRIBUE_KEY, LEAD_COLUMNS, cellValue, formulaValue, type ColType, type LeadColumn } from "@/lib/crmColumns";
 import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 import ColumnMenu from "./ColumnMenu";
@@ -132,8 +134,16 @@ const TypeBadge = ({ type }: { type: LeadType }) => (
   </span>
 );
 
+const rappelNote = (d: string, t: string, by: string): LeadNote => ({
+  id: newId(),
+  text: d ? `🔔 Demande à être rappelé ${rappelPhraseNote(d, t)}` : "🔔 Rappel supprimé",
+  by,
+  at: new Date().toISOString(),
+  kind: "statut",
+});
+
 const isOverdue = (l: Lead) =>
-  !!l.rappelLe && l.rappelLe <= todayYmd() && !isClosedStatus(l.status);
+  !!l.rappelLe && rappelEnRetard(l.rappelLe, l.fields[RAPPEL_HEURE_KEY] ?? "") && !isClosedStatus(l.status);
 
 const RappelTag = ({ lead }: { lead: Lead }) =>
   lead.rappelLe ? (
@@ -142,7 +152,7 @@ const RappelTag = ({ lead }: { lead: Lead }) =>
         isOverdue(lead) ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"
       }`}
     >
-      <BellRing size={10} /> {formatYmd(lead.rappelLe).slice(0, 5)}
+      <BellRing size={10} /> {formatYmd(lead.rappelLe).slice(0, 5)}{lead.fields[RAPPEL_HEURE_KEY] ? ` ${lead.fields[RAPPEL_HEURE_KEY]}` : ""}
     </span>
   ) : null;
 
@@ -515,19 +525,14 @@ const LeadSheet = ({
     }, "Impossible de changer le statut.");
   };
 
-  const changeRappel = (rappelLe: string) =>
+  const changeRappel = (rappelLe: string, heure: string) =>
     lead &&
     run(async () => {
       const { m } = await fs();
       await patchLead(lead.id, email, {
         rappelLe,
-        notes: m.arrayUnion({
-          id: newId(),
-          text: `Rappel : ${lead.rappelLe || "vide"} → ${rappelLe || "vide"}`,
-          by: email,
-          at: new Date().toISOString(),
-          kind: "statut",
-        } satisfies LeadNote),
+        [`fields.${RAPPEL_HEURE_KEY}`]: rappelLe ? heure : "",
+        notes: m.arrayUnion(rappelNote(rappelLe, heure, email)),
       });
     }, "Impossible d'enregistrer le rappel.");
 
@@ -628,12 +633,12 @@ const LeadSheet = ({
                 </select>
               </Field>
               <Field label="À rappeler le">
-                <input
-                  type="date"
-                  value={lead.rappelLe}
+                <RappelPicker
+                  trigger="field"
+                  date={lead.rappelLe}
+                  time={lead.fields[RAPPEL_HEURE_KEY] ?? ""}
                   disabled={busy}
-                  onChange={(e) => changeRappel(e.target.value)}
-                  className={inputCls}
+                  onSave={changeRappel}
                 />
               </Field>
             </div>
@@ -1385,7 +1390,15 @@ export default function LeadsCRM({
       let full = patch;
       const lead = leads?.find((l) => l.id === id);
       const keys = Object.keys(patch);
-      if (lead && keys.length === 1 && !("notes" in patch)) {
+      // Rappel (jour + heure) : une ligne dans la discussion, ex. « Demande à être rappelé demain à 17h ».
+      if (lead && "rappelLe" in patch && `fields.${RAPPEL_HEURE_KEY}` in patch) {
+        const d = String(patch.rappelLe ?? "");
+        const t = String(patch[`fields.${RAPPEL_HEURE_KEY}`] ?? "");
+        if (d !== lead.rappelLe || t !== (lead.fields[RAPPEL_HEURE_KEY] ?? "")) {
+          const { m } = await fs();
+          full = { ...patch, notes: m.arrayUnion(rappelNote(d, t, email)) };
+        }
+      } else if (lead && keys.length === 1 && !("notes" in patch)) {
         const k = keys[0];
         const colKey = k.startsWith("fields.") ? k.slice(7) : k;
         const col = LEAD_COLUMNS.find((c) => c.key === colKey);

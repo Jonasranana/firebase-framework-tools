@@ -43,6 +43,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import type { ColType } from "@/lib/crmColumns";
 import Avatar from "@/components/Avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { RappelPicker } from "@/components/RappelCell";
+import { RAPPEL_HEURE_KEY, rappelEnRetard } from "@/lib/rappel";
 import {
   GROUP_COLORS,
   groupOf,
@@ -1226,6 +1228,17 @@ function Cell({
           {v && col.unit && <span className="pr-2 text-xs text-gray-400">{col.unit}</span>}
         </div>
       );
+    case "rappel": {
+      const time = lead.fields[RAPPEL_HEURE_KEY] ?? "";
+      return (
+        <RappelPicker
+          date={lead.rappelLe}
+          time={time}
+          overdue={!!lead.rappelLe && rappelEnRetard(lead.rappelLe, time) && !isClosedStatus(lead.status)}
+          onSave={(d, t) => onPatch(lead.id, { rappelLe: d, [`fields.${RAPPEL_HEURE_KEY}`]: d ? t : "" })}
+        />
+      );
+    }
     case "date": {
       const overdue = col.key === "rappel" && v && v <= today && !isClosedStatus(lead.status);
       return <DateCell value={v} overdue={!!overdue} onSave={save} />;

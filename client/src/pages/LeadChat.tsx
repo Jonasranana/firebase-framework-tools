@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, ExternalLink, X, Paperclip, MessageSquareText } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APPEL_SLOTS } from "@/lib/crmColumns";
+import { RAPPEL_HEURE_KEY, rappelShort } from "@/lib/rappel";
 import { formatDateTime, formatPhone, statusInfo, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
 
 // Prénom lisible à partir d'une adresse e-mail (« jonas.sitbon@… » → « Jonas »).
@@ -64,6 +65,8 @@ const movementText = (n: LeadNote) => {
   const who = n.by === "automation" ? "Une automatisation" : authorName(n.by);
   const t = n.text.trim();
   if (n.kind === "statut") {
+    if (t.startsWith("🔔 Demande")) return `🔔 ${who} ${t.replace(/^🔔\s*Demande/, "demande")}`;
+    if (t.startsWith("🔔 Rappel supprimé")) return `🔔 ${who} a supprimé le rappel`;
     const f = t.match(/^(.+?) : (.*) → (.*)$/);
     if (f) {
       const [, label, a, b] = f;
@@ -277,7 +280,7 @@ export default function LeadChat({
   const st = lead ? statusInfo(lead.status) : null;
   const appels = lead ? APPEL_SLOTS.filter((s) => lead.fields[s.key]) : [];
   const chips: { k: string; v: string }[] = [];
-  if (lead?.rappelLe) chips.push({ k: "Rappel", v: new Date(lead.rappelLe).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) });
+  if (lead?.rappelLe) chips.push({ k: "Rappel", v: rappelShort(lead.rappelLe, lead.fields[RAPPEL_HEURE_KEY] ?? "") });
   appels.forEach((s) => chips.push({ k: s.short + " appel", v: lead!.fields[s.key] }));
   const lastSent = [...notes].reverse().find((n) => n.text.startsWith("📤") || n.text.startsWith("✉️"));
   if (lastSent) chips.push({ k: "Dernier mail", v: formatDateTime(lastSent.at) });

@@ -23,7 +23,8 @@ export type ColType =
   | "timeline"
   | "tags"
   | "appels"
-  | "filecol";
+  | "filecol"
+  | "rappel";
 
 export type LeadColumn = {
   key: string;
@@ -114,6 +115,8 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "name", title: "Noms sociétés", type: "name", width: 300, core: "name" },
   { key: "status", title: "📞 Statut Appel", type: "status", width: 170, core: "status", options: LEAD_STATUSES },
   { key: "rappel", title: "Rappel", type: "date", width: 130, core: "rappelLe" },
+  // Rappel : jour (calendrier) + heure exacte ; la date reste dans rappelLe, l'heure dans fields.rappelHeure.
+  { key: "rappelRdv", title: "🔔 Rappel (jour + heure)", type: "rappel", width: 190, core: "rappelLe" },
   { key: "pipeline", title: "🔧 Pipeline", type: "status", width: 150, options: PIPELINE },
   { key: "commercial", title: "👤 Commercial", type: "status", width: 130, options: COMMERCIAL },
   { key: "appels", title: "📞 Appels", type: "appels", width: 150 },
@@ -218,6 +221,13 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
       ordered.push(col);
       byKey.delete(k);
     }
+  }
+  // Colonne ajoutée après coup (« Rappel ») : placée juste après « Statut Appel » dans les ordres déjà enregistrés.
+  const rappelCol = byKey.get("rappelRdv");
+  if (rappelCol && (c.order ?? []).length) {
+    byKey.delete("rappelRdv");
+    const at = ordered.findIndex((x) => x.key === "status");
+    ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, rappelCol);
   }
   for (const col of Array.from(byKey.values())) ordered.push(col);
   // Le nom reste toujours la première colonne.
