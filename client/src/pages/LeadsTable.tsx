@@ -1007,6 +1007,56 @@ const LeadRow = memo(function LeadRow({
   );
 });
 
+// Résumé sous chaque groupe, comme dans Monday : barre de répartition des étiquettes pour les colonnes
+// d'étiquettes ; somme (ou moyenne pour les %) pour les colonnes de chiffres, réservée aux administrateurs.
+const GroupSummary = ({ cols, template, rows, showTotals }: { cols: LeadColumn[]; template: string; rows: Lead[]; showTotals: boolean }) => {
+  if (!rows.length) return null;
+  return (
+    <div className="grid items-stretch h-11 text-[12px]" style={{ gridTemplateColumns: template }}>
+      {cols.map((c, i) => {
+        if (i === 0) return <div key={c.key} className="sticky left-0 z-10 bg-gray-50" />;
+        if (c.type === "status") {
+          const counts = new Map<string, number>();
+          for (const l of rows) {
+            const v = cellValue(l, c);
+            counts.set(v, (counts.get(v) ?? 0) + 1);
+          }
+          const segs = Array.from(counts.entries())
+            .map(([k, n]) => {
+              const o = (c.options ?? []).find((x) => x.key === k);
+              return { label: o?.label || "Vide", hex: o && o.label ? o.hex : "#c4c4c4", n };
+            })
+            .sort((a, b) => b.n - a.n);
+          return (
+            <div key={c.key} className="border border-[#d0d4e4] border-t-0 bg-white flex items-center px-1.5">
+              <div className="flex w-full h-6 rounded-sm overflow-hidden">
+                {segs.map((g) => (
+                  <span
+                    key={g.label}
+                    title={`${g.label} : ${g.n} (${Math.round((g.n / rows.length) * 100)} %)`}
+                    style={{ background: g.hex, width: `${(g.n / rows.length) * 100}%` }}
+                  />
+                ))}
+              </div>
+            </div>
+          );
+        }
+        const isNumber = c.type === "number" || c.key === "montantPondere";
+        if (isNumber && showTotals) {
+          const t = columnTotal(c, rows);
+          return (
+            <div key={c.key} className="border border-[#d0d4e4] border-t-0 bg-white flex flex-col items-center justify-center leading-tight">
+              <span className="font-bold text-gray-800 truncate max-w-full px-1">{t ? t.replace(/^moy\. /, "") : "0"}</span>
+              <span className="text-[10px] text-gray-400">{c.unit === "%" ? "Moyenne" : "Somme"}</span>
+            </div>
+          );
+        }
+        return <div key={c.key} className="border border-[#d0d4e4] border-t-0 bg-white" />;
+      })}
+    </div>
+  );
+};
+
 // Ligne discrète sous les lignes d'un petit groupe : il reste des clients à afficher (clic = la suite).
 const MoreRows = ({
   shown,
@@ -1623,7 +1673,7 @@ export default function LeadsTable({
           const paged = rows.length > PAGED_MIN;
           const pages = Math.max(1, Math.ceil(rows.length / PAGE_ROWS));
           const page = Math.min(pageOf[st.id] ?? 0, pages - 1);
-          const shownRows = paged ? rows.slice(page * PAGE_ROWS, (page + 1) * PAGE_ROWS) : rows.slice(0, limit);
+          const shownRows = rows; // tout le groupe est affiché (on ferme le groupe pour passer au suivant)
           const goPage = (p: number) => setPageOf((m) => ({ ...m, [st.id]: Math.max(0, Math.min(pages - 1, p)) }));
           return (
             <section
@@ -1661,7 +1711,6 @@ export default function LeadsTable({
                     {rows.length} lead{rows.length > 1 ? "s" : ""}
                   </span>
                 </button>
-                {paged && !isCollapsed && <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} />}
                 {!readOnlyGroups && (
                 <GroupMenu
                   group={st}
@@ -1819,50 +1868,6 @@ export default function LeadsTable({
                     />
                   ))}
 
-                  {paged && (
-                    <div className="h-10 border-b border-[#d0d4e4]" style={{ background: `${st.color}10` }}>
-                      <div className="sticky left-0 w-max max-w-[100vw] h-10 flex items-center gap-3 px-3">
-                        <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} compact />
-                        <span className="text-xs text-gray-500">Page {page + 1} sur {pages} · il reste {Math.max(0, rows.length - (page + 1) * PAGE_ROWS)} clients après cette page</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {!paged && rows.length > limit && (
-                    <MoreRows
-                      shown={limit}
-                      total={rows.length}
-                      color={st.color}
-                      onMore={() => setLimits((m) => ({ ...m, [st.id]: limit + GROUP_STEP }))}
-                      onAll={() => setLimits((m) => ({ ...m, [st.id]: rows.length }))}
-                    />
-                  )}
-
-                  {showTotals &&
-                    (() => {
-                      const totals = cols.map((c) => (c.type === "name" ? "" : columnTotal(c, rows)));
-                      if (!totals.some(Boolean)) return null;
-                      return (
-                        <div className="grid items-stretch border-b border-[#d0d4e4] h-9 bg-[#fff6ef] text-[13px] font-bold text-gray-800" style={{ gridTemplateColumns: template }}>
-                          {cols.map((c, i) =>
-                            i === 0 ? (
-                              <div
-                                key={c.key}
-                                className="sticky left-0 z-10 flex items-center gap-1.5 px-3 bg-[#fff0e6] border-r border-[#d0d4e4] text-[#c2410c]"
-                                style={{ borderLeft: `6px solid ${st.color}` }}
-                              >
-                                Σ Total du groupe
-                              </div>
-                            ) : (
-                              <div key={c.key} className="border-l border-[#d0d4e4] flex items-center justify-end px-2 truncate" title={totals[i]}>
-                                {totals[i]}
-                              </div>
-                            ),
-                          )}
-                        </div>
-                      );
-                    })()}
-
                   {!readOnlyGroups && (
                     <AddRow
                       color={st.color}
@@ -1872,6 +1877,7 @@ export default function LeadsTable({
                     />
                   )}
                 </div>
+                <GroupSummary cols={cols} template={template} rows={rows} showTotals={!!showTotals} />
                 </div>
               )}
             </section>
