@@ -96,7 +96,7 @@ export function RappelPicker({
           </button>
         )}
       </div>
-      <PopoverContent align="start" className="w-auto p-3 max-w-[96vw]">
+      <PopoverContent align="start" className="w-auto p-3 max-w-[96vw] bg-white text-gray-900 border border-gray-200 shadow-xl z-[60]">
         <div className="flex flex-wrap gap-1.5 mb-1">
           <button className={chip} onClick={() => pick(day(0))}>Aujourd'hui</button>
           <button className={chip} onClick={() => pick(day(1))}>Demain</button>
@@ -112,7 +112,7 @@ export function RappelPicker({
           month={month}
           onMonthChange={setMonth}
           disabled={{ before: new Date(new Date().setHours(0, 0, 0, 0)) }}
-          className="p-1"
+          className="p-1 bg-white text-gray-900"
         />
         <div className="border-t border-gray-100 pt-2">
           <div className="flex items-center gap-2 mb-2">
@@ -122,7 +122,7 @@ export function RappelPicker({
               step={300}
               value={t}
               onChange={(e) => setT(e.target.value)}
-              className="text-sm border border-gray-200 rounded-md px-2 py-1"
+              className="text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2 py-1 [color-scheme:light]"
             />
           </div>
           <div className="flex flex-wrap gap-1.5 mb-3">
