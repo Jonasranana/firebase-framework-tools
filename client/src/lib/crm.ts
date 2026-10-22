@@ -404,3 +404,6 @@ export function ageLevel(l: Lead, now: number = Date.now()): AgeLevel | null {
   const days = Math.floor((now - t) / 86400000);
   return days >= 15 ? "rouge" : days >= 6 ? "orange" : "vert";
 }
+
+// Comptes qui voient les totaux en bas des groupes (montants, marges…).
+export const TOTALS_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "contact@ip5energie.com"];

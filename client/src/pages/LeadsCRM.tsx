@@ -60,6 +60,7 @@ import {
   statusInfo,
   isClosedStatus,
   AGE_COLORS,
+  TOTALS_VIEWERS,
   groupOf,
   telHref,
   todayYmd,
@@ -1544,6 +1545,7 @@ export default function LeadsCRM({
         <StatusEditContext.Provider value={editLabels}>
         <div ref={zoomWrapRef} style={{ zoom: Number.isFinite(zoom) && zoom >= 0.45 && zoom <= 1.5 ? zoom : 1 }}>
         <LeadsTable
+          showTotals={TOTALS_VIEWERS.includes(email.toLowerCase())}
           leads={filtered}
           groups={grouping ? grouping.groups : groups}
           groupKeyOf={grouping?.keyOf}
