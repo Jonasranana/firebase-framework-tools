@@ -51,7 +51,7 @@ export default function StatusLabelEditor({
       <DialogContent className="max-w-3xl bg-white text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier les étiquettes</DialogTitle>
-          <p className="text-xs text-gray-500">Glissez pour changer l'ordre. Chaque couleur ne peut servir qu'une seule fois dans cette colonne.</p>
+          <p className="text-xs text-gray-500">Glissez pour changer l'ordre. Chaque couleur ne sert qu'une seule fois dans cette colonne : seules les couleurs libres sont proposées.</p>
         </DialogHeader>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {empty && (
@@ -78,8 +78,8 @@ export default function StatusLabelEditor({
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-2 bg-white border border-gray-200 shadow-xl" align="start">
                     <div className="grid grid-cols-6 gap-1.5">
-                      {LABEL_COLORS.map((c) => {
-                        const isTaken = taken.has(c) && c !== o.hex.toLowerCase();
+                      {LABEL_COLORS.filter((c) => !taken.has(c) || c === o.hex.toLowerCase()).map((c) => {
+                        const isTaken = false;
                         return (
                           <button
                             key={c}

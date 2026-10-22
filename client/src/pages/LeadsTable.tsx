@@ -1,6 +1,6 @@
 import FileColCell from "./FileColCell";
 import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import StatusLabelEditor from "./StatusLabelEditor";
+import StatusLabelEditor, { LABEL_COLORS } from "./StatusLabelEditor";
 import { startPointerDrag } from "@/lib/pointerDrag";
 import {
   Check,
@@ -157,6 +157,24 @@ export const StatusCell = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
+  // Ajout rapide d'une étiquette depuis la liste : nom + couleur (seulement les couleurs libres de la colonne).
+  const [adding, setAdding] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [newHex, setNewHex] = useState("");
+  const freeColors = LABEL_COLORS.filter((c) => !options.some((o) => o.hex.toLowerCase() === c));
+  const createLabel = () => {
+    const label = newLabel.trim();
+    if (!label || !onEditLabels) return;
+    const hex = newHex || freeColors[0] || LABEL_COLORS[0];
+    const key = `o_${Math.random().toString(36).slice(2, 7)}`;
+    const empty = options.filter((o) => o.label === "");
+    onEditLabels([...options.filter((o) => o.label !== ""), { key, label, hex }, ...empty]);
+    onChange(key);
+    setAdding(false);
+    setNewLabel("");
+    setNewHex("");
+    setOpen(false);
+  };
   const isMobile = useIsMobile();
   const s = options.find((o) => o.key === status);
   const visibleOptions = options.filter((o) => o.label !== "" && (!o.off || o.key === status));
@@ -218,6 +236,67 @@ export const StatusCell = ({
               );
             })}
           </div>
+
+          {onEditLabels && (
+            <div className="mt-2" style={{ width: fitWidth }}>
+              {!adding ? (
+                <button
+                  onClick={() => {
+                    setAdding(true);
+                    setNewHex(freeColors[0] ?? "");
+                  }}
+                  className="w-full min-h-9 inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-[#c2410c] border-2 border-dashed border-[#ffb37a] rounded hover:bg-orange-50"
+                >
+                  <Plus size={15} /> Nouvelle étiquette
+                </button>
+              ) : (
+                <div className="border border-[#ffb37a] rounded-md p-2 space-y-2 bg-orange-50/40">
+                  <input
+                    autoFocus
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") createLabel();
+                      if (e.key === "Escape") setAdding(false);
+                    }}
+                    placeholder="Nom de l'étiquette"
+                    className="w-full text-sm bg-white border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-[#ff6a1a]"
+                  />
+                  <p className="text-[11px] text-gray-500">Couleur (seulement celles qui ne sont pas déjà prises dans cette colonne) :</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {freeColors.map((c) => (
+                      <button
+                        key={c}
+                        onClick={() => setNewHex(c)}
+                        aria-label={`Couleur ${c}`}
+                        className={`w-7 h-7 rounded-md border-2 hover:scale-110 transition ${newHex === c ? "border-gray-900" : "border-transparent"}`}
+                        style={{ background: c }}
+                      />
+                    ))}
+                    {freeColors.length === 0 && <span className="text-xs text-gray-500">Toutes les couleurs sont déjà prises.</span>}
+                  </div>
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className="min-h-8 flex-1 inline-flex items-center justify-center rounded text-sm font-semibold text-white px-2 truncate"
+                      style={{ background: newHex || "#c4c4c4" }}
+                    >
+                      {newLabel.trim() || "Aperçu"}
+                    </span>
+                    <button onClick={() => setAdding(false)} className="text-xs text-gray-500 px-2 py-1 rounded hover:bg-gray-100">
+                      Annuler
+                    </button>
+                    <button
+                      onClick={createLabel}
+                      disabled={!newLabel.trim()}
+                      className="text-sm font-bold text-white bg-[#ff6a1a] hover:bg-[#e85a0c] disabled:opacity-40 rounded px-3 py-1.5"
+                    >
+                      Créer
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {(onEditLabels || clearable || options.some((o) => o.label === "")) && (
             <div className="mt-2.5 pt-2 border-t border-[#d0d4e4] flex items-center justify-between gap-2" style={{ width: fitWidth }}>
