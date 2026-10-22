@@ -62,6 +62,7 @@ import {
   LEAD_COLUMNS,
   cellPatch,
   cellValue,
+  columnTotal,
   formulaValue,
   type LeadColumn,
 } from "@/lib/crmColumns";
@@ -1240,7 +1241,10 @@ export default function LeadsTable({
   onMoveColumn,
   onRenameColumn,
   onResizeColumn,
+  showTotals,
 }: {
+  // Ligne « Total » en bas de chaque groupe (administrateurs seulement).
+  showTotals?: boolean;
   // Glisser-déposer d'une colonne et renommage en cliquant sur son titre.
   onMoveColumn?: (key: string, targetKey: string) => void;
   onRenameColumn?: (key: string, title: string) => void;
@@ -1833,6 +1837,31 @@ export default function LeadsTable({
                       onAll={() => setLimits((m) => ({ ...m, [st.id]: rows.length }))}
                     />
                   )}
+
+                  {showTotals &&
+                    (() => {
+                      const totals = cols.map((c) => (c.type === "name" ? "" : columnTotal(c, rows)));
+                      if (!totals.some(Boolean)) return null;
+                      return (
+                        <div className="grid items-stretch border-b border-[#d0d4e4] h-9 bg-[#fff6ef] text-[13px] font-bold text-gray-800" style={{ gridTemplateColumns: template }}>
+                          {cols.map((c, i) =>
+                            i === 0 ? (
+                              <div
+                                key={c.key}
+                                className="sticky left-0 z-10 flex items-center gap-1.5 px-3 bg-[#fff0e6] border-r border-[#d0d4e4] text-[#c2410c]"
+                                style={{ borderLeft: `6px solid ${st.color}` }}
+                              >
+                                Σ Total du groupe
+                              </div>
+                            ) : (
+                              <div key={c.key} className="border-l border-[#d0d4e4] flex items-center justify-end px-2 truncate" title={totals[i]}>
+                                {totals[i]}
+                              </div>
+                            ),
+                          )}
+                        </div>
+                      );
+                    })()}
 
                   {!readOnlyGroups && (
                     <AddRow

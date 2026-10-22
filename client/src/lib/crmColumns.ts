@@ -320,7 +320,7 @@ export function opportunite(l: Lead): string {
 }
 
 // Montant attendu × % de réussite (ex. 12 000 € à 50 % → 6 000 €). Vide si l'un des deux manque.
-const toNum = (v: unknown) => {
+export const toNum = (v: unknown) => {
   const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".").replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : null;
 };
@@ -352,3 +352,16 @@ export function formulaValue(l: Lead, c: LeadColumn): string {
 
 export const DEFAULT_VISIBLE = BASE_LEAD_COLUMNS.map((c) => c.key);
 export { LEAD_TYPES };
+
+// Total d'une colonne pour un groupe (ligne « Total », réservée aux administrateurs) :
+// somme pour les nombres et montants, moyenne pour les pourcentages. Vide pour les autres colonnes.
+export function columnTotal(c: LeadColumn, rows: Lead[]): string {
+  const isNumber = c.type === "number" || c.key === "montantPondere";
+  if (!isNumber) return "";
+  const vals = rows.map((l) => toNum(c.type === "formula" ? formulaValue(l, c) : cellValue(l, c))).filter((n): n is number => n !== null);
+  if (!vals.length) return "";
+  const sum = vals.reduce((a, b) => a + b, 0);
+  if (c.unit === "%") return `moy. ${(Math.round((sum / vals.length) * 10) / 10).toLocaleString("fr-FR")} %`;
+  const unit = c.key === "montantPondere" ? "€" : c.unit ?? "";
+  return `${(Math.round(sum * 100) / 100).toLocaleString("fr-FR")}${unit ? ` ${unit}` : ""}`;
+}
