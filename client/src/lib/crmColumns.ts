@@ -154,6 +154,12 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "region", title: "🗺️ Région", type: "formula", width: 140 },
   { key: "ressenti", title: "🎭 Ressenti de l'appel", type: "status", width: 160, options: RESSENTI },
   { key: ATTRIBUE_KEY, title: "🎯 Attribué à", type: "status", width: 130, options: ATTRIBUE },
+  // Prévisions commerciales : chance de signer, montant attendu, montant pondéré (calculé), dates prévues.
+  { key: "pctReussite", title: "🎲 % de réussite", type: "number", width: 120, unit: "%" },
+  { key: "montantAttendu", title: "💶 Montant attendu", type: "number", width: 140, unit: "€" },
+  { key: "montantPondere", title: "📊 Montant pondéré", type: "formula", width: 150 },
+  { key: "dateInstallPrevue", title: "🔧 Date prévue d'installation", type: "date", width: 170 },
+  { key: "datePaiementPrevue", title: "💰 Date prévue de paiement", type: "date", width: 170 },
 ];
 
 // Colonnes affichées = colonnes d'origine + colonnes ajoutées, dans l'ordre choisi
@@ -313,6 +319,18 @@ export function opportunite(l: Lead): string {
   return "⚪ Non prioritaire";
 }
 
+// Montant attendu × % de réussite (ex. 12 000 € à 50 % → 6 000 €). Vide si l'un des deux manque.
+const toNum = (v: unknown) => {
+  const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".").replace(/[^0-9.\-]/g, ""));
+  return Number.isFinite(n) ? n : null;
+};
+export function montantPondere(l: Lead): string {
+  const pct = toNum(l.fields.pctReussite);
+  const montant = toNum(l.fields.montantAttendu);
+  if (pct === null || montant === null) return "";
+  return `${Math.round((montant * pct) / 100).toLocaleString("fr-FR")} €`;
+}
+
 export function formulaValue(l: Lead, c: LeadColumn): string {
   switch (c.key) {
     case "zoneCalc":
@@ -325,6 +343,8 @@ export function formulaValue(l: Lead, c: LeadColumn): string {
       return prenomAuto(l.name);
     case "opportunite":
       return opportunite(l);
+    case "montantPondere":
+      return montantPondere(l);
     default:
       return "";
   }
