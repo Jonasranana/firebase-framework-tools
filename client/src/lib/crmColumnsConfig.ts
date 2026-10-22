@@ -95,7 +95,7 @@ export function useColumnsConfig(email: string, boardId = "leads") {
             const old = expiredColumns(c);
             if (old.length) {
               c = old.reduce((acc, e) => purgeColumn(acc, e.key), c);
-              m.setDoc(snap.ref, { config: c, updatedAt: m.serverTimestamp(), updatedBy: email }).catch(() => {});
+              m.setDoc(snap.ref, { config: JSON.parse(JSON.stringify(c)), updatedAt: m.serverTimestamp(), updatedBy: email }).catch(() => {});
             }
             applyColumnsConfig(c, boardId);
             setConfig(c);
@@ -122,7 +122,10 @@ export function useColumnsConfig(email: string, boardId = "leads") {
     setVersion((v) => v + 1);
     try {
       const { m, db } = await crmFirestore();
-      await m.setDoc(m.doc(db, "crm_boards", columnsDocId(boardId)), { config: next, updatedAt: m.serverTimestamp(), updatedBy: email });
+      // Firestore refuse les valeurs « undefined » (ex. options d'une colonne texte, nombre, date, fichiers) :
+      // on les retire avant l'envoi, sinon l'ajout ou le changement de type d'une colonne échoue.
+      const clean = JSON.parse(JSON.stringify(next)) as ColumnsConfig;
+      await m.setDoc(m.doc(db, "crm_boards", columnsDocId(boardId)), { config: clean, updatedAt: m.serverTimestamp(), updatedBy: email });
       setError("");
     } catch (e) {
       console.error(e);
