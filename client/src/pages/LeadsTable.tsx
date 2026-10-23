@@ -410,7 +410,9 @@ const GroupMenu = ({
   onMove,
   onDelete,
   onArchive,
+  onExportGroup,
 }: {
+  onExportGroup?: () => void;
   group: LeadGroup;
   index: number;
   total: number;
@@ -470,6 +472,7 @@ const GroupMenu = ({
             <Item icon={Pencil} label="Renommer ce groupe" onClick={() => setPanel("rename")} />
             <Item icon={Palette} label="Modifier la couleur du groupe" onClick={() => setPanel("color")} />
             <div className="my-1 border-t border-gray-100" />
+            <Item icon={Download} label="Exporter le groupe (Drive / Excel)" onClick={() => { close(); onExportGroup?.(); }} />
             <Item icon={Archive} label="Archiver ce groupe" onClick={() => { close(); onArchive(); }} disabled={total <= 1} />
             <Item
               icon={Trash2}
@@ -1013,7 +1016,7 @@ const LeadRow = memo(function LeadRow({
 
 // Résumé sous chaque groupe, comme dans Monday : barre de répartition des étiquettes pour les colonnes
 // d'étiquettes ; somme (ou moyenne pour les %) pour les colonnes de chiffres, réservée aux administrateurs.
-const GroupSummary = ({ cols, template, rows, showTotals }: { cols: LeadColumn[]; template: string; rows: Lead[]; showTotals: boolean }) => {
+const GroupSummary = memo(function GroupSummary({ cols, template, rows, showTotals }: { cols: LeadColumn[]; template: string; rows: Lead[]; showTotals: boolean }) {
   if (!rows.length) return null;
   return (
     <div className="grid items-stretch h-11 text-[12px]" style={{ gridTemplateColumns: template }}>
@@ -1059,7 +1062,7 @@ const GroupSummary = ({ cols, template, rows, showTotals }: { cols: LeadColumn[]
       })}
     </div>
   );
-};
+});
 
 // Ligne discrète sous les lignes d'un petit groupe : il reste des clients à afficher (clic = la suite).
 const MoreRows = ({
@@ -1360,6 +1363,7 @@ export default function LeadsTable({
   onCreate: (groupId: string, name: string) => void;
   // Copie les leads d'un groupe dans un autre (duplication d'un groupe).
   onDuplicateLeads: (fromGroupId: string, toGroupId: string) => void;
+  onExportGroup?: (groupId: string, groupTitle: string, rows: Lead[]) => void;
   visible: string[];
   setVisible: (v: string[]) => void;
   // Zoom enregistré (appelé à la fin du pincement) et zoom « en direct » pendant le pincement (sans redessiner le tableau).
@@ -1708,7 +1712,7 @@ export default function LeadsTable({
           const paged = rows.length > PAGED_MIN;
           const pages = Math.max(1, Math.ceil(rows.length / PAGE_ROWS));
           const page = Math.min(pageOf[st.id] ?? 0, pages - 1);
-          const shownRows = rows; // tout le groupe est affiché (on ferme le groupe pour passer au suivant)
+          const shownRows = paged ? rows.slice(page * PAGE_ROWS, (page + 1) * PAGE_ROWS) : rows.slice(0, limit);
           const goPage = (p: number) => setPageOf((m) => ({ ...m, [st.id]: Math.max(0, Math.min(pages - 1, p)) }));
           return (
             <section
@@ -1746,6 +1750,7 @@ export default function LeadsTable({
                     {rows.length} lead{rows.length > 1 ? "s" : ""}
                   </span>
                 </button>
+                {paged && !isCollapsed && <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} />}
                 {!readOnlyGroups && (
                 <GroupMenu
                   group={st}
@@ -1767,6 +1772,7 @@ export default function LeadsTable({
                   onMove={(to) => moveGroup(st.id, to)}
                   onDelete={() => onGroupsChange(groups.filter((g) => g.id !== st.id))}
                   onArchive={() => patchGroup(st.id, { archived: true })}
+                  onExportGroup={() => onExportGroup?.(st.id, st.title, rows)}
                 />
                 )}
               </div>
@@ -1902,6 +1908,25 @@ export default function LeadsTable({
                       onStatus={stableCb.status}
                     />
                   ))}
+
+                  {paged && (
+                    <div className="h-10 border-b border-[#d0d4e4]" style={{ background: `${st.color}10` }}>
+                      <div className="sticky left-0 w-max max-w-[100vw] h-10 flex items-center gap-3 px-3">
+                        <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} compact />
+                        <span className="text-xs text-gray-500">Page {page + 1} sur {pages} · il reste {Math.max(0, rows.length - (page + 1) * PAGE_ROWS)} clients après cette page</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {!paged && rows.length > limit && (
+                    <MoreRows
+                      shown={limit}
+                      total={rows.length}
+                      color={st.color}
+                      onMore={() => setLimits((m) => ({ ...m, [st.id]: limit + GROUP_STEP }))}
+                      onAll={() => setLimits((m) => ({ ...m, [st.id]: rows.length }))}
+                    />
+                  )}
 
                   {!readOnlyGroups && (
                     <AddRow

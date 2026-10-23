@@ -18,6 +18,7 @@ import {
   ExternalLink,
   SendHorizonal,
   Filter,
+  HardDrive,
 } from "lucide-react";
 import {
   Sheet,
@@ -40,7 +41,7 @@ import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 import ColumnMenu from "./ColumnMenu";
 import { PersonBar } from "./LeadsFilter";
 import { AddSplit, GroupByMenu, MoreMenu, QuickFilter, SearchToggle, SortMenu } from "./LeadsToolbar";
-import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
+import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, downloadCsvFile, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
 import { ROOT_ADMINS, memberName } from "@/lib/crmTeam";
 import LeadsTable, { ColumnsMenu, StatusEditContext, useVisibleColumns } from "./LeadsTable";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -102,6 +103,7 @@ async function patchLead(
   const statusTouched = "status" in patch || etapeKeys.some((k) => k in patch);
   await m.updateDoc(m.doc(db, CRM_LEADS_COLLECTION, id), {
     ...patch,
+    crmOwned: true,
     ...(statusTouched ? { statusChangedAt: m.serverTimestamp() } : {}),
     updatedAt: m.serverTimestamp(),
     updatedBy: email,
@@ -949,6 +951,222 @@ const MobileBottomBar = ({
   );
 };
 
+// ── Boîte de dialogue d'export Google Drive avec choix de dossier existant ────────
+function ExportDriveModal({
+  data,
+  email,
+  visibleCols,
+  onClose,
+  onSuccess,
+}: {
+  data: { groupId: string; groupTitle: string; leads: Lead[] };
+  email: string;
+  visibleCols: string[];
+  onClose: () => void;
+  onSuccess: (count: number) => void;
+}) {
+  const [knownFolders, setKnownFolders] = useState<string[]>([
+    "Pas éligible PAC / Pas intéressé PAC",
+    "Fichiers clients",
+  ]);
+  const [selectedFolder, setSelectedFolder] = useState<string>("Pas éligible PAC / Pas intéressé PAC");
+  const [customFolder, setCustomFolder] = useState<string>(data.groupTitle);
+  const [mode, setMode] = useState<"existing" | "new">("existing");
+  const [archiveAfter, setArchiveAfter] = useState<boolean>(true);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const { m, db } = await fs();
+        const snap = await m.getDoc(m.doc(db, CRM_BOARDS_COLLECTION, "drive_folders"));
+        if (snap.exists()) {
+          const list = snap.data()?.folders;
+          if (Array.isArray(list) && list.length) {
+            setKnownFolders(Array.from(new Set([
+              "Pas éligible PAC / Pas intéressé PAC",
+              "Fichiers clients",
+              ...list.filter(Boolean),
+            ])));
+          }
+        }
+      } catch (e) {
+        console.error("Erreur lecture drive_folders:", e);
+      }
+    })();
+  }, []);
+
+  const handleExport = async () => {
+    const targetFolder = (mode === "existing" ? selectedFolder : customFolder).trim() || data.groupTitle;
+    const ok = window.confirm(
+      `Êtes-vous sûr de vouloir exporter les ${data.leads.length} client(s) vers le dossier « ${targetFolder} »${archiveAfter ? " et les sortir du CRM actif" : ""} ?`
+    );
+    if (!ok) return;
+    setBusy(true);
+
+    try {
+      const { m, db } = await fs();
+      // Mémoriser le dossier dans Firestore pour toute l'équipe
+      await m.setDoc(
+        m.doc(db, CRM_BOARDS_COLLECTION, "drive_folders"),
+        { folders: m.arrayUnion(targetFolder), updatedAt: m.serverTimestamp() },
+        { merge: true },
+      ).catch(console.error);
+
+      // Générer le CSV avec BOM UTF-8 et déclencher le téléchargement fiable
+      const cols = LEAD_COLUMNS.filter((col) => visibleCols.includes(col.key));
+      const today = new Date().toISOString().slice(0, 10);
+      const fileName = `Export_${targetFolder.replace(/[\\/:*?"<>|\s]+/g, "_")}_${today}.csv`;
+      downloadCsvFile(leadsToCsv(data.leads, cols), fileName);
+
+      // Sortir du CRM actif si demandé
+      if (archiveAfter) {
+        for (let i = 0; i < data.leads.length; i += 400) {
+          const batch = m.writeBatch(db);
+          for (const l of data.leads.slice(i, i + 400)) {
+            batch.update(m.doc(db, CRM_LEADS_COLLECTION, l.id), {
+              deletedAt: m.serverTimestamp(),
+              deletedBy: `Archive Drive - ${targetFolder}`,
+              archivedToDrive: true,
+              updatedAt: m.serverTimestamp(),
+              updatedBy: email,
+              notes: m.arrayUnion({
+                id: newId(),
+                text: `Fiche exportée vers Google Drive (dossier « ${targetFolder} ») et archivée du CRM.`,
+                by: email,
+                at: new Date().toISOString(),
+                kind: "statut",
+              }),
+            });
+          }
+          await batch.commit();
+        }
+      }
+
+      onSuccess(data.leads.length);
+      onClose();
+    } catch (err: any) {
+      console.error(err);
+      alert("Une erreur est survenue lors de l'export.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-w-lg bg-white text-gray-900 p-6 rounded-2xl shadow-2xl">
+        <DialogTitle className="flex items-center gap-2.5 text-lg font-bold text-gray-900 mb-1">
+          <HardDrive className="text-[#0073ea]" size={22} /> Exporter vers Google Drive
+        </DialogTitle>
+        <p className="text-xs text-gray-500 mb-4">
+          Groupe ciblé : <strong className="text-gray-800">{data.groupTitle}</strong> ({data.leads.length} client{data.leads.length > 1 ? "s" : ""})
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-2">
+              Dossier de destination (Sauvegardes CRM IP5)
+            </label>
+
+            {/* Choix 1 : Dossier existant */}
+            <div
+              onClick={() => setMode("existing")}
+              className={`p-3 rounded-xl border-2 cursor-pointer transition-all mb-2 ${
+                mode === "existing" ? "border-[#0073ea] bg-blue-50/50" : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2 font-semibold text-sm text-gray-800">
+                <input
+                  type="radio"
+                  name="driveMode"
+                  checked={mode === "existing"}
+                  onChange={() => setMode("existing")}
+                  className="w-4 h-4 text-[#0073ea]"
+                />
+                Dossier existant dans Google Drive :
+              </div>
+              <select
+                disabled={mode !== "existing"}
+                value={selectedFolder}
+                onChange={(e) => setSelectedFolder(e.target.value)}
+                className="w-full text-sm bg-white border border-gray-300 rounded-lg p-2 font-medium text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0073ea]"
+              >
+                {knownFolders.map((f) => (
+                  <option key={f} value={f}>
+                    📁 {f}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Choix 2 : Nouveau dossier */}
+            <div
+              onClick={() => setMode("new")}
+              className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                mode === "new" ? "border-[#0073ea] bg-blue-50/50" : "border-gray-200 hover:border-gray-300"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2 font-semibold text-sm text-gray-800">
+                <input
+                  type="radio"
+                  name="driveMode"
+                  checked={mode === "new"}
+                  onChange={() => setMode("new")}
+                  className="w-4 h-4 text-[#0073ea]"
+                />
+                Créer un nouveau dossier spécifique :
+              </div>
+              <input
+                disabled={mode !== "new"}
+                type="text"
+                value={customFolder}
+                onChange={(e) => setCustomFolder(e.target.value)}
+                placeholder="Nom du nouveau dossier Drive..."
+                className="w-full text-sm bg-white border border-gray-300 rounded-lg p-2 text-gray-800 focus:outline-none focus:ring-2 focus:ring-[#0073ea]"
+              />
+            </div>
+          </div>
+
+          {/* Option Alléger le CRM */}
+          <div className="bg-amber-50/70 border border-amber-200 rounded-xl p-3 flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="archiveAfterCheck"
+              checked={archiveAfter}
+              onChange={(e) => setArchiveAfter(e.target.checked)}
+              className="mt-0.5 w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+            />
+            <label htmlFor="archiveAfterCheck" className="text-xs text-amber-900 cursor-pointer">
+              <strong className="block font-bold">Sortir ces fiches du CRM actif pour l'alléger</strong>
+              Les clients sont retirés de la liste active pour alléger le site et réduire la mémoire, tout en restant sauvegardés dans le fichier Drive et réintégrables à tout moment.
+            </label>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-2.5 mt-6 pt-3 border-t border-gray-100">
+          <button
+            type="button"
+            disabled={busy}
+            onClick={onClose}
+            className="px-4 py-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            Annuler
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={handleExport}
+            className="px-5 py-2 text-sm font-bold text-white bg-[#0073ea] hover:bg-[#0060c4] rounded-lg shadow transition-colors flex items-center gap-2 disabled:opacity-50"
+          >
+            {busy ? "Export en cours..." : "Exporter vers Google Drive"}
+          </button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 // ── Page ───────────────────────────────────────────────────────────────────
 export default function LeadsCRM({
   email,
@@ -1258,26 +1476,53 @@ export default function LeadsCRM({
     remove: (ids: string[]) => bulkWrite(ids, { deletedAt: new Date(), deletedBy: email }),
     exportCsv: (ids: string[]) => {
       const set = new Set(ids);
+      const rows = (leads ?? []).filter((l) => set.has(l.id));
+      if (!rows.length) {
+        alert("Aucun client sélectionné.");
+        return;
+      }
+      const ok = window.confirm(
+        `Êtes-vous sûr de vouloir exporter les ${rows.length} client(s) sélectionné(s) vers Excel / CSV ?`
+      );
+      if (!ok) return;
       const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
-      const blob = new Blob([leadsToCsv((leads ?? []).filter((l) => set.has(l.id)), cols)], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `leads-selection-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const fileName = `leads-selection-${new Date().toISOString().slice(0, 10)}.csv`;
+      downloadCsvFile(leadsToCsv(rows, cols), fileName);
+      alert(`✅ Export lancé : ${rows.length} client(s) téléchargés dans "${fileName}".`);
     },
   };
 
+  const [exportDriveModal, setExportDriveModal] = useState<{
+    groupId: string;
+    groupTitle: string;
+    leads: Lead[];
+  } | null>(null);
+
+  const onExportGroup = (groupId: string, groupTitle: string, groupRows: Lead[]) => {
+    if (!groupRows.length) {
+      alert("Ce groupe ne contient aucun client à exporter.");
+      return;
+    }
+    setExportDriveModal({
+      groupId,
+      groupTitle,
+      leads: groupRows,
+    });
+  };
+
   const exportCsv = () => {
+    if (!filtered.length) {
+      alert("Aucun client à exporter dans la vue actuelle.");
+      return;
+    }
+    const ok = window.confirm(
+      `Êtes-vous sûr de vouloir exporter les ${filtered.length} client(s) affichés vers Excel / CSV ?`
+    );
+    if (!ok) return;
     const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
-    const blob = new Blob([leadsToCsv(filtered, cols)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `leads-ip5-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const fileName = `leads-ip5-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadCsvFile(leadsToCsv(filtered, cols), fileName);
+    alert(`✅ Export lancé : ${filtered.length} client(s) exportés dans "${fileName}".`);
   };
 
   const saveGroups = async (next: LeadGroup[]) => {
@@ -1496,6 +1741,14 @@ export default function LeadsCRM({
         {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
         <GroupByMenu value={groupBy} onChange={setGroupBy} />
         <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
+        <button
+          type="button"
+          onClick={exportCsv}
+          title="Exporter toutes les fiches visibles en fichier Excel / CSV"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 shadow-sm transition-colors"
+        >
+          <HardDrive size={14} className="text-[#0073ea]" /> Exporter CSV
+        </button>
         <MoreMenu onExport={exportCsv} count={filtered.length} zoom={zoom} onZoom={changeZoom} />
         {views.length > 0 && (
           <select
@@ -1587,6 +1840,7 @@ export default function LeadsCRM({
           onGroupsChange={saveGroups}
           onGroup={moveToGroup}
           onDuplicateLeads={duplicateLeads}
+          onExportGroup={onExportGroup}
           bulk={bulk}
           fitZoom={zoom}
           onChangeZoom={changeZoom}
@@ -1746,6 +2000,18 @@ export default function LeadsCRM({
         leads={leads ?? []}
         saveView={saveView}
       />
+
+      {exportDriveModal && (
+        <ExportDriveModal
+          data={exportDriveModal}
+          email={email}
+          visibleCols={visibleCols}
+          onClose={() => setExportDriveModal(null)}
+          onSuccess={(cnt) => {
+            alert(`✅ ${cnt} client(s) exportés avec succès !`);
+          }}
+        />
+      )}
 
       <LeadSheet
         boardId={boardId}

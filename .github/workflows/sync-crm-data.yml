@@ -1,10 +1,9 @@
 name: Sync CRM data
 
 on:
-  schedule:
-    # Toutes les 15 minutes : copie les leads Monday vers Firestore
-    # (collection crm_clients, lue par l'onglet Clients de l'Espace Pro).
-    - cron: "*/15 * * * *"
+  # Passage automatique arrêté : lancement manuel uniquement (workflow_dispatch).
+  # schedule:
+  #   - cron: "*/15 * * * *"
   workflow_dispatch:
 
 concurrency:

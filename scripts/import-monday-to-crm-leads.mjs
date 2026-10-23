@@ -297,7 +297,8 @@ for await (const item of fetchItems()) {
     byStatus[lead.data.status] = (byStatus[lead.data.status] ?? 0) + 1;
     stats.importes++;
     if (!DRY_RUN) {
-      const { notes, createdAt, ...rest } = lead.data;
+      // Sécurité : ne jamais écraser statut ou groupe existant lors du rafraîchissement.
+      const { notes, createdAt, status, group, ...rest } = lead.data;
       writer.update(db.doc(`crm_leads/${lead.id}`), { ...rest, updatedBy: "import Monday" }).catch((e) => {
         stats.erreurs++;
         console.error(`ÉCHEC ${lead.id}: ${e.message}`);
