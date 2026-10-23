@@ -718,6 +718,22 @@ const crmTypeForSource = (f) => {
   return "Autre";
 };
 
+// Réponses du formulaire du site → colonnes du tableau Pac Pac (voir LEAD_COLUMNS côté CRM).
+const crmSiteFields = (f) => {
+  const out = {
+    tranche: f.incomeBracket,
+    foyerSite: f.householdSize,
+    chauffageSite: f.currentHeating,
+    surface: f.surface,
+  };
+  for (const k of Object.keys(out)) {
+    const v = String(out[k] ?? "").trim();
+    if (v) out[k] = v;
+    else delete out[k];
+  }
+  return out;
+};
+
 exports.copyLeadToCrm = onDocumentCreated(
   {
     document: "ip5_leads/{leadId}",
@@ -764,6 +780,9 @@ exports.copyLeadToCrm = onDocumentCreated(
         status: "nouveau_lead",
         group: "nouveaux",
         rappelLe: "",
+        // Colonnes « Tranche / Foyer / Chauffage / Surface (Site) » du tableau : remplies directement ici,
+        // sans attendre la synchro Monday (arrêtée le 20/10, d'où des fiches sans ces informations).
+        fields: crmSiteFields(f),
         details,
         notes: [],
         createdAt: f.createdAt ?? FieldValue.serverTimestamp(),
