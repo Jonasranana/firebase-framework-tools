@@ -1137,19 +1137,20 @@ const GroupPager = ({
 };
 
 // Tranche de revenus : un rond de la couleur du profil (bleu, jaune, violet, rose) au lieu du texte ; le texte reste au survol.
-const trancheColor = (v: string) => {
+const trancheInfo = (v: string): { color: string; name: string } | null => {
   const t = v.toLowerCase();
-  if (t.includes("très modeste") || t.includes("bleu")) return "#2f7df6";
-  if (t.includes("modeste") || t.includes("jaune")) return "#f5c518";
-  if (t.includes("intermédiaire") || t.includes("violet")) return "#8b4be0";
-  if (t.includes("supérieur") || t.includes("rose")) return "#f0509a";
-  return "";
+  if (t.includes("très modeste") || t.includes("bleu")) return { color: "#2f7df6", name: "Bleu" };
+  if (t.includes("modeste") || t.includes("jaune")) return { color: "#f5c518", name: "Jaune" };
+  if (t.includes("intermédiaire") || t.includes("violet")) return { color: "#8b4be0", name: "Violet" };
+  if (t.includes("supérieur") || t.includes("rose")) return { color: "#f0509a", name: "Rose" };
+  return null;
 };
 const trancheDot = (v: string): ReactNode => {
-  const c = trancheColor(v);
+  const c = trancheInfo(v);
   return c ? (
-    <span className="inline-flex items-center h-full" title={v}>
-      <span className="inline-block w-4 h-4 rounded-full border border-black/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]" style={{ background: c }} />
+    <span className="inline-flex items-center gap-1.5 h-full" title={v}>
+      <span className="inline-block w-4 h-4 rounded-full border border-black/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)] shrink-0" style={{ background: c.color }} />
+      <span className="text-xs font-semibold text-gray-700">{c.name}</span>
     </span>
   ) : (
     v
