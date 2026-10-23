@@ -1270,6 +1270,29 @@ export default function LeadsCRM({
     },
   };
 
+  const onExportGroup = async (groupId: string, groupTitle: string, groupRows: Lead[]) => {
+    if (!groupRows.length) {
+      alert("Ce groupe ne contient aucun client.");
+      return;
+    }
+    const archiveAfter = confirm(
+      `Exporter les ${groupRows.length} client(s) du groupe « ${groupTitle} » vers Google Drive / Excel ?\n\nCliquez sur OK pour exporter le fichier ET sortir ces fiches du CRM actif pour l'alléger.\n(Elles restent conservées et restaurables à tout moment)`
+    );
+
+    const cols = LEAD_COLUMNS.filter((col) => visibleCols.includes(col.key));
+    const blob = new Blob([leadsToCsv(groupRows, cols)], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Export_${groupTitle.replace(/[\\/:*?"<>|\s]+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+
+    if (archiveAfter) {
+      await bulk.remove(groupRows.map((l) => l.id));
+    }
+  };
+
   const exportCsv = () => {
     const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
     const blob = new Blob([leadsToCsv(filtered, cols)], { type: "text/csv;charset=utf-8" });
@@ -1588,6 +1611,7 @@ export default function LeadsCRM({
           onGroupsChange={saveGroups}
           onGroup={moveToGroup}
           onDuplicateLeads={duplicateLeads}
+          onExportGroup={onExportGroup}
           bulk={bulk}
           fitZoom={zoom}
           onChangeZoom={changeZoom}

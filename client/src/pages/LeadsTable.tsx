@@ -410,7 +410,9 @@ const GroupMenu = ({
   onMove,
   onDelete,
   onArchive,
+  onExportGroup,
 }: {
+  onExportGroup?: () => void;
   group: LeadGroup;
   index: number;
   total: number;
@@ -470,6 +472,7 @@ const GroupMenu = ({
             <Item icon={Pencil} label="Renommer ce groupe" onClick={() => setPanel("rename")} />
             <Item icon={Palette} label="Modifier la couleur du groupe" onClick={() => setPanel("color")} />
             <div className="my-1 border-t border-gray-100" />
+            <Item icon={Download} label="Exporter le groupe (Drive / Excel)" onClick={() => { close(); onExportGroup?.(); }} />
             <Item icon={Archive} label="Archiver ce groupe" onClick={() => { close(); onArchive(); }} disabled={total <= 1} />
             <Item
               icon={Trash2}
@@ -1360,6 +1363,7 @@ export default function LeadsTable({
   onCreate: (groupId: string, name: string) => void;
   // Copie les leads d'un groupe dans un autre (duplication d'un groupe).
   onDuplicateLeads: (fromGroupId: string, toGroupId: string) => void;
+  onExportGroup?: (groupId: string, groupTitle: string, rows: Lead[]) => void;
   visible: string[];
   setVisible: (v: string[]) => void;
   // Zoom enregistré (appelé à la fin du pincement) et zoom « en direct » pendant le pincement (sans redessiner le tableau).
@@ -1768,6 +1772,7 @@ export default function LeadsTable({
                   onMove={(to) => moveGroup(st.id, to)}
                   onDelete={() => onGroupsChange(groups.filter((g) => g.id !== st.id))}
                   onArchive={() => patchGroup(st.id, { archived: true })}
+                  onExportGroup={() => onExportGroup?.(st.id, st.title, rows)}
                 />
                 )}
               </div>
