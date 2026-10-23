@@ -1,0 +1,48 @@
+name: Fiches archivées vers Drive
+
+# Liste (ou restaure) les fiches mises à la corbeille par « Exporter le groupe vers Google Drive ».
+# Essai à blanc par défaut : liste seulement.
+on:
+  workflow_dispatch:
+    inputs:
+      restore:
+        description: "Restaurer les fiches listées (sinon essai à blanc)"
+        type: boolean
+        default: false
+      filter:
+        description: "Nom contenant (facultatif)"
+        type: string
+        default: ""
+      since:
+        description: "Depuis le (AAAA-MM-JJ, par défaut aujourd'hui)"
+        type: string
+        default: ""
+      group:
+        description: "Identifiant du groupe où ranger les fiches restaurées (facultatif)"
+        type: string
+        default: ""
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+      - name: Lister ou restaurer
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          RESTORE: ${{ inputs.restore }}
+          FILTER: ${{ inputs.filter }}
+          SINCE: ${{ inputs.since }}
+          GROUP: ${{ inputs.group }}
+        run: node scripts/archives-drive.mjs
