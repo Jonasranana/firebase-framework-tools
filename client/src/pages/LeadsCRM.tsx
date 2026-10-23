@@ -41,7 +41,7 @@ import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 import ColumnMenu from "./ColumnMenu";
 import { PersonBar } from "./LeadsFilter";
 import { AddSplit, GroupByMenu, MoreMenu, QuickFilter, SearchToggle, SortMenu } from "./LeadsToolbar";
-import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
+import { applyFilters, groupByColumn, leadMatchesPerson, leadsToCsv, downloadCsvFile, sortLeads, type LeadFilter, type LeadSort, type Person } from "@/lib/crmFilters";
 import { ROOT_ADMINS, memberName } from "@/lib/crmTeam";
 import LeadsTable, { ColumnsMenu, StatusEditContext, useVisibleColumns } from "./LeadsTable";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -1009,16 +1009,11 @@ function ExportDriveModal({
         { merge: true },
       ).catch(console.error);
 
-      // Générer le CSV avec BOM UTF-8
+      // Générer le CSV avec BOM UTF-8 et déclencher le téléchargement fiable
       const cols = LEAD_COLUMNS.filter((col) => visibleCols.includes(col.key));
-      const blob = new Blob([leadsToCsv(data.leads, cols)], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
       const today = new Date().toISOString().slice(0, 10);
-      a.download = `Export_${targetFolder.replace(/[\\/:*?"<>|\s]+/g, "_")}_${today}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const fileName = `Export_${targetFolder.replace(/[\\/:*?"<>|\s]+/g, "_")}_${today}.csv`;
+      downloadCsvFile(leadsToCsv(data.leads, cols), fileName);
 
       // Sortir du CRM actif si demandé
       if (archiveAfter) {
@@ -1477,14 +1472,15 @@ export default function LeadsCRM({
     remove: (ids: string[]) => bulkWrite(ids, { deletedAt: new Date(), deletedBy: email }),
     exportCsv: (ids: string[]) => {
       const set = new Set(ids);
+      const rows = (leads ?? []).filter((l) => set.has(l.id));
+      if (!rows.length) {
+        alert("Aucun client sélectionné.");
+        return;
+      }
       const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
-      const blob = new Blob([leadsToCsv((leads ?? []).filter((l) => set.has(l.id)), cols)], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `leads-selection-${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const fileName = `leads-selection-${new Date().toISOString().slice(0, 10)}.csv`;
+      downloadCsvFile(leadsToCsv(rows, cols), fileName);
+      alert(`✅ Export lancé : ${rows.length} client(s) téléchargés dans "${fileName}".`);
     },
   };
 
@@ -1507,14 +1503,14 @@ export default function LeadsCRM({
   };
 
   const exportCsv = () => {
+    if (!filtered.length) {
+      alert("Aucun client à exporter dans la vue actuelle.");
+      return;
+    }
     const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
-    const blob = new Blob([leadsToCsv(filtered, cols)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `leads-ip5-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const fileName = `leads-ip5-${new Date().toISOString().slice(0, 10)}.csv`;
+    downloadCsvFile(leadsToCsv(filtered, cols), fileName);
+    alert(`✅ Export lancé : ${filtered.length} client(s) exportés dans "${fileName}".`);
   };
 
   const saveGroups = async (next: LeadGroup[]) => {
@@ -1733,6 +1729,14 @@ export default function LeadsCRM({
         {view === "tableau" && <ColumnsMenu visible={visibleCols} onChange={setVisibleCols} />}
         <GroupByMenu value={groupBy} onChange={setGroupBy} />
         <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
+        <button
+          type="button"
+          onClick={exportCsv}
+          title="Exporter toutes les fiches visibles en fichier Excel / CSV"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 shadow-sm transition-colors"
+        >
+          <HardDrive size={14} className="text-[#0073ea]" /> Exporter CSV
+        </button>
         <MoreMenu onExport={exportCsv} count={filtered.length} zoom={zoom} onZoom={changeZoom} />
         {views.length > 0 && (
           <select

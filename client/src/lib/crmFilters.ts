@@ -184,6 +184,27 @@ export function leadsToCsv(list: Lead[], cols: LeadColumn[]): string {
   );
   return "\ufeff" + [head, ...rows].join("\r\n");
 }
+
+// Téléchargement sécurisé et fiable d'un fichier CSV dans tous les navigateurs
+export function downloadCsvFile(content: string, filename: string) {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.style.display = "none";
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    try {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch {
+      // ignore
+    }
+  }, 3000);
+}
+
 const LEAD_STATUS_LABEL = (k: string) => statusInfo(k).label;
 
 export const applyFilters = (l: Lead, filters: LeadFilter[]) => filters.every((f) => matchFilter(l, f));
