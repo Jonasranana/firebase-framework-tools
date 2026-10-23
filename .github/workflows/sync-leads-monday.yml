@@ -1,9 +1,9 @@
 name: Sync leads to Monday
 
 on:
-  schedule:
-    # Toutes les 15 minutes : copie les nouveaux leads Firestore vers Monday.
-    - cron: "*/15 * * * *"
+  # Passage automatique arrêté : lancement manuel uniquement (workflow_dispatch).
+  # schedule:
+  #   - cron: "*/15 * * * *"
   workflow_dispatch:
 
 concurrency:

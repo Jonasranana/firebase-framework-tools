@@ -489,7 +489,12 @@ async function syncPacPac() {
         keepCrmVersion(docId, cur, notes);
         return;
       }
-      const patch = diffPatch(cur, base, fields, docId);
+      // Sécurité : Seuls des utilisateurs humains dans le CRM peuvent changer le statut ou le groupe.
+      // Monday ne doit JAMAIS écraser ces champs sur une fiche déjà existante dans le CRM.
+      const safeBase = { ...base };
+      delete safeBase.status;
+      delete safeBase.group;
+      const patch = diffPatch(cur, safeBase, fields, docId);
       if ((cur?.details?.["Groupe Monday"] ?? "") !== (item.group?.title ?? "")) patch["details.Groupe Monday"] = item.group?.title ?? "";
       if (notes.length) patch.notes = FieldValue.arrayUnion(...notes);
       if (!Object.keys(patch).length) return;

@@ -102,6 +102,7 @@ async function patchLead(
   const statusTouched = "status" in patch || etapeKeys.some((k) => k in patch);
   await m.updateDoc(m.doc(db, CRM_LEADS_COLLECTION, id), {
     ...patch,
+    crmOwned: true,
     ...(statusTouched ? { statusChangedAt: m.serverTimestamp() } : {}),
     updatedAt: m.serverTimestamp(),
     updatedBy: email,
