@@ -998,6 +998,10 @@ function ExportDriveModal({
 
   const handleExport = async () => {
     const targetFolder = (mode === "existing" ? selectedFolder : customFolder).trim() || data.groupTitle;
+    const ok = window.confirm(
+      `Êtes-vous sûr de vouloir exporter les ${data.leads.length} client(s) vers le dossier « ${targetFolder} »${archiveAfter ? " et les sortir du CRM actif" : ""} ?`
+    );
+    if (!ok) return;
     setBusy(true);
 
     try {
@@ -1477,6 +1481,10 @@ export default function LeadsCRM({
         alert("Aucun client sélectionné.");
         return;
       }
+      const ok = window.confirm(
+        `Êtes-vous sûr de vouloir exporter les ${rows.length} client(s) sélectionné(s) vers Excel / CSV ?`
+      );
+      if (!ok) return;
       const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
       const fileName = `leads-selection-${new Date().toISOString().slice(0, 10)}.csv`;
       downloadCsvFile(leadsToCsv(rows, cols), fileName);
@@ -1507,6 +1515,10 @@ export default function LeadsCRM({
       alert("Aucun client à exporter dans la vue actuelle.");
       return;
     }
+    const ok = window.confirm(
+      `Êtes-vous sûr de vouloir exporter les ${filtered.length} client(s) affichés vers Excel / CSV ?`
+    );
+    if (!ok) return;
     const cols = LEAD_COLUMNS.filter((c) => visibleCols.includes(c.key));
     const fileName = `leads-ip5-${new Date().toISOString().slice(0, 10)}.csv`;
     downloadCsvFile(leadsToCsv(filtered, cols), fileName);
