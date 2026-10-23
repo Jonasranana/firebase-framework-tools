@@ -1290,6 +1290,9 @@ export default function LeadsCRM({
     return leads.filter((l) => {
       if (filters.length && !applyFilters(l, filters)) return false;
       if (attribTab && l.fields[ATTRIBUE_KEY] !== attribTab) return false;
+      // Tableau principal : les fiches attribuées à quelqu'un n'y sont plus (elles sont dans « Mes clients — … »),
+      // sauf quand on fait une recherche, pour pouvoir toujours retrouver une fiche.
+      if (!attribTab && !q && boardId === LEADS_BOARD_ID && l.fields[ATTRIBUE_KEY]) return false;
       if (personKey) {
         const p = people.find((x) => x.key === personKey);
         if (p && !leadMatchesPerson(l, p)) return false;
@@ -1304,7 +1307,7 @@ export default function LeadsCRM({
       );
       return hay.includes(q);
     });
-  }, [leads, query, filters, personKey, people, rappelsOnly, attribTab]);
+  }, [leads, query, filters, personKey, people, rappelsOnly, attribTab, boardId]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
