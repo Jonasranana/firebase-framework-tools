@@ -726,12 +726,23 @@ const crmSiteFields = (f) => {
     chauffageSite: f.currentHeating,
     surface: f.surface,
   };
+  // « Date 1er contact » et « Type de demande » (étiquette) : posés ici, comme le faisait Monday.
+  out.premierContact = parisDate(f.createdAt);
+  out.typeDemande = crmTypeDemande(f);
   for (const k of Object.keys(out)) {
     const v = String(out[k] ?? "").trim();
     if (v) out[k] = v;
     else delete out[k];
   }
   return out;
+};
+
+const crmTypeDemande = (f) => {
+  const source = String(f.source ?? "");
+  if (f.requestType) return "📞 Rappel demandé";
+  if (source.startsWith("reactivation")) return "✉️ Réactivation";
+  if (source.includes("gonflage")) return "";
+  return "🧮 Simulation";
 };
 
 exports.copyLeadToCrm = onDocumentCreated(

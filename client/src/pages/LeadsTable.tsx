@@ -1,5 +1,5 @@
 import FileColCell from "./FileColCell";
-import { createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import StatusLabelEditor, { LABEL_COLORS } from "./StatusLabelEditor";
 import { startPointerDrag } from "@/lib/pointerDrag";
 import {
@@ -89,12 +89,14 @@ export const EditableCell = ({
   type = "text",
   placeholder = "",
   wrap = false,
+  display,
 }: {
   value: string;
   onSave: (v: string) => void;
   type?: string;
   placeholder?: string;
   wrap?: boolean;
+  display?: (v: string) => ReactNode;
 }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
@@ -132,7 +134,7 @@ export const EditableCell = ({
       className={`w-full h-full px-1.5 py-0.5 text-left text-xs sm:text-sm text-gray-800 hover:bg-gray-100 font-medium ${wrap ? "whitespace-normal break-words" : "truncate"}`}
       title={value}
     >
-      {value || <span className="text-gray-300">{placeholder}</span>}
+      {value ? (display ? display(value) : value) : <span className="text-gray-300">{placeholder}</span>}
     </button>
   );
 };
@@ -1131,6 +1133,26 @@ const GroupPager = ({
   );
 };
 
+// Tranche de revenus : un rond de la couleur du profil (bleu, jaune, violet, rose) au lieu du texte ; le texte reste au survol.
+const trancheColor = (v: string) => {
+  const t = v.toLowerCase();
+  if (t.includes("très modeste") || t.includes("bleu")) return "#2f7df6";
+  if (t.includes("modeste") || t.includes("jaune")) return "#f5c518";
+  if (t.includes("intermédiaire") || t.includes("violet")) return "#8b4be0";
+  if (t.includes("supérieur") || t.includes("rose")) return "#f0509a";
+  return "";
+};
+const trancheDot = (v: string): ReactNode => {
+  const c = trancheColor(v);
+  return c ? (
+    <span className="inline-flex items-center h-full" title={v}>
+      <span className="inline-block w-4 h-4 rounded-full border border-black/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]" style={{ background: c }} />
+    </span>
+  ) : (
+    v
+  );
+};
+
 const today = todayYmd();
 
 // Cellule date : un clic ouvre le calendrier (un champ date natif ne s'ouvrait pas au clic), × pour effacer.
@@ -1206,7 +1228,7 @@ function Cell({
         />
       );
     case "text":
-      return <EditableCell value={v} onSave={save} wrap={col.wrap} />;
+      return <EditableCell value={v} onSave={save} wrap={col.wrap} display={col.key === "tranche" ? trancheDot : undefined} />;
     case "longtext":
       return <LongTextCell value={v} onSave={save} />;
     case "people":

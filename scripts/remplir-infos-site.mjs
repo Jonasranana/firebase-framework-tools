@@ -8,6 +8,17 @@ const { getFirestore, Timestamp } = require("firebase-admin/firestore");
 
 const dry = process.env.DRY_RUN !== "false";
 const BY = "remplissage infos site";
+// « Date 1er contact » et « Type de demande » : seulement pour les demandes arrivées depuis cette date
+// (les fiches plus anciennes les ont déjà, ou n'en ont volontairement pas).
+const SINCE = process.env.SINCE || "2026-10-19";
+const parisDate = (ts) => new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(ts?.toDate ? ts.toDate() : new Date(ts));
+const typeDemande = (f) => {
+  const source = String(f.source ?? "");
+  if (f.requestType) return "📞 Rappel demandé";
+  if (source.startsWith("reactivation")) return "✉️ Réactivation";
+  if (source.includes("gonflage")) return "";
+  return "🧮 Simulation";
+};
 initializeApp();
 const db = getFirestore();
 
@@ -27,8 +38,15 @@ for (const d of src.docs) {
     const v = String(f[key] ?? "").trim();
     if (v && !String(x.fields?.[col] ?? "").trim()) patch[`fields.${col}`] = v;
   }
+  const created = f.createdAt?.toDate ? f.createdAt.toDate() : null;
+  if (created && parisDate(created) >= SINCE) {
+    const pc = parisDate(created);
+    const td = typeDemande(f);
+    if (!String(x.fields?.premierContact ?? "").trim()) patch["fields.premierContact"] = pc;
+    if (td && !String(x.fields?.typeDemande ?? "").trim()) patch["fields.typeDemande"] = td;
+  }
   if (!Object.keys(patch).length) {
-    if (Object.keys(MAP).some((c) => String(x.fields?.[c] ?? "").trim())) bilan.completes++;
+    if ([...Object.keys(MAP), "premierContact", "typeDemande"].some((c) => String(x.fields?.[c] ?? "").trim())) bilan.completes++;
     else bilan.sansInfo++;
     continue;
   }
