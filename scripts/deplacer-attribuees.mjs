@@ -7,7 +7,10 @@ const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestor
 
 const WHO = process.env.WHO || "Mebarek";
 const SINCE = process.env.SINCE || "2026-10-20T07:14:00Z";
-const TO = process.env.TO_GROUP || "nouveaux";
+// Les fiches attribuées à Mebarek vont dans « 1/Leads Mebarek » ; « Nouveaux leads » est réservé aux demandes du site.
+const TO = process.env.TO_GROUP || ({ Mebarek: "mebarek" }[WHO] ?? "contacts");
+// Seules les fiches encore dans ces groupes sont déplacées (une fiche déjà rangée ailleurs n'est jamais touchée).
+const FROM_OK = (process.env.FROM_GROUPS || "contacts,nouveaux").split(",");
 const BY = process.env.BY || "contact@ip5energie.com";
 const dry = process.env.DRY_RUN !== "false";
 initializeApp();
@@ -15,7 +18,7 @@ const db = getFirestore();
 
 const board = await db.doc("crm_boards/leads").get();
 const titles = Object.fromEntries((board.get("groups") ?? []).map((g) => [g.id, g.title]));
-const title = (id) => titles[id] ?? ({ nouveaux: "📥 Nouveaux leads", contacts: "0/ Contacts" }[id] ?? id);
+const title = (id) => titles[id] ?? ({ nouveaux: "📥 Nouveaux leads", contacts: "0/ Contacts", mebarek: "1/Leads Mebarek" }[id] ?? id);
 
 const snap = await db.collection("crm_leads").where("fields.attribue", "==", WHO).get();
 const pick = [];
@@ -24,6 +27,7 @@ for (const d of snap.docs) {
   if (x.deletedAt || (x.board ?? "leads") !== "leads") continue;
   const marked = (x.notes ?? []).some((n) => n?.text === `Attribué à : → ${WHO}` && n?.by === BY && String(n?.at ?? "") >= SINCE);
   if (!marked) continue;
+  if (!FROM_OK.includes(x.group ?? "")) continue;
   pick.push({ id: d.id, name: x.name, from: x.group });
 }
 console.log(`Fiches attribuées à ${WHO} depuis ${SINCE} : ${pick.length}. Déplacement vers « ${title(TO)} ». Mode : ${dry ? "ESSAI À BLANC" : "ÉCRITURE"}`);
