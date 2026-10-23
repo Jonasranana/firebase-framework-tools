@@ -148,8 +148,26 @@ export function groupByColumn(list: Lead[], colKey: string): { groups: { id: str
 }
 
 // ── Export CSV (ouvrable dans Excel) ───────────────────────────────────────
+function formatPhone(raw: string): string {
+  let d = String(raw || "").replace(/\D/g, "");
+  if (d.startsWith("33") && d.length === 11) d = "0" + d.slice(2);
+  if (d.length === 9 && !d.startsWith("0")) d = "0" + d;
+  if (d.length === 10) {
+    return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 6)} ${d.slice(6, 8)} ${d.slice(8, 10)}`;
+  }
+  return raw || "";
+}
+
 export function leadsToCsv(list: Lead[], cols: LeadColumn[]): string {
-  const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
+  const esc = (v: string) => {
+    // Supprime les retours à la ligne pour que les lignes Excel restent strictement à 1 ligne de hauteur
+    const clean = String(v ?? "")
+      .replace(/[\r\n\t]+/g, " — ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/"/g, '""');
+    return `"${clean}"`;
+  };
   const head = cols.map((c) => esc(c.title)).join(";");
   const rows = list.map((l) =>
     cols
@@ -158,6 +176,7 @@ export function leadsToCsv(list: Lead[], cols: LeadColumn[]): string {
         if (c.type === "files") return esc(String(l.docCount));
         if (c.type === "autodate") return esc((c.key === "creation" ? l.createdAt : l.updatedAt).slice(0, 10));
         if (c.key === "status") return esc(LEAD_STATUS_LABEL(l.status));
+        if (c.key === "phone" || c.type === "phone") return esc(formatPhone(cellValue(l, c)));
         if (c.type === "status" && c.options) return esc(c.options.find((o) => o.key === cellValue(l, c))?.label ?? cellValue(l, c));
         return esc(cellValue(l, c));
       })
