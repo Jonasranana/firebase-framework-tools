@@ -1331,6 +1331,7 @@ export default function LeadsTable({
   onRenameColumn,
   onResizeColumn,
   showTotals,
+  onExportGroup,
 }: {
   // Ligne « Total » en bas de chaque groupe (administrateurs seulement).
   showTotals?: boolean;
