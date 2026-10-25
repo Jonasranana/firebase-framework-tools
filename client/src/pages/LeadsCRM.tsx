@@ -963,7 +963,7 @@ function ExportDriveModal({
   email: string;
   visibleCols: string[];
   onClose: () => void;
-  onSuccess: (count: number) => void;
+  onSuccess: (count: number, url?: string, folder?: string) => void;
 }) {
   const [knownFolders, setKnownFolders] = useState<string[]>([
     "Pas éligible PAC / Pas intéressé PAC",
@@ -999,55 +999,49 @@ function ExportDriveModal({
   const handleExport = async () => {
     const targetFolder = (mode === "existing" ? selectedFolder : customFolder).trim() || data.groupTitle;
     const ok = window.confirm(
-      `Êtes-vous sûr de vouloir exporter les ${data.leads.length} client(s) vers le dossier « ${targetFolder} »${archiveAfter ? " et les sortir du CRM actif" : ""} ?`
+      `Êtes-vous sûr de vouloir envoyer les ${data.leads.length} client(s) directement dans le tableau Google Drive (dossier « ${targetFolder} »)${archiveAfter ? " et les sortir du CRM actif" : ""} ?`
     );
     if (!ok) return;
     setBusy(true);
 
     try {
-      const { m, db } = await fs();
+      const app = await getEspaceProApp();
+      const { getFunctions, httpsCallable } = await import("firebase/functions");
+      const functions = getFunctions(app, "europe-west9");
+      const exportDriveFn = httpsCallable<
+        { folderName: string; leadIds: string[]; archiveAfter: boolean },
+        { success: boolean; count: number; folderName: string; spreadsheetUrl: string; spreadsheetName: string }
+      >(functions, "exportLeadsToGoogleDrive");
+
+      const res = await exportDriveFn({
+        folderName: targetFolder,
+        leadIds: data.leads.map((l) => l.id),
+        archiveAfter,
+      });
+
+      // Télécharger également une copie locale de secours
+      try {
+        const cols = LEAD_COLUMNS.filter((col) => visibleCols.includes(col.key));
+        const today = new Date().toISOString().slice(0, 10);
+        const fileName = `Export_${targetFolder.replace(/[\\/:*?"<>|\s]+/g, "_")}_${today}.csv`;
+        downloadCsvFile(leadsToCsv(data.leads, cols), fileName);
+      } catch (e) {
+        console.warn("Erreur téléchargement CSV local", e);
+      }
+
       // Mémoriser le dossier dans Firestore pour toute l'équipe
+      const { m, db } = await fs();
       await m.setDoc(
         m.doc(db, CRM_BOARDS_COLLECTION, "drive_folders"),
         { folders: m.arrayUnion(targetFolder), updatedAt: m.serverTimestamp() },
         { merge: true },
       ).catch(console.error);
 
-      // Générer le CSV avec BOM UTF-8 et déclencher le téléchargement fiable
-      const cols = LEAD_COLUMNS.filter((col) => visibleCols.includes(col.key));
-      const today = new Date().toISOString().slice(0, 10);
-      const fileName = `Export_${targetFolder.replace(/[\\/:*?"<>|\s]+/g, "_")}_${today}.csv`;
-      downloadCsvFile(leadsToCsv(data.leads, cols), fileName);
-
-      // Sortir du CRM actif si demandé
-      if (archiveAfter) {
-        for (let i = 0; i < data.leads.length; i += 400) {
-          const batch = m.writeBatch(db);
-          for (const l of data.leads.slice(i, i + 400)) {
-            batch.update(m.doc(db, CRM_LEADS_COLLECTION, l.id), {
-              deletedAt: m.serverTimestamp(),
-              deletedBy: `Archive Drive - ${targetFolder}`,
-              archivedToDrive: true,
-              updatedAt: m.serverTimestamp(),
-              updatedBy: email,
-              notes: m.arrayUnion({
-                id: newId(),
-                text: `Fiche exportée vers Google Drive (dossier « ${targetFolder} ») et archivée du CRM.`,
-                by: email,
-                at: new Date().toISOString(),
-                kind: "statut",
-              }),
-            });
-          }
-          await batch.commit();
-        }
-      }
-
-      onSuccess(data.leads.length);
+      onSuccess(res.data.count, res.data.spreadsheetUrl, targetFolder);
       onClose();
     } catch (err: any) {
-      console.error(err);
-      alert("Une erreur est survenue lors de l'export.");
+      console.error("Erreur export Google Drive", err);
+      alert(`Une erreur est survenue lors de l'envoi direct vers Google Drive : ${err?.message || err}`);
     } finally {
       setBusy(false);
     }
@@ -2007,8 +2001,13 @@ export default function LeadsCRM({
           email={email}
           visibleCols={visibleCols}
           onClose={() => setExportDriveModal(null)}
-          onSuccess={(cnt) => {
-            alert(`✅ ${cnt} client(s) exportés avec succès !`);
+          onSuccess={(cnt, url, folder) => {
+            const openNow = window.confirm(
+              `✅ ${cnt} client(s) ont été envoyés directement dans le tableau Google Drive (dossier « ${folder} ») !\n\nVoulez-vous ouvrir le tableau Google Drive maintenant ?`
+            );
+            if (openNow && url) {
+              window.open(url, "_blank");
+            }
           }}
         />
       )}
