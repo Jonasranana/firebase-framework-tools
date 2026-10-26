@@ -21,6 +21,7 @@ const TWILIO_ACCOUNT_SID = defineSecret("TWILIO_ACCOUNT_SID");
 const TWILIO_AUTH_TOKEN = defineSecret("TWILIO_AUTH_TOKEN");
 const TWILIO_FROM_NUMBER = "+33939207357";
 const PRAIMY_API_KEY = defineSecret("PRAIMY_API_KEY");
+const DRIVE_SA_KEY = defineSecret("DRIVE_SA_KEY");
 
 const SITE_URL = "https://ip5energie.fr";
 
@@ -3206,3 +3207,222 @@ exports.syncPraimyToPacPac = onCall(
 
 
 
+
+
+// ── Export et archivage direct vers Google Drive (Sauvegardes CRM IP5) ────────
+const DRIVE_ROOT_ID = "0AAbbtoyad7dUUk9PVA";
+
+const DRIVE_STATUS_LABELS = {
+  a_appeler: "À appeler",
+  rappel_demande: "Rappel demandé",
+  interesse: "Intéressé",
+  rdv_pris: "RDV pris",
+  vt_faite_bets: "VT faite par bets",
+  en_cours_bets: "En cours chez BETS",
+  en_cours: "En cours",
+  attente_docs: "Attente docs",
+  docs_recu: "Docs reçus",
+  a_relancer: "À relancer",
+  manque_revenu: "Manque les revenus",
+  manque_info: "Manque les info",
+  nrp: "NRP",
+  nrp2: "NRP 2",
+  mauvais_numero: "Mauvais numéro",
+  pas_interesse: "Pas intéressé",
+  pas_eligible_revenu: "Pas éligible revenu",
+  pas_eligible_pac: "Pas éligible PAC",
+  panneau_solaire: "Panneau solaire",
+  proposition_envoyee: "Proposition envoyée",
+  me_rappelle: "Me rappelle",
+  instal_prevu: "Instal prévue",
+  propal_praimy: "Propal Praimy à faire",
+  nouveau_lead: "Nouveau lead",
+  complique: "Compliqué",
+  pas_adapte: "Pas adapté",
+  propal_recu: "Propal reçue",
+  installer_bets: "Installer BETS",
+  pas_bon: "Pas bon",
+  whatsapp_envoye: "WhatsApp envoyé",
+};
+
+function formatFrenchPhone(raw) {
+  let d = String(raw || "").replace(/\D/g, "");
+  if (d.startsWith("33") && d.length === 11) d = "0" + d.slice(2);
+  if (d.length === 9 && !d.startsWith("0")) d = "0" + d;
+  if (d.length === 10) {
+    return `${d.slice(0, 2)} ${d.slice(2, 4)} ${d.slice(4, 6)} ${d.slice(6, 8)} ${d.slice(8, 10)}`;
+  }
+  return raw || "";
+}
+
+exports.exportLeadsToGoogleDrive = onCall(
+  {
+    secrets: [DRIVE_SA_KEY],
+    region: "europe-west9",
+    timeoutSeconds: 300,
+  },
+  async (request) => {
+    if (!isCrmMember(request)) {
+      throw new HttpsError("permission-denied", "Accès refusé.");
+    }
+    const caller = String(request.auth?.token?.email ?? "").toLowerCase();
+    const { folderName, leadIds, archiveAfter } = request.data ?? {};
+    if (!Array.isArray(leadIds) || !leadIds.length) {
+      throw new HttpsError("invalid-argument", "Aucun lead sélectionné.");
+    }
+    const targetFolder = String(folderName || "Fichiers clients").trim();
+
+    logger.info("Début exportLeadsToGoogleDrive", { caller, targetFolder, count: leadIds.length });
+
+    // Authentification Google Drive & Sheets via DRIVE_SA_KEY
+    const saKey = JSON.parse(DRIVE_SA_KEY.value());
+    const auth = new google.auth.GoogleAuth({
+      credentials: saKey,
+      scopes: [
+        "https://www.googleapis.com/auth/drive",
+        "https://www.googleapis.com/auth/spreadsheets",
+      ],
+    });
+    const drive = google.drive({ version: "v3", auth });
+    const sheets = google.sheets({ version: "v4", auth });
+    const opt = { supportsAllDrives: true, includeItemsFromAllDrives: true };
+
+    // 1. Trouver ou créer le sous-dossier dans Sauvegardes CRM IP5
+    const folderQuery = `'${DRIVE_ROOT_ID}' in parents and name='${targetFolder.replace(/'/g, "\\'")}' and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+    const folderList = await drive.files.list({ q: folderQuery, fields: "files(id, name)", ...opt });
+    let folderId = folderList.data.files?.[0]?.id;
+    if (!folderId) {
+      const createdFolder = await drive.files.create({
+        requestBody: {
+          name: targetFolder,
+          mimeType: "application/vnd.google-apps.folder",
+          parents: [DRIVE_ROOT_ID],
+        },
+        fields: "id",
+        ...opt,
+      });
+      folderId = createdFolder.data.id;
+      logger.info("Dossier créé dans Drive", { targetFolder, folderId });
+    }
+
+    // 2. Trouver ou créer le Google Sheet dans ce sous-dossier
+    const sheetQuery = `'${folderId}' in parents and mimeType='application/vnd.google-apps.spreadsheet' and trashed=false`;
+    const sheetList = await drive.files.list({ q: sheetQuery, fields: "files(id, name, webViewLink)", ...opt });
+    let sheetId = sheetList.data.files?.[0]?.id;
+    let webViewLink = sheetList.data.files?.[0]?.webViewLink;
+
+    const headers = [
+      "Nom du client",
+      "Téléphone",
+      "Statut",
+      "Email",
+      "Code Postal",
+      "Ville",
+      "Type",
+      "Projet",
+      "Source",
+      "Date réception",
+      "Dernier commentaire",
+      "Historique complet",
+    ];
+
+    if (!sheetId) {
+      const today = new Date().toISOString().slice(0, 10);
+      const sheetName = `Tableau_${targetFolder.replace(/[\\/:*?"<>|\s]+/g, "_")}_${today}`;
+      const newSheet = await drive.files.create({
+        requestBody: {
+          name: sheetName,
+          parents: [folderId],
+          mimeType: "application/vnd.google-apps.spreadsheet",
+        },
+        fields: "id, name, webViewLink",
+        ...opt,
+      });
+      sheetId = newSheet.data.id;
+      webViewLink = newSheet.data.webViewLink;
+
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: sheetId,
+        range: "A1",
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: [headers] },
+      });
+      logger.info("Nouveau Google Sheet créé dans Drive", { sheetName, sheetId });
+    }
+
+    // 3. Charger les fiches depuis Firestore
+    const leadsToAdd = [];
+    const leadsDocs = [];
+    for (const id of leadIds) {
+      const snap = await db.doc(`crm_leads/${id}`).get();
+      if (snap.exists) {
+        leadsDocs.push(snap);
+        const l = snap.data();
+        const f = l.fields || {};
+        const statusLabel = DRIVE_STATUS_LABELS[l.status] || l.status || "Non renseigné";
+        const phoneFormatted = formatFrenchPhone(l.phone);
+        const notes = Array.isArray(l.notes) ? l.notes : [];
+        notes.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
+        const lastNote = notes.slice(-1)[0]?.text || "";
+        const cleanLastNote = String(lastNote).replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 150);
+        const historyCompact = notes
+          .map((n) => `[${String(n.at || "").slice(0, 10)}] ${n.by || ""}: ${String(n.text || "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim()}`)
+          .join(" — ")
+          .slice(0, 500);
+
+        leadsToAdd.push([
+          l.name || "Sans nom",
+          phoneFormatted || "",
+          statusLabel,
+          l.email || "",
+          l.postalCode || f.postalCode || "",
+          l.city || f.city || "",
+          l.type || "PAC",
+          l.projet || f.projet || "Pompe à chaleur",
+          l.source || f.source || "",
+          l.createdAt ? String(l.createdAt).slice(0, 10) : "",
+          cleanLastNote,
+          historyCompact,
+        ]);
+      }
+    }
+
+    // 4. Insérer les lignes dans le Google Sheet
+    if (leadsToAdd.length > 0) {
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: sheetId,
+        range: "A1",
+        valueInputOption: "USER_ENTERED",
+        requestBody: { values: leadsToAdd },
+      });
+      logger.info("Lignes ajoutées dans le Google Sheet", { sheetId, count: leadsToAdd.length });
+    }
+
+    // 5. Archiver du CRM actif si demandé
+    if (archiveAfter !== false) {
+      const batchSize = 400;
+      for (let i = 0; i < leadsDocs.length; i += batchSize) {
+        const batch = db.batch();
+        for (const doc of leadsDocs.slice(i, i + batchSize)) {
+          batch.update(doc.ref, {
+            deletedAt: Timestamp.now(),
+            deletedBy: `Archive Drive - ${targetFolder}`,
+            archivedToDrive: true,
+            updatedAt: Timestamp.now(),
+            updatedBy: caller,
+          });
+        }
+        await batch.commit();
+      }
+      logger.info("Fiches archivées du CRM actif", { count: leadsDocs.length });
+    }
+
+    return {
+      success: true,
+      count: leadsToAdd.length,
+      folderName: targetFolder,
+      spreadsheetId: sheetId,
+      spreadsheetUrl: webViewLink || `https://docs.google.com/spreadsheets/d/${sheetId}/edit`,
+    };
+  }
+);
