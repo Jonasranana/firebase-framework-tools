@@ -45,6 +45,7 @@ import Avatar from "@/components/Avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { RappelPicker } from "@/components/RappelCell";
 import { RAPPEL_HEURE_KEY, rappelEnRetard } from "@/lib/rappel";
+import { trancheInfo } from "@/lib/tranche";
 import {
   GROUP_COLORS,
   groupOf,
@@ -1137,14 +1138,6 @@ const GroupPager = ({
 };
 
 // Tranche de revenus : un rond de la couleur du profil (bleu, jaune, violet, rose) au lieu du texte ; le texte reste au survol.
-const trancheInfo = (v: string): { color: string; name: string } | null => {
-  const t = v.toLowerCase();
-  if (t.includes("très modeste") || t.includes("bleu")) return { color: "#2f7df6", name: "Bleu" };
-  if (t.includes("modeste") || t.includes("jaune")) return { color: "#f5c518", name: "Jaune" };
-  if (t.includes("intermédiaire") || t.includes("violet")) return { color: "#8b4be0", name: "Violet" };
-  if (t.includes("supérieur") || t.includes("rose")) return { color: "#f0509a", name: "Rose" };
-  return null;
-};
 const trancheDot = (v: string): ReactNode => {
   const c = trancheInfo(v);
   return c ? (

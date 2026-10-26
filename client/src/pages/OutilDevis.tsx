@@ -925,7 +925,7 @@ export default function OutilDevis() {
         )}
         {p === "bareme" && <BaremeCRM />}
         {p === "archives" && <ArchivesMonday email={email} />}
-        {p === "stats" && <StatsCRM />}
+        {p === "stats" && <StatsCRM email={email} />}
         {p === "documents" && <DocumentsPage />}
         {p === "equipe" && narrow(<TeamPage email={email} />)}
         {p === "devis" && <DevisPAC email={email} />}
