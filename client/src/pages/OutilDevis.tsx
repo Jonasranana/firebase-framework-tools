@@ -1,3 +1,4 @@
+import { TOTALS_VIEWERS } from "@/lib/crm";
 import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   LogOut,
@@ -929,7 +930,7 @@ export default function OutilDevis() {
         {p === "documents" && <DocumentsPage />}
         {p === "equipe" && narrow(<TeamPage email={email} />)}
         {p === "devis" && <DevisPAC email={email} />}
-        {p === "marges" && narrow(<MargesPremi />)}
+        {p === "marges" && (TOTALS_VIEWERS.includes(email.toLowerCase()) ? narrow(<MargesPremi />) : <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>)}
         {p === "clients" && narrow(<ClientsCRM email={email} />)}
         {p === "praimy" && <PraimyCRM email={email} />}
       </Suspense>

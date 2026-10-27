@@ -1,3 +1,4 @@
+import { TOTALS_VIEWERS } from "@/lib/crm";
 import { useEffect, useState } from "react";
 import {
   Archive,
@@ -193,7 +194,7 @@ const SidebarBody = ({
 }) => (
   <div className="flex flex-col h-full">
     <div className="flex-1 min-h-0">
-      <AdminSidebar config={config} save={save} activeId={activeId} onSelect={onSelect} onOverlay={onOverlay} compact={compact} onManage={onManage} />
+      <AdminSidebar config={config} save={save} activeId={activeId} onSelect={onSelect} onOverlay={onOverlay} compact={compact} onManage={onManage} hiddenPages={TOTALS_VIEWERS.includes(email.toLowerCase()) ? [] : ["marges"]} />
     </div>
     {error && !compact && <p className="px-3 py-1 text-[11px] text-red-600">{error}</p>}
     <div className="border-t border-gray-100 p-2 space-y-0.5">
