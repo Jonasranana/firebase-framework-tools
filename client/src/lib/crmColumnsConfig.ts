@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { crmFirestore } from "@/lib/crmDb";
-import { LEAD_COLUMNS, applyColumnsConfig, colDaysLeft, type ColTrashEntry, type ColType, type ColumnsConfig, type LeadColumn } from "@/lib/crmColumns";
-import type { Opt } from "@/lib/crm";
+import { LEAD_COLUMNS, MONEY_COLUMN_KEYS, applyColumnsConfig, colDaysLeft, type ColTrashEntry, type ColType, type ColumnsConfig, type LeadColumn } from "@/lib/crmColumns";
+import { TOTALS_VIEWERS, type Opt } from "@/lib/crm";
 
 // Colonnes du tableau Leads modifiables depuis le menu du titre de colonne
 // (comme Monday) : ajouter une colonne à droite avec son type, renommer,
@@ -79,6 +79,9 @@ export function useColumnsConfig(email: string, boardId = "leads") {
   const [ready, setReady] = useState(false);
   const ref = useRef<ColumnsConfig>({});
   ref.current = config;
+  // Les colonnes d'argent ne sont montrées qu'aux administrateurs ; un autre compte qui enregistre l'ordre des colonnes
+  // ne doit pas les faire sortir de leur place pour les administrateurs.
+  const canSeeMoney = TOTALS_VIEWERS.includes(email.toLowerCase());
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -97,7 +100,7 @@ export function useColumnsConfig(email: string, boardId = "leads") {
               c = old.reduce((acc, e) => purgeColumn(acc, e.key), c);
               m.setDoc(snap.ref, { config: JSON.parse(JSON.stringify(c)), updatedAt: m.serverTimestamp(), updatedBy: email }).catch(() => {});
             }
-            applyColumnsConfig(c, boardId);
+            applyColumnsConfig(c, boardId, canSeeMoney);
             setConfig(c);
             setVersion((v) => v + 1);
             setReady(true);
@@ -115,9 +118,20 @@ export function useColumnsConfig(email: string, boardId = "leads") {
     };
   }, [boardId]);
 
-  const save = async (next: ColumnsConfig) => {
+  const save = async (nextIn: ColumnsConfig) => {
     const previous = ref.current;
-    applyColumnsConfig(next, boardId);
+    let next = nextIn;
+    if (!canSeeMoney && next.order && previous.order) {
+      const order = [...next.order];
+      previous.order.forEach((k, i) => {
+        if (!MONEY_COLUMN_KEYS.includes(k) || order.includes(k)) return;
+        const before = previous.order![i - 1];
+        const at = before ? order.indexOf(before) : -1;
+        order.splice(at >= 0 ? at + 1 : order.length, 0, k);
+      });
+      next = { ...next, order };
+    }
+    applyColumnsConfig(next, boardId, canSeeMoney);
     setConfig(next);
     setVersion((v) => v + 1);
     try {
@@ -129,7 +143,7 @@ export function useColumnsConfig(email: string, boardId = "leads") {
       setError("");
     } catch (e) {
       console.error(e);
-      applyColumnsConfig(previous, boardId);
+      applyColumnsConfig(previous, boardId, canSeeMoney);
       setConfig(previous);
       setVersion((v) => v + 1);
       setError("Impossible d'enregistrer les colonnes (règle Firestore crm_boards ?).");

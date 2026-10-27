@@ -308,7 +308,9 @@ export default function AdminSidebar({
   onOverlay,
   compact,
   onManage,
+  hiddenPages = [],
 }: {
+  hiddenPages?: string[];
   config: SideConfig;
   save: (c: SideConfig) => void;
   activeId: string;
@@ -422,7 +424,7 @@ export default function AdminSidebar({
   const url = (it: SideItem) => `${window.location.origin}/admin#${it.kind === "view" ? `view-${it.id}` : it.page}`;
   const archived = items.filter((i) => i.archived && !i.deletedAt);
   const trashed = items.filter((i) => i.deletedAt);
-  const favItems = config.favorites.map((id) => items.find((i) => i.id === id)).filter((i): i is SideItem => !!i && !i.archived && !i.deletedAt);
+  const favItems = config.favorites.map((id) => items.find((i) => i.id === id)).filter((i): i is SideItem => !!i && !i.archived && !i.deletedAt && !hiddenPages.includes(i.page));
 
   const ctx: Ctx = {
     config, activeId, renaming, draft, setDraft, commit, setRenaming, start, onSelect, onOverlay,
@@ -570,7 +572,7 @@ export default function AdminSidebar({
 
       {/* Dossiers */}
       {config.folders.map((f, fi) => {
-        const visible = f.items.filter((i) => !i.archived && !i.deletedAt);
+        const visible = f.items.filter((i) => !i.archived && !i.deletedAt && !hiddenPages.includes(i.page));
         return (
           <div key={f.id} className="px-2 mb-1.5">
             <div className="group/folder flex items-center">

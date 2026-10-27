@@ -204,7 +204,11 @@ export type ColumnsConfig = {
 
 const BASE_STATUSES: Opt[] = LEAD_STATUSES.map((x) => ({ ...x }));
 
-export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardId = "leads") {
+// Colonnes d'argent et de prévisions commerciales : réservées aux comptes administrateurs (TOTALS_VIEWERS).
+export const MONEY_COLUMN_KEYS = ["montantAttendu", "montantPondere", "pctReussite", "datePaiementPrevue", "montant"];
+export const isMoneyColumn = (c: LeadColumn) => MONEY_COLUMN_KEYS.includes(c.key) || (!!c.custom && c.unit === "€");
+
+export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardId = "leads", canSeeMoney = true) {
   const c = cfg ?? {};
   // « Statut Appel » : la liste partagée des statuts suit les étiquettes modifiées
   // (mise à jour sur place : tout le CRM la lit).
@@ -232,7 +236,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
   for (const col of Array.from(byKey.values())) ordered.push(col);
   // Le nom reste toujours la première colonne.
   ordered.sort((a, b) => (a.key === "name" ? -1 : b.key === "name" ? 1 : 0));
-  const next = ordered.map((col) => ({
+  const next = ordered.filter((col) => canSeeMoney || !isMoneyColumn(col)).map((col) => ({
     ...col,
     title: c.titles?.[col.key] ?? col.title,
     width: col.key === "name" ? Math.max(300, c.widths?.[col.key] ?? 300) : c.collapsed?.[col.key] ? 52 : c.widths?.[col.key] ?? col.width,
