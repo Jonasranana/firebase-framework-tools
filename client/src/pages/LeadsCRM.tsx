@@ -27,6 +27,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import MobileLeads from "./MobileLeads";
 import LeadChat from "./LeadChat";
 import ClientSpaceDashboard from "./ClientSpaceDashboard";
 import { buildClientView } from "@/lib/clientSpace";
@@ -1193,7 +1194,15 @@ export default function LeadsCRM({
   const [localError, setError] = useState("");
   const error = localError || storeError;
   // Une seule présentation : le tableau (les vues Liste et Colonnes ne sont plus proposées).
-  const [view, setView] = useState<"tableau" | "liste" | "colonnes">("tableau");
+  const isMobile = useIsMobile();
+  // Sur téléphone, la version simple (liste de cartes) s'ouvre par défaut ; « Voir en tableau » garde le tableau (choix mémorisé).
+  const [view, setView] = useState<"tableau" | "liste" | "colonnes" | "mobile">(() => {
+    try {
+      return isMobile && localStorage.getItem("crm-mobile-simple") !== "0" ? "mobile" : "tableau";
+    } catch {
+      return isMobile ? "mobile" : "tableau";
+    }
+  });
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | LeadStatus>("");
   // Personnes proposées dans le filtre « Personne » : l'équipe + les commerciaux de Monday.
@@ -1221,8 +1230,7 @@ export default function LeadsCRM({
   columnsApiRef.current = columnsApi;
   const editLabels = useCallback((key: string, opts: any[]) => columnsApiRef.current.setOptions(key, opts), []);
   const [visibleCols, setVisibleCols] = useVisibleColumns(columnsVersion, boardId);
-  const isMobile = useIsMobile();
-  // Zoom du tableau : STRICTEMENT DISSOCIÉ entre smartphone et ordinateur.
+    // Zoom du tableau : STRICTEMENT DISSOCIÉ entre smartphone et ordinateur.
   const [zoom, setZoom] = useState(() => {
     try {
       const isMob = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
@@ -1263,10 +1271,11 @@ export default function LeadsCRM({
     }
   }, [isMobile]);
 
-  const setViewPersist = (v: "tableau" | "liste" | "colonnes") => {
+  const setViewPersist = (v: "tableau" | "liste" | "colonnes" | "mobile") => {
     setView(v);
     try {
       localStorage.setItem("crm-leads-view", v);
+      localStorage.setItem("crm-mobile-simple", v === "mobile" ? "1" : "0");
     } catch {
       /* préférence non essentielle */
     }
@@ -1721,7 +1730,16 @@ export default function LeadsCRM({
         </div>
       )}
       {/* Barre d'outils façon Monday */}
-      <div className="flex items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible rounded-xl border border-gray-200 bg-white shadow-sm px-2 py-1.5">
+      <div className={`${view === "mobile" ? "hidden" : "flex"} items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible rounded-xl border border-gray-200 bg-white shadow-sm px-2 py-1.5`}>
+        {isMobile && (
+          <button
+            onClick={() => setViewPersist("mobile")}
+            className="shrink-0 text-xs font-bold text-white px-3 py-1.5 rounded-md"
+            style={{ background: "linear-gradient(90deg,#ff8a00,#e0218a)" }}
+          >
+            📱 Version simple
+          </button>
+        )}
         <AddSplit
           onAddLead={() => setCreating(true)}
           onAddGroup={() => saveGroups([...groups, { id: `g_${newId()}`, title: "Nouveau groupe", color: "#579bfc" }])}
@@ -1861,6 +1879,34 @@ export default function LeadsCRM({
         />
         </div>
         </StatusEditContext.Provider>
+      )}
+
+      {/* Version simple pour téléphone */}
+      {leads && view === "mobile" && (
+        <MobileLeads
+          leads={filtered}
+          all={leads}
+          total={total}
+          query={query}
+          onQuery={setQuery}
+          rappelsOnly={rappelsOnly}
+          onRappelsOnly={setRappelsOnly}
+          statusFilter={statusFilter}
+          onStatusFilter={setStatusFilter}
+          lateCount={rappelsCount}
+          newCount={leads.filter((l) => l.status === "nouveau_lead").length}
+          onPatch={patchFromTable}
+          onStatus={moveLead}
+          onNote={async (id, text) => {
+            await callFn("postUpdate", { kind: "lead", id, text });
+          }}
+          onChat={(id) => setChatId(id)}
+          onFull={(id) => {
+            setOpenId(id);
+            setFocusUpdates(false);
+          }}
+          onToTable={() => setViewPersist("tableau")}
+        />
       )}
 
       {/* Vue liste */}
