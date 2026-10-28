@@ -1,8 +1,5 @@
 name: Analyser les étiquettes (lecture seule)
 on:
-  push:
-    branches: [claude/ip5-energie-landing-8fhstc]
-    paths: [scripts/analyser-etiquettes.mjs, .github/workflows/analyser-etiquettes.yml]
   workflow_dispatch:
 jobs:
   run:
