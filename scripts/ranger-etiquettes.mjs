@@ -68,6 +68,24 @@ for (const [col, k] of REMOVE) {
   console.log(`- ${titleOf(col)} : « ${labelOf(col, k)} »`);
 }
 
+// Étapes « En cours chez … » : renomme « Envoyé chez Georges » (0 fiche) et ajoute Praimy après BETS.
+const etape = (next.custom ?? []).find((c) => c.key === "c_sxgefs");
+const georges = etape.options.find((o) => o.key === "o_2eh90");
+const georgesUsed = all.filter((d) => d.data().fields?.c_sxgefs === "o_2eh90").length;
+if (georges && !georgesUsed) { georges.label = "En cours chez Georges"; console.log("- Étape : « Envoyé chez Georges » renommée « En cours chez Georges »"); }
+if (!etape.options.some((o) => o.key === "e_praimy")) {
+  const at = etape.options.findIndex((o) => o.key === "e_bets") + 1;
+  etape.options.splice(at, 0, { key: "e_praimy", label: "En cours chez Praimy", hex: "#cab641" });
+  if (georges && !georgesUsed) { etape.options = etape.options.filter((o) => o.key !== "o_2eh90"); etape.options.splice(at + 1, 0, georges); }
+  console.log("- Étape : ajout de « En cours chez Praimy » (et Georges placé juste après)");
+}
+console.log("\nFICHES À L'ÉTAPE « En cours » (rien n'est changé) :");
+for (const d of all.filter((d) => d.data().fields?.c_sxgefs === "en_cours")) {
+  const x = d.data();
+  console.log(`- ${x.name ?? d.id} [${d.id}]${x.deletedAt ? " (corbeille)" : ""} | pipeline=${x.fields?.pipeline ?? ""} | poseur=${x.fields?.poseur ?? ""} | praimy=${x.praimyClientId ? "oui" : "non"}`);
+}
+console.log("Ordre final de l'Étape : " + etape.options.map((o) => o.label).join(" › "));
+
 if (dry) { console.log("\nESSAI À BLANC : rien n'est écrit."); process.exit(0); }
 
 const now = new Date().toISOString();
