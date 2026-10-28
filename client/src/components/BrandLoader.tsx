@@ -13,7 +13,9 @@ export default function BrandLoader({ full = false, label = "Chargement" }: { fu
       role="status"
       aria-live="polite"
       aria-label={label}
-      className={`flex items-center justify-center ${full ? "min-h-screen w-full bg-white dark:bg-slate-950" : "py-24"}`}
+      className={`ip5-loader-wrap flex items-center justify-center ${full ? "min-h-screen w-full bg-white dark:bg-slate-950" : "py-24"}`}
+      // Le logo n'apparaît qu'après un court instant : si le contenu arrive tout de suite, aucun écran de chargement n'a clignoté.
+      style={{ opacity: 0, animation: `ip5-loader-in 0.25s ease ${full ? 0.12 : 0.22}s forwards` }}
       dir="ltr"
     >
       <div className="ip5-loader">

@@ -27,6 +27,24 @@ const etapeChangedMs = (l: Lead) => {
   return t || Date.parse(l.statusChangedAt || l.updatedAt || l.createdAt || "") || 0;
 };
 
+// Dernière étiquette changée sur la fiche, dans n'importe quelle colonne : « Statut : RDV pris », « Commercial : Mebarek »…
+const lastLabelChange = (l: Lead): { text: string; at: string } | null => {
+  const notes = l.notes ?? [];
+  for (let i = notes.length - 1; i >= 0; i--) {
+    const n = notes[i];
+    if (n.kind !== "statut" || !n.text || /^(🔔|Rappel|Groupe|Attribué)/.test(n.text)) continue;
+    const cell = n.text.match(/^(.+?) : (.*) → (.*?)(?: \(Praimy\))?$/);
+    if (cell) return { text: `${cell[1]} : ${cell[3] || "vide"}`, at: n.at };
+    const st = n.text.match(/^(.+) → (.+)$/);
+    if (st) return { text: `Statut : ${st[2]}`, at: n.at };
+  }
+  return null;
+};
+const agoText = (iso: string) => {
+  const d = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / DAY));
+  return d === 0 ? "aujourd'hui" : d === 1 ? "hier" : `il y a ${d} j`;
+};
+
 const daysSince = (ms: number) => (ms ? Math.max(0, Math.floor((Date.now() - ms) / DAY)) : 0);
 
 // Colonne « 🧭 Étape » du tableau (colonne personnalisée c_sxgefs, remplie aussi par la synchro PRAIMY).
@@ -181,6 +199,14 @@ export default function DossiersBoard({
                           {days === 0 ? "aujourd'hui" : `${days} j`}
                         </span>
                       </div>
+                      {(() => {
+                        const ch = lastLabelChange(l);
+                        return ch ? (
+                          <p className="mt-1.5 text-[11px] text-gray-500 truncate" title={`${ch.text} · ${agoText(ch.at)}`}>
+                            🏷️ <b className="font-semibold text-gray-700">{ch.text}</b> · {agoText(ch.at)}
+                          </p>
+                        ) : null;
+                      })()}
                     </div>
                   );
                 })}
