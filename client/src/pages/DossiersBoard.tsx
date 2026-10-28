@@ -32,7 +32,8 @@ const lastLabelChange = (l: Lead): { text: string; at: string } | null => {
   const notes = l.notes ?? [];
   for (let i = notes.length - 1; i >= 0; i--) {
     const n = notes[i];
-    if (n.kind !== "statut" || !n.text || /^(🔔|Rappel|Groupe|Attribué)/.test(n.text)) continue;
+    // On ignore les traces techniques (rappels, groupes, restaurations ou rangements automatiques).
+    if (n.kind !== "statut" || !n.text || /^(🔔|Rappel|Groupe|Attribué|Restauration)/.test(n.text) || /rangement des étiquettes/.test(n.text)) continue;
     const cell = n.text.match(/^(.+?) : (.*) → (.*?)(?: \(Praimy\))?$/);
     if (cell) return { text: `${cell[1]} : ${cell[3] || "vide"}`, at: n.at };
     const st = n.text.match(/^(.+) → (.+)$/);
@@ -328,9 +329,9 @@ export default function DossiersBoard({
                       <div className="flex flex-wrap items-center gap-1.5 mt-2">
                         <span
                           className={`inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${have === need ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}
-                          title="Documents obligatoires reçus"
+                          title={`Documents obligatoires reçus : ${have} sur ${need} (${REQUIRED_LEAD_DOCS.join(", ")})`}
                         >
-                          <FileCheck2 size={11} /> {have}/{need}
+                          <FileCheck2 size={11} /> Docs {have}/{need}
                         </span>
                         {l.rappelLe && (
                           <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-1.5 py-0.5 rounded-full ${rLate ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-800"}`}>
@@ -345,12 +346,12 @@ export default function DossiersBoard({
                         )}
                         <span className={`ml-auto text-[11px] font-semibold ${late ? "text-red-600" : "text-gray-400"}`}>
                           {late && <AlertTriangle size={10} className="inline -mt-0.5 mr-0.5" />}
-                          {days === 0 ? "aujourd'hui" : `${days} j`}
+                          {days === 0 ? "arrivé aujourd'hui" : `depuis ${days} j`}
                         </span>
                       </div>
                       {ch && (
                         <p className="mt-1.5 text-[11px] text-gray-500 truncate" title={`${ch.text} · ${agoText(ch.at)}`}>
-                          🏷️ <b className="font-semibold text-gray-700">{ch.text}</b> · {agoText(ch.at)}
+                          Dernier changement : <b className="font-semibold text-gray-700">{ch.text}</b> · {agoText(ch.at)}
                         </p>
                       )}
                     </div>
