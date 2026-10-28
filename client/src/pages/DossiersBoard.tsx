@@ -480,10 +480,10 @@ function ProgressRoad({
 const PHASES: { name: string; color: string; re: RegExp }[] = [
   { name: "Documents", color: "#3b82f6", re: /sans [ée]tape|doc|revenu|info|tiers/i },
   { name: "Proposition", color: "#8b5cf6", re: /rdv|propo|propal|offre/i },
-  { name: "Technique", color: "#0ea5e9", re: /visite|\bvt\b|bets|technique|en cours chez/i },
+  { name: "Technique", color: "#0ea5e9", re: /visite|\bvt\b|bets|technique|^en cours/i },
   { name: "Signature", color: "#ec4899", re: /devis|signature|mandat|mpr/i },
   { name: "Audit & fin", color: "#10b981", re: /audit|termin|valid|fin|pos[ée]/i },
-  { name: "Autres", color: "#9ca3af", re: /^en cours$|compliqu|solaire/i },
+  { name: "Autres", color: "#9ca3af", re: /compliqu|solaire/i },
 ];
 type Step = { key: string; label: string; hex: string; count: number };
 function groupPhases(steps: Step[]) {
