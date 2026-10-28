@@ -28,14 +28,18 @@ const etapeChangedMs = (l: Lead) => {
 };
 
 // Dernière étiquette changée sur la fiche, dans n'importe quelle colonne : « Statut : RDV pris », « Commercial : Mebarek »…
-const lastLabelChange = (l: Lead): { text: string; at: string } | null => {
+// « labels » traduit les anciennes traces écrites avec la clé interne (ex. « o_vjwbo ») en nom lisible.
+const lastLabelChange = (l: Lead, labels: Map<string, string>): { text: string; at: string } | null => {
   const notes = l.notes ?? [];
   for (let i = notes.length - 1; i >= 0; i--) {
     const n = notes[i];
     // On ignore les traces techniques (rappels, groupes, restaurations ou rangements automatiques).
-    if (n.kind !== "statut" || !n.text || /^(🔔|Rappel|Groupe|Attribué|Restauration)/.test(n.text) || /rangement des étiquettes/.test(n.text)) continue;
+    if (n.kind !== "statut" || !n.text || /^(🔔|Rappel|Groupe|Attribué|Restauration|Rangement)/.test(n.text) || /rangement des étiquettes/.test(n.text)) continue;
     const cell = n.text.match(/^(.+?) : (.*) → (.*?)(?: \(Praimy\))?$/);
-    if (cell) return { text: `${cell[1]} : ${cell[3] || "vide"}`, at: n.at };
+    if (cell) {
+      const v = cell[3] ? labels.get(cell[3]) ?? cell[3] : "vide";
+      return { text: `${/^[ée]tape$/i.test(cell[1]) ? "Étape" : cell[1]} : ${v}`, at: n.at };
+    }
     const st = n.text.match(/^(.+) → (.+)$/);
     if (st) return { text: `Statut : ${st[2]}`, at: n.at };
   }
@@ -100,6 +104,7 @@ export default function DossiersBoard({
     [leads, etapeCol],
   );
   const mainSteps = etapeOptions(etapeCol).filter((p) => p.key !== "bloque");
+  const optLabels = useMemo(() => new Map((etapeCol?.options ?? []).map((o) => [o.key, o.label])), [etapeCol]);
 
   // Barre de défilement horizontale dessinée par nos soins, toujours visible en bas de l'écran
   // (les barres natives disparaissent sur Mac et téléphone) : on peut la glisser ou toucher la piste.
@@ -242,7 +247,8 @@ export default function DossiersBoard({
         compact={compact}
         onPick={(key) => {
           const el = scroller.current?.querySelector(`[data-col="${key}"]`) as HTMLElement | null;
-          if (el && scroller.current) scroller.current.scrollTo({ left: el.offsetLeft - scroller.current.offsetLeft - 8, behavior: "smooth" });
+          const sc = scroller.current;
+          if (el && sc) sc.scrollTo({ left: el.getBoundingClientRect().left - sc.getBoundingClientRect().left + sc.scrollLeft - 8, behavior: "smooth" });
         }}
       />
       <p className="mb-3 flex items-start gap-2 rounded-xl bg-orange-50 text-orange-900 text-[13px] font-semibold px-3 py-2">
@@ -256,9 +262,20 @@ export default function DossiersBoard({
       <div
         ref={scroller}
         onScroll={updateThumb}
-        className="flex gap-3 overflow-x-auto pb-2 items-start overscroll-x-contain no-scrollbar"
+        className="flex gap-6 overflow-x-auto pb-2 items-start overscroll-x-contain no-scrollbar"
       >
-        {columns.cols.map((c) => {
+        {groupPhases(columns.cols).map((ph, pi) => {
+          const total = ph.steps.reduce((n, c) => n + (columns.byKey.get(c.key) ?? []).length, 0);
+          return (
+          <div key={ph.name} className="shrink-0">
+            <div className="mb-2 flex items-center justify-between rounded-xl px-3 py-1.5 text-white shadow-sm" style={{ background: ph.color }}>
+              <span className="text-sm font-extrabold">
+                {pi + 1}. {ph.name}
+              </span>
+              <span className="text-sm font-black">{total}</span>
+            </div>
+            <div className="flex gap-3 items-start">
+        {ph.steps.map((c) => {
           const all = columns.byKey.get(c.key) ?? [];
           const list = staleOnly ? all.filter((l) => !isEnd(c.key) && daysSince(etapeChangedMs(l)) >= STALE_DAYS) : all;
           const over = dragOver === c.key && c.key !== START;
@@ -296,7 +313,7 @@ export default function DossiersBoard({
                   const rLate = !!l.rappelLe && rappelEnRetard(l.rappelLe, time);
                   const tr = trancheInfo(l.fields.tranche ?? "");
                   const who = ATTRIBUE.find((o) => o.key === l.fields[ATTRIBUE_KEY]);
-                  const ch = lastLabelChange(l);
+                  const ch = lastLabelChange(l, optLabels);
                   return (
                     <div
                       key={l.id}
@@ -360,6 +377,10 @@ export default function DossiersBoard({
                 {list.length === 0 && <p className="text-center text-[11px] text-gray-400 py-4">{staleOnly ? "Aucun dossier bloqué" : "Aucun dossier"}</p>}
               </div>
             </div>
+          );
+        })}
+            </div>
+          </div>
           );
         })}
       </div>
@@ -483,17 +504,16 @@ const PHASES: { name: string; color: string; re: RegExp }[] = [
   { name: "Technique", color: "#0ea5e9", re: /visite|\bvt\b|bets|technique|^en cours/i },
   { name: "Signature", color: "#ec4899", re: /devis|signature|mandat|mpr/i },
   { name: "Audit & fin", color: "#10b981", re: /audit|termin|valid|fin|pos[ée]/i },
-  { name: "Autres", color: "#9ca3af", re: /compliqu|solaire/i },
+  { name: "Autres", color: "#9ca3af", re: /compliqu|solaire|bloqu/i },
 ];
-type Step = { key: string; label: string; hex: string; count: number };
-function groupPhases(steps: Step[]) {
+function groupPhases<Step extends { label: string; count?: number }>(steps: Step[]) {
   const out = PHASES.map((p) => ({ ...p, steps: [] as Step[], total: 0 }));
   let cur = 0;
   for (const st of steps) {
     const found = PHASES.findIndex((p) => p.re.test(st.label));
     if (found >= 0) cur = found;
     out[cur].steps.push(st);
-    out[cur].total += st.count;
+    out[cur].total += st.count ?? 0;
   }
   return out.filter((p) => p.steps.length);
 }
