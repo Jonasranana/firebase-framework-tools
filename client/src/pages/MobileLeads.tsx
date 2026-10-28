@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BellRing, ChevronRight, FileText, MessageCircle, MessagesSquare, Phone, Search, Send, X } from "lucide-react";
 import DossiersBoard, { etapeOptions, type DossierMove } from "./DossiersBoard";
 import { authorName, dayLabel, hhmm, isChat, isMailReceived, movementText } from "./LeadChat";
@@ -44,6 +44,46 @@ function useLockZoom() {
     };
   }, []);
 }
+
+// ── Appels : application du téléphone ou OnOff Business ──────────────────────────────────────
+// OnOff Business n'a pas de lien d'ouverture direct documenté : avec « OnOff », le bouton Appeler copie le
+// numéro (prêt à coller dans OnOff) ; avec « Téléphone », il lance l'appel normalement (tel:).
+type CallApp = "phone" | "onoff";
+const CALL_KEY = "crm-call-app";
+const readCallApp = (): CallApp => {
+  try {
+    return localStorage.getItem(CALL_KEY) === "onoff" ? "onoff" : "phone";
+  } catch {
+    return "phone";
+  }
+};
+const CallCtx = createContext<{ app: CallApp; copy: (phone: string, name: string) => void }>({ app: "phone", copy: () => {} });
+const nationalPhone = (raw: string) => {
+  let d = String(raw ?? "").replace(/\D/g, "");
+  if (d.startsWith("33") && d.length === 11) d = "0" + d.slice(2);
+  return d;
+};
+
+const CallLabel = () => {
+  const { app } = useContext(CallCtx);
+  return <>{app === "onoff" ? "Copier (OnOff)" : "Appeler"}</>;
+};
+
+// Bouton / lien d'appel : suit le choix « Téléphone » ou « OnOff ».
+const CallAction = ({ phone, name, className, children, style }: { phone: string; name: string; className?: string; children: React.ReactNode; style?: React.CSSProperties }) => {
+  const { app, copy } = useContext(CallCtx);
+  const tel = telHref(phone);
+  if (!tel) return null;
+  return app === "onoff" ? (
+    <button onClick={() => copy(phone, name)} className={className} style={style}>
+      {children}
+    </button>
+  ) : (
+    <a href={tel} className={className} style={style}>
+      {children}
+    </a>
+  );
+};
 
 const GRAD = "linear-gradient(90deg,#ff8a00,#ff4d4d 55%,#e0218a)";
 const DAY = 86400000;
@@ -219,7 +259,12 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
 
       <div className="p-3 space-y-3 pb-24">
         <div className="flex gap-2">
-          {tel && <BigBtn href={tel} icon={<Phone size={22} />} label="Appeler" color="#2b5a8f" />}
+          {tel && (
+            <CallAction phone={lead.phone} name={lead.name} className="flex-1 flex flex-col items-center justify-center gap-1 rounded-2xl py-3 text-white text-[12px] font-bold active:scale-95 transition" style={{ background: "#2b5a8f" }}>
+              <Phone size={22} />
+              <CallLabel />
+            </CallAction>
+          )}
           {tel && <BigBtn href={whatsappHref(lead.phone)} icon={<MessageCircle size={22} />} label="WhatsApp" color="#22c55e" />}
           <BigBtn onClick={() => onChat(lead.id)} icon={<MessagesSquare size={22} />} label="Discussion" color="#ff7a1a" />
         </div>
@@ -485,9 +530,9 @@ const AgendaView = ({ all, email, onOpen }: { all: Lead[]; email: string; onOpen
                   </button>
                   <div className="flex border-t border-gray-100 text-sm font-bold">
                     {tel && (
-                      <a href={tel} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-[#2b5a8f] active:bg-gray-50">
-                        <Phone size={15} /> Appeler
-                      </a>
+                      <CallAction phone={l.phone} name={l.name} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-[#2b5a8f] active:bg-gray-50">
+                        <Phone size={15} /> <CallLabel />
+                      </CallAction>
                     )}
                     <button onClick={() => addOne(l)} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-orange-600 border-l border-gray-100 active:bg-gray-50">
                       ⏰ {done === l.id ? "Ajouté" : "Alarme"}
@@ -510,6 +555,26 @@ export default function MobileLeads(props: Props) {
   const [limit, setLimit] = useState(30);
   const [tab, setTab] = useState<"liste" | "agenda" | "dossiers">("liste");
   const [groupFilter, setGroupFilter] = useState("");
+  const [callApp, setCallAppState] = useState<CallApp>(readCallApp);
+  const [toast, setToast] = useState("");
+  const setCallApp = (a: CallApp) => {
+    setCallAppState(a);
+    try {
+      localStorage.setItem(CALL_KEY, a);
+    } catch {
+      /* non essentiel */
+    }
+  };
+  const copyNumber = async (phone: string, name: string) => {
+    const num = nationalPhone(phone);
+    try {
+      await navigator.clipboard.writeText(num);
+      setToast(`✅ Numéro de ${name || "le client"} copié (${formatPhone(phone)}). Ouvre OnOff Business et colle-le.`);
+    } catch {
+      setToast(`Numéro à composer dans OnOff : ${formatPhone(phone)}`);
+    }
+    setTimeout(() => setToast(""), 6000);
+  };
   const topRef = useRef<HTMLDivElement>(null);
   const openLead = useMemo(() => (openId ? all.find((l) => l.id === openId) ?? null : null), [all, openId]);
   useEffect(() => setLimit(30), [query, rappelsOnly, groupFilter]);
@@ -527,6 +592,7 @@ export default function MobileLeads(props: Props) {
   const noFilter = !rappelsOnly && groupFilter === "";
 
   return (
+    <CallCtx.Provider value={{ app: callApp, copy: copyNumber }}>
     <div ref={topRef} style={{ touchAction: "pan-x pan-y" }}>
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
@@ -585,6 +651,16 @@ export default function MobileLeads(props: Props) {
                 Voir en tableau
               </button>
             </div>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-[11px] font-semibold text-gray-500">Appeler avec</span>
+              <div className="flex rounded-full bg-gray-200/70 p-0.5">
+                {([["phone", "📞 Téléphone"], ["onoff", "🟣 OnOff Business"]] as const).map(([k, label]) => (
+                  <button key={k} onClick={() => setCallApp(k)} className={`text-[12px] font-bold px-3 py-1 rounded-full ${callApp === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </>
         )}
       </div>
@@ -642,9 +718,9 @@ export default function MobileLeads(props: Props) {
               </button>
               {tel && (
                 <div className="flex border-t border-gray-100">
-                  <a href={tel} className="flex-1 inline-flex items-center justify-center gap-2 py-3 text-sm font-bold text-[#2b5a8f] active:bg-gray-50">
-                    <Phone size={16} /> Appeler
-                  </a>
+                  <CallAction phone={l.phone} name={l.name} className="flex-1 inline-flex items-center justify-center gap-2 py-3 text-sm font-bold text-[#2b5a8f] active:bg-gray-50">
+                    <Phone size={16} /> <CallLabel />
+                  </CallAction>
                   <a href={whatsappHref(l.phone)} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 py-3 text-sm font-bold text-green-600 border-l border-gray-100 active:bg-gray-50">
                     <MessageCircle size={16} /> WhatsApp
                   </a>
@@ -679,6 +755,13 @@ export default function MobileLeads(props: Props) {
           onFull={props.onFull}
         />
       )}
+
+      {toast && (
+        <div className="fixed left-3 right-3 bottom-4 z-[60] rounded-2xl bg-gray-900 text-white text-sm font-semibold px-4 py-3 shadow-2xl" role="status" onClick={() => setToast("")}>
+          {toast}
+        </div>
+      )}
     </div>
+    </CallCtx.Provider>
   );
 }
