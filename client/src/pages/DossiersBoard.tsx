@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, BellRing, ChevronLeft, ChevronRight, FileCheck2 } from "lucide-react";
+import { AlertTriangle, BellRing, FileCheck2, MoveHorizontal } from "lucide-react";
 import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
 import { STATUS_RANK, formatPhone, type Lead } from "@/lib/crm";
 import { ATTRIBUE, ATTRIBUE_KEY, type LeadColumn } from "@/lib/crmColumns";
@@ -70,24 +70,13 @@ export default function DossiersBoard({
 }) {
   const [staleOnly, setStaleOnly] = useState(false);
   const [dragOver, setDragOver] = useState("");
-
-  // Défilement latéral : flèches, glisser le fond avec la souris, ou le doigt / la molette en maj.
+  const [ghost, setGhost] = useState<{ name: string } | null>(null);
+  const ghostEl = useRef<HTMLDivElement>(null);
   const scroller = useRef<HTMLDivElement>(null);
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(true);
-  const updateArrows = () => {
-    const el = scroller.current;
-    if (!el) return;
-    setCanLeft(el.scrollLeft > 4);
-    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
-  };
-  useEffect(() => {
-    updateArrows();
-    window.addEventListener("resize", updateArrows);
-    return () => window.removeEventListener("resize", updateArrows);
-  }, [leads]);
-  const slide = (dir: number) => scroller.current?.scrollBy({ left: dir * Math.max(280, (scroller.current?.clientWidth ?? 600) * 0.8), behavior: "smooth" });
-  const pan = useRef<{ x: number; left: number } | null>(null);
+  const justDragged = useRef(false);
+  const onMoveRef = useRef(onMove);
+  onMoveRef.current = onMove;
+  const coarse = typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches;
 
   const columns = useMemo(() => {
     const cols = [{ key: START, label: "Sans étape", hex: "#9ca3af", hint: "RDV pris, étape à choisir" }, ...etapeOptions(etapeCol).map((p) => ({ key: p.key, label: p.label, hex: p.hex, hint: "" }))];
@@ -109,14 +98,131 @@ export default function DossiersBoard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [leads, etapeCol],
   );
-
   const mainSteps = etapeOptions(etapeCol).filter((p) => p.key !== "bloque");
+
+  // Barre de défilement horizontale dessinée par nos soins, toujours visible en bas de l'écran
+  // (les barres natives disparaissent sur Mac et téléphone) : on peut la glisser ou toucher la piste.
+  const track = useRef<HTMLDivElement>(null);
+  const [thumb, setThumb] = useState({ left: 0, width: 100 });
+  const updateThumb = () => {
+    const el = scroller.current;
+    if (!el) return;
+    const ratio = el.clientWidth / Math.max(1, el.scrollWidth);
+    const width = Math.max(10, Math.min(100, ratio * 100));
+    const left = (el.scrollLeft / Math.max(1, el.scrollWidth - el.clientWidth)) * (100 - width);
+    setThumb({ left: isFinite(left) ? left : 0, width });
+  };
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    updateThumb();
+    const ro = new ResizeObserver(updateThumb);
+    ro.observe(el);
+    Array.from(el.children).forEach((c) => ro.observe(c));
+    window.addEventListener("resize", updateThumb);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateThumb);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columns]);
+  const dragBar = useRef<{ x: number; left: number } | null>(null);
+  const jumpTo = (clientX: number) => {
+    const el = scroller.current;
+    const tr = track.current;
+    if (!el || !tr) return;
+    const r = tr.getBoundingClientRect();
+    const frac = (clientX - r.left) / r.width;
+    el.scrollLeft = frac * el.scrollWidth - el.clientWidth / 2;
+  };
+
+  // Glisser avec le doigt : appui long sur une carte, puis déplacement (la page ne défile plus pendant le glissé).
+  useEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    let drag: { id: string; name: string } | null = null;
+    let start = { x: 0, y: 0 };
+    let raf = 0;
+    let lastX = 0;
+    let lastY = 0;
+
+    const colUnder = (x: number, y: number) => (document.elementFromPoint(x, y) as HTMLElement | null)?.closest("[data-col]")?.getAttribute("data-col") ?? "";
+    const loop = () => {
+      if (!drag) return;
+      const r = el.getBoundingClientRect();
+      if (lastX < r.left + 70) el.scrollLeft -= 16;
+      else if (lastX > r.right - 70) el.scrollLeft += 16;
+      raf = requestAnimationFrame(loop);
+    };
+    const end = (drop: boolean) => {
+      if (timer) clearTimeout(timer);
+      timer = null;
+      if (drag) {
+        const key = colUnder(lastX, lastY);
+        if (drop && key && key !== START) onMoveRef.current(drag.id, key);
+        justDragged.current = true;
+        setTimeout(() => (justDragged.current = false), 450);
+      }
+      drag = null;
+      cancelAnimationFrame(raf);
+      setGhost(null);
+      setDragOver("");
+    };
+    const onStart = (e: TouchEvent) => {
+      const card = (e.target as HTMLElement).closest("[data-card]") as HTMLElement | null;
+      if (!card || e.touches.length !== 1) return;
+      start = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+      lastX = start.x;
+      lastY = start.y;
+      timer = setTimeout(() => {
+        drag = { id: card.getAttribute("data-id") ?? "", name: card.getAttribute("data-name") ?? "" };
+        try {
+          navigator.vibrate?.(25);
+        } catch {
+          /* non essentiel */
+        }
+        setGhost({ name: drag.name });
+        raf = requestAnimationFrame(loop);
+      }, 380);
+    };
+    const onMoveT = (e: TouchEvent) => {
+      const t = e.touches[0];
+      lastX = t.clientX;
+      lastY = t.clientY;
+      if (!drag) {
+        if (timer && Math.hypot(t.clientX - start.x, t.clientY - start.y) > 10) {
+          clearTimeout(timer);
+          timer = null;
+        }
+        return;
+      }
+      e.preventDefault();
+      if (ghostEl.current) ghostEl.current.style.transform = `translate(${t.clientX - 90}px, ${t.clientY - 30}px)`;
+      const k = colUnder(t.clientX, t.clientY);
+      setDragOver((cur) => (cur === k ? cur : k));
+    };
+    const onEnd = () => end(true);
+    const onCancel = () => end(false);
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMoveT, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", onCancel);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMoveT);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", onCancel);
+      if (timer) clearTimeout(timer);
+      cancelAnimationFrame(raf);
+    };
+  }, []);
 
   if (!etapeCol) return <p className="text-sm text-gray-500 py-6">La colonne « Étape » est introuvable : réactive-la dans le tableau (corbeille des colonnes).</p>;
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-2 mb-3">
+      <div className="flex flex-wrap items-center gap-2 mb-2">
         <p className="text-sm font-bold text-gray-800">
           {columns.total} dossier{columns.total > 1 ? "s" : ""} en suivi
         </p>
@@ -128,43 +234,28 @@ export default function DossiersBoard({
         >
           <AlertTriangle size={13} /> Bloqués depuis {STALE_DAYS} j ou plus ({stale})
         </button>
-        <p className="text-[11px] text-gray-400 ml-auto hidden sm:block">Flèches ◀ ▶ sur chaque carte, ou glissez-la dans une autre colonne : l'étape change aussi dans le tableau.</p>
       </div>
+      <p className="mb-3 flex items-start gap-2 rounded-xl bg-orange-50 text-orange-900 text-[13px] font-semibold px-3 py-2">
+        <MoveHorizontal size={16} className="shrink-0 mt-0.5" />
+        <span>
+          Faites glisser une carte vers la droite ou vers la gauche pour changer son étape : elle change aussi dans le tableau.
+          {coarse && <span className="font-normal"> Sur téléphone : appuyez longuement sur la carte, puis glissez-la.</span>}
+        </span>
+      </p>
 
-      <div className="relative">
-        {canLeft && (
-          <button onClick={() => slide(-1)} aria-label="Colonnes précédentes" className="absolute left-1 top-24 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-orange-50">
-            <ChevronLeft size={22} />
-          </button>
-        )}
-        {canRight && (
-          <button onClick={() => slide(1)} aria-label="Colonnes suivantes" className="absolute right-1 top-24 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-orange-50">
-            <ChevronRight size={22} />
-          </button>
-        )}
       <div
         ref={scroller}
-        onScroll={updateArrows}
-        onPointerDown={(e) => {
-          // Glisser le fond avec la souris fait défiler les colonnes (pas sur une carte : elles se déplacent elles-mêmes).
-          if (e.pointerType !== "mouse" || (e.target as HTMLElement).closest("[data-card]")) return;
-          pan.current = { x: e.clientX, left: scroller.current?.scrollLeft ?? 0 };
-        }}
-        onPointerMove={(e) => {
-          if (pan.current && scroller.current) scroller.current.scrollLeft = pan.current.left - (e.clientX - pan.current.x);
-        }}
-        onPointerUp={() => (pan.current = null)}
-        onPointerLeave={() => (pan.current = null)}
-        className="flex gap-3 overflow-x-auto pb-4 items-start overscroll-x-contain"
-        style={{ scrollbarGutter: "stable" }}
+        onScroll={updateThumb}
+        className="flex gap-3 overflow-x-auto pb-2 items-start overscroll-x-contain no-scrollbar"
       >
         {columns.cols.map((c) => {
           const all = columns.byKey.get(c.key) ?? [];
           const list = staleOnly ? all.filter((l) => !isEnd(c.key) && daysSince(etapeChangedMs(l)) >= STALE_DAYS) : all;
-          const over = dragOver === c.key;
+          const over = dragOver === c.key && c.key !== START;
           return (
             <div
               key={c.key}
+              data-col={c.key}
               onDragOver={(e) => {
                 if (c.key === START) return;
                 e.preventDefault();
@@ -176,7 +267,7 @@ export default function DossiersBoard({
                 const id = e.dataTransfer.getData("text/lead-id");
                 if (id && c.key !== START) onMove(id, c.key);
               }}
-              className={`snap-start shrink-0 ${compact ? "w-[78vw]" : "w-72"} rounded-2xl p-2 transition-colors ${over ? "bg-orange-100/70 ring-2 ring-orange-300" : "bg-gray-100/80"}`}
+              className={`shrink-0 ${compact ? "w-[78vw]" : "w-72"} rounded-2xl p-2 transition-colors ${over ? "bg-orange-100/70 ring-2 ring-orange-300" : "bg-gray-100/80"}`}
             >
               <div className="flex items-center gap-2 px-1.5 pb-2 pt-1">
                 <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: c.hex }} />
@@ -186,9 +277,6 @@ export default function DossiersBoard({
               {c.hint && list.length > 0 && <p className="text-[10px] text-gray-400 px-2 -mt-1 mb-1.5">{c.hint}</p>}
               <div className="space-y-2">
                 {list.map((l) => {
-                  const ci = columns.cols.findIndex((x) => x.key === c.key);
-                  const prevCol = ci > 1 ? columns.cols[ci - 1] : null; // « Sans étape » n'est pas une destination
-                  const nextCol = ci < columns.cols.length - 1 ? columns.cols[ci + 1] : null;
                   const days = daysSince(etapeChangedMs(l));
                   const late = days >= STALE_DAYS && !isEnd(c.key);
                   const idx = mainSteps.findIndex((p) => p.key === l.fields[ek]);
@@ -198,17 +286,21 @@ export default function DossiersBoard({
                   const rLate = !!l.rappelLe && rappelEnRetard(l.rappelLe, time);
                   const tr = trancheInfo(l.fields.tranche ?? "");
                   const who = ATTRIBUE.find((o) => o.key === l.fields[ATTRIBUE_KEY]);
+                  const ch = lastLabelChange(l);
                   return (
                     <div
                       key={l.id}
                       role="button"
                       data-card
+                      data-id={l.id}
+                      data-name={l.name || "Sans nom"}
                       tabIndex={0}
-                      draggable
+                      draggable={!coarse}
                       onDragStart={(e) => e.dataTransfer.setData("text/lead-id", l.id)}
-                      onClick={() => onOpen(l.id)}
+                      onClick={() => !justDragged.current && onOpen(l.id)}
                       onKeyDown={(e) => e.key === "Enter" && onOpen(l.id)}
-                      className={`bg-white rounded-xl border shadow-sm p-3 cursor-pointer hover:border-orange-300 ${late ? "border-red-200" : "border-gray-100"}`}
+                      className={`bg-white rounded-xl border shadow-sm p-3 cursor-grab select-none hover:border-orange-300 ${late ? "border-red-200" : "border-gray-100"}`}
+                      style={{ WebkitTouchCallout: "none" } as React.CSSProperties}
                     >
                       <div className="flex items-start gap-2">
                         <div className="min-w-0 flex-1">
@@ -247,32 +339,11 @@ export default function DossiersBoard({
                           {days === 0 ? "aujourd'hui" : `${days} j`}
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          disabled={!prevCol}
-                          onClick={() => prevCol && onMove(l.id, prevCol.key)}
-                          title={prevCol ? `Reculer à « ${prevCol.label} »` : undefined}
-                          className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-gray-100 text-gray-600 text-[11px] font-bold py-1.5 disabled:opacity-30 enabled:hover:bg-orange-100 enabled:active:bg-orange-200"
-                        >
-                          <ChevronLeft size={14} /> {prevCol ? <span className="truncate max-w-[70px]">{prevCol.label}</span> : null}
-                        </button>
-                        <button
-                          disabled={!nextCol}
-                          onClick={() => nextCol && onMove(l.id, nextCol.key)}
-                          title={nextCol ? `Avancer à « ${nextCol.label} »` : undefined}
-                          className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-orange-500 text-white text-[11px] font-bold py-1.5 disabled:opacity-30 enabled:hover:bg-orange-600 enabled:active:bg-orange-700"
-                        >
-                          {nextCol ? <span className="truncate max-w-[70px]">{nextCol.label}</span> : null} <ChevronRight size={14} />
-                        </button>
-                      </div>
-                      {(() => {
-                        const ch = lastLabelChange(l);
-                        return ch ? (
-                          <p className="mt-1.5 text-[11px] text-gray-500 truncate" title={`${ch.text} · ${agoText(ch.at)}`}>
-                            🏷️ <b className="font-semibold text-gray-700">{ch.text}</b> · {agoText(ch.at)}
-                          </p>
-                        ) : null;
-                      })()}
+                      {ch && (
+                        <p className="mt-1.5 text-[11px] text-gray-500 truncate" title={`${ch.text} · ${agoText(ch.at)}`}>
+                          🏷️ <b className="font-semibold text-gray-700">{ch.text}</b> · {agoText(ch.at)}
+                        </p>
+                      )}
                     </div>
                   );
                 })}
@@ -282,7 +353,48 @@ export default function DossiersBoard({
           );
         })}
       </div>
+
+      {/* Barre de défilement horizontale collée au bas de l'écran */}
+      <div className="sticky bottom-2 z-30 mt-1 px-1" style={{ touchAction: "none" }}>
+        <div
+          ref={track}
+          onPointerDown={(e) => {
+            if ((e.target as HTMLElement).dataset.thumb) return;
+            jumpTo(e.clientX);
+          }}
+          className="relative h-7 rounded-full bg-white/95 border border-gray-200 shadow-lg"
+          aria-label="Faire défiler les colonnes"
+        >
+          <div
+            data-thumb="1"
+            onPointerDown={(e) => {
+              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              dragBar.current = { x: e.clientX, left: scroller.current?.scrollLeft ?? 0 };
+            }}
+            onPointerMove={(e) => {
+              const el = scroller.current;
+              const tr = track.current;
+              if (!dragBar.current || !el || !tr) return;
+              const dx = e.clientX - dragBar.current.x;
+              el.scrollLeft = dragBar.current.left + (dx / tr.clientWidth) * el.scrollWidth;
+            }}
+            onPointerUp={() => (dragBar.current = null)}
+            onPointerCancel={() => (dragBar.current = null)}
+            className="absolute top-1 bottom-1 rounded-full cursor-grab active:cursor-grabbing"
+            style={{ left: `${thumb.left}%`, width: `${thumb.width}%`, background: "linear-gradient(90deg,#ff8a00,#e0218a)", minWidth: 44 }}
+          />
+        </div>
       </div>
+
+      {ghost && (
+        <div
+          ref={ghostEl}
+          className="fixed left-0 top-0 z-[100] pointer-events-none rounded-xl bg-white border-2 border-orange-400 shadow-2xl px-4 py-2 text-sm font-extrabold text-gray-900 w-44 truncate"
+          style={{ transform: "translate(-999px,-999px)" }}
+        >
+          {ghost.name}
+        </div>
+      )}
     </div>
   );
 }
