@@ -450,7 +450,8 @@ export default function MobileLeads(props: Props) {
           const tel = telHref(l.phone);
           const time = l.fields[RAPPEL_HEURE_KEY] ?? "";
           const late = !!l.rappelLe && rappelEnRetard(l.rappelLe, time);
-          const etape = props.etapeCol ? etapeOptions(props.etapeCol).find((p) => p.key === l.fields[props.etapeCol.key]) : undefined;
+          const ec = props.etapeCol;
+          const etape = ec ? etapeOptions(ec).find((p) => p.key === l.fields[ec.key]) : undefined;
           return (
             <div key={l.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <button onClick={() => setOpenId(l.id)} className="w-full text-left p-3.5 active:bg-orange-50/60">
