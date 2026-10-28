@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BellRing, ChevronRight, FileText, MessageCircle, MessagesSquare, Phone, Search, Send, X } from "lucide-react";
+import DossiersBoard, { type DossierMove } from "./DossiersBoard";
+import { authorName, dayLabel, hhmm, isChat, isMailReceived, movementText } from "./LeadChat";
 import { RappelPicker } from "@/components/RappelCell";
 import { LEAD_STATUSES, formatPhone, statusInfo, telHref, whatsappHref, type Lead, type LeadStatus } from "@/lib/crm";
 import { ATTRIBUE, ATTRIBUE_KEY, PIPELINE } from "@/lib/crmColumns";
@@ -17,6 +19,12 @@ const GRAD = "linear-gradient(90deg,#ff8a00,#ff4d4d 55%,#e0218a)";
 const DAY = 86400000;
 
 type Props = {
+  email: string;
+  // Groupes du tableau (« Nouveaux leads », « 1/ Leads Mebarek »…) et groupe de chaque lead.
+  groups: { id: string; title: string; color: string }[];
+  groupIdOf: (l: Lead) => string;
+  onGroup: (id: string, groupId: string) => void;
+  onMoveEtape: DossierMove;
   leads: Lead[];
   // Toutes les fiches (la fiche ouverte reste à jour même si elle sort de la liste filtrée).
   all: Lead[];
@@ -138,14 +146,18 @@ const Steps = ({ current, onPick }: { current: string; onPick: (k: string) => vo
   );
 };
 
-const LeadScreen = ({ lead, onClose, onPatch, onStatus, onNote, onChat, onFull }: { lead: Lead; onClose: () => void } & Pick<Props, "onPatch" | "onStatus" | "onNote" | "onChat" | "onFull">) => {
+const LeadScreen = ({ lead, email, groups, groupId, onGroup, onClose, onPatch, onStatus, onNote, onChat, onFull }: { lead: Lead; groupId: string; onClose: () => void } & Pick<Props, "email" | "groups" | "onGroup" | "onPatch" | "onStatus" | "onNote" | "onChat" | "onFull">) => {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const f = lead.fields;
   const tel = telHref(lead.phone);
   const time = f[RAPPEL_HEURE_KEY] ?? "";
   const late = !!lead.rappelLe && rappelEnRetard(lead.rappelLe, time);
-  const lastNotes = [...(lead.notes ?? [])].filter((n) => !n.kind || n.kind === "note").slice(-3).reverse();
+  const thread = (lead.notes ?? []).slice(-30);
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ block: "nearest" });
+  }, [lead.id, thread.length]);
   const save = (key: string, v: string) => onPatch(lead.id, { [`fields.${key}`]: v });
 
   const send = async () => {
@@ -211,6 +223,15 @@ const LeadScreen = ({ lead, onClose, onPatch, onStatus, onNote, onChat, onFull }
               onSave={(d, t) => onPatch(lead.id, { rappelLe: d, [`fields.${RAPPEL_HEURE_KEY}`]: d ? t : "" })}
             />
           </Row>
+          <Row label="Groupe">
+            <select value={groupId} onChange={(e) => onGroup(lead.id, e.target.value)} className={inputCls}>
+              {groups.map((g) => (
+                <option key={g.id} value={g.id}>
+                  {g.title}
+                </option>
+              ))}
+            </select>
+          </Row>
           <Row label="Attribué à">
             <select value={f[ATTRIBUE_KEY] ?? ""} onChange={(e) => save(ATTRIBUE_KEY, e.target.value)} className={inputCls}>
               <option value="">— Personne —</option>
@@ -223,32 +244,77 @@ const LeadScreen = ({ lead, onClose, onPatch, onStatus, onNote, onChat, onFull }
           </Row>
         </Section>
 
-        <Section title="Ajouter une note">
-          <textarea
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            rows={3}
-            placeholder="Ex. : rappeler demain, attend l'avis d'imposition…"
-            className={`${inputCls} resize-none`}
-          />
-          <button
-            onClick={send}
-            disabled={!note.trim() || sending}
-            className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl py-3 text-white font-bold disabled:opacity-40"
-            style={{ background: GRAD }}
-          >
-            <Send size={16} /> {sending ? "Envoi…" : "Envoyer la note"}
+        <Section title="Discussion">
+          <div className="rounded-2xl bg-[#efeae2] p-2 max-h-[55vh] overflow-y-auto space-y-1.5">
+            {thread.length === 0 && <p className="text-center text-xs text-gray-500 py-6">Aucun message pour l'instant.</p>}
+            {(() => {
+              let lastDay = "";
+              return thread.map((n) => {
+                const day = dayLabel(n.at);
+                const sep =
+                  day !== lastDay ? (
+                    <div key={`d-${n.id}`} className="flex justify-center py-1">
+                      <span className="text-[11px] font-semibold text-gray-600 bg-white/80 rounded-full px-3 py-0.5 shadow-sm">{day}</span>
+                    </div>
+                  ) : null;
+                lastDay = day;
+                if (isChat(n) || isMailReceived(n)) {
+                  const mine = isChat(n) && n.by === email;
+                  const client = isMailReceived(n);
+                  return (
+                    <div key={n.id}>
+                      {sep}
+                      <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                        <div
+                          className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
+                            mine ? "bg-[#2b5a8f] text-white rounded-br-sm" : client ? "bg-[#fff1d6] text-gray-900 rounded-bl-sm" : "bg-white text-gray-900 rounded-bl-sm"
+                          }`}
+                        >
+                          {!mine && (
+                            <p className={`text-[11px] font-bold mb-0.5 ${client ? "text-[#a35b00]" : "text-[#2b5a8f]"}`}>
+                              {client ? `${lead.name || "Le client"} (mail reçu)` : authorName(n.by)}
+                            </p>
+                          )}
+                          <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : n.text}</p>
+                          <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-white/70" : "text-gray-400"}`}>{hhmm(n.at)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                }
+                const t = movementText(n);
+                return (
+                  <div key={n.id}>
+                    {sep}
+                    <div className="flex justify-center">
+                      <p className="max-w-[94%] text-center text-[11px] leading-snug text-gray-600 bg-white/70 rounded-full px-3 py-1 break-words">
+                        {t.length > 160 ? t.slice(0, 160) + "…" : t}
+                        <span className="text-gray-400"> · {hhmm(n.at)}</span>
+                      </p>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+            <div ref={endRef} />
+          </div>
+          <div className="flex items-end gap-2 mt-2">
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={1}
+              placeholder="Écrire un message à l'équipe…"
+              className="flex-1 resize-none max-h-32 text-base bg-gray-100 text-gray-900 rounded-2xl px-3.5 py-2.5 outline-none focus:ring-2 focus:ring-[#2b5a8f]/30"
+              style={{ fieldSizing: "content" } as React.CSSProperties}
+            />
+            <button onClick={send} disabled={!note.trim() || sending} aria-label="Envoyer" className="shrink-0 h-11 w-11 rounded-full bg-[#2b5a8f] text-white flex items-center justify-center disabled:opacity-40">
+              <Send size={18} />
+            </button>
+          </div>
+          <p className="text-[10px] text-gray-400 mt-1">L'équipe est prévenue par e-mail, comme sur ordinateur.</p>
+          <button onClick={() => onChat(lead.id)} className="mt-2 w-full text-sm font-bold text-orange-600 py-2">
+            Ouvrir la discussion complète (mail, SMS, WhatsApp)
           </button>
-          {lastNotes.length > 0 && (
-            <ul className="mt-3 space-y-2">
-              {lastNotes.map((n) => (
-                <li key={n.id} className="text-sm text-gray-700 bg-gray-50 rounded-xl px-3 py-2">
-                  <span className="block text-[11px] text-gray-400 mb-0.5">{String(n.by ?? "").split("@")[0]} · {ago(n.at)}</span>
-                  {n.text}
-                </li>
-              ))}
-            </ul>
-          )}
         </Section>
 
         <Section title="Informations du client">
@@ -276,9 +342,18 @@ export default function MobileLeads(props: Props) {
   const { leads, all, total, query, onQuery, rappelsOnly, onRappelsOnly, statusFilter, onStatusFilter, lateCount, newCount } = props;
   const [openId, setOpenId] = useState<string | null>(null);
   const [limit, setLimit] = useState(30);
+  const [tab, setTab] = useState<"liste" | "dossiers">("liste");
+  const [groupFilter, setGroupFilter] = useState("");
   const topRef = useRef<HTMLDivElement>(null);
   const openLead = useMemo(() => (openId ? all.find((l) => l.id === openId) ?? null : null), [all, openId]);
-  useEffect(() => setLimit(30), [query, rappelsOnly, statusFilter]);
+  useEffect(() => setLimit(30), [query, rappelsOnly, statusFilter, groupFilter]);
+  const { groups, groupIdOf } = props;
+  const groupCounts = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const l of leads) m.set(groupIdOf(l), (m.get(groupIdOf(l)) ?? 0) + 1);
+    return m;
+  }, [leads, groupIdOf]);
+  const shown = useMemo(() => (groupFilter ? leads.filter((l) => groupIdOf(l) === groupFilter) : leads), [leads, groupFilter, groupIdOf]);
 
   const chip = (active: boolean) =>
     `shrink-0 whitespace-nowrap text-[13px] font-bold px-3.5 py-2 rounded-full border-2 ${active ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200"}`;
@@ -287,6 +362,17 @@ export default function MobileLeads(props: Props) {
   return (
     <div ref={topRef}>
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
+        <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
+          {([["liste", "📋 Clients"], ["dossiers", "📁 Suivi des dossiers"]] as const).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setTab(k)}
+              className={`flex-1 text-[13px] font-bold py-2 rounded-xl ${tab === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div className="relative">
           <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
@@ -323,9 +409,26 @@ export default function MobileLeads(props: Props) {
             📞 À appeler
           </button>
         </div>
+        {tab === "liste" && groups.length > 1 && (
+          <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+            <button onClick={() => setGroupFilter("")} className={chip(groupFilter === "")} style={groupFilter === "" ? { background: "#374151" } : undefined}>
+              Tous les groupes
+            </button>
+            {groups.map((g) => {
+              const n = groupCounts.get(g.id) ?? 0;
+              if (!n && groupFilter !== g.id) return null;
+              return (
+                <button key={g.id} onClick={() => setGroupFilter(groupFilter === g.id ? "" : g.id)} className={chip(groupFilter === g.id)} style={groupFilter === g.id ? { background: g.color } : undefined}>
+                  <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle border border-white/60" style={{ background: g.color }} />
+                  {g.title} ({n})
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex items-center justify-between mt-1.5">
           <p className="text-[11px] text-gray-400">
-            {leads.length} sur {total} client{total > 1 ? "s" : ""}
+            {(tab === "liste" ? shown.length : leads.length)} sur {total} client{total > 1 ? "s" : ""}
           </p>
           <button onClick={props.onToTable} className="text-[11px] font-semibold text-gray-500 underline">
             Voir en tableau
@@ -333,8 +436,15 @@ export default function MobileLeads(props: Props) {
         </div>
       </div>
 
+      {tab === "dossiers" && (
+        <div className="mt-2">
+          <DossiersBoard leads={leads} onOpen={setOpenId} onMove={props.onMoveEtape} compact />
+        </div>
+      )}
+
+      {tab === "liste" && (
       <div className="space-y-2.5 mt-1">
-        {leads.slice(0, limit).map((l) => {
+        {shown.slice(0, limit).map((l) => {
           const tel = telHref(l.phone);
           const time = l.fields[RAPPEL_HEURE_KEY] ?? "";
           const late = !!l.rappelLe && rappelEnRetard(l.rappelLe, time);
@@ -357,6 +467,15 @@ export default function MobileLeads(props: Props) {
                     </span>
                   )}
                   <TrancheDot value={l.fields.tranche ?? ""} />
+                  {(() => {
+                    const g = groups.find((x) => x.id === groupIdOf(l));
+                    return g ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
+                        <span className="w-2 h-2 rounded-full" style={{ background: g.color }} />
+                        {g.title}
+                      </span>
+                    ) : null;
+                  })()}
                   {l.rappelLe && (
                     <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full ${late ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-800"}`}>
                       <BellRing size={10} /> {rappelShort(l.rappelLe, time)}
@@ -378,17 +497,22 @@ export default function MobileLeads(props: Props) {
             </div>
           );
         })}
-        {leads.length === 0 && <p className="text-center text-gray-400 text-sm py-10">Aucun client ne correspond.</p>}
-        {leads.length > limit && (
+        {shown.length === 0 && <p className="text-center text-gray-400 text-sm py-10">Aucun client ne correspond.</p>}
+        {shown.length > limit && (
           <button onClick={() => setLimit((n) => n + 30)} className="w-full text-sm font-bold text-orange-600 py-3">
-            Afficher plus ({leads.length - limit} restants)
+            Afficher plus ({shown.length - limit} restants)
           </button>
         )}
       </div>
+      )}
 
       {openLead && (
         <LeadScreen
           lead={openLead}
+          email={props.email}
+          groups={groups}
+          groupId={groupIdOf(openLead)}
+          onGroup={props.onGroup}
           onClose={() => setOpenId(null)}
           onPatch={props.onPatch}
           onStatus={props.onStatus}

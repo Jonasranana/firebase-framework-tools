@@ -28,6 +28,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import MobileLeads from "./MobileLeads";
+import DossiersBoard from "./DossiersBoard";
 import LeadChat from "./LeadChat";
 import ClientSpaceDashboard from "./ClientSpaceDashboard";
 import { buildClientView } from "@/lib/clientSpace";
@@ -1196,7 +1197,7 @@ export default function LeadsCRM({
   // Une seule présentation : le tableau (les vues Liste et Colonnes ne sont plus proposées).
   const isMobile = useIsMobile();
   // Sur téléphone, la version simple (liste de cartes) s'ouvre par défaut ; « Voir en tableau » garde le tableau (choix mémorisé).
-  const [view, setView] = useState<"tableau" | "liste" | "colonnes" | "mobile">(() => {
+  const [view, setView] = useState<"tableau" | "liste" | "colonnes" | "mobile" | "dossiers">(() => {
     try {
       return isMobile && localStorage.getItem("crm-mobile-simple") !== "0" ? "mobile" : "tableau";
     } catch {
@@ -1271,7 +1272,7 @@ export default function LeadsCRM({
     }
   }, [isMobile]);
 
-  const setViewPersist = (v: "tableau" | "liste" | "colonnes" | "mobile") => {
+  const setViewPersist = (v: "tableau" | "liste" | "colonnes" | "mobile" | "dossiers") => {
     setView(v);
     try {
       localStorage.setItem("crm-leads-view", v);
@@ -1353,6 +1354,29 @@ export default function LeadsCRM({
     } catch (e) {
       console.error(e);
       setError("Impossible de déplacer le lead. Réessayez.");
+    }
+  };
+
+  // Change l'étape d'un dossier (colonne « Étape ») avec une trace dans la discussion.
+  const moveEtape = async (id: string, etape: string) => {
+    const lead = leads?.find((l) => l.id === id);
+    const before = lead?.fields.pipeline ?? "";
+    if (!lead || before === etape) return;
+    try {
+      const { m } = await fs();
+      await patchLead(id, email, {
+        "fields.pipeline": etape,
+        notes: m.arrayUnion({
+          id: newId(),
+          text: `Étape : ${before || "vide"} → ${etape || "vide"}`,
+          by: email,
+          at: new Date().toISOString(),
+          kind: "statut",
+        } satisfies LeadNote),
+      });
+    } catch (e) {
+      console.error(e);
+      setError("Impossible de changer l'étape. Réessayez.");
     }
   };
 
@@ -1729,6 +1753,19 @@ export default function LeadsCRM({
           ))}
         </div>
       )}
+      {!isMobile && (view === "tableau" || view === "dossiers") && (
+        <div className="inline-flex rounded-xl bg-gray-100 p-1 mb-2">
+          {([["tableau", "📋 Tableau"], ["dossiers", "📁 Suivi des dossiers"]] as const).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => setViewPersist(k)}
+              className={`text-sm font-bold px-4 py-1.5 rounded-lg ${view === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {/* Barre d'outils façon Monday */}
       <div className={`${view === "mobile" ? "hidden" : "flex"} items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible rounded-xl border border-gray-200 bg-white shadow-sm px-2 py-1.5`}>
         {isMobile && (
@@ -1884,6 +1921,11 @@ export default function LeadsCRM({
       {/* Version simple pour téléphone */}
       {leads && view === "mobile" && (
         <MobileLeads
+          email={email}
+          groups={groups}
+          groupIdOf={(l) => groupOf(l, groups).id}
+          onGroup={moveToGroup}
+          onMoveEtape={moveEtape}
           leads={filtered}
           all={leads}
           total={total}
@@ -1906,6 +1948,18 @@ export default function LeadsCRM({
             setFocusUpdates(false);
           }}
           onToTable={() => setViewPersist("tableau")}
+        />
+      )}
+
+      {/* Suivi des dossiers (ordinateur) */}
+      {leads && view === "dossiers" && (
+        <DossiersBoard
+          leads={baseFiltered}
+          onOpen={(id) => {
+            setOpenId(id);
+            setFocusUpdates(false);
+          }}
+          onMove={moveEtape}
         />
       )}
 
