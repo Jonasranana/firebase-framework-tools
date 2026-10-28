@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BellRing, ChevronRight, FileText, MessageCircle, MessagesSquare, Phone, Search, Send, X } from "lucide-react";
-import DossiersBoard, { type DossierMove } from "./DossiersBoard";
+import DossiersBoard, { etapeOptions, type DossierMove } from "./DossiersBoard";
 import { authorName, dayLabel, hhmm, isChat, isMailReceived, movementText } from "./LeadChat";
 import { RappelPicker } from "@/components/RappelCell";
 import { LEAD_STATUSES, formatPhone, statusInfo, telHref, whatsappHref, type Lead, type LeadStatus } from "@/lib/crm";
-import { ATTRIBUE, ATTRIBUE_KEY, PIPELINE } from "@/lib/crmColumns";
+import { ATTRIBUE, ATTRIBUE_KEY, type LeadColumn } from "@/lib/crmColumns";
 import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelShort } from "@/lib/rappel";
 import { trancheInfo } from "@/lib/tranche";
 
@@ -20,6 +20,7 @@ const DAY = 86400000;
 
 type Props = {
   email: string;
+  etapeCol?: LeadColumn;
   // Groupes du tableau (« Nouveaux leads », « 1/ Leads Mebarek »…) et groupe de chaque lead.
   groups: { id: string; title: string; color: string }[];
   groupIdOf: (l: Lead) => string;
@@ -122,9 +123,10 @@ const TextRow = ({ label, value, onSave, type = "text", inputMode }: { label: st
   );
 };
 
-// Avancement du dossier : les étapes du pipeline, l'étape actuelle en orange.
-const Steps = ({ current, onPick }: { current: string; onPick: (k: string) => void }) => {
-  const main = PIPELINE.filter((p) => !["Pas bon", "BETSALEL", "PRAIMY"].includes(p.key));
+// Avancement du dossier : les étapes de la colonne « Étape », l'étape actuelle en orange.
+const Steps = ({ col, current, onPick }: { col?: LeadColumn; current: string; onPick: (k: string) => void }) => {
+  const all = etapeOptions(col);
+  const main = all.filter((p) => p.key !== "bloque");
   const idx = main.findIndex((p) => p.key === current);
   return (
     <div>
@@ -135,7 +137,7 @@ const Steps = ({ current, onPick }: { current: string; onPick: (k: string) => vo
       </div>
       <select value={current} onChange={(e) => onPick(e.target.value)} className={inputCls}>
         <option value="">— Pas encore d'étape —</option>
-        {PIPELINE.map((p) => (
+        {all.map((p) => (
           <option key={p.key} value={p.key}>
             {p.label}
           </option>
@@ -146,7 +148,7 @@ const Steps = ({ current, onPick }: { current: string; onPick: (k: string) => vo
   );
 };
 
-const LeadScreen = ({ lead, email, groups, groupId, onGroup, onClose, onPatch, onStatus, onNote, onChat, onFull }: { lead: Lead; groupId: string; onClose: () => void } & Pick<Props, "email" | "groups" | "onGroup" | "onPatch" | "onStatus" | "onNote" | "onChat" | "onFull">) => {
+const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGroup, onClose, onPatch, onStatus, onNote, onChat, onFull }: { lead: Lead; groupId: string; onClose: () => void } & Pick<Props, "email" | "etapeCol" | "onMoveEtape" | "groups" | "onGroup" | "onPatch" | "onStatus" | "onNote" | "onChat" | "onFull">) => {
   const [note, setNote] = useState("");
   const [sending, setSending] = useState(false);
   const f = lead.fields;
@@ -210,7 +212,7 @@ const LeadScreen = ({ lead, email, groups, groupId, onGroup, onClose, onPatch, o
             </select>
           </Row>
           <Row label="Étape du dossier">
-            <Steps current={f.pipeline ?? ""} onPick={(k) => save("pipeline", k)} />
+            <Steps col={etapeCol} current={etapeCol ? f[etapeCol.key] ?? "" : ""} onPick={(k) => onMoveEtape(lead.id, k)} />
           </Row>
         </Section>
 
@@ -438,7 +440,7 @@ export default function MobileLeads(props: Props) {
 
       {tab === "dossiers" && (
         <div className="mt-2">
-          <DossiersBoard leads={leads} onOpen={setOpenId} onMove={props.onMoveEtape} compact />
+          <DossiersBoard leads={leads} etapeCol={props.etapeCol} onOpen={setOpenId} onMove={props.onMoveEtape} compact />
         </div>
       )}
 
@@ -448,7 +450,7 @@ export default function MobileLeads(props: Props) {
           const tel = telHref(l.phone);
           const time = l.fields[RAPPEL_HEURE_KEY] ?? "";
           const late = !!l.rappelLe && rappelEnRetard(l.rappelLe, time);
-          const etape = PIPELINE.find((p) => p.key === l.fields.pipeline);
+          const etape = props.etapeCol ? etapeOptions(props.etapeCol).find((p) => p.key === l.fields[props.etapeCol.key]) : undefined;
           return (
             <div key={l.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <button onClick={() => setOpenId(l.id)} className="w-full text-left p-3.5 active:bg-orange-50/60">
@@ -510,6 +512,8 @@ export default function MobileLeads(props: Props) {
         <LeadScreen
           lead={openLead}
           email={props.email}
+          etapeCol={props.etapeCol}
+          onMoveEtape={props.onMoveEtape}
           groups={groups}
           groupId={groupIdOf(openLead)}
           onGroup={props.onGroup}

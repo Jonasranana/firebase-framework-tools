@@ -28,7 +28,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import MobileLeads from "./MobileLeads";
-import DossiersBoard from "./DossiersBoard";
+import DossiersBoard, { findEtapeColumn, etapeOptions } from "./DossiersBoard";
 import LeadChat from "./LeadChat";
 import ClientSpaceDashboard from "./ClientSpaceDashboard";
 import { buildClientView } from "@/lib/clientSpace";
@@ -1357,18 +1357,23 @@ export default function LeadsCRM({
     }
   };
 
+  // Colonne « 🧭 Étape » (suivi des dossiers) : lue dans les colonnes affichées.
+  const etapeCol = findEtapeColumn(LEAD_COLUMNS);
+
   // Change l'étape d'un dossier (colonne « Étape ») avec une trace dans la discussion.
   const moveEtape = async (id: string, etape: string) => {
     const lead = leads?.find((l) => l.id === id);
-    const before = lead?.fields.pipeline ?? "";
-    if (!lead || before === etape) return;
+    if (!lead || !etapeCol) return;
+    const before = lead.fields[etapeCol.key] ?? "";
+    if (before === etape) return;
+    const label = (k: string) => etapeOptions(etapeCol).find((o) => o.key === k)?.label ?? (k || "vide");
     try {
       const { m } = await fs();
       await patchLead(id, email, {
-        "fields.pipeline": etape,
+        [`fields.${etapeCol.key}`]: etape,
         notes: m.arrayUnion({
           id: newId(),
-          text: `Étape : ${before || "vide"} → ${etape || "vide"}`,
+          text: `Étape : ${label(before)} → ${label(etape)}`,
           by: email,
           at: new Date().toISOString(),
           kind: "statut",
@@ -1922,6 +1927,7 @@ export default function LeadsCRM({
       {leads && view === "mobile" && (
         <MobileLeads
           email={email}
+          etapeCol={etapeCol}
           groups={groups}
           groupIdOf={(l) => groupOf(l, groups).id}
           onGroup={moveToGroup}
@@ -1955,6 +1961,7 @@ export default function LeadsCRM({
       {leads && view === "dossiers" && (
         <DossiersBoard
           leads={baseFiltered}
+          etapeCol={etapeCol}
           onOpen={(id) => {
             setOpenId(id);
             setFocusUpdates(false);
