@@ -15,6 +15,35 @@ import { trancheInfo } from "@/lib/tranche";
 // Tout passe par les mêmes enregistrements que le tableau (rien n'est dupliqué).
 // ─────────────────────────────────────────────────────────────────────────
 
+// Version simple « carrée » : pas de zoom au pincement ni au double-appui tant que cet écran est ouvert
+// (le tableau, lui, garde son zoom : l'ancien réglage est remis en quittant la version simple).
+function useLockZoom() {
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="viewport"]') as HTMLMetaElement | null;
+    const before = meta?.getAttribute("content") ?? null;
+    meta?.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, viewport-fit=cover");
+    const stop = (e: Event) => e.preventDefault();
+    const stopMulti = (e: TouchEvent) => {
+      if (e.touches.length > 1) e.preventDefault();
+    };
+    // Safari (iPhone) ignore « user-scalable=no » : on bloque ses gestes de pincement à la main.
+    document.addEventListener("gesturestart", stop);
+    document.addEventListener("gesturechange", stop);
+    document.addEventListener("gestureend", stop);
+    document.addEventListener("touchmove", stopMulti, { passive: false });
+    return () => {
+      if (meta) {
+        if (before === null) meta.removeAttribute("content");
+        else meta.setAttribute("content", before);
+      }
+      document.removeEventListener("gesturestart", stop);
+      document.removeEventListener("gesturechange", stop);
+      document.removeEventListener("gestureend", stop);
+      document.removeEventListener("touchmove", stopMulti);
+    };
+  }, []);
+}
+
 const GRAD = "linear-gradient(90deg,#ff8a00,#ff4d4d 55%,#e0218a)";
 const DAY = 86400000;
 
@@ -175,7 +204,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto" dir="ltr">
+    <div className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto" dir="ltr" style={{ touchAction: "pan-y" }}>
       <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-3 py-2.5 flex items-center gap-2">
         <button onClick={onClose} aria-label="Retour" className="w-10 h-10 -ml-1 inline-flex items-center justify-center rounded-full active:bg-gray-100">
           <ArrowLeft size={22} />
@@ -341,6 +370,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
 };
 
 export default function MobileLeads(props: Props) {
+  useLockZoom();
   const { leads, all, total, query, onQuery, rappelsOnly, onRappelsOnly, statusFilter, onStatusFilter, lateCount, newCount } = props;
   const [openId, setOpenId] = useState<string | null>(null);
   const [limit, setLimit] = useState(30);
@@ -362,7 +392,7 @@ export default function MobileLeads(props: Props) {
   const none = !rappelsOnly && statusFilter === "";
 
   return (
-    <div ref={topRef}>
+    <div ref={topRef} style={{ touchAction: "pan-x pan-y" }}>
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
           {([["liste", "📋 Clients"], ["dossiers", "📁 Suivi des dossiers"]] as const).map(([k, label]) => (

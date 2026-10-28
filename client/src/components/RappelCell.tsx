@@ -122,7 +122,7 @@ export function RappelPicker({
               step={300}
               value={t}
               onChange={(e) => setT(e.target.value)}
-              className="text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2 py-1 [color-scheme:light]"
+              className="text-base sm:text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2 py-1 [color-scheme:light]"
             />
           </div>
           <div className="flex flex-wrap gap-1.5 mb-3">
