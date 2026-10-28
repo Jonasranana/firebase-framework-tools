@@ -422,7 +422,6 @@ function ProgressRoad({
   compact?: boolean;
 }) {
   if (compact) return <ProgressList steps={steps} blocked={blocked} onPick={onPick} />;
-  const max = Math.max(1, ...steps.map((s) => s.count));
   return (
     <div className="mb-3 rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
@@ -437,23 +436,18 @@ function ProgressRoad({
             <button
               onClick={() => onPick(s.key)}
               title={`Voir la colonne « ${s.label} »`}
-              className="w-[118px] rounded-xl border bg-white text-left overflow-hidden hover:shadow-md transition-shadow"
+              className="w-[96px] rounded-lg border bg-white text-left overflow-hidden hover:shadow-md transition-shadow"
               style={{ borderColor: s.count ? s.hex : "#e5e7eb", opacity: s.count ? 1 : 0.55 }}
             >
-              <div className="px-2 py-1 text-[11px] font-bold text-white truncate" style={{ background: s.hex }}>
+              <div className="px-1.5 py-0.5 text-[10px] font-bold text-white truncate" style={{ background: s.hex }}>
                 {s.label}
               </div>
-              <div className="px-2 pt-1 pb-1.5">
-                <p className="leading-none">
-                  <span className="text-lg font-black text-gray-800">{s.count}</span>
-                  <span className="ml-1 text-[11px] font-semibold text-gray-500">dossier{s.count > 1 ? "s" : ""}</span>
-                </p>
-                <div className="mt-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${(s.count / max) * 100}%`, background: s.hex }} />
-                </div>
-              </div>
+              <p className="px-1.5 py-1 leading-none">
+                <span className="text-base font-black text-gray-800">{s.count}</span>
+                <span className="ml-1 text-[10px] font-semibold text-gray-500">dossier{s.count > 1 ? "s" : ""}</span>
+              </p>
             </button>
-            {i < steps.length - 1 && <span className="px-1 text-base font-black text-gray-300">→</span>}
+            {i < steps.length - 1 && <span className="px-0.5 text-xs font-black text-gray-300">→</span>}
           </div>
         ))}
       </div>
