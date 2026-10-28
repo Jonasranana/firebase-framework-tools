@@ -407,8 +407,9 @@ export default function DossiersBoard({
   );
 }
 
-// Bandeau en haut : le parcours des étapes de gauche (début) à droite (fin),
-// avec, pour chaque étape, le nombre de dossiers qui s'y trouvent.
+// Bandeau en haut : le parcours des étapes de gauche (début) à droite (fin).
+// Une barre en couleurs (une part par étape, proportionnelle au nombre de dossiers)
+// puis les étapes en pastilles « nom · nombre ». Sur téléphone, les pastilles se replient.
 function ProgressRoad({
   steps,
   blocked,
@@ -418,41 +419,63 @@ function ProgressRoad({
   blocked: number;
   onPick: (key: string) => void;
 }) {
-  const max = Math.max(1, ...steps.map((s) => s.count));
+  const total = steps.reduce((n, s) => n + s.count, 0);
+  const [open, setOpen] = useState(() => typeof window === "undefined" || window.innerWidth >= 768);
   return (
-    <div className="mb-3 rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-        <p className="text-sm font-extrabold text-gray-800">
-          🚀 Parcours des dossiers <span className="font-semibold text-gray-400">· début à gauche → fin à droite</span>
-        </p>
-        {blocked > 0 && <p className="text-xs font-bold text-red-600">⛔ {blocked} dossier{blocked > 1 ? "s" : ""} bloqué{blocked > 1 ? "s" : ""}</p>}
+    <div className="mb-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <p className="text-sm font-extrabold text-gray-800">🚀 Parcours des dossiers</p>
+        <div className="flex items-center gap-2 text-xs font-bold">
+          {blocked > 0 && <span className="whitespace-nowrap rounded-full bg-red-50 text-red-600 px-2 py-0.5">⛔ {blocked} bloqué{blocked > 1 ? "s" : ""}</span>}
+          <button onClick={() => setOpen((v) => !v)} className="whitespace-nowrap rounded-full bg-gray-100 text-gray-600 px-2.5 py-0.5 hover:bg-gray-200">
+            {open ? "Masquer ▴" : "Détail ▾"}
+          </button>
+        </div>
       </div>
-      <div className="flex flex-wrap items-center gap-y-2">
-        {steps.map((s, i) => (
-          <div key={s.key} className="flex items-center">
+
+      <div className="flex items-center gap-2 text-[11px] font-bold text-gray-400 mb-1">
+        <span>Début</span>
+        <span className="flex-1 border-t border-dashed border-gray-200" />
+        <span>Fin 🏁</span>
+      </div>
+      <div className="flex h-4 w-full gap-[2px] rounded-full overflow-hidden bg-gray-100">
+        {steps
+          .filter((s) => s.count > 0)
+          .map((s) => (
             <button
+              key={s.key}
+              onClick={() => onPick(s.key)}
+              title={`${s.label} : ${s.count} dossier${s.count > 1 ? "s" : ""}`}
+              className="h-full hover:brightness-110"
+              style={{ flexGrow: s.count, flexBasis: 0, minWidth: 6, background: s.hex }}
+            />
+          ))}
+      </div>
+
+      {open && (
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {steps.map((s) => (
+            <button
+              key={s.key}
               onClick={() => onPick(s.key)}
               title={`Voir la colonne « ${s.label} »`}
-              className="w-[118px] rounded-xl border bg-white text-left overflow-hidden hover:shadow-md transition-shadow"
-              style={{ borderColor: s.count ? s.hex : "#e5e7eb", opacity: s.count ? 1 : 0.55 }}
+              className={`inline-flex items-center gap-1.5 rounded-full border pl-2 pr-1 py-0.5 text-xs font-semibold transition-colors ${
+                s.count ? "border-gray-200 bg-white text-gray-700 hover:bg-gray-50" : "border-transparent bg-gray-50 text-gray-400"
+              }`}
             >
-              <div className="px-2 py-1 text-[11px] font-bold text-white truncate" style={{ background: s.hex }}>
-                {s.label}
-              </div>
-              <div className="px-2 pt-1 pb-1.5">
-                <p className="leading-none">
-                  <span className="text-lg font-black text-gray-800">{s.count}</span>
-                  <span className="ml-1 text-[11px] font-semibold text-gray-500">dossier{s.count > 1 ? "s" : ""}</span>
-                </p>
-                <div className="mt-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${(s.count / max) * 100}%`, background: s.hex }} />
-                </div>
-              </div>
+              <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ background: s.hex, opacity: s.count ? 1 : 0.4 }} />
+              <span className="max-w-[160px] truncate">{s.label}</span>
+              <span
+                className="min-w-[22px] rounded-full px-1.5 text-center text-[11px] font-black"
+                style={s.count ? { background: s.hex, color: "#fff" } : { background: "#eef0f3", color: "#9ca3af" }}
+              >
+                {s.count}
+              </span>
             </button>
-            {i < steps.length - 1 && <span className="px-1 text-base font-black text-gray-300">→</span>}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+      {total === 0 && <p className="mt-2 text-xs text-gray-400">Aucun dossier pour l'instant.</p>}
     </div>
   );
 }
