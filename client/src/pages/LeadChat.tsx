@@ -6,7 +6,7 @@ import { RAPPEL_HEURE_KEY, rappelShort } from "@/lib/rappel";
 import { formatDateTime, formatPhone, statusInfo, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
 
 // Prénom lisible à partir d'une adresse e-mail (« jonas.sitbon@… » → « Jonas »).
-const authorName = (by: string) => {
+export const authorName = (by: string) => {
   if (!by) return "Inconnu";
   if (by === "automation") return "Automatisation";
   const local = by.split("@")[0].split(/[._-]/)[0];
@@ -61,7 +61,7 @@ const readFile = (f: File): Promise<MailFile> =>
   });
 
 // Phrase simple pour une ligne de « mouvement » : qui a fait quoi.
-const movementText = (n: LeadNote) => {
+export const movementText = (n: LeadNote) => {
   const who = n.by === "automation" ? "Une automatisation" : authorName(n.by);
   const t = n.text.trim();
   if (n.kind === "statut") {
@@ -85,12 +85,12 @@ const movementText = (n: LeadNote) => {
   return `${who} : ${t}`;
 };
 
-const hhmm = (iso: string) => {
+export const hhmm = (iso: string) => {
   const d = new Date(iso);
   return isNaN(d.getTime()) ? "" : d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 };
 
-const dayLabel = (iso: string) => {
+export const dayLabel = (iso: string) => {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
   const same = (a: Date, b: Date) => a.toDateString() === b.toDateString();
@@ -104,8 +104,8 @@ const dayLabel = (iso: string) => {
 // Un message d'équipe est une vraie « discussion » (grande bulle) ; tout le
 // reste (changement de statut, de cellule, SMS/mail envoyé, automatisation)
 // est une petite ligne discrète au centre.
-const isChat = (n: LeadNote) => (n.kind === undefined || n.kind === "note") && n.by !== "automation";
-const isMailReceived = (n: LeadNote) => n.kind === "mail" && n.text.startsWith("📥");
+export const isChat = (n: LeadNote) => (n.kind === undefined || n.kind === "note") && n.by !== "automation";
+export const isMailReceived = (n: LeadNote) => n.kind === "mail" && n.text.startsWith("📥");
 
 export default function LeadChat({
   lead,
