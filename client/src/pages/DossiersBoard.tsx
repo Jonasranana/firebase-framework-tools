@@ -407,8 +407,8 @@ export default function DossiersBoard({
   );
 }
 
-// Bandeau ludique en haut : la route des étapes de gauche (début) à droite (terminé),
-// avec le nombre de dossiers à chaque étape et l'avancement moyen de tous les dossiers.
+// Bandeau en haut : le parcours des étapes de gauche (début) à droite (fin),
+// avec, pour chaque étape, le nombre de dossiers qui s'y trouvent.
 function ProgressRoad({
   steps,
   blocked,
@@ -418,52 +418,40 @@ function ProgressRoad({
   blocked: number;
   onPick: (key: string) => void;
 }) {
-  const total = steps.reduce((n, s) => n + s.count, 0);
-  const last = Math.max(1, steps.length - 1);
-  const avg = total ? steps.reduce((n, s, i) => n + s.count * i, 0) / total / last : 0;
-  const pct = Math.round(avg * 100);
-  const done = steps.length ? steps[steps.length - 1].count : 0;
+  const max = Math.max(1, ...steps.map((s) => s.count));
   return (
     <div className="mb-3 rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
       <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-        <p className="text-sm font-extrabold text-gray-800">🚀 Avancement des dossiers</p>
-        <p className="text-xs font-bold text-gray-500">
-          Moyenne : <span className="text-base font-black" style={{ color: "#e0218a" }}>{pct} %</span>
-          {done > 0 && <span className="ml-2">· 🏁 {done} terminé{done > 1 ? "s" : ""}</span>}
-          {blocked > 0 && <span className="ml-2 text-red-600">· ⛔ {blocked} bloqué{blocked > 1 ? "s" : ""}</span>}
+        <p className="text-sm font-extrabold text-gray-800">
+          🚀 Parcours des dossiers <span className="font-semibold text-gray-400">· début à gauche → fin à droite</span>
         </p>
+        {blocked > 0 && <p className="text-xs font-bold text-red-600">⛔ {blocked} dossier{blocked > 1 ? "s" : ""} bloqué{blocked > 1 ? "s" : ""}</p>}
       </div>
-      <div className="relative h-3 rounded-full bg-gray-100 overflow-hidden mb-3">
-        <div
-          className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700"
-          style={{ width: `${Math.max(pct, total ? 3 : 0)}%`, background: "linear-gradient(90deg,#ff8a00,#e0218a)" }}
-        />
-      </div>
-      <div className="flex items-stretch overflow-x-auto no-scrollbar">
-        {steps.map((s, i) => {
-          const share = total ? s.count / total : 0;
-          return (
-            <div key={s.key} className="flex items-center shrink-0">
-              <button
-                onClick={() => onPick(s.key)}
-                title={`Aller à « ${s.label} »`}
-                className="flex flex-col items-center w-[92px] rounded-xl px-1 py-1.5 hover:bg-gray-50"
-              >
-                <span
-                  className="flex items-center justify-center rounded-full text-white font-black shadow"
-                  style={{ background: s.hex, width: 30 + share * 22, height: 30 + share * 22, fontSize: 13 + share * 6, opacity: s.count ? 1 : 0.35 }}
-                >
-                  {s.count}
-                </span>
-                <span className="mt-1 text-[11px] font-bold text-gray-600 text-center leading-tight line-clamp-2">
-                  {i === 0 ? "🟢 " : i === steps.length - 1 ? "🏁 " : ""}
-                  {s.label}
-                </span>
-              </button>
-              {i < steps.length - 1 && <span className="text-lg font-black shrink-0" style={{ color: "#ff8a00" }}>›</span>}
-            </div>
-          );
-        })}
+      <div className="flex flex-wrap items-center gap-y-2">
+        {steps.map((s, i) => (
+          <div key={s.key} className="flex items-center">
+            <button
+              onClick={() => onPick(s.key)}
+              title={`Voir la colonne « ${s.label} »`}
+              className="w-[118px] rounded-xl border bg-white text-left overflow-hidden hover:shadow-md transition-shadow"
+              style={{ borderColor: s.count ? s.hex : "#e5e7eb", opacity: s.count ? 1 : 0.55 }}
+            >
+              <div className="px-2 py-1 text-[11px] font-bold text-white truncate" style={{ background: s.hex }}>
+                {s.label}
+              </div>
+              <div className="px-2 pt-1 pb-1.5">
+                <p className="leading-none">
+                  <span className="text-lg font-black text-gray-800">{s.count}</span>
+                  <span className="ml-1 text-[11px] font-semibold text-gray-500">dossier{s.count > 1 ? "s" : ""}</span>
+                </p>
+                <div className="mt-1 h-1.5 rounded-full bg-gray-100 overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${(s.count / max) * 100}%`, background: s.hex }} />
+                </div>
+              </div>
+            </button>
+            {i < steps.length - 1 && <span className="px-1 text-base font-black text-gray-300">→</span>}
+          </div>
+        ))}
       </div>
     </div>
   );
