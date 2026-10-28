@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { AlertTriangle, BellRing, FileCheck2 } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, BellRing, ChevronLeft, ChevronRight, FileCheck2 } from "lucide-react";
 import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
 import { STATUS_RANK, formatPhone, type Lead } from "@/lib/crm";
 import { ATTRIBUE, ATTRIBUE_KEY, type LeadColumn } from "@/lib/crmColumns";
@@ -71,6 +71,24 @@ export default function DossiersBoard({
   const [staleOnly, setStaleOnly] = useState(false);
   const [dragOver, setDragOver] = useState("");
 
+  // Défilement latéral : flèches, glisser le fond avec la souris, ou le doigt / la molette en maj.
+  const scroller = useRef<HTMLDivElement>(null);
+  const [canLeft, setCanLeft] = useState(false);
+  const [canRight, setCanRight] = useState(true);
+  const updateArrows = () => {
+    const el = scroller.current;
+    if (!el) return;
+    setCanLeft(el.scrollLeft > 4);
+    setCanRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 4);
+  };
+  useEffect(() => {
+    updateArrows();
+    window.addEventListener("resize", updateArrows);
+    return () => window.removeEventListener("resize", updateArrows);
+  }, [leads]);
+  const slide = (dir: number) => scroller.current?.scrollBy({ left: dir * Math.max(280, (scroller.current?.clientWidth ?? 600) * 0.8), behavior: "smooth" });
+  const pan = useRef<{ x: number; left: number } | null>(null);
+
   const columns = useMemo(() => {
     const cols = [{ key: START, label: "Sans étape", hex: "#9ca3af", hint: "RDV pris, étape à choisir" }, ...etapeOptions(etapeCol).map((p) => ({ key: p.key, label: p.label, hex: p.hex, hint: "" }))];
     const dossiers = leads.filter((l) => isDossier(l, etapeCol));
@@ -110,10 +128,36 @@ export default function DossiersBoard({
         >
           <AlertTriangle size={13} /> Bloqués depuis {STALE_DAYS} j ou plus ({stale})
         </button>
-        <p className="text-[11px] text-gray-400 ml-auto hidden sm:block">Glissez une carte dans une autre colonne pour changer l'étape.</p>
+        <p className="text-[11px] text-gray-400 ml-auto hidden sm:block">Flèches ◀ ▶ sur chaque carte, ou glissez-la dans une autre colonne : l'étape change aussi dans le tableau.</p>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 items-start snap-x">
+      <div className="relative">
+        {canLeft && (
+          <button onClick={() => slide(-1)} aria-label="Colonnes précédentes" className="absolute left-1 top-24 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-orange-50">
+            <ChevronLeft size={22} />
+          </button>
+        )}
+        {canRight && (
+          <button onClick={() => slide(1)} aria-label="Colonnes suivantes" className="absolute right-1 top-24 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-200 flex items-center justify-center text-gray-700 hover:bg-orange-50">
+            <ChevronRight size={22} />
+          </button>
+        )}
+      <div
+        ref={scroller}
+        onScroll={updateArrows}
+        onPointerDown={(e) => {
+          // Glisser le fond avec la souris fait défiler les colonnes (pas sur une carte : elles se déplacent elles-mêmes).
+          if (e.pointerType !== "mouse" || (e.target as HTMLElement).closest("[data-card]")) return;
+          pan.current = { x: e.clientX, left: scroller.current?.scrollLeft ?? 0 };
+        }}
+        onPointerMove={(e) => {
+          if (pan.current && scroller.current) scroller.current.scrollLeft = pan.current.left - (e.clientX - pan.current.x);
+        }}
+        onPointerUp={() => (pan.current = null)}
+        onPointerLeave={() => (pan.current = null)}
+        className="flex gap-3 overflow-x-auto pb-4 items-start overscroll-x-contain"
+        style={{ scrollbarGutter: "stable" }}
+      >
         {columns.cols.map((c) => {
           const all = columns.byKey.get(c.key) ?? [];
           const list = staleOnly ? all.filter((l) => !isEnd(c.key) && daysSince(etapeChangedMs(l)) >= STALE_DAYS) : all;
@@ -142,6 +186,9 @@ export default function DossiersBoard({
               {c.hint && list.length > 0 && <p className="text-[10px] text-gray-400 px-2 -mt-1 mb-1.5">{c.hint}</p>}
               <div className="space-y-2">
                 {list.map((l) => {
+                  const ci = columns.cols.findIndex((x) => x.key === c.key);
+                  const prevCol = ci > 1 ? columns.cols[ci - 1] : null; // « Sans étape » n'est pas une destination
+                  const nextCol = ci < columns.cols.length - 1 ? columns.cols[ci + 1] : null;
                   const days = daysSince(etapeChangedMs(l));
                   const late = days >= STALE_DAYS && !isEnd(c.key);
                   const idx = mainSteps.findIndex((p) => p.key === l.fields[ek]);
@@ -155,6 +202,7 @@ export default function DossiersBoard({
                     <div
                       key={l.id}
                       role="button"
+                      data-card
                       tabIndex={0}
                       draggable
                       onDragStart={(e) => e.dataTransfer.setData("text/lead-id", l.id)}
@@ -199,6 +247,24 @@ export default function DossiersBoard({
                           {days === 0 ? "aujourd'hui" : `${days} j`}
                         </span>
                       </div>
+                      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-gray-100" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          disabled={!prevCol}
+                          onClick={() => prevCol && onMove(l.id, prevCol.key)}
+                          title={prevCol ? `Reculer à « ${prevCol.label} »` : undefined}
+                          className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-gray-100 text-gray-600 text-[11px] font-bold py-1.5 disabled:opacity-30 enabled:hover:bg-orange-100 enabled:active:bg-orange-200"
+                        >
+                          <ChevronLeft size={14} /> {prevCol ? <span className="truncate max-w-[70px]">{prevCol.label}</span> : null}
+                        </button>
+                        <button
+                          disabled={!nextCol}
+                          onClick={() => nextCol && onMove(l.id, nextCol.key)}
+                          title={nextCol ? `Avancer à « ${nextCol.label} »` : undefined}
+                          className="flex-1 inline-flex items-center justify-center gap-1 rounded-lg bg-orange-500 text-white text-[11px] font-bold py-1.5 disabled:opacity-30 enabled:hover:bg-orange-600 enabled:active:bg-orange-700"
+                        >
+                          {nextCol ? <span className="truncate max-w-[70px]">{nextCol.label}</span> : null} <ChevronRight size={14} />
+                        </button>
+                      </div>
                       {(() => {
                         const ch = lastLabelChange(l);
                         return ch ? (
@@ -215,6 +281,7 @@ export default function DossiersBoard({
             </div>
           );
         })}
+      </div>
       </div>
     </div>
   );
