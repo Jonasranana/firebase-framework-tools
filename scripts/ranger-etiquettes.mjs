@@ -16,6 +16,7 @@ const BY = "rangement des étiquettes";
 const REMOVE = [
   ["c_sxgefs", "o_fd8gz"], // Étape : « Nouvelle étiquette »
   ["c_sxgefs", "o_tdx5p"], // Étape : « En traitement »
+  ["c_sxgefs", "o_aiuo9"], // Étape : « Dossier complet » — après fusion dans « Docs reçus »
   ["status", "en_cours"], // Statut appel : « En traitement » (ancienne, désactivée) — après fusion
   ["mailAuto", "📎 Demande avis d'imposition"],
   ["mailAuto", "🙏 Remerciement appel"],
