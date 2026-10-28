@@ -3,9 +3,10 @@ import { ArrowLeft, BellRing, ChevronRight, FileText, MessageCircle, MessagesSqu
 import DossiersBoard, { etapeOptions, type DossierMove } from "./DossiersBoard";
 import { authorName, dayLabel, hhmm, isChat, isMailReceived, movementText } from "./LeadChat";
 import { RappelPicker } from "@/components/RappelCell";
-import { LEAD_STATUSES, formatPhone, statusInfo, telHref, whatsappHref, type Lead, type LeadStatus } from "@/lib/crm";
+import { LEAD_STATUSES, formatPhone, isClosedStatus, statusInfo, telHref, whatsappHref, type Lead, type LeadStatus } from "@/lib/crm";
 import { ATTRIBUE, ATTRIBUE_KEY, type LeadColumn } from "@/lib/crmColumns";
 import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelShort } from "@/lib/rappel";
+import { buildIcs, openIcs, type IcsEvent } from "@/lib/ics";
 import { trancheInfo } from "@/lib/tranche";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -369,16 +370,149 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
   );
 };
 
+// ── Agenda des rappels : par jour, avec alarme dans l'agenda du téléphone (.ics) ─────────────
+const ymdOf = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const addDays = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  return ymdOf(d);
+};
+
+const rappelEvent = (l: Lead): IcsEvent => ({
+  uid: `${l.id}-${l.rappelLe}-${(l.fields[RAPPEL_HEURE_KEY] ?? "").replace(":", "")}@ip5energie.fr`,
+  date: l.rappelLe,
+  time: l.fields[RAPPEL_HEURE_KEY] ?? "",
+  title: `📞 Rappeler ${l.name || "le client"}`,
+  description: [l.phone && `Tél : ${formatPhone(l.phone)}`, `Statut : ${statusInfo(l.status).label || "—"}`, l.postalCode && `CP : ${l.postalCode}`, "Ouvrir dans le CRM : https://ip5energie.fr/admin"].filter(Boolean).join("\n"),
+});
+
+const AgendaView = ({ all, email, onOpen }: { all: Lead[]; email: string; onOpen: (id: string) => void }) => {
+  // « Mes rappels » = les clients qui me sont attribués (le prénom de l'attribution se retrouve dans mon adresse).
+  const mine = ATTRIBUE.find((o) => !o.off && email.toLowerCase().includes(o.label.toLowerCase().slice(0, 4)));
+  const [scope, setScope] = useState<"mine" | "all">(mine ? "mine" : "all");
+  const [done, setDone] = useState("");
+
+  const items = useMemo(
+    () =>
+      all
+        .filter((l) => l.rappelLe && !isClosedStatus(l.status) && (scope === "all" || !mine || l.fields[ATTRIBUE_KEY] === mine.key))
+        .sort((a, b) => (a.rappelLe + (a.fields[RAPPEL_HEURE_KEY] ?? "99:99")).localeCompare(b.rappelLe + (b.fields[RAPPEL_HEURE_KEY] ?? "99:99"))),
+    [all, scope, mine],
+  );
+
+  const sections = useMemo(() => {
+    const today = ymdOf(new Date());
+    const tomorrow = addDays(1);
+    const week = addDays(7);
+    const defs = [
+      { key: "late", title: "En retard", tone: "text-red-600", test: (l: Lead) => rappelEnRetard(l.rappelLe, l.fields[RAPPEL_HEURE_KEY] ?? "") },
+      { key: "today", title: "Aujourd'hui", tone: "text-orange-600", test: (l: Lead) => l.rappelLe === today },
+      { key: "tomorrow", title: "Demain", tone: "text-gray-800", test: (l: Lead) => l.rappelLe === tomorrow },
+      { key: "week", title: "Cette semaine", tone: "text-gray-800", test: (l: Lead) => l.rappelLe > tomorrow && l.rappelLe <= week },
+      { key: "later", title: "Plus tard", tone: "text-gray-800", test: () => true },
+    ];
+    const used = new Set<string>();
+    return defs
+      .map((d) => {
+        const list = items.filter((l) => !used.has(l.id) && d.test(l));
+        list.forEach((l) => used.add(l.id));
+        return { ...d, list };
+      })
+      .filter((d) => d.list.length);
+  }, [items]);
+
+  const upcoming = items.filter((l) => !rappelEnRetard(l.rappelLe, l.fields[RAPPEL_HEURE_KEY] ?? ""));
+  const addOne = async (l: Lead) => {
+    await openIcs(buildIcs([rappelEvent(l)]), `rappel-${(l.name || "client").replace(/[^a-z0-9]+/gi, "-")}.ics`);
+    setDone(l.id);
+  };
+  const addAll = async () => {
+    await openIcs(buildIcs(upcoming.map(rappelEvent)));
+    setDone("all");
+  };
+
+  return (
+    <div className="mt-2">
+      {mine && (
+        <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-3">
+          {([["mine", `Mes rappels (${mine.label})`], ["all", "Toute l'équipe"]] as const).map(([k, label]) => (
+            <button key={k} onClick={() => setScope(k)} className={`flex-1 text-[13px] font-bold py-2 rounded-xl ${scope === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <button
+        onClick={addAll}
+        disabled={!upcoming.length}
+        className="w-full rounded-2xl py-3.5 text-white font-bold disabled:opacity-40 active:scale-[0.99] transition"
+        style={{ background: GRAD }}
+      >
+        ⏰ Ajouter mes {upcoming.length} rappel{upcoming.length > 1 ? "s" : ""} à mon téléphone
+      </button>
+      <p className="text-[11px] text-gray-400 mt-1.5 mb-3 px-1">
+        Ils s'ajoutent à l'agenda de l'iPhone ou d'Android, avec une alarme 10 minutes avant et à l'heure, et le nom du client à rappeler.
+        {done === "all" && <b className="text-green-600"> Envoyé à l'agenda.</b>}
+      </p>
+
+      {sections.length === 0 && <p className="text-center text-gray-400 text-sm py-10">Aucun rappel prévu.</p>}
+      {sections.map((sec) => (
+        <div key={sec.key} className="mb-4">
+          <h3 className={`text-sm font-extrabold mb-1.5 px-1 ${sec.tone}`}>
+            {sec.title} <span className="text-gray-400 font-bold">({sec.list.length})</span>
+          </h3>
+          <div className="space-y-2">
+            {sec.list.map((l) => {
+              const time = l.fields[RAPPEL_HEURE_KEY] ?? "";
+              const tel = telHref(l.phone);
+              const late = sec.key === "late";
+              return (
+                <div key={l.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${late ? "border-red-200" : "border-gray-100"}`}>
+                  <button onClick={() => onOpen(l.id)} className="w-full text-left p-3 flex items-center gap-3 active:bg-orange-50/60">
+                    <div className={`shrink-0 w-14 text-center rounded-xl py-1.5 ${late ? "bg-red-50 text-red-700" : "bg-orange-50 text-orange-800"}`}>
+                      <p className="text-base font-extrabold leading-tight">{time || "—"}</p>
+                      <p className="text-[10px] font-semibold">{sec.key === "today" || sec.key === "late" && l.rappelLe === ymdOf(new Date()) ? "aujourd'hui" : rappelShort(l.rappelLe, "").replace(/^\S+\s/, "").slice(0, 9)}</p>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-extrabold text-gray-900 truncate">{l.name || "Sans nom"}</p>
+                      <p className="text-xs text-gray-500 truncate">{[l.phone && formatPhone(l.phone), l.postalCode].filter(Boolean).join(" · ")}</p>
+                      <div className="mt-1">
+                        <StatusPill status={l.status} />
+                      </div>
+                    </div>
+                    <ChevronRight size={18} className="text-gray-300 shrink-0" />
+                  </button>
+                  <div className="flex border-t border-gray-100 text-sm font-bold">
+                    {tel && (
+                      <a href={tel} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-[#2b5a8f] active:bg-gray-50">
+                        <Phone size={15} /> Appeler
+                      </a>
+                    )}
+                    <button onClick={() => addOne(l)} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-orange-600 border-l border-gray-100 active:bg-gray-50">
+                      ⏰ {done === l.id ? "Ajouté" : "Alarme"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function MobileLeads(props: Props) {
   useLockZoom();
-  const { leads, all, total, query, onQuery, rappelsOnly, onRappelsOnly, statusFilter, onStatusFilter, lateCount, newCount } = props;
+  const { leads, all, total, query, onQuery, rappelsOnly, onRappelsOnly, lateCount } = props;
   const [openId, setOpenId] = useState<string | null>(null);
   const [limit, setLimit] = useState(30);
-  const [tab, setTab] = useState<"liste" | "dossiers">("liste");
+  const [tab, setTab] = useState<"liste" | "agenda" | "dossiers">("liste");
   const [groupFilter, setGroupFilter] = useState("");
   const topRef = useRef<HTMLDivElement>(null);
   const openLead = useMemo(() => (openId ? all.find((l) => l.id === openId) ?? null : null), [all, openId]);
-  useEffect(() => setLimit(30), [query, rappelsOnly, statusFilter, groupFilter]);
+  useEffect(() => setLimit(30), [query, rappelsOnly, groupFilter]);
   const { groups, groupIdOf } = props;
   const groupCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -387,15 +521,16 @@ export default function MobileLeads(props: Props) {
   }, [leads, groupIdOf]);
   const shown = useMemo(() => (groupFilter ? leads.filter((l) => groupIdOf(l) === groupFilter) : leads), [leads, groupFilter, groupIdOf]);
 
+  // Pastilles sobres : la pastille choisie est pleine (couleur du groupe), les autres sont blanches.
   const chip = (active: boolean) =>
-    `shrink-0 whitespace-nowrap text-[13px] font-bold px-3.5 py-2 rounded-full border-2 ${active ? "text-white border-transparent" : "bg-white text-gray-600 border-gray-200"}`;
-  const none = !rappelsOnly && statusFilter === "";
+    `shrink-0 whitespace-nowrap text-[13px] font-semibold px-3.5 py-2 rounded-full border ${active ? "text-white border-transparent shadow-sm" : "bg-white text-gray-700 border-gray-200"}`;
+  const noFilter = !rappelsOnly && groupFilter === "";
 
   return (
     <div ref={topRef} style={{ touchAction: "pan-x pan-y" }}>
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
-          {([["liste", "📋 Clients"], ["dossiers", "📁 Suivi des dossiers"]] as const).map(([k, label]) => (
+          {([["liste", "📋 Clients"], ["agenda", "📅 Agenda"], ["dossiers", "📁 Dossiers"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
@@ -405,68 +540,56 @@ export default function MobileLeads(props: Props) {
             </button>
           ))}
         </div>
-        <div className="relative">
-          <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input
-            value={query}
-            onChange={(e) => onQuery(e.target.value)}
-            placeholder="Nom, téléphone, e-mail, code postal…"
-            className="w-full text-base bg-white border-2 border-gray-200 rounded-2xl pl-10 pr-10 py-2.5 outline-none focus:border-orange-400"
-          />
-          {query && (
-            <button onClick={() => onQuery("")} aria-label="Effacer" className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 inline-flex items-center justify-center text-gray-400">
-              <X size={16} />
-            </button>
-          )}
-        </div>
-        <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-4 px-4">
-          <button onClick={() => { onRappelsOnly(false); onStatusFilter(""); }} className={chip(none)} style={none ? { background: GRAD } : undefined}>
-            Tous
-          </button>
-          <button onClick={() => { onStatusFilter(""); onRappelsOnly(!rappelsOnly); }} className={chip(rappelsOnly)} style={rappelsOnly ? { background: "#ef4444" } : undefined}>
-            🔔 À rappeler{lateCount ? ` (${lateCount})` : ""}
-          </button>
-          <button
-            onClick={() => { onRappelsOnly(false); onStatusFilter(statusFilter === "nouveau_lead" ? "" : "nouveau_lead"); }}
-            className={chip(statusFilter === "nouveau_lead")}
-            style={statusFilter === "nouveau_lead" ? { background: "#2b5a8f" } : undefined}
-          >
-            🆕 Nouveaux{newCount ? ` (${newCount})` : ""}
-          </button>
-          <button
-            onClick={() => { onRappelsOnly(false); onStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler"); }}
-            className={chip(statusFilter === "a_appeler")}
-            style={statusFilter === "a_appeler" ? { background: "#ff7a1a" } : undefined}
-          >
-            📞 À appeler
-          </button>
-        </div>
-        {tab === "liste" && groups.length > 1 && (
-          <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-4 px-4">
-            <button onClick={() => setGroupFilter("")} className={chip(groupFilter === "")} style={groupFilter === "" ? { background: "#374151" } : undefined}>
-              Tous les groupes
-            </button>
-            {groups.map((g) => {
-              const n = groupCounts.get(g.id) ?? 0;
-              if (!n && groupFilter !== g.id) return null;
-              return (
-                <button key={g.id} onClick={() => setGroupFilter(groupFilter === g.id ? "" : g.id)} className={chip(groupFilter === g.id)} style={groupFilter === g.id ? { background: g.color } : undefined}>
-                  <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle border border-white/60" style={{ background: g.color }} />
-                  {g.title} ({n})
+        {tab !== "agenda" && (
+          <>
+            <div className="relative">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                value={query}
+                onChange={(e) => onQuery(e.target.value)}
+                placeholder="Nom, téléphone, e-mail, code postal…"
+                className="w-full text-base bg-white border-2 border-gray-200 rounded-2xl pl-10 pr-10 py-2.5 outline-none focus:border-orange-400"
+              />
+              {query && (
+                <button onClick={() => onQuery("")} aria-label="Effacer" className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 inline-flex items-center justify-center text-gray-400">
+                  <X size={16} />
                 </button>
-              );
-            })}
-          </div>
+              )}
+            </div>
+            {tab === "liste" && (
+              <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+                <button onClick={() => { onRappelsOnly(false); setGroupFilter(""); }} className={chip(noFilter)} style={noFilter ? { background: "#374151" } : undefined}>
+                  Tous
+                </button>
+                <button onClick={() => onRappelsOnly(!rappelsOnly)} className={chip(rappelsOnly)} style={rappelsOnly ? { background: "#ef4444" } : undefined}>
+                  🔔 À rappeler{lateCount ? ` (${lateCount})` : ""}
+                </button>
+                {groups.map((g) => {
+                  const n = groupCounts.get(g.id) ?? 0;
+                  if (!n && groupFilter !== g.id) return null;
+                  const on = groupFilter === g.id;
+                  return (
+                    <button key={g.id} onClick={() => setGroupFilter(on ? "" : g.id)} className={chip(on)} style={on ? { background: g.color } : undefined}>
+                      {!on && <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle" style={{ background: g.color }} />}
+                      {g.title} ({n})
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            <div className="flex items-center justify-between mt-1.5">
+              <p className="text-[11px] text-gray-400">
+                {tab === "liste" ? shown.length : leads.length} sur {total} client{total > 1 ? "s" : ""}
+              </p>
+              <button onClick={props.onToTable} className="text-[11px] font-semibold text-gray-500 underline">
+                Voir en tableau
+              </button>
+            </div>
+          </>
         )}
-        <div className="flex items-center justify-between mt-1.5">
-          <p className="text-[11px] text-gray-400">
-            {(tab === "liste" ? shown.length : leads.length)} sur {total} client{total > 1 ? "s" : ""}
-          </p>
-          <button onClick={props.onToTable} className="text-[11px] font-semibold text-gray-500 underline">
-            Voir en tableau
-          </button>
-        </div>
       </div>
+
+      {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} />}
 
       {tab === "dossiers" && (
         <div className="mt-2">

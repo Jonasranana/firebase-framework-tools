@@ -1838,7 +1838,7 @@ export default function LeadsCRM({
           </button>
         )}
       </div>
-      <div className="flex items-center gap-2 mb-3">
+      <div className={`${view === "mobile" ? "hidden" : "flex"} items-center gap-2 mb-3`}>
         <span className="text-xs text-gray-400">
           {filtered.length} sur {leads?.length ?? 0} noms sociétés
         </span>
@@ -2090,7 +2090,7 @@ export default function LeadsCRM({
       />
 
       {/* Barre d'outils flottante en bas sur mobile (façon Monday mobile app) */}
-      <MobileBottomBar
+      {view !== "mobile" && <MobileBottomBar
         query={query}
         onQueryChange={setQuery}
         zoom={zoom}
@@ -2100,7 +2100,7 @@ export default function LeadsCRM({
         onFilters={setFilters}
         leads={leads ?? []}
         saveView={saveView}
-      />
+      />}
 
       {exportDriveModal && (
         <ExportDriveModal
