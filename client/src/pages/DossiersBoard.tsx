@@ -235,6 +235,14 @@ export default function DossiersBoard({
           <AlertTriangle size={13} /> Bloqués depuis {STALE_DAYS} j ou plus ({stale})
         </button>
       </div>
+      <ProgressRoad
+        steps={columns.cols.filter((c) => c.key !== "bloque").map((c) => ({ key: c.key, label: c.label, hex: c.hex, count: (columns.byKey.get(c.key) ?? []).length }))}
+        blocked={(columns.byKey.get("bloque") ?? []).length}
+        onPick={(key) => {
+          const el = scroller.current?.querySelector(`[data-col="${key}"]`) as HTMLElement | null;
+          if (el && scroller.current) scroller.current.scrollTo({ left: el.offsetLeft - scroller.current.offsetLeft - 8, behavior: "smooth" });
+        }}
+      />
       <p className="mb-3 flex items-start gap-2 rounded-xl bg-orange-50 text-orange-900 text-[13px] font-semibold px-3 py-2">
         <MoveHorizontal size={16} className="shrink-0 mt-0.5" />
         <span>
@@ -395,6 +403,68 @@ export default function DossiersBoard({
           {ghost.name}
         </div>
       )}
+    </div>
+  );
+}
+
+// Bandeau ludique en haut : la route des étapes de gauche (début) à droite (terminé),
+// avec le nombre de dossiers à chaque étape et l'avancement moyen de tous les dossiers.
+function ProgressRoad({
+  steps,
+  blocked,
+  onPick,
+}: {
+  steps: { key: string; label: string; hex: string; count: number }[];
+  blocked: number;
+  onPick: (key: string) => void;
+}) {
+  const total = steps.reduce((n, s) => n + s.count, 0);
+  const last = Math.max(1, steps.length - 1);
+  const avg = total ? steps.reduce((n, s, i) => n + s.count * i, 0) / total / last : 0;
+  const pct = Math.round(avg * 100);
+  const done = steps.length ? steps[steps.length - 1].count : 0;
+  return (
+    <div className="mb-3 rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+        <p className="text-sm font-extrabold text-gray-800">🚀 Avancement des dossiers</p>
+        <p className="text-xs font-bold text-gray-500">
+          Moyenne : <span className="text-base font-black" style={{ color: "#e0218a" }}>{pct} %</span>
+          {done > 0 && <span className="ml-2">· 🏁 {done} terminé{done > 1 ? "s" : ""}</span>}
+          {blocked > 0 && <span className="ml-2 text-red-600">· ⛔ {blocked} bloqué{blocked > 1 ? "s" : ""}</span>}
+        </p>
+      </div>
+      <div className="relative h-3 rounded-full bg-gray-100 overflow-hidden mb-3">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-700"
+          style={{ width: `${Math.max(pct, total ? 3 : 0)}%`, background: "linear-gradient(90deg,#ff8a00,#e0218a)" }}
+        />
+      </div>
+      <div className="flex items-stretch overflow-x-auto no-scrollbar">
+        {steps.map((s, i) => {
+          const share = total ? s.count / total : 0;
+          return (
+            <div key={s.key} className="flex items-center shrink-0">
+              <button
+                onClick={() => onPick(s.key)}
+                title={`Aller à « ${s.label} »`}
+                className="flex flex-col items-center w-[92px] rounded-xl px-1 py-1.5 hover:bg-gray-50"
+              >
+                <span
+                  className="flex items-center justify-center rounded-full text-white font-black shadow"
+                  style={{ background: s.hex, width: 30 + share * 22, height: 30 + share * 22, fontSize: 13 + share * 6, opacity: s.count ? 1 : 0.35 }}
+                >
+                  {s.count}
+                </span>
+                <span className="mt-1 text-[11px] font-bold text-gray-600 text-center leading-tight line-clamp-2">
+                  {i === 0 ? "🟢 " : i === steps.length - 1 ? "🏁 " : ""}
+                  {s.label}
+                </span>
+              </button>
+              {i < steps.length - 1 && <span className="text-lg font-black shrink-0" style={{ color: "#ff8a00" }}>›</span>}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
