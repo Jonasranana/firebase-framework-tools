@@ -567,13 +567,26 @@ export default function MobileLeads(props: Props) {
   };
   const copyNumber = async (phone: string, name: string) => {
     const num = nationalPhone(phone);
+    const android = /android/i.test(navigator.userAgent);
+    let ok = true;
     try {
       await navigator.clipboard.writeText(num);
-      setToast(`✅ Numéro de ${name || "le client"} copié (${formatPhone(phone)}). Ouvre OnOff Business et colle-le.`);
     } catch {
-      setToast(`Numéro à composer dans OnOff : ${formatPhone(phone)}`);
+      ok = false;
     }
+    setToast(
+      ok
+        ? `✅ Numéro de ${name || "le client"} copié (${formatPhone(phone)}). ${android ? "OnOff s'ouvre : colle-le." : "Ouvre OnOff Business et colle-le."}`
+        : `Numéro à composer dans OnOff : ${formatPhone(phone)}`,
+    );
     setTimeout(() => setToast(""), 6000);
+    // Android : ouvre directement l'app OnOff Business (iPhone : pas de lien d'ouverture connu)
+    if (android && ok) {
+      window.location.href =
+        "intent://#Intent;package=com.onoffapp.app.b2b;S.browser_fallback_url=" +
+        encodeURIComponent("https://play.google.com/store/apps/details?id=com.onoffapp.app.b2b") +
+        ";end";
+    }
   };
   const topRef = useRef<HTMLDivElement>(null);
   const openLead = useMemo(() => (openId ? all.find((l) => l.id === openId) ?? null : null), [all, openId]);
