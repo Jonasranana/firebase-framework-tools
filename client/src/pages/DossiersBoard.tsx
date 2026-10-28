@@ -422,37 +422,78 @@ function ProgressRoad({
   compact?: boolean;
 }) {
   if (compact) return <ProgressList steps={steps} blocked={blocked} onPick={onPick} />;
+  const phases = groupPhases(steps);
   return (
-    <div className="mb-3 rounded-2xl border border-gray-100 bg-white px-3 py-3 shadow-sm">
-      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
-        <p className="text-sm font-extrabold text-gray-800">
-          🚀 Parcours des dossiers <span className="font-semibold text-gray-400">· début à gauche → fin à droite</span>
-        </p>
+    <div className="mb-3 rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">
+      <div className="flex items-center justify-between gap-2 mb-2.5">
+        <p className="text-sm font-extrabold text-gray-800">🚀 Parcours des dossiers</p>
         {blocked > 0 && <p className="text-xs font-bold text-red-600">⛔ {blocked} dossier{blocked > 1 ? "s" : ""} bloqué{blocked > 1 ? "s" : ""}</p>}
       </div>
-      <div className="flex flex-wrap items-center gap-y-2">
-        {steps.map((s, i) => (
-          <div key={s.key} className="flex items-center">
-            <button
-              onClick={() => onPick(s.key)}
-              title={`Voir la colonne « ${s.label} »`}
-              className="w-[96px] rounded-lg border bg-white text-left overflow-hidden hover:shadow-md transition-shadow"
-              style={{ borderColor: s.count ? s.hex : "#e5e7eb", opacity: s.count ? 1 : 0.55 }}
+      <div className="grid gap-x-1" style={{ gridTemplateColumns: `repeat(${phases.length}, minmax(0, 1fr))` }}>
+        {phases.map((ph, i) => (
+          <div key={ph.name} className="min-w-0">
+            <div
+              className="flex items-center justify-between gap-2 py-1.5 text-white"
+              style={{
+                background: ph.color,
+                paddingLeft: i === 0 ? 12 : 20,
+                paddingRight: 18,
+                borderRadius: i === 0 ? "10px 0 0 10px" : i === phases.length - 1 ? "0 10px 10px 0" : 0,
+                clipPath:
+                  i === phases.length - 1
+                    ? i === 0 ? undefined : "polygon(0 0,100% 0,100% 100%,0 100%,10px 50%)"
+                    : i === 0
+                      ? "polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)"
+                      : "polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%)",
+              }}
             >
-              <div className="px-1.5 py-0.5 text-[10px] font-bold text-white truncate" style={{ background: s.hex }}>
-                {s.label}
-              </div>
-              <p className="px-1.5 py-1 leading-none">
-                <span className="text-base font-black text-gray-800">{s.count}</span>
-                <span className="ml-1 text-[10px] font-semibold text-gray-500">dossier{s.count > 1 ? "s" : ""}</span>
-              </p>
-            </button>
-            {i < steps.length - 1 && <span className="px-0.5 text-xs font-black text-gray-300">→</span>}
+              <span className="text-xs font-extrabold truncate">
+                {i + 1}. {ph.name}
+              </span>
+              <span className="shrink-0 text-sm font-black">{ph.total}</span>
+            </div>
+            <ul className="mt-1.5 px-1 space-y-0.5">
+              {ph.steps.map((st) => (
+                <li key={st.key}>
+                  <button
+                    onClick={() => onPick(st.key)}
+                    title={`Voir la colonne « ${st.label} »`}
+                    className={`w-full flex items-center gap-1.5 rounded-md px-1.5 py-0.5 text-left text-xs hover:bg-gray-50 ${st.count ? "text-gray-700" : "text-gray-300"}`}
+                  >
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: st.hex, opacity: st.count ? 1 : 0.35 }} />
+                    <span className="flex-1 truncate">{st.label}</span>
+                    <span className={`shrink-0 font-bold ${st.count ? "text-gray-900" : ""}`}>{st.count}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+// Regroupe les étapes (dans leur ordre) en grandes phases lisibles. Une étape dont le nom
+// n'est reconnu par aucune phase reste dans la phase de l'étape précédente.
+const PHASES: { name: string; color: string; re: RegExp }[] = [
+  { name: "Documents", color: "#3b82f6", re: /sans [ée]tape|doc|revenu|info|tiers/i },
+  { name: "Proposition", color: "#8b5cf6", re: /rdv|propo|propal|praimy|offre/i },
+  { name: "Technique", color: "#0ea5e9", re: /visite|\bvt\b|bets|technique/i },
+  { name: "Signature", color: "#ec4899", re: /devis|signature|mandat|mpr/i },
+  { name: "Audit & fin", color: "#10b981", re: /audit|termin|valid|fin|pos[ée]/i },
+];
+type Step = { key: string; label: string; hex: string; count: number };
+function groupPhases(steps: Step[]) {
+  const out = PHASES.map((p) => ({ ...p, steps: [] as Step[], total: 0 }));
+  let cur = 0;
+  for (const st of steps) {
+    const found = PHASES.findIndex((p) => p.re.test(st.label));
+    if (found >= 0) cur = found;
+    out[cur].steps.push(st);
+    out[cur].total += st.count;
+  }
+  return out.filter((p) => p.steps.length);
 }
 
 // Version téléphone : une ligne de temps verticale, repliée par défaut,
