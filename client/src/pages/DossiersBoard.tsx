@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, BellRing, FileCheck2 } from "lucide-react";
 import { REQUIRED_LEAD_DOCS } from "@/lib/crmDocs";
 import { STATUS_RANK, formatPhone, type Lead } from "@/lib/crm";
-import { ATTRIBUE, ATTRIBUE_KEY, PIPELINE } from "@/lib/crmColumns";
+import { ATTRIBUE, ATTRIBUE_KEY, type LeadColumn } from "@/lib/crmColumns";
 import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelShort } from "@/lib/rappel";
 import { trancheInfo } from "@/lib/tranche";
 
@@ -27,18 +27,43 @@ const etapeChangedMs = (l: Lead) => {
   return t || Date.parse(l.statusChangedAt || l.updatedAt || l.createdAt || "") || 0;
 };
 
+// Dernière étiquette changée sur la fiche, dans n'importe quelle colonne : « Statut : RDV pris », « Commercial : Mebarek »…
+const lastLabelChange = (l: Lead): { text: string; at: string } | null => {
+  const notes = l.notes ?? [];
+  for (let i = notes.length - 1; i >= 0; i--) {
+    const n = notes[i];
+    if (n.kind !== "statut" || !n.text || /^(🔔|Rappel|Groupe|Attribué)/.test(n.text)) continue;
+    const cell = n.text.match(/^(.+?) : (.*) → (.*?)(?: \(Praimy\))?$/);
+    if (cell) return { text: `${cell[1]} : ${cell[3] || "vide"}`, at: n.at };
+    const st = n.text.match(/^(.+) → (.+)$/);
+    if (st) return { text: `Statut : ${st[2]}`, at: n.at };
+  }
+  return null;
+};
+const agoText = (iso: string) => {
+  const d = Math.max(0, Math.floor((Date.now() - Date.parse(iso)) / DAY));
+  return d === 0 ? "aujourd'hui" : d === 1 ? "hier" : `il y a ${d} j`;
+};
+
 const daysSince = (ms: number) => (ms ? Math.max(0, Math.floor((Date.now() - ms) / DAY)) : 0);
 
+// Colonne « 🧭 Étape » du tableau (colonne personnalisée c_sxgefs, remplie aussi par la synchro PRAIMY).
+export const findEtapeColumn = (cols: LeadColumn[]) =>
+  cols.find((c) => c.key === "c_sxgefs") ?? cols.find((c) => c.type === "status" && /[ée]tape/i.test(c.title) && !/statut/i.test(c.title));
+export const etapeOptions = (col?: LeadColumn) => (col?.options ?? []).filter((o) => o.label && !o.off);
+
 // Un lead est un « dossier » dès qu'il a une étape, ou qu'un RDV est pris (étape à définir).
-export const isDossier = (l: Lead) => !!l.fields.pipeline || (STATUS_RANK[l.status] ?? 0) >= 3;
+export const isDossier = (l: Lead, col?: LeadColumn) => !!(col && l.fields[col.key]) || (STATUS_RANK[l.status] ?? 0) >= 3;
 
 export default function DossiersBoard({
   leads,
+  etapeCol,
   onOpen,
   onMove,
   compact,
 }: {
   leads: Lead[];
+  etapeCol?: LeadColumn;
   onOpen: (id: string) => void;
   onMove: DossierMove;
   compact?: boolean;
@@ -47,23 +72,29 @@ export default function DossiersBoard({
   const [dragOver, setDragOver] = useState("");
 
   const columns = useMemo(() => {
-    const cols = [{ key: START, label: "À démarrer", hex: "#9ca3af", hint: "RDV pris, étape à choisir" }, ...PIPELINE.map((p) => ({ key: p.key, label: p.label, hex: p.hex, hint: "" }))];
-    const dossiers = leads.filter(isDossier);
+    const cols = [{ key: START, label: "Sans étape", hex: "#9ca3af", hint: "RDV pris, étape à choisir" }, ...etapeOptions(etapeCol).map((p) => ({ key: p.key, label: p.label, hex: p.hex, hint: "" }))];
+    const dossiers = leads.filter((l) => isDossier(l, etapeCol));
     const byKey = new Map<string, Lead[]>(cols.map((c) => [c.key, []]));
     for (const l of dossiers) {
-      const k = l.fields.pipeline && byKey.has(l.fields.pipeline) ? l.fields.pipeline : START;
+      const v = etapeCol ? l.fields[etapeCol.key] : "";
+      const k = v && byKey.has(v) ? v : START;
       byKey.get(k)!.push(l);
     }
     Array.from(byKey.values()).forEach((arr) => arr.sort((a, b) => etapeChangedMs(a) - etapeChangedMs(b))); // les plus anciens en haut
     return { cols, byKey, total: dossiers.length };
-  }, [leads]);
+  }, [leads, etapeCol]);
 
+  const isEnd = (key: string) => key === "termine" || key === "bloque";
+  const ek = etapeCol?.key ?? "";
   const stale = useMemo(
-    () => leads.filter((l) => isDossier(l) && l.fields.pipeline !== "Installé" && daysSince(etapeChangedMs(l)) >= STALE_DAYS).length,
-    [leads],
+    () => leads.filter((l) => isDossier(l, etapeCol) && !isEnd(l.fields[ek] ?? "") && daysSince(etapeChangedMs(l)) >= STALE_DAYS).length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [leads, etapeCol],
   );
 
-  const mainSteps = PIPELINE.filter((p) => !["Pas bon", "BETSALEL", "PRAIMY"].includes(p.key));
+  const mainSteps = etapeOptions(etapeCol).filter((p) => p.key !== "bloque");
+
+  if (!etapeCol) return <p className="text-sm text-gray-500 py-6">La colonne « Étape » est introuvable : réactive-la dans le tableau (corbeille des colonnes).</p>;
 
   return (
     <div>
@@ -85,7 +116,7 @@ export default function DossiersBoard({
       <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 items-start snap-x">
         {columns.cols.map((c) => {
           const all = columns.byKey.get(c.key) ?? [];
-          const list = staleOnly ? all.filter((l) => c.key !== "Installé" && daysSince(etapeChangedMs(l)) >= STALE_DAYS) : all;
+          const list = staleOnly ? all.filter((l) => !isEnd(c.key) && daysSince(etapeChangedMs(l)) >= STALE_DAYS) : all;
           const over = dragOver === c.key;
           return (
             <div
@@ -112,8 +143,8 @@ export default function DossiersBoard({
               <div className="space-y-2">
                 {list.map((l) => {
                   const days = daysSince(etapeChangedMs(l));
-                  const late = days >= STALE_DAYS && c.key !== "Installé";
-                  const idx = mainSteps.findIndex((p) => p.key === l.fields.pipeline);
+                  const late = days >= STALE_DAYS && !isEnd(c.key);
+                  const idx = mainSteps.findIndex((p) => p.key === l.fields[ek]);
                   const have = REQUIRED_LEAD_DOCS.filter((d) => l.docCats.includes(d)).length;
                   const need = REQUIRED_LEAD_DOCS.length;
                   const time = l.fields[RAPPEL_HEURE_KEY] ?? "";
@@ -168,6 +199,14 @@ export default function DossiersBoard({
                           {days === 0 ? "aujourd'hui" : `${days} j`}
                         </span>
                       </div>
+                      {(() => {
+                        const ch = lastLabelChange(l);
+                        return ch ? (
+                          <p className="mt-1.5 text-[11px] text-gray-500 truncate" title={`${ch.text} · ${agoText(ch.at)}`}>
+                            🏷️ <b className="font-semibold text-gray-700">{ch.text}</b> · {agoText(ch.at)}
+                          </p>
+                        ) : null;
+                      })()}
                     </div>
                   );
                 })}

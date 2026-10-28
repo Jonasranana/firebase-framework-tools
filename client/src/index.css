@@ -178,6 +178,8 @@ html.crm-dark .bg-black\/40 { background-color: rgba(10,12,20,.6) !important; }
 html.crm-dark .crm-soft { background: var(--soft-dark) !important; }
 
 /* Écran de chargement : le logo IP5 Énergie, pâle, traversé par un reflet qui passe en boucle (comme Monday). */
+@keyframes ip5-loader-in { from { opacity: 0; } to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .ip5-loader-wrap { animation: none !important; opacity: 1 !important; } }
 .ip5-loader { position: relative; display: inline-block; }
 .ip5-loader-base { opacity: 0.35; }
 .ip5-loader-shine {

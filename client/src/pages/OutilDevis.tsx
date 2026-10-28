@@ -12,12 +12,13 @@ import {
 import { LogoIP5 } from "./site-chrome";
 import LeadsCRM from "./LeadsCRM";
 import { memberName } from "@/lib/crmTeam";
-import GonflageCRM from "./GonflageCRM";
+import { whenIdle } from "@/lib/netSpeed";
 import BrandLoader from "@/components/BrandLoader";
 import AdminShell, { initialPage, rememberPage, type AdminPage, type PageTools } from "./AdminShell";
 import type { SideItem } from "@/lib/crmSidebar";
 
 // Les pages secondaires ne sont chargées qu'à l'ouverture (démarrage plus rapide).
+const GonflageCRM = lazy(() => import("./GonflageCRM"));
 const ClientsCRM = lazy(() => import("./ClientsCRM"));
 const ArtisansCRM = lazy(() => import("./ArtisansCRM"));
 const StatsCRM = lazy(() => import("./StatsCRM"));
@@ -789,6 +790,16 @@ function useCrmTabColor() {
 export default function OutilDevis() {
   useNoIndex();
   useCrmTabColor();
+  // Démarrage en parallèle de la connexion : la base de données (et son cache local) s'initialise tout de suite,
+  // puis, au repos et seulement sur bonne connexion, les pages les plus ouvertes se préchargent.
+  useEffect(() => {
+    import("@/lib/crmDb").then((m) => m.crmFirestore()).catch(() => {});
+    whenIdle(() => {
+      import("./StatsCRM").catch(() => {});
+      import("./CorbeilleEtDoublons").catch(() => {});
+      import("./DocumentsPage").catch(() => {});
+    });
+  }, []);
   const [status, setStatus] = useState<
     "loading" | "signed-out" | "authorized" | "denied"
   >("loading");
@@ -897,7 +908,11 @@ export default function OutilDevis() {
     // La station de gonflage a sa propre mise en page plein écran : le menu
     // n'y est pas affiché, le bouton retour ramène aux leads.
     if (page === "gonflage") {
-      return <GonflageCRM email={email} onBack={() => navigate("leads")} />;
+      return (
+        <Suspense fallback={<BrandLoader full />}>
+          <GonflageCRM email={email} onBack={() => navigate("leads")} />
+        </Suspense>
+      );
     }
     const narrow = (node: React.ReactNode) => <div className="max-w-2xl mx-auto">{node}</div>;
     // Contenu d'une page (utilisé par l'écran principal et par « Ouvrir en superposition »).
