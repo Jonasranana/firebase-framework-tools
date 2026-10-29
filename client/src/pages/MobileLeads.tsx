@@ -1,3 +1,4 @@
+import { MentionPicker, MentionText, TaggedLine } from "@/components/Mentions";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BellRing, ChevronRight, FileText, MessageCircle, MessagesSquare, Phone, Search, Send, X } from "lucide-react";
 import DossiersBoard, { etapeOptions, type DossierMove } from "./DossiersBoard";
@@ -352,7 +353,8 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
                               {client ? `${lead.name || "Le client"} (mail reçu)` : authorName(n.by)}
                             </p>
                           )}
-                          <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : n.text}</p>
+                          <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : <MentionText text={n.text} light={mine} />}</p>
+                          <TaggedLine note={n} light={mine} />
                           <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-white/70" : "text-gray-400"}`}>{hhmm(n.at)}</p>
                         </div>
                       </div>
@@ -375,7 +377,10 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
             })()}
             <div ref={endRef} />
           </div>
-          <div className="flex items-end gap-2 mt-2">
+          <div className="mt-2">
+            <MentionPicker text={note} onPick={setNote} />
+          </div>
+          <div className="flex items-end gap-2">
             <textarea
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -388,7 +393,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
               <Send size={18} />
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1">L'équipe est prévenue par e-mail, comme sur ordinateur.</p>
+          <p className="text-[10px] text-gray-400 mt-1">L'équipe est prévenue par e-mail. Tapez @ pour taguer quelqu'un : il le reçoit aussi sur son mail perso.</p>
           <button onClick={() => onChat(lead.id)} className="mt-2 w-full text-sm font-bold text-orange-600 py-2">
             Ouvrir la discussion complète (mail, SMS, WhatsApp)
           </button>

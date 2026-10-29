@@ -1,3 +1,4 @@
+import { MentionPicker, MentionText, TaggedLine } from "@/components/Mentions";
 import BrandLoader from "@/components/BrandLoader";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -773,8 +774,9 @@ const LeadSheet = ({
           {lead && (
             <div id="updates-section" className="pt-3 border-t border-gray-100">
               <span className="block text-xs font-semibold text-gray-600 mb-2">
-                Mises à jour et historique (toute l'équipe est prévenue par e-mail)
+                Mises à jour et historique (toute l'équipe est prévenue par e-mail · tapez @ pour taguer quelqu'un sur son mail perso)
               </span>
+              <MentionPicker text={noteText} onPick={setNoteText} />
               <textarea
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
@@ -806,7 +808,10 @@ const LeadSheet = ({
                             : "bg-blue-50 text-gray-800"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{n.text}</p>
+                    <p className="whitespace-pre-wrap">
+                      <MentionText text={n.text} />
+                    </p>
+                    <TaggedLine note={n} />
                     <p className="text-[11px] text-gray-400 mt-0.5">
                       {formatDateTime(n.at)} · {n.by}
                     </p>

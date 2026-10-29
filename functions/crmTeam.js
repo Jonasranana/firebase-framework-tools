@@ -14,6 +14,23 @@ const ROOT_NAMES = {
   "carol.sitbon05@gmail.com": "Carole Sitbon",
 };
 
+// Personnes que l'on peut taguer dans une bulle avec « @ » (et leurs surnoms).
+const MENTIONS = [
+  { name: "Carole", email: "carol.sitbon05@gmail.com", keys: ["carole", "carol", "maman"] },
+  { name: "Mebarek", email: "mebarouk2012@gmail.com", keys: ["mebarek", "mebarouk", "mebarak"] },
+  { name: "Alexis", email: "alexis.sitbon@gmail.com", keys: ["alexis", "papa"] },
+  { name: "Jonas", email: "jonassitbon8@gmail.com", keys: ["jonas"] },
+];
+const findMentions = (text) => {
+  const found = [];
+  for (const m of String(text).matchAll(/@([\p{L}]+)/gu)) {
+    const k = m[1].normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    const p = MENTIONS.find((x) => x.keys.includes(k));
+    if (p && !found.includes(p)) found.push(p);
+  }
+  return found;
+};
+
 module.exports = function buildCrmTeam({
   db,
   logger,
@@ -156,6 +173,7 @@ module.exports = function buildCrmTeam({
 
       const members = await teamMembers();
       const authorName = members.find((m) => m.email === author)?.name ?? author;
+      const tagged = findMentions(text);
       await ref.update({
         notes: FieldValue.arrayUnion({
           id: Math.random().toString(36).slice(2, 10),
@@ -163,17 +181,20 @@ module.exports = function buildCrmTeam({
           by: author,
           at: new Date().toISOString(),
           kind: "note",
+          ...(tagged.length ? { mentions: tagged.map((p) => p.name) } : {}),
         }),
         updatedAt: FieldValue.serverTimestamp(),
         updatedBy: author,
       });
 
-      // E-mail uniquement dans la boîte partagée contact@ (pas dans les boîtes personnelles), présenté comme une bulle de discussion.
+      // E-mail dans la boîte partagée contact@, présenté comme une bulle de discussion. Les personnes taguées
+      // avec « @ » (ex. @Carole) le reçoivent AUSSI dans leur boîte personnelle, avec la mention « tagué(e) ».
       // Un échec d'envoi ne doit jamais empêcher l'enregistrement de la mise à jour.
       let notified = 0;
       try {
         const name = snap.get("name") || "(sans nom)";
-        const to = ["contact@ip5energie.com"];
+        const tagLine = tagged.length ? `🏷️ ${tagged.map((p) => p.name).join(", ")} ${tagged.length > 1 ? "ont été tagués" : "a été tagué(e)"} par ${authorName}` : "";
+        const to = ["contact@ip5energie.com", ...tagged.map((p) => p.email).filter((e) => e !== author)];
         if (to.length) {
           const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
           oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
@@ -194,6 +215,7 @@ module.exports = function buildCrmTeam({
         </td>
       </tr></table>
     </td></tr>
+    ${tagLine ? `<tr><td style="padding:14px 16px 0 16px;"><div style="background:#fff4e5; border:1px solid #ffd19a; border-radius:10px; padding:8px 12px; color:#9a4a00; font-size:14px; font-weight:bold;">${escapeHtmlText(tagLine)}</div></td></tr>` : ""}
     <tr><td style="padding:22px 16px 10px 16px;">
       <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:88%;"><tr>
         <td style="background:#ffffff; border-radius:0 14px 14px 14px; padding:10px 14px 6px 14px; color:#1f2a37; font-size:16px; line-height:1.45; box-shadow:0 1px 1px rgba(0,0,0,.13);">
@@ -217,7 +239,12 @@ module.exports = function buildCrmTeam({
             await gmail.users.messages.send({
               userId: "me",
               requestBody: {
-                raw: buildRawMessage({ to: addr, from, subject: `💬 ${authorName} — ${name}`, html }),
+                raw: buildRawMessage({
+                  to: addr,
+                  from,
+                  subject: tagged.length ? `🏷️ ${authorName} a tagué ${tagged.map((p) => p.name).join(", ")} — ${name}` : `💬 ${authorName} — ${name}`,
+                  html,
+                }),
               },
             });
             notified++;
@@ -226,7 +253,7 @@ module.exports = function buildCrmTeam({
       } catch (err) {
         logger.error("Mise à jour CRM : e-mails d'équipe non envoyés", { error: err.message });
       }
-      return { ok: true, notified };
+      return { ok: true, notified, tagged: tagged.map((p) => p.name) };
     },
   );
 
