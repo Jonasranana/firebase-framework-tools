@@ -1,3 +1,4 @@
+import { MentionPicker, MentionText, TaggedLine } from "@/components/Mentions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, ExternalLink, X, Paperclip, MessageSquareText } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -540,7 +541,8 @@ export default function LeadChat({
                           {client ? `${lead?.name || "Le client"} (mail reçu)` : authorName(n.by)}
                         </p>
                       )}
-                      <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : n.text}</p>
+                      <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : <MentionText text={n.text} light={mine} />}</p>
+                      <TaggedLine note={n} light={mine} />
                       <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-white/70" : "text-gray-400"}`}>{hhmm(n.at)}</p>
                     </div>
                   </div>
@@ -569,6 +571,7 @@ export default function LeadChat({
 
         <div className="bg-white border-t border-gray-200 p-2.5">
           {error && <p className="text-xs text-red-600 mb-1 px-1">{error}</p>}
+          <MentionPicker text={text} onPick={setText} />
           <div className="flex items-end gap-2">
             <textarea
               value={text}
@@ -593,7 +596,7 @@ export default function LeadChat({
               <Send size={16} />
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1 px-1">Entrée pour envoyer · Maj+Entrée pour aller à la ligne · l'équipe est prévenue par e-mail</p>
+          <p className="text-[10px] text-gray-400 mt-1 px-1">Entrée pour envoyer · Maj+Entrée pour aller à la ligne · tapez @ pour taguer (Carole, Mebarek, Alexis, Jonas) : la personne reçoit aussi le message sur son mail perso</p>
         </div>
       </SheetContent>
     </Sheet>

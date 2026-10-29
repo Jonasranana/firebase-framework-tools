@@ -110,6 +110,7 @@ export type LeadNote = {
   by: string;
   at: string; // ISO
   kind?: "note" | "statut" | "message" | "mail"; // « statut »/« message »/« mail » = traces automatiques
+  mentions?: string[]; // personnes taguées avec « @ » (prévenues aussi sur leur mail perso)
 };
 
 // Fichier rangé dans une cellule « Fichiers » d'un tableau (copié depuis Monday ou ajouté dans le CRM).
