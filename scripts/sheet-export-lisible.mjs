@@ -52,14 +52,16 @@ for (const r of rows) {
     ? notes.map((n) => {
         let t = clean(n.text);
         if (n.kind === "statut") t = t.replace(/\b([a-z0-9_]+)\b/g, (m) => STATUTS[m] ?? m);
+        if (/^(📤|📥)/.test(t)) t = t.slice(0, 90) + (t.length > 90 ? "…" : "");
         return `${ddmm(n.at)} · ${who(n.by)} · ${t}`;
       })
     : String(r[11] ?? "").split(" — ").map(clean).filter((t) => t && !TECH.test(t.replace(/^\[[^\]]*\] [^:]*: /, ""))).reverse();
-  const lastComment = x ? clean(notes.find((n) => n.kind !== "statut")?.text ?? "") : clean(r[10]).startsWith("Fiche archivée") ? "" : clean(r[10]);
+  const isMail = (t) => /^(📤|📥)/.test(clean(t));
+  const lastComment = x ? clean(notes.find((n) => n.kind !== "statut" && !isMail(n.text))?.text ?? "") : clean(r[10]).startsWith("Fiche archivée") ? "" : clean(r[10]);
   out.push([
     clean(r[0]),
     clean(r[1]),
-    clean(r[2]),
+    (x && STATUTS[x.status]) || STATUTS[clean(r[2])] || clean(r[2]),
     [clean(r[4]), clean(r[5])].filter(Boolean).join(" · "),
     clean(r[3]),
     clean(r[8]),
