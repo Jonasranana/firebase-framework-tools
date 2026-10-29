@@ -1,4 +1,4 @@
-name: "Sheet d’export : onglet Lisible"
+name: "Sheet d’export : onglet Lisible "
 on:
   workflow_dispatch:
 jobs:

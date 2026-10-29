@@ -3314,7 +3314,7 @@ exports.exportLeadsToGoogleDrive = onCall(
     // Onglet « 📋 Lisible » : colonnes claires, historique complet (une ligne par événement, du plus récent
     // au plus ancien, sans traces techniques). Les anciens onglets d'un Sheet existant ne sont jamais modifiés.
     const TAB = "📋 Lisible";
-    const headers = ["Nom", "Téléphone", "Statut", "Département / ville", "Email", "Source", "Reçu le", "Commercial", "Dernier commentaire", "Historique (plus récent en haut)"];
+    const headers = ["Nom", "Téléphone", "Statut", "Département / ville", "Email", "Source", "Reçu le", "Commercial", "Dernier commentaire", "Historique (plus récent en haut)", "Exporté le"];
 
     if (!sheetId) {
       const today = new Date().toISOString().slice(0, 10);
@@ -3344,7 +3344,7 @@ exports.exportLeadsToGoogleDrive = onCall(
         tabId = res.data.replies[0].addSheet.properties.sheetId;
       }
       await sheets.spreadsheets.values.update({ spreadsheetId: sheetId, range: `'${TAB}'!A1`, valueInputOption: "RAW", requestBody: { values: [headers] } });
-      const widths = [190, 120, 150, 170, 220, 140, 95, 110, 300, 520];
+      const widths = [190, 120, 150, 170, 220, 140, 95, 110, 300, 520, 105];
       await sheets.spreadsheets.batchUpdate({
         spreadsheetId: sheetId,
         requestBody: {
@@ -3374,6 +3374,7 @@ exports.exportLeadsToGoogleDrive = onCall(
     };
     const toIso = (v) => (v?.toDate ? v.toDate().toISOString() : typeof v === "string" ? v : "");
 
+    const exportDay = ddmm(new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" }).format(new Date()));
     const leadsToAdd = [];
     const leadsDocs = [];
     for (const id of leadIds) {
@@ -3401,6 +3402,7 @@ exports.exportLeadsToGoogleDrive = onCall(
         f.attribue || "",
         cleanTxt(notes.find((n) => n.kind !== "statut" && !isMail(n.text))?.text ?? "").slice(0, 300),
         hist.join("\n").slice(0, 45000),
+        exportDay,
       ]);
     }
 
