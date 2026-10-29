@@ -1,4 +1,4 @@
-name: "Sheet d’export : onglet Lisible"
+name: "Sheet d’export : onglet Lisible "
 on:
   push:
     branches: [claude/ip5-energie-landing-8fhstc]

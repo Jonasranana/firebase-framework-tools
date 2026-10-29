@@ -38,7 +38,11 @@ for (const d of (await db.collection("crm_leads").get()).docs) {
   if (k) byPhone.set(k, x);
 }
 
-const src = (await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "A1:L5000" })).data.values ?? [];
+// Lecture de l'onglet d'origine (jamais l'onglet « Lisible » lui-même).
+const tabs = (await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID, fields: "sheets(properties(title))" })).data.sheets.map((x) => x.properties.title);
+const ORIG = tabs.find((t) => t !== TAB);
+console.log(`Onglet d'origine lu : « ${ORIG} »`);
+const src = (await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: `'${ORIG}'!A1:L5000` })).data.values ?? [];
 const [, ...rows] = src;
 const out = [["Nom", "Téléphone", "Statut", "Département / ville", "Email", "Source", "Reçu le", "Commercial", "Dernier commentaire", "Historique (plus récent en haut)", "Exporté le"]];
 let found = 0;
