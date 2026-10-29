@@ -754,13 +754,10 @@ const Row = ({ k, v, bold }: { k: string; v: string; bold?: boolean }) => (
 );
 
 // ── Page : gère la connexion Google + la liste blanche ─────────────────────
-// Version pro (CRM) : couleur de l'onglet / barre du navigateur et petite icône orange, remises à l'état normal en quittant.
+// Version pro (CRM) : couleur orange de la barre du navigateur, remise à l'état normal en quittant.
 function useCrmTabColor() {
   useEffect(() => {
     const ORANGE = "#ff6a1a";
-    const svg =
-      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='#ff8a00'/><stop offset='.55' stop-color='#ff4d4d'/><stop offset='1' stop-color='#e0218a'/></linearGradient></defs><rect width='64' height='64' rx='15' fill='url(#g)'/><path d='M43 22 A15 15 0 1 0 43 42' fill='none' stroke='white' stroke-width='7' stroke-linecap='round'/><path d='M38 27 A8 8 0 1 0 38 37' fill='none' stroke='white' stroke-opacity='.6' stroke-width='4' stroke-linecap='round'/></svg>";
-    const icon = "data:image/svg+xml," + encodeURIComponent(svg);
     let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const createdMeta = !meta;
     if (!meta) {
@@ -770,19 +767,10 @@ function useCrmTabColor() {
     }
     const oldColor = meta.content;
     meta.content = ORANGE;
-    const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]'));
-    const olds = links.map((l) => ({ l, href: l.href, type: l.type }));
-    links.forEach((l) => {
-      l.href = icon;
-      if (l.rel === "icon") l.type = "image/svg+xml";
-    });
+    // L'onglet garde le vrai logo IP5 Énergie (favicon du site).
     return () => {
       if (createdMeta) meta?.remove();
       else if (meta) meta.content = oldColor;
-      olds.forEach(({ l, href, type }) => {
-        l.href = href;
-        l.type = type;
-      });
     };
   }, []);
 }
