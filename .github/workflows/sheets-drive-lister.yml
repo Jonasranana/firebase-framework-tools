@@ -1,8 +1,5 @@
 name: Lister les Sheets d’export Drive (lecture seule)
 on:
-  push:
-    branches: [claude/ip5-energie-landing-8fhstc]
-    paths: [.github/workflows/sheets-drive-lister.yml]
   workflow_dispatch:
 jobs:
   run:
