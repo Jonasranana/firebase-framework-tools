@@ -1,4 +1,4 @@
-name: Ranger par statut (Pas éligible, Mauvais numéro, NRP)
+name: Ranger par statut (Pas éligible, Pas intéressé, Pas adapté, Mauvais numéro, NRP)
 on:
   workflow_dispatch:
 jobs:

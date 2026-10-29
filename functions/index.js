@@ -3311,88 +3311,106 @@ exports.exportLeadsToGoogleDrive = onCall(
     let sheetId = sheetList.data.files?.[0]?.id;
     let webViewLink = sheetList.data.files?.[0]?.webViewLink;
 
-    const headers = [
-      "Nom du client",
-      "Téléphone",
-      "Statut",
-      "Email",
-      "Code Postal",
-      "Ville",
-      "Type",
-      "Projet",
-      "Source",
-      "Date réception",
-      "Dernier commentaire",
-      "Historique complet",
-    ];
+    // Onglet « 📋 Lisible » : colonnes claires, historique complet (une ligne par événement, du plus récent
+    // au plus ancien, sans traces techniques). Les anciens onglets d'un Sheet existant ne sont jamais modifiés.
+    const TAB = "📋 Lisible";
+    const headers = ["Nom", "Téléphone", "Statut", "Département / ville", "Email", "Source", "Reçu le", "Commercial", "Dernier commentaire", "Historique (plus récent en haut)"];
 
     if (!sheetId) {
       const today = new Date().toISOString().slice(0, 10);
       const sheetName = `Tableau_${targetFolder.replace(/[\\/:*?"<>|\s]+/g, "_")}_${today}`;
       const newSheet = await drive.files.create({
-        requestBody: {
-          name: sheetName,
-          parents: [folderId],
-          mimeType: "application/vnd.google-apps.spreadsheet",
-        },
+        requestBody: { name: sheetName, parents: [folderId], mimeType: "application/vnd.google-apps.spreadsheet" },
         fields: "id, name, webViewLink",
         ...opt,
       });
       sheetId = newSheet.data.id;
       webViewLink = newSheet.data.webViewLink;
-
-      await sheets.spreadsheets.values.append({
-        spreadsheetId: sheetId,
-        range: "A1",
-        valueInputOption: "USER_ENTERED",
-        requestBody: { values: [headers] },
-      });
       logger.info("Nouveau Google Sheet créé dans Drive", { sheetName, sheetId });
     }
 
+    const meta = await sheets.spreadsheets.get({ spreadsheetId: sheetId, fields: "sheets(properties(sheetId,title,index))" });
+    let tabId = meta.data.sheets.find((x) => x.properties.title === TAB)?.properties.sheetId;
+    if (tabId === undefined) {
+      const only = meta.data.sheets.length === 1 ? meta.data.sheets[0].properties : null;
+      const firstEmpty = only
+        ? !((await sheets.spreadsheets.values.get({ spreadsheetId: sheetId, range: `'${only.title}'!A1:A2` })).data.values ?? []).length
+        : false;
+      if (firstEmpty) {
+        tabId = only.sheetId;
+        await sheets.spreadsheets.batchUpdate({ spreadsheetId: sheetId, requestBody: { requests: [{ updateSheetProperties: { properties: { sheetId: tabId, title: TAB }, fields: "title" } }] } });
+      } else {
+        const res = await sheets.spreadsheets.batchUpdate({ spreadsheetId: sheetId, requestBody: { requests: [{ addSheet: { properties: { title: TAB, index: 0 } } }] } });
+        tabId = res.data.replies[0].addSheet.properties.sheetId;
+      }
+      await sheets.spreadsheets.values.update({ spreadsheetId: sheetId, range: `'${TAB}'!A1`, valueInputOption: "RAW", requestBody: { values: [headers] } });
+      const widths = [190, 120, 150, 170, 220, 140, 95, 110, 300, 520];
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: sheetId,
+        requestBody: {
+          requests: [
+            ...widths.map((w, i) => ({ updateDimensionProperties: { range: { sheetId: tabId, dimension: "COLUMNS", startIndex: i, endIndex: i + 1 }, properties: { pixelSize: w }, fields: "pixelSize" } })),
+            { repeatCell: { range: { sheetId: tabId, startRowIndex: 0, endRowIndex: 1 }, cell: { userEnteredFormat: { backgroundColor: { red: 1, green: 0.42, blue: 0.1 }, textFormat: { bold: true, foregroundColor: { red: 1, green: 1, blue: 1 } } } }, fields: "userEnteredFormat(backgroundColor,textFormat)" } },
+            { repeatCell: { range: { sheetId: tabId, startRowIndex: 1 }, cell: { userEnteredFormat: { verticalAlignment: "TOP", wrapStrategy: "CLIP" } }, fields: "userEnteredFormat(verticalAlignment,wrapStrategy)" } },
+            { repeatCell: { range: { sheetId: tabId, startRowIndex: 1, startColumnIndex: 8, endColumnIndex: 10 }, cell: { userEnteredFormat: { wrapStrategy: "WRAP", textFormat: { fontSize: 9 } } }, fields: "userEnteredFormat(wrapStrategy,textFormat)" } },
+            { repeatCell: { range: { sheetId: tabId, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, cell: { userEnteredFormat: { textFormat: { bold: true } } }, fields: "userEnteredFormat.textFormat.bold" } },
+            { updateSheetProperties: { properties: { sheetId: tabId, gridProperties: { frozenRowCount: 1, frozenColumnCount: 1 } }, fields: "gridProperties(frozenRowCount,frozenColumnCount)" } },
+          ],
+        },
+      });
+    }
+
     // 3. Charger les fiches depuis Firestore
+    const colsCfg = (await db.doc("crm_boards/leads_columns").get()).data()?.config ?? {};
+    const statusLabels = { ...DRIVE_STATUS_LABELS, ...Object.fromEntries((colsCfg.options?.status ?? []).map((o) => [o.key, o.label])) };
+    const WHO = { "mebarouk2012@gmail.com": "Mebarek", "alexis.sitbon@gmail.com": "Alexis", "carol.sitbon05@gmail.com": "Carole", "jonassitbon8@gmail.com": "Jonas", "contact@ip5energie.com": "IP5" };
+    const who = (by) => WHO[String(by ?? "").toLowerCase()] ?? String(by ?? "").split("@")[0];
+    const TECH = /^(Groupe\b|Fiche archivée|Rangement|Restauration|🔔 Rappel supprimé|Attribué à|Importé depuis Monday|Fiche ressortie)/i;
+    const cleanTxt = (t) => String(t ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim();
+    const isMail = (t) => /^(📤|📥)/.test(cleanTxt(t));
+    const ddmm = (iso) => {
+      const [y, m, d] = String(iso ?? "").slice(0, 10).split("-");
+      return d ? `${d}/${m}/${y}` : "";
+    };
+    const toIso = (v) => (v?.toDate ? v.toDate().toISOString() : typeof v === "string" ? v : "");
+
     const leadsToAdd = [];
     const leadsDocs = [];
     for (const id of leadIds) {
       const snap = await db.doc(`crm_leads/${id}`).get();
-      if (snap.exists) {
-        leadsDocs.push(snap);
-        const l = snap.data();
-        const f = l.fields || {};
-        const statusLabel = DRIVE_STATUS_LABELS[l.status] || l.status || "Non renseigné";
-        const phoneFormatted = formatFrenchPhone(l.phone);
-        const notes = Array.isArray(l.notes) ? l.notes : [];
-        notes.sort((a, b) => String(a.at || "").localeCompare(String(b.at || "")));
-        const lastNote = notes.slice(-1)[0]?.text || "";
-        const cleanLastNote = String(lastNote).replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim().slice(0, 150);
-        const historyCompact = notes
-          .map((n) => `[${String(n.at || "").slice(0, 10)}] ${n.by || ""}: ${String(n.text || "").replace(/[\r\n\t]+/g, " ").replace(/\s+/g, " ").trim()}`)
-          .join(" — ")
-          .slice(0, 500);
-
-        leadsToAdd.push([
-          l.name || "Sans nom",
-          phoneFormatted || "",
-          statusLabel,
-          l.email || "",
-          l.postalCode || f.postalCode || "",
-          l.city || f.city || "",
-          l.type || "PAC",
-          l.projet || f.projet || "Pompe à chaleur",
-          l.source || f.source || "",
-          l.createdAt ? String(l.createdAt).slice(0, 10) : "",
-          cleanLastNote,
-          historyCompact,
-        ]);
-      }
+      if (!snap.exists) continue;
+      leadsDocs.push(snap);
+      const l = snap.data();
+      const f = l.fields || {};
+      const notes = (Array.isArray(l.notes) ? l.notes : []).filter((n) => n?.text && !TECH.test(cleanTxt(n.text)));
+      notes.sort((a, b) => String(b.at || "").localeCompare(String(a.at || "")));
+      const hist = notes.map((n) => {
+        let t = cleanTxt(n.text);
+        if (n.kind === "statut") t = t.replace(/\b([a-z0-9_]+)\b/g, (m) => statusLabels[m] ?? m);
+        if (isMail(t)) t = t.slice(0, 90) + (t.length > 90 ? "…" : "");
+        return `${ddmm(n.at)} · ${who(n.by)} · ${t}`;
+      });
+      leadsToAdd.push([
+        l.name || "Sans nom",
+        formatFrenchPhone(l.phone) || "",
+        statusLabels[l.status] || l.status || "Non renseigné",
+        [l.postalCode || f.postalCode || f.cp || "", l.city || f.city || ""].filter(Boolean).join(" · "),
+        l.email || "",
+        l.source || f.source || "",
+        ddmm(toIso(l.createdAt)),
+        f.attribue || "",
+        cleanTxt(notes.find((n) => n.kind !== "statut" && !isMail(n.text))?.text ?? "").slice(0, 300),
+        hist.join("\n").slice(0, 45000),
+      ]);
     }
 
-    // 4. Insérer les lignes dans le Google Sheet
+    // 4. Insérer les lignes dans l'onglet « 📋 Lisible »
     if (leadsToAdd.length > 0) {
       await sheets.spreadsheets.values.append({
         spreadsheetId: sheetId,
-        range: "A1",
-        valueInputOption: "USER_ENTERED",
+        range: `'${TAB}'!A1`,
+        valueInputOption: "RAW",
+        insertDataOption: "INSERT_ROWS",
         requestBody: { values: leadsToAdd },
       });
       logger.info("Lignes ajoutées dans le Google Sheet", { sheetId, count: leadsToAdd.length });
