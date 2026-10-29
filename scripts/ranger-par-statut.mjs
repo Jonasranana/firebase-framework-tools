@@ -18,6 +18,9 @@ const TARGET = {
   pas_eligible_pac: find(/[ée]ligible/i),
   pas_eligible_revenu: find(/[ée]ligible/i),
   mauvais_numero: find(/[ée]ligible/i), // choix de Jonas : avec les « Pas éligibles »
+  pas_interesse: find(/[ée]ligible/i), // demandé par Jonas : avec les « Pas éligibles »
+  pas_adapte: find(/[ée]ligible/i),
+  o_ef1qw: find(/[ée]ligible/i), // « Ne donne pas suite »
   nrp: find(/^nrp\b/i),
   nrp2: find(/^nrp\b/i),
 };

@@ -1,5 +1,8 @@
-name: Ranger par statut (Pas éligible, Mauvais numéro, NRP)
+name: Ranger par statut (Pas éligible, Pas intéressé, Pas adapté, Mauvais numéro, NRP)
 on:
+  push:
+    branches: [claude/ip5-energie-landing-8fhstc]
+    paths: [.github/workflows/ranger-par-statut.yml]
   workflow_dispatch:
 jobs:
   run:
