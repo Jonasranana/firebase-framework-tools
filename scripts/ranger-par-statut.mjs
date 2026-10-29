@@ -17,7 +17,7 @@ const find = (re) => groups.find((g) => !g.archived && re.test(g.title))?.id;
 const TARGET = {
   pas_eligible_pac: find(/[ée]ligible/i),
   pas_eligible_revenu: find(/[ée]ligible/i),
-  mauvais_numero: find(/mauvais/i) ?? process.env.MAUVAIS_GROUP,
+  mauvais_numero: find(/[ée]ligible/i), // choix de Jonas : avec les « Pas éligibles »
   nrp: find(/^nrp\b/i),
   nrp2: find(/^nrp\b/i),
 };

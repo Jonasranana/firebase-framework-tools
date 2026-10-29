@@ -23,5 +23,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
-          DRY_RUN: "true"
+          DRY_RUN: "false"
         run: node scripts/ranger-par-statut.mjs
