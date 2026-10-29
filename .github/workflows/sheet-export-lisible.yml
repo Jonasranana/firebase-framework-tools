@@ -1,8 +1,5 @@
 name: "Sheet d’export : onglet Lisible "
 on:
-  push:
-    branches: [claude/ip5-energie-landing-8fhstc]
-    paths: [.github/workflows/sheet-export-lisible.yml]
   workflow_dispatch:
 jobs:
   run:
@@ -23,5 +20,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
-          DRY_RUN: "false"
+          DRY_RUN: "true"
         run: node scripts/sheet-export-lisible.mjs
