@@ -754,7 +754,7 @@ const Row = ({ k, v, bold }: { k: string; v: string; bold?: boolean }) => (
 );
 
 // ── Page : gère la connexion Google + la liste blanche ─────────────────────
-// Version pro (CRM) : couleur orange de la barre du navigateur, remise à l'état normal en quittant.
+// Version pro (CRM) : barre du navigateur et logo de l'onglet en orange, remis à l'état normal en quittant.
 function useCrmTabColor() {
   useEffect(() => {
     const ORANGE = "#ff6a1a";
@@ -767,10 +767,14 @@ function useCrmTabColor() {
     }
     const oldColor = meta.content;
     meta.content = ORANGE;
-    // L'onglet garde le vrai logo IP5 Énergie (favicon du site).
+    // Icône de l'onglet : le vrai logo IP5 Énergie (les arcs), en orange.
+    const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]'));
+    const olds = links.map((l) => ({ l, href: l.href }));
+    links.forEach((l) => (l.href = "/favicon-crm.png"));
     return () => {
       if (createdMeta) meta?.remove();
       else if (meta) meta.content = oldColor;
+      olds.forEach(({ l, href }) => (l.href = href));
     };
   }, []);
 }
