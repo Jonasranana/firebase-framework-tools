@@ -1,7 +1,7 @@
 import { MentionPicker, MentionText, TaggedLine } from "@/components/Mentions";
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BellRing, ChevronRight, FileText, MessageCircle, MessagesSquare, Phone, Search, Send, X } from "lucide-react";
-import DossiersBoard, { etapeOptions, type DossierMove } from "./DossiersBoard";
+import { etapeOptions, type DossierMove } from "./DossiersBoard";
 import { authorName, dayLabel, hhmm, isChat, isMailReceived, movementText } from "./LeadChat";
 import { RappelPicker } from "@/components/RappelCell";
 import { LEAD_STATUSES, formatPhone, isClosedStatus, statusInfo, telHref, whatsappHref, type Lead, type LeadStatus } from "@/lib/crm";
@@ -564,7 +564,7 @@ export default function MobileLeads(props: Props) {
   const { leads, all, total, query, onQuery, rappelsOnly, onRappelsOnly, lateCount } = props;
   const [openId, setOpenId] = useState<string | null>(null);
   const [limit, setLimit] = useState(30);
-  const [tab, setTab] = useState<"liste" | "agenda" | "dossiers">("liste");
+  const [tab, setTab] = useState<"liste" | "agenda">("liste");
   const [groupFilter, setGroupFilter] = useState("");
   const [callApp, setCallAppState] = useState<CallApp>(readCallApp);
   const [toast, setToast] = useState("");
@@ -620,7 +620,7 @@ export default function MobileLeads(props: Props) {
     <div ref={topRef} style={{ touchAction: "pan-x pan-y" }}>
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
-          {([["liste", "📋 Clients"], ["agenda", "📅 Agenda"], ["dossiers", "📁 Dossiers"]] as const).map(([k, label]) => (
+          {([["liste", "📋 Clients"], ["agenda", "📅 Agenda"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
@@ -690,12 +690,6 @@ export default function MobileLeads(props: Props) {
       </div>
 
       {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} onDone={(id) => props.onPatch(id, { __rappelFait: true })} />}
-
-      {tab === "dossiers" && (
-        <div className="mt-2">
-          <DossiersBoard leads={leads} etapeCol={props.etapeCol} onOpen={setOpenId} onMove={props.onMoveEtape} compact />
-        </div>
-      )}
 
       {tab === "liste" && (
       <div className="space-y-2.5 mt-1">
