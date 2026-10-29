@@ -1,5 +1,8 @@
 name: "Sheet d’export : onglet Lisible"
 on:
+  push:
+    branches: [claude/ip5-energie-landing-8fhstc]
+    paths: [.github/workflows/sheet-export-lisible.yml]
   workflow_dispatch:
 jobs:
   run:

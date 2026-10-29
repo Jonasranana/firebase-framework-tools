@@ -40,7 +40,7 @@ for (const d of (await db.collection("crm_leads").get()).docs) {
 
 const src = (await sheets.spreadsheets.values.get({ spreadsheetId: SHEET_ID, range: "A1:L5000" })).data.values ?? [];
 const [, ...rows] = src;
-const out = [["Nom", "Téléphone", "Statut", "Département / ville", "Email", "Source", "Reçu le", "Commercial", "Dernier commentaire", "Historique (plus récent en haut)"]];
+const out = [["Nom", "Téléphone", "Statut", "Département / ville", "Email", "Source", "Reçu le", "Commercial", "Dernier commentaire", "Historique (plus récent en haut)", "Exporté le"]];
 let found = 0;
 for (const r of rows) {
   if (!r?.[0]) continue;
@@ -69,6 +69,8 @@ for (const r of rows) {
     x?.fields?.attribue ?? "",
     lastComment.slice(0, 300),
     hist.join("\n").slice(0, 45000),
+    // Jour où la fiche a été envoyée du CRM vers le Sheet (= mise à la corbeille par l'export).
+    x?.archivedToDrive ? ddmm(new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris" }).format(x.deletedAt?.toDate?.() ?? new Date(tsIso(x.deletedAt)))) : "",
   ]);
 }
 console.log(`Lignes : ${out.length - 1} · retrouvées dans le CRM : ${found}`);
@@ -79,11 +81,14 @@ if (dry) { console.log("ESSAI À BLANC : rien n'est écrit."); process.exit(0); 
 const meta = await sheets.spreadsheets.get({ spreadsheetId: SHEET_ID, fields: "sheets(properties(sheetId,title))" });
 let tab = meta.data.sheets.find((s) => s.properties.title === TAB)?.properties.sheetId;
 if (tab === undefined) {
-  const res = await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: TAB, index: 0, gridProperties: { rowCount: out.length + 10, columnCount: 10, frozenRowCount: 1 } } } }] } });
+  const res = await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ addSheet: { properties: { title: TAB, index: 0, gridProperties: { rowCount: out.length + 10, columnCount: 11, frozenRowCount: 1 } } } }] } });
   tab = res.data.replies[0].addSheet.properties.sheetId;
-} else await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'${TAB}'` });
+} else {
+  await sheets.spreadsheets.values.clear({ spreadsheetId: SHEET_ID, range: `'${TAB}'` });
+  await sheets.spreadsheets.batchUpdate({ spreadsheetId: SHEET_ID, requestBody: { requests: [{ updateSheetProperties: { properties: { sheetId: tab, gridProperties: { columnCount: 11, rowCount: out.length + 10 } }, fields: "gridProperties(columnCount,rowCount)" } }] } });
+}
 await sheets.spreadsheets.values.update({ spreadsheetId: SHEET_ID, range: `'${TAB}'!A1`, valueInputOption: "RAW", requestBody: { values: out } });
-const widths = [190, 120, 150, 170, 220, 140, 95, 110, 300, 520];
+const widths = [190, 120, 150, 170, 220, 140, 95, 110, 300, 520, 105];
 await sheets.spreadsheets.batchUpdate({
   spreadsheetId: SHEET_ID,
   requestBody: {
@@ -94,7 +99,7 @@ await sheets.spreadsheets.batchUpdate({
       { repeatCell: { range: { sheetId: tab, startRowIndex: 1, startColumnIndex: 8, endColumnIndex: 10 }, cell: { userEnteredFormat: { wrapStrategy: "WRAP", textFormat: { fontSize: 9 } } }, fields: "userEnteredFormat(wrapStrategy,textFormat)" } },
       { repeatCell: { range: { sheetId: tab, startRowIndex: 1, startColumnIndex: 0, endColumnIndex: 1 }, cell: { userEnteredFormat: { textFormat: { bold: true } } }, fields: "userEnteredFormat.textFormat.bold" } },
       { updateSheetProperties: { properties: { sheetId: tab, gridProperties: { frozenRowCount: 1, frozenColumnCount: 1 } }, fields: "gridProperties(frozenRowCount,frozenColumnCount)" } },
-      { setBasicFilter: { filter: { range: { sheetId: tab, startRowIndex: 0, endRowIndex: out.length, startColumnIndex: 0, endColumnIndex: 10 } } } },
+      { setBasicFilter: { filter: { range: { sheetId: tab, startRowIndex: 0, endRowIndex: out.length, startColumnIndex: 0, endColumnIndex: 11 } } } },
       { autoResizeDimensions: { dimensions: { sheetId: tab, dimension: "ROWS", startIndex: 1, endIndex: out.length } } },
     ],
   },
