@@ -34,6 +34,8 @@ for (const d of snap.docs) {
   if (x.deletedAt || (x.board ?? "leads") !== "leads") continue;
   const to = TARGET[x.status];
   if (!to || x.group === to) continue;
+  // FROM_GROUP : ne ranger que les fiches d'un groupe (ex. « mebarek »).
+  if (process.env.FROM_GROUP && x.group !== process.env.FROM_GROUP) continue;
   moves.push({ ref: d.ref, from: x.group, to, status: x.status, who: x.fields?.attribue ?? "" });
   const k = `${x.status} : ${title(x.group)} → ${title(to)}`;
   stats[k] = (stats[k] ?? 0) + 1;
