@@ -1,8 +1,5 @@
 name: Ranger par statut (Pas éligible, Pas intéressé, Pas adapté, Mauvais numéro, NRP)
 on:
-  push:
-    branches: [claude/ip5-energie-landing-8fhstc]
-    paths: [.github/workflows/ranger-par-statut.yml]
   workflow_dispatch:
 jobs:
   run:
@@ -23,6 +20,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
-          DRY_RUN: "false"
-          FROM_GROUP: mebarek
+          DRY_RUN: "true"
         run: node scripts/ranger-par-statut.mjs
