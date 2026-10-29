@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { Fragment, useEffect, useState, useMemo } from "react";
 import {
   ExternalLink,
   Search,
@@ -48,6 +48,21 @@ const STATUT_BADGES: Record<string, { label: string; bg: string; text: string }>
   pose: { label: "Installation / Pose", bg: "bg-indigo-50 border-indigo-200", text: "text-indigo-700" },
   termine: { label: "Terminé", bg: "bg-green-50 border-green-200", text: "text-green-800" },
   brouillon: { label: "Brouillon", bg: "bg-gray-50 border-gray-200", text: "text-gray-600" },
+};
+
+// Ordre de progression d'un dossier Praimy, du début à la fin.
+const STEPS: { key: string; color: string }[] = [
+  { key: "brouillon", color: "#9ca3af" },
+  { key: "devis", color: "#3b82f6" },
+  { key: "signature", color: "#f59e0b" },
+  { key: "signe", color: "#10b981" },
+  { key: "visite", color: "#8b5cf6" },
+  { key: "pose", color: "#6366f1" },
+  { key: "termine", color: "#16a34a" },
+];
+const stepIndex = (statut?: string) => {
+  const i = STEPS.findIndex((s) => s.key === (statut || "").toLowerCase());
+  return i < 0 ? STEPS.length : i;
 };
 
 function formatStatus(statut: string, globalStatus?: string) {
@@ -135,7 +150,7 @@ export default function PraimyCRM({ email }: { email: string }) {
         d.global_status?.toLowerCase() === filterStatut.toLowerCase();
 
       return matchQuery && matchStatut;
-    });
+    }).sort((a, b) => stepIndex(a.statut) - stepIndex(b.statut) || String(b.updated_at ?? "").localeCompare(String(a.updated_at ?? "")));
   }, [dossiers, query, filterStatut]);
 
   const stats = useMemo(() => {
@@ -144,7 +159,9 @@ export default function PraimyCRM({ email }: { email: string }) {
     const signatures = dossiers.filter((d) => d.statut === "signature").length;
     const devis = dossiers.filter((d) => d.statut === "devis").length;
     const urgents = dossiers.filter((d) => d.is_urgent).length;
-    return { total, signes, signatures, devis, urgents };
+    const bySteps = STEPS.map((st) => ({ ...st, count: dossiers.filter((d) => (d.statut || "").toLowerCase() === st.key).length }));
+    const autres = dossiers.filter((d) => stepIndex(d.statut) === STEPS.length).length;
+    return { total, signes, signatures, devis, urgents, bySteps, autres };
   }, [dossiers]);
 
   return (
@@ -192,30 +209,49 @@ export default function PraimyCRM({ email }: { email: string }) {
         </div>
       </div>
 
-      {/* Cartes métriques */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-gray-500">Total dossiers</p>
-          <p className="text-xl font-bold text-gray-900 mt-1">{stats.total}</p>
-        </div>
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-emerald-600">Signés</p>
-          <p className="text-xl font-bold text-emerald-700 mt-1">{stats.signes}</p>
-        </div>
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-amber-600">En signature</p>
-          <p className="text-xl font-bold text-amber-700 mt-1">{stats.signatures}</p>
-        </div>
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-blue-600">Devis / Éligibilité</p>
-          <p className="text-xl font-bold text-blue-700 mt-1">{stats.devis}</p>
-        </div>
-        <div className="bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm">
-          <p className="text-xs font-medium text-rose-600 flex items-center gap-1">
-            <Flame size={13} /> Urgents
+      {/* Parcours : les étapes Praimy dans l'ordre, de gauche (début) à droite (fin). Clic = filtrer. */}
+      <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-sm font-extrabold text-gray-800">
+            🚀 Parcours des dossiers <span className="font-semibold text-gray-400">· {stats.total} au total</span>
           </p>
-          <p className="text-xl font-bold text-rose-700 mt-1">{stats.urgents}</p>
+          {stats.urgents > 0 && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-600">
+              <Flame size={13} /> {stats.urgents} urgent{stats.urgents > 1 ? "s" : ""}
+            </span>
+          )}
         </div>
+        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}>
+          {stats.bySteps.map((st, i) => {
+            const active = filterStatut === st.key;
+            const last = i === STEPS.length - 1;
+            return (
+              <button
+                key={st.key}
+                onClick={() => setFilterStatut(active ? "all" : st.key)}
+                title={active ? "Voir tous les dossiers" : `Voir seulement « ${formatStatus(st.key).label} »`}
+                className={`text-left text-white py-2 transition ${active ? "ring-2 ring-offset-1 ring-gray-800" : "hover:brightness-110"} ${st.count ? "" : "opacity-50"}`}
+                style={{
+                  background: st.color,
+                  paddingLeft: i === 0 ? 12 : 20,
+                  paddingRight: 16,
+                  borderRadius: i === 0 ? "10px 0 0 10px" : last ? "0 10px 10px 0" : 0,
+                  clipPath: last
+                    ? "polygon(0 0,100% 0,100% 100%,0 100%,10px 50%)"
+                    : i === 0
+                      ? "polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)"
+                      : "polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%)",
+                }}
+              >
+                <span className="block text-[11px] font-bold truncate">
+                  {i + 1}. {formatStatus(st.key).label}
+                </span>
+                <span className="block text-lg font-black leading-tight">{st.count}</span>
+              </button>
+            );
+          })}
+        </div>
+        {stats.autres > 0 && <p className="mt-2 text-xs text-gray-500">+ {stats.autres} dossier(s) avec un autre statut (affichés en fin de liste).</p>}
       </div>
 
       {/* Barre de recherche et filtres */}
@@ -238,11 +274,11 @@ export default function PraimyCRM({ email }: { email: string }) {
             className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0073ea]"
           >
             <option value="all">Tous les statuts</option>
-            <option value="devis">Devis</option>
-            <option value="signature">En signature</option>
-            <option value="signe">Signé</option>
-            <option value="visite">Visite technique</option>
-            <option value="pose">Pose</option>
+            {STEPS.map((st, i) => (
+              <option key={st.key} value={st.key}>
+                {i + 1}. {formatStatus(st.key).label}
+              </option>
+            ))}
           </select>
         </div>
       </div>
@@ -280,81 +316,101 @@ export default function PraimyCRM({ email }: { email: string }) {
             <table className="w-full text-left border-collapse text-sm">
               <thead>
                 <tr className="bg-gray-50/80 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Référence</th>
                   <th className="py-3 px-4">Client</th>
-                  <th className="py-3 px-4">Secteur</th>
-                  <th className="py-3 px-4">Statut Praimy</th>
+                  <th className="py-3 px-4">Étape Praimy</th>
+                  <th className="py-3 px-4">Avancement</th>
                   <th className="py-3 px-4">Reste à charge</th>
-                  <th className="py-3 px-4">Date de mise à jour</th>
+                  <th className="py-3 px-4">Ville</th>
+                  <th className="py-3 px-4">Mise à jour</th>
+                  <th className="py-3 px-4">Référence</th>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {filtered.map((d) => {
+                {filtered.map((d, idx) => {
                   const badge = formatStatus(d.statut, d.global_status);
                   const isBlocked = d.is_blocked;
+                  const si = stepIndex(d.statut);
+                  const newStep = idx === 0 || stepIndex(filtered[idx - 1].statut) !== si;
+                  const color = STEPS[si]?.color ?? "#9ca3af";
+                  const pct = Math.max(0, Math.min(100, Math.round(Number(d.progress) || 0)));
                   return (
-                    <tr key={d.id} className="hover:bg-gray-50/60 transition">
-                      <td className="py-3 px-4 font-mono text-xs font-semibold text-[#0f2b4a]">
-                        <div className="flex items-center gap-1.5">
-                          {d.is_urgent && (
-                            <span title="Dossier urgent">
-                              <Flame size={14} className="text-rose-500 fill-rose-500" />
+                    <Fragment key={d.id}>
+                      {newStep && (
+                        <tr className="bg-gray-50">
+                          <td colSpan={8} className="py-1.5 px-4">
+                            <span className="inline-flex items-center gap-2 text-xs font-extrabold text-gray-700">
+                              <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+                              {si < STEPS.length ? `${si + 1}. ${badge.label}` : "Autres statuts"}
+                              <span className="font-semibold text-gray-400">
+                                · {filtered.filter((x) => stepIndex(x.statut) === si).length} dossier(s)
+                              </span>
+                            </span>
+                          </td>
+                        </tr>
+                      )}
+                      <tr className="hover:bg-gray-50/60 transition">
+                        <td className="py-3 px-4">
+                          <div className="font-medium text-gray-900 flex items-center gap-1.5">
+                            {d.is_urgent && (
+                              <span title="Dossier urgent">
+                                <Flame size={14} className="text-rose-500 fill-rose-500" />
+                              </span>
+                            )}
+                            <User size={14} className="text-gray-400" />
+                            {d.client_nom || "Client sans nom"}
+                          </div>
+                          {d.next_action_label && <p className="text-[11px] text-gray-500 mt-0.5">➡️ {d.next_action_label}</p>}
+                        </td>
+
+                        <td className="py-3 px-4">
+                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.bg} ${badge.text}`}>
+                            {badge.label}
+                          </span>
+                          {isBlocked && (
+                            <span className="ml-1.5 inline-flex items-center text-xs text-rose-600 font-semibold" title="Dossier bloqué">
+                              <ShieldAlert size={13} />
                             </span>
                           )}
-                          {d.reference || d.id.slice(0, 8)}
-                        </div>
-                      </td>
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <div className="font-medium text-gray-900 flex items-center gap-1.5">
-                          <User size={14} className="text-gray-400" />
-                          {d.client_nom || "Client sans nom"}
-                        </div>
-                      </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2 min-w-[110px]">
+                            <div className="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+                            </div>
+                            <span className="text-xs font-bold text-gray-700 w-9 text-right">{pct} %</span>
+                          </div>
+                        </td>
 
-                      <td className="py-3 px-4 text-gray-600">
-                        <div className="flex items-center gap-1.5 text-xs">
-                          <MapPin size={13} className="text-gray-400" />
-                          {d.client_ville || d.ville || "—"}
-                        </div>
-                      </td>
+                        <td className="py-3 px-4 font-medium text-gray-900 text-xs">
+                          {typeof d.reste_a_charge_ttc === "number" ? `${d.reste_a_charge_ttc.toLocaleString("fr-FR")} € TTC` : "—"}
+                        </td>
 
-                      <td className="py-3 px-4">
-                        <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.bg} ${badge.text}`}
-                        >
-                          {badge.label}
-                        </span>
-                        {isBlocked && (
-                          <span className="ml-1.5 inline-flex items-center text-xs text-rose-600 font-semibold" title="Dossier bloqué">
-                            <ShieldAlert size={13} />
-                          </span>
-                        )}
-                      </td>
+                        <td className="py-3 px-4 text-gray-600">
+                          <div className="flex items-center gap-1.5 text-xs">
+                            <MapPin size={13} className="text-gray-400" />
+                            {d.client_ville || d.ville || "—"}
+                          </div>
+                        </td>
 
-                      <td className="py-3 px-4 font-medium text-gray-900 text-xs">
-                        {typeof d.reste_a_charge_ttc === "number"
-                          ? `${d.reste_a_charge_ttc.toLocaleString("fr-FR")} € TTC`
-                          : "—"}
-                      </td>
+                        <td className="py-3 px-4 text-xs text-gray-500">{d.updated_at ? new Date(d.updated_at).toLocaleDateString("fr-FR") : "—"}</td>
 
-                      <td className="py-3 px-4 text-xs text-gray-500">
-                        {d.updated_at ? new Date(d.updated_at).toLocaleDateString("fr-FR") : "—"}
-                      </td>
+                        <td className="py-3 px-4 font-mono text-xs font-semibold text-[#0f2b4a]">{d.reference || d.id.slice(0, 8)}</td>
 
-                      <td className="py-3 px-4 text-right">
-                        <a
-                          href={`https://portail.praimy.fr/dossiers/${d.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-xs font-semibold text-[#0073ea] hover:text-[#005bb5] bg-blue-50/60 hover:bg-blue-100/60 px-2.5 py-1.5 rounded-md transition"
-                        >
-                          Ouvrir
-                          <ExternalLink size={12} />
-                        </a>
-                      </td>
-                    </tr>
+                        <td className="py-3 px-4 text-right">
+                          <a
+                            href={`https://portail.praimy.fr/dossiers/${d.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#0073ea] hover:text-[#005bb5] bg-blue-50/60 hover:bg-blue-100/60 px-2.5 py-1.5 rounded-md transition"
+                          >
+                            Ouvrir
+                            <ExternalLink size={12} />
+                          </a>
+                        </td>
+                      </tr>
+                    </Fragment>
                   );
                 })}
               </tbody>
