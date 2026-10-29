@@ -274,6 +274,9 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
           <div className={`rounded-2xl px-4 py-3 flex items-center gap-2 text-sm font-semibold ${late ? "bg-red-50 text-red-700" : "bg-orange-50 text-orange-800"}`}>
             <BellRing size={16} /> {late ? "Rappel en retard : " : "Rappel : "}
             {rappelShort(lead.rappelLe, time)}
+            <button onClick={() => onPatch(lead.id, { __rappelFait: true })} className="ml-auto shrink-0 rounded-full bg-green-600 text-white text-xs font-bold px-3 py-1.5 active:bg-green-700">
+              ✅ Fait
+            </button>
           </div>
         )}
 
@@ -436,7 +439,7 @@ const rappelEvent = (l: Lead): IcsEvent => ({
   description: [l.phone && `Tél : ${formatPhone(l.phone)}`, `Statut : ${statusInfo(l.status).label || "—"}`, l.postalCode && `CP : ${l.postalCode}`, "Ouvrir dans le CRM : https://ip5energie.fr/admin"].filter(Boolean).join("\n"),
 });
 
-const AgendaView = ({ all, email, onOpen }: { all: Lead[]; email: string; onOpen: (id: string) => void }) => {
+const AgendaView = ({ all, email, onOpen, onDone }: { all: Lead[]; email: string; onOpen: (id: string) => void; onDone: (id: string) => void }) => {
   // « Mes rappels » = les clients qui me sont attribués (le prénom de l'attribution se retrouve dans mon adresse).
   const mine = ATTRIBUE.find((o) => !o.off && email.toLowerCase().includes(o.label.toLowerCase().slice(0, 4)));
   const [scope, setScope] = useState<"mine" | "all">(mine ? "mine" : "all");
@@ -541,6 +544,9 @@ const AgendaView = ({ all, email, onOpen }: { all: Lead[]; email: string; onOpen
                     )}
                     <button onClick={() => addOne(l)} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-orange-600 border-l border-gray-100 active:bg-gray-50">
                       ⏰ {done === l.id ? "Ajouté" : "Alarme"}
+                    </button>
+                    <button onClick={() => onDone(l.id)} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-green-700 border-l border-gray-100 active:bg-gray-50">
+                      ✅ Fait
                     </button>
                   </div>
                 </div>
@@ -683,7 +689,7 @@ export default function MobileLeads(props: Props) {
         )}
       </div>
 
-      {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} />}
+      {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} onDone={(id) => props.onPatch(id, { __rappelFait: true })} />}
 
       {tab === "dossiers" && (
         <div className="mt-2">
@@ -742,6 +748,11 @@ export default function MobileLeads(props: Props) {
                   <a href={whatsappHref(l.phone)} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 py-3 text-sm font-bold text-green-600 border-l border-gray-100 active:bg-gray-50">
                     <MessageCircle size={16} /> WhatsApp
                   </a>
+                  {l.rappelLe && (
+                    <button onClick={() => props.onPatch(l.id, { __rappelFait: true })} className="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-bold text-green-700 border-l border-gray-100 active:bg-gray-50" title="Rappel fait : l'enlever des rappels">
+                      ✅ Rappel fait
+                    </button>
+                  )}
                 </div>
               )}
             </div>

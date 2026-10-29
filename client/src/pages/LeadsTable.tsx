@@ -1255,6 +1255,7 @@ function Cell({
           time={time}
           overdue={!!lead.rappelLe && rappelEnRetard(lead.rappelLe, time) && !isClosedStatus(lead.status)}
           onSave={(d, t) => onPatch(lead.id, { rappelLe: d, [`fields.${RAPPEL_HEURE_KEY}`]: d ? t : "" })}
+          onDone={() => onPatch(lead.id, { __rappelFait: true })}
         />
       );
     }

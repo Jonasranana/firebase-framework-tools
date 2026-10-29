@@ -1671,6 +1671,18 @@ export default function LeadsCRM({
     try {
       let full = patch;
       const lead = leads?.find((l) => l.id === id);
+      // « ✅ Fait » sur un rappel : on l'enlève et on laisse une trace « Rappel fait » dans la discussion.
+      if (lead && patch.__rappelFait) {
+        const { m } = await fs();
+        const prevu = lead.rappelLe ? ` (prévu ${rappelPhraseNote(lead.rappelLe, lead.fields[RAPPEL_HEURE_KEY] ?? "")})` : "";
+        full = {
+          rappelLe: "",
+          [`fields.${RAPPEL_HEURE_KEY}`]: "",
+          notes: m.arrayUnion({ id: newId(), text: `✅ Rappel fait${prevu}`, by: email, at: new Date().toISOString(), kind: "statut" } satisfies LeadNote),
+        };
+        await patchLead(id, email, full);
+        return;
+      }
       const keys = Object.keys(patch);
       // Rappel (jour + heure) : une ligne dans la discussion, ex. « Demande à être rappelé demain à 17h ».
       if (lead && "rappelLe" in patch && `fields.${RAPPEL_HEURE_KEY}` in patch) {
