@@ -67,7 +67,7 @@ const nationalPhone = (raw: string) => {
 
 const CallLabel = () => {
   const { app } = useContext(CallCtx);
-  return <>{app === "onoff" ? "Copier (OnOff)" : "Appeler"}</>;
+  return <>{app === "onoff" ? "Copier" : "Appeler"}</>;
 };
 
 // Bouton / lien d'appel : suit le choix « Téléphone » ou « OnOff ».
@@ -439,7 +439,17 @@ const rappelEvent = (l: Lead): IcsEvent => ({
   description: [l.phone && `Tél : ${formatPhone(l.phone)}`, `Statut : ${statusInfo(l.status).label || "—"}`, l.postalCode && `CP : ${l.postalCode}`, "Ouvrir dans le CRM : https://ip5energie.fr/admin"].filter(Boolean).join("\n"),
 });
 
-const AgendaView = ({ all, email, onOpen, onDone }: { all: Lead[]; email: string; onOpen: (id: string) => void; onDone: (id: string) => void }) => {
+const AgendaView = ({
+  all,
+  email,
+  onOpen,
+  onStatus,
+}: {
+  all: Lead[];
+  email: string;
+  onOpen: (id: string) => void;
+  onStatus: (id: string, status: LeadStatus) => void;
+}) => {
   // « Mes rappels » = les clients qui me sont attribués (le prénom de l'attribution se retrouve dans mon adresse).
   const mine = ATTRIBUE.find((o) => !o.off && email.toLowerCase().includes(o.label.toLowerCase().slice(0, 4)));
   const [scope, setScope] = useState<"mine" | "all">(mine ? "mine" : "all");
@@ -547,9 +557,22 @@ const AgendaView = ({ all, email, onOpen, onDone }: { all: Lead[]; email: string
                     <button onClick={() => addOne(l)} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-orange-600 border-l border-gray-100 active:bg-gray-50">
                       ⏰ {done === l.id ? "Ajouté" : "Alarme"}
                     </button>
-                    <button onClick={() => onDone(l.id)} className="flex-1 inline-flex items-center justify-center gap-1.5 py-2.5 text-green-700 border-l border-gray-100 active:bg-gray-50">
-                      ✅ Fait
-                    </button>
+                    {/* Changer l'étiquette « 📞 Statut appel » (la première colonne du tableau) directement depuis la carte. */}
+                    <label className="relative flex-1 inline-flex items-center justify-center gap-1 py-2.5 text-[#7c3aed] border-l border-gray-100 active:bg-gray-50">
+                      🏷️ Statut ▾
+                      <select
+                        value={l.status}
+                        onChange={(e) => onStatus(l.id, e.target.value as LeadStatus)}
+                        aria-label="Changer le statut d'appel"
+                        className="absolute inset-0 opacity-0 w-full h-full"
+                      >
+                        {LEAD_STATUSES.filter((st) => !(st as { off?: boolean }).off || st.key === l.status).map((st) => (
+                          <option key={st.key} value={st.key}>
+                            {st.label || "(vide)"}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
                   </div>
                 </div>
               );
@@ -707,7 +730,7 @@ export default function MobileLeads(props: Props) {
         )}
       </div>
 
-      {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} onDone={(id) => props.onPatch(id, { __rappelFait: true })} />}
+      {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} onStatus={props.onStatus} />}
 
       {tab === "liste" && (
       <div className="space-y-2.5 mt-1">
