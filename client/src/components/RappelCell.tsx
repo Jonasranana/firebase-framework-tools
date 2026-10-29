@@ -15,6 +15,7 @@ export function RappelPicker({
   overdue,
   disabled,
   onSave,
+  onDone,
   trigger,
 }: {
   date: string;
@@ -22,6 +23,8 @@ export function RappelPicker({
   overdue?: boolean;
   disabled?: boolean;
   onSave: (date: string, time: string) => void;
+  // « ✅ Fait » : le rappel a été fait, on l'enlève (avec une trace « Rappel fait » dans la discussion).
+  onDone?: () => void;
   trigger?: "cell" | "field";
 }) {
   const [open, setOpen] = useState(false);
@@ -146,6 +149,17 @@ export function RappelPicker({
             >
               Effacer
             </button>
+            {date && onDone && (
+              <button
+                onClick={() => {
+                  onDone();
+                  setOpen(false);
+                }}
+                className="text-xs font-bold text-white bg-green-600 hover:bg-green-700 rounded-full px-3 py-1.5"
+              >
+                ✅ Fait
+              </button>
+            )}
             <button
               onClick={validate}
               disabled={!d}
