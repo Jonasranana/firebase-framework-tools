@@ -35,7 +35,8 @@ const byPhone = new Map();
 for (const d of (await db.collection("crm_leads").get()).docs) {
   const x = d.data();
   const k = digits(x.phone);
-  if (k) byPhone.set(k, x);
+  // Si le même numéro existe plusieurs fois, on garde la fiche envoyée vers Drive (celle du Sheet).
+  if (k && (!byPhone.has(k) || (x.archivedToDrive && !byPhone.get(k).archivedToDrive))) byPhone.set(k, x);
 }
 
 // Lecture de l'onglet d'origine (jamais l'onglet « Lisible » lui-même).
