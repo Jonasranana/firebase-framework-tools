@@ -496,18 +496,20 @@ const AgendaView = ({ all, email, onOpen, onDone }: { all: Lead[]; email: string
         </div>
       )}
 
-      <button
-        onClick={addAll}
-        disabled={!upcoming.length}
-        className="w-full rounded-2xl py-3.5 text-white font-bold disabled:opacity-40 active:scale-[0.99] transition"
-        style={{ background: GRAD }}
-      >
-        ⏰ Ajouter mes {upcoming.length} rappel{upcoming.length > 1 ? "s" : ""} à mon téléphone
-      </button>
-      <p className="text-[11px] text-gray-400 mt-1.5 mb-3 px-1">
-        Ils s'ajoutent à l'agenda de l'iPhone ou d'Android, avec une alarme 10 minutes avant et à l'heure, et le nom du client à rappeler.
-        {done === "all" && <b className="text-green-600"> Envoyé à l'agenda.</b>}
-      </p>
+      <div className="grid grid-cols-3 gap-2 mb-3">
+        {(
+          [
+            ["En retard", sections.find((x) => x.key === "late")?.list.length ?? 0, "bg-red-50 text-red-700 border-red-100"],
+            ["Aujourd'hui", sections.find((x) => x.key === "today")?.list.length ?? 0, "bg-orange-50 text-orange-700 border-orange-100"],
+            ["À venir", items.length - (sections.find((x) => x.key === "late")?.list.length ?? 0) - (sections.find((x) => x.key === "today")?.list.length ?? 0), "bg-white text-gray-700 border-gray-200"],
+          ] as const
+        ).map(([label, n, cls]) => (
+          <div key={label} className={`rounded-2xl border px-2 py-2 text-center ${cls}`}>
+            <p className="text-xl font-black leading-none">{n}</p>
+            <p className="text-[11px] font-bold mt-1">{label}</p>
+          </div>
+        ))}
+      </div>
 
       {sections.length === 0 && <p className="text-center text-gray-400 text-sm py-10">Aucun rappel prévu.</p>}
       {sections.map((sec) => (
@@ -555,6 +557,17 @@ const AgendaView = ({ all, email, onOpen, onDone }: { all: Lead[]; email: string
           </div>
         </div>
       ))}
+      {upcoming.length > 0 && (
+        <div className="mt-2 mb-4">
+          <button onClick={addAll} className="w-full rounded-2xl py-3 font-bold text-orange-700 border-2 border-orange-200 bg-white active:bg-orange-50">
+            ⏰ Mettre mes {upcoming.length} rappel{upcoming.length > 1 ? "s" : ""} dans l'agenda du téléphone
+          </button>
+          <p className="text-[11px] text-gray-400 mt-1.5 px-1">
+            Avec une alarme 10 minutes avant et à l'heure, et le nom du client.
+            {done === "all" && <b className="text-green-600"> Envoyé à l'agenda.</b>}
+          </p>
+        </div>
+      )}
     </div>
   );
 };
@@ -602,6 +615,11 @@ export default function MobileLeads(props: Props) {
   const topRef = useRef<HTMLDivElement>(null);
   const openLead = useMemo(() => (openId ? all.find((l) => l.id === openId) ?? null : null), [all, openId]);
   useEffect(() => setLimit(30), [query, rappelsOnly, groupFilter]);
+  // Les rappels ont leur propre onglet « À rappeler » : la liste Clients n'est plus filtrée par rappel.
+  useEffect(() => {
+    if (rappelsOnly) onRappelsOnly(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const { groups, groupIdOf } = props;
   const groupCounts = useMemo(() => {
     const m = new Map<string, number>();
@@ -620,13 +638,16 @@ export default function MobileLeads(props: Props) {
     <div ref={topRef} style={{ touchAction: "pan-x pan-y" }}>
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
-          {([["liste", "📋 Clients"], ["agenda", "📅 Agenda"]] as const).map(([k, label]) => (
+          {([["liste", "📋 Clients"], ["agenda", "🔔 À rappeler"]] as const).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
-              className={`flex-1 text-[13px] font-bold py-2 rounded-xl ${tab === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}
+              className={`flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-bold py-2 rounded-xl ${tab === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}
             >
               {label}
+              {k === "agenda" && lateCount > 0 && (
+                <span className="min-w-[20px] rounded-full bg-red-500 text-white text-[11px] font-black px-1.5 leading-5">{lateCount}</span>
+              )}
             </button>
           ))}
         </div>
@@ -650,9 +671,6 @@ export default function MobileLeads(props: Props) {
               <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-4 px-4">
                 <button onClick={() => { onRappelsOnly(false); setGroupFilter(""); }} className={chip(noFilter)} style={noFilter ? { background: "#374151" } : undefined}>
                   Tous
-                </button>
-                <button onClick={() => onRappelsOnly(!rappelsOnly)} className={chip(rappelsOnly)} style={rappelsOnly ? { background: "#ef4444" } : undefined}>
-                  🔔 À rappeler{lateCount ? ` (${lateCount})` : ""}
                 </button>
                 {groups.map((g) => {
                   const n = groupCounts.get(g.id) ?? 0;
