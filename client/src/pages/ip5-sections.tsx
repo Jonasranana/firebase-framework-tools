@@ -239,7 +239,34 @@ export const REVIEWS = [
 // Les 6 modèles de pompes à chaleur air/eau installés par IP5 Énergie.
 // Caractéristiques reprises des fiches techniques constructeur ; le modèle
 // exact est choisi avec le client selon son logement et son projet.
-export const PAC_MODELS = [
+export const PAC_MODELS: {
+  brand: string;
+  logo: string;
+  photo: string;
+  model: string;
+  desc: string;
+  specs: string[];
+  featured?: boolean;
+}[] = [
+  // Marques mises en avant (partenaires principaux) : affichées en grand.
+  {
+    brand: "Chappée",
+    logo: "chappee.png",
+    photo: "chappee.jpg",
+    model: "Eria-N Duo",
+    desc: "Pompe à chaleur air/eau split réversible : chauffage l'hiver, rafraîchissement l'été. Une marque française historique du chauffage.",
+    specs: ["Air/eau réversible", "Split Inverter", "Marque française"],
+    featured: true,
+  },
+  {
+    brand: "Atlantic",
+    logo: "atlantic.png",
+    photo: "atlantic.jpg",
+    model: "Alféa Excellia S",
+    desc: "Pompe à chaleur air/eau idéale en rénovation, silencieuse et fiable, pilotable depuis votre téléphone.",
+    specs: ["Air/eau", "Fabrication française", "Connectée"],
+    featured: true,
+  },
   {
     brand: "Daikin",
     logo: "daikin.png",
@@ -247,14 +274,6 @@ export const PAC_MODELS = [
     model: "Altherma 3 R",
     desc: "Pompe à chaleur air/eau haute performance, eau chaude jusqu'à 60 °C.",
     specs: ["Air/eau", "11 · 14 · 16 kW", "Fluide R-32"],
-  },
-  {
-    brand: "Atlantic",
-    logo: "atlantic.png",
-    photo: "atlantic.jpg",
-    model: "Alféa Excellia S",
-    desc: "Split air/eau idéale en rénovation, silencieuse et fiable.",
-    specs: ["Air/eau", "Fabrication française", "Connectée"],
   },
   {
     brand: "De Dietrich",
@@ -1960,70 +1979,109 @@ export const VideoSection = () => (
 );
 
 // Section « nos pompes à chaleur » : les 6 modèles installés.
-export const MarquesSection = () => (
-  <section id="marques" className="py-14 md:py-24 bg-white dark:bg-slate-950">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <SectionHead
-        kicker="Nos pompes à chaleur"
-        title="Les 6 marques que nous installons"
-        subtitle="Les meilleures pompes à chaleur air/eau du marché. Le modèle est choisi avec vous, selon votre logement et votre budget."
-      />
+export const MarquesSection = () => {
+  const featured = PAC_MODELS.filter((m) => m.featured);
+  const others = PAC_MODELS.filter((m) => !m.featured);
+  return (
+    <section id="marques" className="py-14 md:py-24 bg-white dark:bg-slate-950">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <SectionHead
+          kicker="Nos pompes à chaleur"
+          title={`Les ${PAC_MODELS.length} marques que nous installons`}
+          subtitle="Les meilleures pompes à chaleur air/eau du marché. Le modèle est choisi avec vous, selon votre logement et votre budget."
+        />
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8">
-        {PAC_MODELS.map((m) => (
-          <div
-            key={m.brand}
-            className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:shadow-lg transition-shadow duration-300 flex flex-col overflow-hidden"
-          >
-            {/* Photo du produit (fiche constructeur) */}
-            <div className="h-48 bg-gradient-to-br from-gray-50 to-blue-50/40 dark:from-slate-800 dark:to-slate-800 overflow-hidden">
-              <img
-                src={`/images/marques/produits/${m.photo}`}
-                alt={`Pompe à chaleur ${m.brand} ${m.model}`}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                loading="lazy"
-              />
-            </div>
-            <div className="p-7 flex flex-col flex-1">
-              {/* Le logo reste sur une plaque blanche en mode sombre pour
-                  rester lisible (certains logos sont en noir). */}
-              <div className="inline-flex items-center self-start h-11 mb-4 dark:bg-white dark:rounded-lg dark:px-3">
+        {/* Marques partenaires : grandes cartes */}
+        <div className="grid md:grid-cols-2 gap-5 md:gap-8">
+          {featured.map((m) => (
+            <div
+              key={m.brand}
+              className="relative bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col"
+            >
+              <div className="relative h-56 md:h-64 bg-slate-50 dark:bg-slate-800 overflow-hidden">
                 <img
-                  src={`/images/marques/${m.logo}`}
-                  alt={`Logo ${m.brand}`}
-                  className="max-h-9 max-w-[150px] object-contain"
+                  src={`/images/marques/produits/${m.photo}`}
+                  alt={`Pompe à chaleur ${m.brand} ${m.model}`}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <span className="absolute top-4 left-4 inline-flex items-center gap-1.5 bg-amber-200 text-[#0b1a2c] text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full shadow">
+                  <Star size={12} className="fill-current" /> Marque partenaire
+                </span>
+              </div>
+              <div className="p-6 md:p-8 flex flex-col flex-1">
+                <div className="inline-flex items-center self-start h-12 mb-4 dark:bg-white dark:rounded-lg dark:px-3">
+                  <img
+                    src={`/images/marques/${m.logo}`}
+                    alt={`Logo ${m.brand}`}
+                    className="max-h-10 max-w-[180px] object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-xl font-bold text-[#0f2a47] dark:text-white">
+                  {m.brand} <span className="text-[#2b5a8f] dark:text-blue-400">{m.model}</span>
+                </h3>
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed mt-2 mb-5 flex-1">{m.desc}</p>
+                <div className="flex flex-wrap gap-2">
+                  {m.specs.map((s) => (
+                    <span
+                      key={s}
+                      className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold px-2.5 py-1 rounded-full"
+                    >
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Autres marques : cartes compactes */}
+        <p className="mt-12 mb-5 text-center text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
+          Et aussi
+        </p>
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-5">
+          {others.map((m) => (
+            <div
+              key={m.brand}
+              className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 overflow-hidden flex flex-col"
+            >
+              <div className="h-28 md:h-32 bg-slate-50 dark:bg-slate-800 overflow-hidden">
+                <img
+                  src={`/images/marques/produits/${m.photo}`}
+                  alt={`Pompe à chaleur ${m.brand} ${m.model}`}
+                  className="w-full h-full object-cover"
                   loading="lazy"
                 />
               </div>
-              <h3 className="text-lg font-bold text-gray-900 dark:text-white">
-                {m.brand} <span className="text-[#2b5a8f] dark:text-blue-400">{m.model}</span>
-              </h3>
-              <p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed mt-2 mb-5 flex-1">
-                {m.desc}
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {m.specs.map((s) => (
-                  <span
-                    key={s}
-                    className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold px-2.5 py-1 rounded-full"
-                  >
-                    {s}
-                  </span>
-                ))}
+              <div className="p-4 flex flex-col flex-1">
+                <div className="inline-flex items-center self-start h-8 mb-2 dark:bg-white dark:rounded-md dark:px-2">
+                  <img
+                    src={`/images/marques/${m.logo}`}
+                    alt={`Logo ${m.brand}`}
+                    className="max-h-6 max-w-[110px] object-contain"
+                    loading="lazy"
+                  />
+                </div>
+                <h3 className="text-sm font-bold text-[#0f2a47] dark:text-white">
+                  {m.brand} <span className="text-[#2b5a8f] dark:text-blue-400 font-semibold">{m.model}</span>
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed mt-1">{m.desc}</p>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <p className="text-center text-sm text-gray-400 dark:text-slate-500 mt-10 max-w-2xl mx-auto">
-        Toutes nos pompes à chaleur sont installées par des techniciens
-        certifiés RGE QualiPAC et éligibles aux aides MaPrimeRénov' et CEE,
-        selon votre situation.
-      </p>
-    </div>
-  </section>
-);
+        <p className="text-center text-sm text-gray-400 dark:text-slate-500 mt-10 max-w-2xl mx-auto">
+          Toutes nos pompes à chaleur sont installées par des techniciens
+          certifiés RGE QualiPAC et éligibles aux aides MaPrimeRénov' et CEE,
+          selon votre situation.
+        </p>
+      </div>
+    </section>
+  );
+};
 
 // Section « aides de l'État » : MaPrimeRénov', CEE, projet clé en main.
 // `asHero` : quand la section est en tête de la page /aides, on ajoute
