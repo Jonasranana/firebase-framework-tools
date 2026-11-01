@@ -146,7 +146,7 @@ export const SiteHeader = () => {
               {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
             <a href="/" aria-label="IP5 Énergie, accueil">
-              <LogoIP5 className="!h-8 md:!h-14 !text-[#173a5e] dark:!text-blue-200" />
+              <LogoIP5 className="!h-10 md:!h-14 !text-[#173a5e] dark:!text-blue-200" />
             </a>
           </div>
           <div className="hidden lg:flex space-x-5 xl:space-x-8 items-center lg:ml-8 xl:ml-12">
