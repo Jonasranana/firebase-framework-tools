@@ -556,7 +556,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       <AvisSection />
 
       {/* ── FAQ : lève les objections avant l'appel ── */}
-      <section className="py-20 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
+      <section className="py-14 md:py-20 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <p className="text-sm font-semibold uppercase tracking-wider text-[#2b5a8f] dark:text-blue-300 mb-2">Vos questions</p>
@@ -576,7 +576,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       </section>
 
       {/* ── CTA final : reste sur la page, renvoie au simulateur ── */}
-      <section className="py-20 bg-white dark:bg-slate-950">
+      <section className="py-14 md:py-20 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative bg-[#173a5e] rounded-2xl px-8 py-14 md:p-16 text-center text-white overflow-hidden shadow-xl">
             <div className="relative">

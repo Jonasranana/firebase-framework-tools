@@ -1613,7 +1613,7 @@ export const PageHero = ({
   highlight?: string;
   subtitle: string;
 }) => (
-  <section className="relative pt-36 pb-16 lg:pt-44 lg:pb-20 bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] text-white overflow-hidden">
+  <section className="relative pt-28 pb-12 lg:pt-44 lg:pb-20 bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] text-white overflow-hidden">
     <div
       className="absolute inset-0 opacity-10"
       style={{
@@ -1649,14 +1649,14 @@ export const PageHero = ({
 // Bande de confiance (4 gages), utilisée sur l'accueil.
 export const TrustBar = () => (
   <div className="bg-white dark:bg-slate-900 border-y border-gray-100 dark:border-slate-800">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 py-6 md:py-8 grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-5 md:gap-6">
       {[
         { icon: BadgeCheck, title: "Certifié RGE", sub: "QualiPAC" },
         { icon: FileCheck2, title: "Démarches gérées", sub: "de A à Z" },
         { icon: HandCoins, title: "Aides déduites", sub: "du devis final" },
         { icon: Users, title: "Entreprise familiale", sub: "un seul interlocuteur" },
       ].map((item) => (
-        <div key={item.title} className="flex items-center gap-3 justify-center lg:justify-start">
+        <div key={item.title} className="flex items-center gap-3 justify-start sm:justify-center lg:justify-start">
           <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border border-blue-100 dark:border-blue-900 text-[#2b5a8f] dark:text-blue-300 flex items-center justify-center flex-shrink-0">
             <item.icon size={22} />
           </div>
@@ -1672,11 +1672,11 @@ export const TrustBar = () => (
 
 // Section « avantages » : pourquoi choisir la pompe à chaleur (3 cartes).
 export const AvantagesSection = () => (
-  <section id="avantages" className="py-24 bg-gray-50 dark:bg-slate-950 relative overflow-hidden">
+  <section id="avantages" className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950 relative overflow-hidden">
     <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100/40 dark:bg-blue-900/20 blur-3xl"></div>
     <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-green-100/40 dark:bg-green-900/20 blur-3xl"></div>
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-      <div className="text-center max-w-3xl mx-auto mb-16">
+      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
         <Kicker icon={Sparkles}>Les avantages</Kicker>
         <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Pourquoi choisir la{" "}
@@ -1685,7 +1685,7 @@ export const AvantagesSection = () => (
           </span>{" "}
           ?
         </h2>
-        <p className="text-xl text-gray-600 dark:text-slate-300">
+        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
           Le système de chauffage le plus performant et économique en France.
         </p>
       </div>
@@ -1813,14 +1813,14 @@ const VideoCard = ({
 // Section « Comprendre en vidéo » : explique la pompe à chaleur et les aides
 // aux visiteurs qui découvrent le sujet.
 export const VideoSection = () => (
-  <section id="videos" className="py-24 bg-gray-50 dark:bg-slate-950">
+  <section id="videos" className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950">
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="text-center max-w-3xl mx-auto mb-14">
         <Kicker icon={Film}>Comprendre en vidéo</Kicker>
         <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Tout devient clair en 2 vidéos
         </h2>
-        <p className="text-xl text-gray-600 dark:text-slate-300">
+        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
           La pompe à chaleur et les aides de l'État, expliquées simplement. De
           quoi y voir clair avant de vous lancer.
         </p>
@@ -1837,14 +1837,14 @@ export const VideoSection = () => (
 
 // Section « nos pompes à chaleur » : les 6 modèles installés.
 export const MarquesSection = () => (
-  <section id="marques" className="py-24 bg-white dark:bg-slate-950">
+  <section id="marques" className="py-14 md:py-24 bg-white dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-16">
+      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
         <Kicker icon={BadgeCheck}>Nos pompes à chaleur</Kicker>
         <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Les 6 marques que nous installons
         </h2>
-        <p className="text-xl text-gray-600 dark:text-slate-300">
+        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
           Nous sélectionnons les meilleures pompes à chaleur air/eau du marché.
           Le modèle est choisi avec vous, selon votre logement et votre budget.
         </p>
@@ -1914,7 +1914,7 @@ export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => (
   <section
     id="subventions"
     className={`${
-      asHero ? "pt-36 pb-24 lg:pt-44" : "py-24"
+      asHero ? "pt-28 pb-16 lg:pt-44 lg:pb-24" : "py-14 md:py-24"
     } bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] text-white relative overflow-hidden`}
   >
     <div
@@ -2058,14 +2058,14 @@ export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => (
 
 // Section « réalisations » : avant/après et détails de chantier.
 export const RealisationsSection = () => (
-  <section id="realisations" className="py-24 bg-gray-50 dark:bg-slate-950">
+  <section id="realisations" className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-16">
+      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
         <Kicker icon={Award}>Notre savoir-faire</Kicker>
         <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Nos réalisations
         </h2>
-        <p className="text-xl text-gray-600 dark:text-slate-300">
+        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
           Un chantier récent réalisé par notre équipe : remplacement d'une
           ancienne chaudière par une pompe à chaleur air/eau.
         </p>
@@ -2151,14 +2151,14 @@ export const RealisationsSection = () => (
 
 // Section « avis clients ».
 export const AvisSection = () => (
-  <section id="avis" className="py-24 bg-white dark:bg-slate-950">
+  <section id="avis" className="py-14 md:py-24 bg-white dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-16">
+      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
         <Kicker icon={Star}>Avis clients</Kicker>
         <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
           Ils ont sauté le pas
         </h2>
-        <p className="text-xl text-gray-600 dark:text-slate-300">
+        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
           Des propriétaires partout en France nous font confiance pour leur
           transition énergétique.
         </p>
@@ -2217,9 +2217,9 @@ export const AvisSection = () => (
 // « Simuler » renvoie vers le simulateur de la page d'accueil (/#simulateur),
 // il fonctionne donc depuis n'importe quelle page.
 export const FinalCTA = () => (
-  <section className="py-20 bg-gray-50 dark:bg-slate-950">
+  <section className="py-12 md:py-20 bg-gray-50 dark:bg-slate-950">
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="relative bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] rounded-[2.5rem] px-8 py-14 md:p-16 text-center text-white overflow-hidden shadow-2xl">
+      <div className="relative bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] rounded-3xl md:rounded-[2.5rem] px-6 py-10 md:p-16 text-center text-white overflow-hidden shadow-2xl">
         <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-cyan-400/20 blur-3xl"></div>
         <div className="absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-green-400/15 blur-3xl"></div>
         <div className="relative">
@@ -2233,13 +2233,13 @@ export const FinalCTA = () => (
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
               href="/#simulateur"
-              className="inline-flex items-center justify-center gap-2 bg-white text-[#2b5a8f] px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
+              className="inline-flex items-center justify-center gap-2 bg-white text-[#2b5a8f] px-6 md:px-8 py-3.5 md:py-4 rounded-full font-bold text-base md:text-lg whitespace-nowrap hover:bg-blue-50 transition-colors shadow-lg"
             >
               <Sparkles size={20} /> Simuler mes économies
             </a>
             <a
               href="tel:+33749525267"
-              className="inline-flex items-center justify-center gap-2 bg-white/10 border-2 border-white/40 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition-colors"
+              className="inline-flex items-center justify-center gap-2 bg-white/10 border-2 border-white/40 text-white px-6 md:px-8 py-3.5 md:py-4 rounded-full font-bold text-base md:text-lg whitespace-nowrap hover:bg-white/20 transition-colors"
             >
               07 49 52 52 67
             </a>

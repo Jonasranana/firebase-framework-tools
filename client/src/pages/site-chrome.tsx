@@ -12,6 +12,9 @@ import {
   Moon,
   Sun,
   Briefcase,
+  Clock,
+  Mail,
+  ArrowRight,
 } from "lucide-react";
 import { useLocation } from "wouter";
 import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "./ip5-logo";
@@ -59,7 +62,7 @@ export function useFrenchPageMeta(title: string) {
 export const LogoIP5 = ({ className = "" }: { className?: string }) => (
   <svg
     viewBox={LOGO_FULL_VIEWBOX}
-    className={`h-12 md:h-14 w-auto text-[#2b5a8f] ${className}`}
+    className={`h-10 md:h-14 w-auto text-[#2b5a8f] ${className}`}
     xmlns="http://www.w3.org/2000/svg"
     role="img"
     aria-label="IP5 Énergie"
@@ -132,7 +135,7 @@ export const SiteHeader = () => {
   return (
     <nav className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md fixed w-full z-50 top-0 border-b border-slate-200 dark:border-slate-800">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex justify-between items-center h-16 lg:h-20">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileMenuOpen((v) => !v)}
@@ -166,7 +169,7 @@ export const SiteHeader = () => {
             {/* Accès des artisans partenaires (création de compte + grille de pose) */}
             <a
               href="/espace-pro"
-              className="flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-[#173a5e] hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 transition-colors whitespace-nowrap"
+              className="hidden lg:flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-[#173a5e] hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 transition-colors whitespace-nowrap"
               aria-label="Accès artisan : espace des artisans partenaires"
             >
               <Briefcase size={16} />
@@ -186,10 +189,11 @@ export const SiteHeader = () => {
             </a>
             <a
               href="tel:+33749525267"
-              className="flex items-center gap-2 text-[#173a5e] dark:text-blue-300 font-semibold hover:text-[#2b5a8f] dark:hover:text-blue-200 transition-colors whitespace-nowrap"
+              className="flex items-center gap-2 text-[#173a5e] dark:text-blue-300 font-semibold hover:text-[#2b5a8f] dark:hover:text-blue-200 transition-colors whitespace-nowrap max-md:bg-[#173a5e] max-md:text-white max-md:rounded-full max-md:px-3.5 max-md:py-2 max-md:text-sm max-md:shadow-sm"
               aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
             >
-              <Phone size={18} />
+              <Phone size={16} />
+              <span className="md:hidden">Appeler</span>
               <span className="hidden md:inline lg:hidden xl:inline">07 49 52 52 67</span>
             </a>
             <a
@@ -252,86 +256,65 @@ export const SiteHeader = () => {
 };
 
 export const SiteFooter = () => (
-  <footer className="bg-gray-900 text-gray-400 py-16">
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="grid md:grid-cols-4 gap-8">
-        <div className="md:col-span-2">
-          <div className="mb-6 opacity-80 filter grayscale brightness-200">
-            {/* Le Logo Vectoriel en mode Footer */}
-            <LogoIP5 />
-          </div>
-          <p className="text-sm leading-relaxed max-w-sm mb-6">
-            Votre partenaire de confiance pour la transition énergétique en
-            France. Spécialiste de l'installation de pompes à chaleur
-            certifié RGE.
+  // pb-28 sur mobile : laisse la place à la barre d'actions fixée en bas d'écran.
+  <footer className="bg-[#0b1a2c] text-slate-400 pt-14 pb-24 lg:py-16">
+    <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-10">
+        <div className="col-span-2">
+          <a href="/" className="inline-block mb-5" aria-label="IP5 Énergie, accueil">
+            <LogoIP5 className="!text-white !h-11 md:!h-12" />
+          </a>
+          <p className="text-sm leading-relaxed max-w-sm mb-5">
+            Entreprise familiale spécialisée dans la pompe à chaleur et le
+            solaire. Nous étudions votre projet, gérons vos aides et faisons
+            installer votre équipement par des artisans certifiés RGE.
           </p>
-          <div className="flex items-center gap-2 text-sm text-gray-500">
-            <ShieldCheck size={18} className="text-green-500" /> Certifié
-            RGE QualiPAC
+          <div className="flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200">
+              <ShieldCheck size={14} className="text-emerald-400" /> Certifié RGE QualiPAC
+            </span>
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200">
+              <Clock size={14} className="text-sky-300" /> Lun – sam, 8h – 19h
+            </span>
           </div>
         </div>
 
-        <div>
-          <h4 className="text-white font-bold mb-6 text-lg">Contact</h4>
-          <ul className="space-y-4">
+        <div className="col-span-2 sm:col-span-1">
+          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Contact</h4>
+          <ul className="space-y-3.5 text-sm">
             <li>
-              <a
-                href="tel:+33749525267"
-                className="flex items-center gap-3 hover:text-blue-400 transition-colors"
-              >
-                <Phone size={18} />{" "}
-                <span className="font-medium">07 49 52 52 67</span>
+              <a href="tel:+33749525267" className="flex items-center gap-2.5 text-slate-200 hover:text-white transition-colors">
+                <Phone size={16} className="text-sky-300" /> <span className="font-semibold">07 49 52 52 67</span>
               </a>
             </li>
             <li>
-              <a
-                href="mailto:contact@ip5energie.com"
-                className="flex items-center gap-3 hover:text-blue-400 transition-colors"
-              >
-                <MessageCircle size={18} />{" "}
-                <span>contact@ip5energie.com</span>
+              <a href="https://wa.me/33749525267" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-white transition-colors">
+                <MessageCircle size={16} className="text-emerald-400" /> <span>WhatsApp</span>
               </a>
             </li>
             <li>
-              <a
-                href={FACEBOOK_URL}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 hover:text-blue-400 transition-colors"
-              >
-                <Facebook size={18} /> <span>Facebook</span>
+              <a href="mailto:contact@ip5energie.com" className="flex items-center gap-2.5 hover:text-white transition-colors">
+                <Mail size={16} className="text-sky-300 shrink-0" /> <span>contact@ip5energie.com</span>
+              </a>
+            </li>
+            <li>
+              <a href={FACEBOOK_URL} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-white transition-colors">
+                <Facebook size={16} className="text-sky-300" /> <span>Facebook</span>
               </a>
             </li>
           </ul>
         </div>
 
-        <div>
-          <h4 className="text-white font-bold mb-6 text-lg">Légal</h4>
-          <ul className="space-y-3 text-sm">
-            <li>
-              <a
-                href="/mentions-legales"
-                className="hover:text-blue-400 transition-colors"
-              >
-                Mentions légales
-              </a>
-            </li>
-            <li>
-              <a
-                href="/confidentialite"
-                className="hover:text-blue-400 transition-colors"
-              >
-                Politique de confidentialité
-              </a>
-            </li>
-            <li>
-              <a
-                href="/admin"
-                className="hover:text-blue-400 transition-colors"
-              >
-                Accès admin
-              </a>
-            </li>
+        <div className="col-span-2 sm:col-span-1">
+          <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Le site</h4>
+          <ul className="grid grid-cols-2 sm:grid-cols-1 gap-x-6 gap-y-3 text-sm">
+            {NAV_LINKS.filter((l) => l.href !== "/").map((l) => (
+              <li key={l.href}>
+                <a href={l.href} className="hover:text-white transition-colors">
+                  {l.label}
+                </a>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
@@ -340,45 +323,101 @@ export const SiteFooter = () => (
           1er octobre 2026) : toute communication commerciale sur la
           rénovation énergétique doit renvoyer au service public France Rénov'.
           Phrase imposée mot pour mot. */}
-      <div className="mt-14 rounded-xl border border-gray-800 bg-gray-800/40 px-5 py-4 text-sm leading-relaxed text-gray-400">
+      <div className="mt-12 rounded-xl border border-white/10 bg-white/[0.04] px-5 py-4 text-sm leading-relaxed text-slate-400">
         Avant de vous engager, le service public vous informe gratuitement pour
         préparer et sécuriser votre projet :{" "}
         <a
           href="https://www.france-renov.gouv.fr"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-semibold text-blue-400 hover:text-blue-300 underline"
+          className="font-semibold text-sky-300 hover:text-sky-200 underline whitespace-nowrap"
         >
           www.france-renov.gouv.fr
         </a>
       </div>
 
-      <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center text-sm">
+      <div className="border-t border-white/10 mt-8 pt-6 flex flex-col md:flex-row md:justify-between md:items-center gap-3 text-xs text-slate-500">
         <p>
-          &copy; {new Date().getFullYear()} IP5 Énergie. Tous droits
-          réservés.
+          &copy; {new Date().getFullYear()} IP5 Énergie · IP5 CONSEILS — SIREN 890 293 277
         </p>
-        <p className="mt-4 md:mt-0 text-gray-500">
-          IP5 CONSEILS — SIREN 890 293 277
+        <p className="flex flex-wrap gap-x-4 gap-y-2">
+          <a href="/mentions-legales" className="hover:text-slate-300 transition-colors">Mentions légales</a>
+          <a href="/confidentialite" className="hover:text-slate-300 transition-colors">Confidentialité</a>
+          <a href="/espace-pro" className="hover:text-slate-300 transition-colors">Espace artisans</a>
+          <a href="/admin" className="hover:text-slate-300 transition-colors">Accès admin</a>
         </p>
       </div>
     </div>
   </footer>
 );
 
+// Ouvre l'assistant IA depuis n'importe quel bouton (barre mobile, etc.).
+export const OPEN_ASSISTANT_EVENT = "ip5:open-assistant";
+
+// Bouton « Mes aides » : descend jusqu'au simulateur s'il est sur la page,
+// sinon ouvre la page du simulateur.
+const goToSimulator = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const el = document.getElementById("simulateur");
+  if (!el) return;
+  e.preventDefault();
+  el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+
+// Sur ordinateur : bulle WhatsApp flottante. Sur téléphone : une barre
+// d'actions fixée en bas (Appeler, WhatsApp, Assistant, Mes aides), plus
+// propre que des bulles qui cachent le texte.
 export const WhatsAppButton = () => (
-  <a
-    href="https://wa.me/33749525267"
-    target="_blank"
-    rel="noopener noreferrer"
-    className="fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center group"
-    aria-label="Contactez-nous sur WhatsApp"
-  >
-    <MessageCircle size={32} />
-    <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
-      Une question ? Écrivez-nous !
-    </span>
-  </a>
+  <>
+    <a
+      href="https://wa.me/33749525267"
+      target="_blank"
+      rel="noopener noreferrer"
+      className="hidden lg:flex fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
+      aria-label="Contactez-nous sur WhatsApp"
+    >
+      <MessageCircle size={32} />
+      <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+        Une question ? Écrivez-nous !
+      </span>
+    </a>
+
+    <nav
+      aria-label="Actions rapides"
+      className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-6px_20px_rgba(15,42,71,0.08)]"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      <div className="grid grid-cols-[1fr_1fr_1fr_1.45fr] items-center gap-1 px-2 py-2">
+        <a
+          href="tel:+33749525267"
+          className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold text-[#173a5e] dark:text-slate-200"
+        >
+          <Phone size={20} /> Appeler
+        </a>
+        <a
+          href="https://wa.me/33749525267"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold text-[#173a5e] dark:text-slate-200"
+        >
+          <MessageCircle size={20} className="text-green-600" /> WhatsApp
+        </a>
+        <button
+          type="button"
+          onClick={() => window.dispatchEvent(new Event(OPEN_ASSISTANT_EVENT))}
+          className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold text-[#173a5e] dark:text-slate-200"
+        >
+          <Sparkles size={20} className="text-violet-600" /> Question ?
+        </button>
+        <a
+          href="/pac#simulateur"
+          onClick={goToSimulator}
+          className="flex items-center justify-center gap-1.5 h-11 rounded-xl bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] text-white text-sm font-bold shadow-md"
+        >
+          Mes aides <ArrowRight size={16} />
+        </a>
+      </div>
+    </nav>
+  </>
 );
 
 // Consignes données à Gemini : cadrent les réponses sur le métier d'IP5
@@ -442,6 +481,12 @@ export const AIChatWidget = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const open = () => setIsOpen(true);
+    window.addEventListener(OPEN_ASSISTANT_EVENT, open);
+    return () => window.removeEventListener(OPEN_ASSISTANT_EVENT, open);
+  }, []);
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages, isOpen]);
 
@@ -484,7 +529,7 @@ export const AIChatWidget = () => {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-x-4 bottom-40 sm:inset-x-auto sm:right-6 sm:bottom-40 sm:w-96 h-[28rem] max-h-[70vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-x-3 bottom-20 lg:inset-x-auto lg:right-6 lg:bottom-40 lg:w-96 h-[28rem] max-h-[70vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-gradient-to-r from-[#2b5a8f] via-[#41519e] to-[#6b4a9e] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
             <div>
               <div className="flex items-center gap-2 font-bold">
@@ -566,7 +611,7 @@ export const AIChatWidget = () => {
       <button
         onClick={() => setIsOpen((v) => !v)}
         aria-label={isOpen ? "Fermer l'assistant Gemini" : "Ouvrir l'assistant Gemini"}
-        className="fixed bottom-24 right-6 bg-gradient-to-br from-[#4285f4] via-[#8b5cf6] to-[#ec4899] text-white p-4 rounded-full shadow-2xl shadow-purple-500/40 hover:scale-110 transition-all duration-300 z-50 flex items-center justify-center group"
+        className="hidden lg:flex fixed bottom-24 right-6 bg-gradient-to-br from-[#4285f4] via-[#8b5cf6] to-[#ec4899] text-white p-4 rounded-full shadow-2xl shadow-purple-500/40 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
       >
         {!isOpen && (
           <span
