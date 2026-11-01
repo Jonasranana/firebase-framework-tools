@@ -663,17 +663,19 @@ export function trackStep(source: string, step: number, answers: Record<string, 
 // Chaque réponse a sa couleur : le parcours est plus vivant et plus lisible,
 // comme un vrai tunnel de vente d'agence.
 type Tint = "gold" | "blue" | "violet" | "amber" | "orange" | "yellow" | "slate" | "emerald" | "sky" | "pink";
+// Palette du site : bleu nuit et doré seulement (pas d'arc-en-ciel).
+// Les anciens noms de teinte restent pour ne pas toucher aux questions.
 const TINTS: Record<Tint, { icon: string; ring: string; soft: string; dot: string }> = {
   gold: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
-  blue: { icon: "from-blue-500 to-indigo-600", ring: "ring-blue-500 border-blue-500", soft: "bg-blue-50", dot: "bg-blue-600" },
-  violet: { icon: "from-violet-500 to-fuchsia-500", ring: "ring-violet-500 border-violet-500", soft: "bg-violet-50", dot: "bg-violet-500" },
-  amber: { icon: "from-amber-400 to-orange-500", ring: "ring-amber-500 border-amber-500", soft: "bg-amber-50", dot: "bg-amber-500" },
-  orange: { icon: "from-orange-500 to-rose-500", ring: "ring-orange-500 border-orange-500", soft: "bg-orange-50", dot: "bg-orange-500" },
-  yellow: { icon: "from-yellow-400 to-amber-500", ring: "ring-yellow-500 border-yellow-500", soft: "bg-yellow-50", dot: "bg-yellow-400" },
-  slate: { icon: "from-slate-500 to-slate-700", ring: "ring-slate-500 border-slate-500", soft: "bg-slate-50", dot: "bg-slate-500" },
-  emerald: { icon: "from-emerald-500 to-teal-500", ring: "ring-emerald-500 border-emerald-500", soft: "bg-emerald-50", dot: "bg-emerald-500" },
-  sky: { icon: "from-sky-400 to-cyan-500", ring: "ring-sky-500 border-sky-500", soft: "bg-sky-50", dot: "bg-sky-500" },
-  pink: { icon: "from-pink-500 to-rose-500", ring: "ring-pink-500 border-pink-500", soft: "bg-pink-50", dot: "bg-pink-500" },
+  amber: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
+  yellow: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
+  orange: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
+  pink: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
+  blue: { icon: "from-[#2b5a8f] to-[#0f2b4a]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
+  violet: { icon: "from-[#2b5a8f] to-[#0f2b4a]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
+  sky: { icon: "from-[#2b5a8f] to-[#0f2b4a]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
+  emerald: { icon: "from-[#2b5a8f] to-[#0f2b4a]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
+  slate: { icon: "from-slate-400 to-slate-600", ring: "ring-slate-500 border-slate-500", soft: "bg-slate-50", dot: "bg-slate-500" },
 };
 
 // Bouton de réponse : grande tuile (2 par ligne) ou ligne (liste). Quand on
@@ -719,7 +721,7 @@ const Choice = ({
   const style = { animationDelay: `${Math.round(delay / 3)}ms`, animationDuration: "220ms" };
   if (layout === "number")
     return (
-      <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl py-4 flex flex-col items-center justify-center`}>
+      <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl py-5 flex flex-col items-center justify-center`}>
         <span className={`text-2xl font-extrabold ${picked ? "text-gray-900" : "text-gray-700"}`}>{title}</span>
         {hint && <span className="text-[10px] font-semibold text-gray-400 mt-0.5">{hint}</span>}
         {picked && <span className={`absolute inset-x-3 bottom-1.5 h-1 rounded-full bg-gradient-to-r ${t.icon}`}></span>}
@@ -727,23 +729,23 @@ const Choice = ({
     );
   if (layout === "tile")
     return (
-      <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl p-4 pt-5 flex flex-col items-center text-center`}>
+      <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl p-5 pt-6 flex flex-col items-center text-center`}>
         {check}
         {Icon && (
-          <span className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${t.icon} text-white flex items-center justify-center shadow-md mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3`}>
-            <Icon size={28} strokeWidth={1.9} />
+          <span className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${t.icon} text-white flex items-center justify-center shadow-md mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3`}>
+            <Icon size={30} strokeWidth={1.9} />
           </span>
         )}
         {children}
-        <span className="font-bold text-gray-800">{title}</span>
+        <span className="font-bold text-[17px] text-gray-800">{title}</span>
         {hint && <span className="text-xs text-gray-500 mt-0.5">{hint}</span>}
       </button>
     );
   return (
-    <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl p-3.5 flex items-center gap-3.5 text-left`}>
+    <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl p-4 flex items-center gap-3.5 text-left`}>
       {check}
       {Icon ? (
-        <span className={`w-11 h-11 rounded-xl bg-gradient-to-br ${t.icon} text-white flex items-center justify-center shadow-sm flex-shrink-0 transition-transform duration-300 group-hover:scale-110`}>
+        <span className={`w-12 h-12 rounded-xl bg-gradient-to-br ${t.icon} text-white flex items-center justify-center shadow-sm flex-shrink-0 transition-transform duration-300 group-hover:scale-110`}>
           <Icon size={22} strokeWidth={1.9} />
         </span>
       ) : (
@@ -767,7 +769,7 @@ const Confetti = () => (
         className="ip5-anim absolute top-0 w-2 h-3 rounded-[2px]"
         style={{
           left: `${(i * 37) % 100}%`,
-          background: ["#f59e0b", "#10b981", "#3b82f6", "#ec4899", "#8b5cf6", "#06b6d4"][i % 6],
+          background: ["#fcd34d", "#f59e0b", "#173a5e", "#2b5a8f", "#fde68a", "#93c5fd"][i % 6],
           ["--x" as any]: `${((i * 53) % 80) - 40}px`,
           animation: `ip5-confetti ${1.6 + (i % 5) * 0.25}s ease-out ${(i % 7) * 0.08}s both`,
         }}
@@ -1112,13 +1114,13 @@ export const Simulator = ({
   // Styles communs des questions.
   const Q = "text-[22px] leading-tight font-extrabold text-gray-900 mb-1.5 text-center tracking-tight";
   const SUB = "text-slate-500 text-sm mb-5 text-center";
-  const CTA = "!rounded-2xl py-3.5 bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-[#0e7490] shadow-lg shadow-blue-900/20 hover:brightness-110";
+  const CTA = "!rounded-2xl py-3.5 bg-gradient-to-r from-[#0f2b4a] via-[#173a5e] to-[#2b5a8f] shadow-lg shadow-blue-900/20 hover:brightness-110";
 
   const renderStep = () => {
     if (earlyContact) {
       return (
         <div>
-          <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-md" style={{ animation: "ip5-pop .5s ease-out both" }}>
+          <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-300 to-amber-500 text-white flex items-center justify-center shadow-md" style={{ animation: "ip5-pop .5s ease-out both" }}>
             <Gift size={24} />
           </div>
           <h3 className={Q}>Où vous envoyer votre estimation&nbsp;?</h3>
@@ -1170,7 +1172,7 @@ export const Simulator = ({
             <h3 className={Q}>Quelle est la surface à chauffer&nbsp;?</h3>
             <p className={SUB}>Une estimation suffit.</p>
             <div className="mb-6">
-              <span key={formData.surface} className="inline-block text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-cyan-500 animate-in zoom-in-95 duration-150">
+              <span key={formData.surface} className="inline-block text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#0f2b4a] to-[#2b5a8f] animate-in zoom-in-95 duration-150">
                 {formData.surface}
               </span>
               <span className="text-2xl font-bold text-slate-400 ml-1">m²</span>
@@ -1226,7 +1228,7 @@ export const Simulator = ({
             <p className={SUB}>Les aides d'État (MaPrimeRénov') varient selon votre région.</p>
 
             <div className="relative mb-7 text-left">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-sm pointer-events-none">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-gradient-to-br from-[#2b5a8f] to-[#0f2b4a] text-white flex items-center justify-center shadow-sm pointer-events-none">
                 <MapPin size={18} />
               </span>
               <select
@@ -1337,24 +1339,24 @@ export const Simulator = ({
 
         return (
           <div>
-            <div className="relative rounded-3xl p-6 mb-6 text-center text-white overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 shadow-xl shadow-emerald-600/25">
+            <div className="relative rounded-3xl p-6 mb-6 text-center text-white overflow-hidden bg-gradient-to-br from-[#0b1a2c] via-[#0f2b4a] to-[#1d4e89] shadow-xl shadow-blue-950/25">
               <Confetti />
               <div className="absolute -top-6 -right-6 opacity-15">
                 <PiggyBank size={120} />
               </div>
-              <p className="relative font-bold mb-1 flex items-center justify-center gap-2 text-emerald-50">
+              <p className="relative font-bold mb-1 flex items-center justify-center gap-2 text-amber-200">
                 <PartyPopper size={18} /> Excellente nouvelle !
               </p>
-              <p className="relative text-emerald-50/90 text-sm mb-1">
+              <p className="relative text-white/85 text-sm mb-1">
                 Vous pourriez économiser jusqu'à
               </p>
-              <p className="relative text-[40px] leading-tight font-extrabold mb-3 drop-shadow-sm">
+              <p className="relative text-[40px] leading-tight font-extrabold mb-3 drop-shadow-sm text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-200">
                 <AnimatedEuros value={savings} />
               </p>
               <div className="relative inline-flex items-center justify-center gap-1.5 bg-white/20 backdrop-blur-sm border border-white/30 px-3 py-1 rounded-full text-xs font-bold">
                 <CheckCircle2 size={14} /> Votre résultat détaillé juste après
               </div>
-              <p className="relative text-[10.5px] text-emerald-50/80 mt-3 leading-snug">
+              <p className="relative text-[10.5px] text-white/70 mt-3 leading-snug">
                 Estimation indicative, non contractuelle, basée sur vos
                 réponses. Le montant exact dépend de votre logement et de vos
                 revenus.
@@ -1403,7 +1405,7 @@ export const Simulator = ({
                 type="submit"
                 variant="success"
                 disabled={isSubmitting}
-                className="w-full text-lg py-4 !rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30 hover:brightness-110"
+                className="w-full text-lg py-4 !rounded-2xl !text-[#0b1a2c] font-bold bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 shadow-lg shadow-amber-500/25 hover:brightness-105"
               >
                 {isSubmitting ? "Envoi en cours..." : "Voir mes résultats complets"}
               </Button>
@@ -1529,10 +1531,10 @@ export const Simulator = ({
         return (
           <div className="relative py-2 animate-in zoom-in-95 fade-in duration-500">
             {(result.kind === "zero" || result.kind === "rac") && <Confetti />}
-            <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30" style={{ animation: "ip5-pop .5s ease-out both" }}>
+            <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/30" style={{ animation: "ip5-pop .5s ease-out both" }}>
               <Check size={28} strokeWidth={3} />
             </div>
-            <p className="text-center text-sm font-bold text-emerald-700 mb-5">
+            <p className="text-center text-sm font-bold text-[#173a5e] mb-5">
               Demande envoyée
             </p>
             {content}
@@ -1584,8 +1586,7 @@ export const Simulator = ({
       `}</style>
 
       {/* En-tête du simulateur : titre, étape et barre de progression en segments. */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#0f2b4a] via-[#1d4e89] to-[#0e7490] px-5 pt-4 pb-4 text-white">
-        <div className="absolute -top-10 -right-8 w-32 h-32 rounded-full bg-cyan-300/20 blur-2xl" aria-hidden="true"></div>
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#173a5e] via-[#1d4e89] to-[#2b5a8f] px-5 pt-4 pb-4 text-white">
         <div className="absolute -bottom-12 -left-6 w-28 h-28 rounded-full bg-amber-300/15 blur-2xl" aria-hidden="true"></div>
         <div className="relative flex items-center justify-between gap-3">
           {(step > 1 || earlyContact) && inQuestions ? (
@@ -1640,10 +1641,10 @@ export const Simulator = ({
         {reward && showProgress && step <= TOTAL_QUESTIONS && (
           <div
             key={`r-${step}-${earlyContact}`}
-            className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-900 text-[13px] font-semibold rounded-2xl px-3 py-2.5 mb-4 animate-in fade-in slide-in-from-top-1 duration-200"
+            className="flex items-center gap-2.5 bg-amber-50 border border-amber-200 text-[#0f2a47] text-[13px] font-semibold rounded-2xl px-3 py-2.5 mb-4 animate-in fade-in slide-in-from-top-1 duration-200"
             role="status"
           >
-            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm" style={{ animation: "ip5-pop .3s ease-out both" }}>
+            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-300 to-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm" style={{ animation: "ip5-pop .3s ease-out both" }}>
               <Check size={15} strokeWidth={3} />
             </span>
             <span className="leading-snug">{reward}</span>
@@ -1671,7 +1672,7 @@ export const Simulator = ({
                   className="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2 text-[13px] font-semibold text-slate-700 animate-in fade-in slide-in-from-left-4 fill-mode-both"
                   style={{ animationDelay: `${150 + i * 350}ms`, animationDuration: "300ms" }}
                 >
-                  <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-amber-400 text-white flex items-center justify-center flex-shrink-0">
                     <Check size={12} strokeWidth={3} />
                   </span>
                   {line}
@@ -1815,7 +1816,7 @@ export const PageHero = ({
               style={{ objectPosition: imagePosition }}
             />
             <span className="absolute -bottom-4 left-6 inline-flex items-center gap-2 rounded-2xl bg-white text-[#173a5e] px-4 py-2.5 text-sm font-bold shadow-xl">
-              <ShieldCheck size={18} className="text-emerald-600" /> Installateur certifié RGE QualiPAC
+              <ShieldCheck size={18} className="text-[#2b5a8f]" /> Installateur certifié RGE QualiPAC
             </span>
           </div>
         </div>
@@ -2115,7 +2116,7 @@ export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => {
                 "L'aide est déduite directement de votre devis.",
               ].map((t) => (
                 <li key={t} className="flex items-start gap-3 text-base md:text-lg font-medium">
-                  <CheckCircle2 className="text-emerald-300 mt-0.5 flex-shrink-0" size={22} />
+                  <CheckCircle2 className="text-amber-200 mt-0.5 flex-shrink-0" size={22} />
                   {t}
                 </li>
               ))}

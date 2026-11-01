@@ -17,7 +17,7 @@ const IP5Energie = () => {
   return (
     <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 100% d'aides">
       {/* Hero Section : sobre, factuel, orienté confiance */}
-      <section className="relative pt-16 pb-10 lg:pt-36 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950 lg:bg-[#0b1a2c] border-b border-slate-200 dark:border-slate-800 lg:border-0">
+      <section className="relative pt-16 pb-12 lg:pt-36 lg:pb-24 overflow-hidden bg-[#0b1a2c]">
         {/* Ordinateur : la photo occupe tout le bandeau, assombrie à gauche
             pour le texte ; le simulateur est posé à droite. */}
         <div className="hidden lg:block absolute inset-0" aria-hidden="true">
@@ -35,10 +35,10 @@ const IP5Energie = () => {
             className="absolute inset-0 w-full h-full object-cover object-[50%_22%]"
             fetchPriority="high"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/0 via-[#0b1a2c]/10 to-[#0b1a2c]/95"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/0 via-[#0b1a2c]/10 to-[#0b1a2c]"></div>
           <div className="absolute inset-x-0 bottom-0 px-5 pb-6 text-white animate-in fade-in slide-in-from-bottom-3 duration-700">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 px-3 py-1 text-[12px] font-semibold mb-3">
-              <ShieldCheck size={14} className="text-emerald-300" /> Installateur certifié RGE QualiPAC
+              <ShieldCheck size={14} className="text-amber-200" /> Installateur certifié RGE QualiPAC
             </span>
             <h1 className="text-[31px] leading-[1.1] font-extrabold tracking-tight drop-shadow-sm">
               Votre pompe à chaleur financée jusqu'à{" "}
@@ -67,9 +67,9 @@ const IP5Energie = () => {
               { icon: HandCoins, label: "Aides déduites du devis" },
               { icon: Users, label: "Entreprise familiale" },
             ].map((g) => (
-              <li key={g.label} className="flex flex-col items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-1.5 py-2.5 dark:bg-slate-900 dark:border-slate-800">
-                <g.icon size={18} className="text-[#2b5a8f] dark:text-blue-300" />
-                <span className="text-[11.5px] font-semibold leading-tight text-slate-700 dark:text-slate-200">{g.label}</span>
+              <li key={g.label} className="flex flex-col items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-1.5 py-2.5">
+                <g.icon size={18} className="text-amber-200" />
+                <span className="text-[11.5px] font-semibold leading-tight text-white/85">{g.label}</span>
               </li>
             ))}
           </ul>
@@ -78,7 +78,7 @@ const IP5Energie = () => {
           <div className="lg:grid lg:grid-cols-12 gap-14 items-center">
             <div className="lg:col-span-6 mb-8 lg:mb-0 text-left">
               <div className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-white font-semibold text-sm mb-6 border border-white/20">
-                <ShieldCheck size={16} className="text-emerald-300" /> Installateur certifié RGE QualiPAC
+                <ShieldCheck size={16} className="text-amber-200" /> Installateur certifié RGE QualiPAC
               </div>
               <h1 className="hidden lg:block text-[3.6rem] font-extrabold tracking-tight leading-[1.05] mb-6 text-white">
                 Votre pompe à chaleur financée jusqu'à{" "}
@@ -112,13 +112,13 @@ const IP5Energie = () => {
               </div>
               <p className="hidden lg:flex mt-6 items-center gap-x-6 gap-y-1.5 flex-wrap lg:justify-start text-sm text-white/80">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-emerald-300" size={16} /> Étude gratuite
+                  <CheckCircle2 className="text-amber-200" size={16} /> Étude gratuite
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-emerald-300" size={16} /> Sans engagement
+                  <CheckCircle2 className="text-amber-200" size={16} /> Sans engagement
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-emerald-300" size={16} /> Rappel par un conseiller
+                  <CheckCircle2 className="text-amber-200" size={16} /> Rappel par un conseiller
                 </span>
               </p>
             </div>
@@ -141,7 +141,7 @@ const IP5Energie = () => {
               subtitle="Vous n'avez ni dossier à gérer ni artisan à chercher : nous coordonnons chaque étape."
             />
             <ol className="relative grid md:grid-cols-4 md:gap-8">
-              <span className="hidden md:block absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-cyan-500" aria-hidden="true"></span>
+              <span className="hidden md:block absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-[#2b5a8f]" aria-hidden="true"></span>
               {[
                 { icon: ClipboardCheck, title: "Étude de votre projet", text: "Quelques questions, puis un conseiller vous rappelle pour vérifier vos droits." },
                 { icon: Home, title: "Visite technique", text: "Un professionnel étudie votre logement et choisit la pompe à chaleur adaptée." },
