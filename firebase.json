@@ -4,6 +4,10 @@
       "target": "ip5",
       "public": "dist/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "redirects": [
+        { "source": "/articles", "destination": "/conseils", "type": 301 },
+        { "source": "/articles/:slug", "destination": "/conseils/:slug", "type": 301 }
+      ],
       "rewrites": [{ "source": "**", "destination": "/index.html" }],
       "headers": [
         {
@@ -22,6 +26,10 @@
       "target": "legacy",
       "public": "dist/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "redirects": [
+        { "source": "/articles", "destination": "/conseils", "type": 301 },
+        { "source": "/articles/:slug", "destination": "/conseils/:slug", "type": 301 }
+      ],
       "rewrites": [{ "source": "**", "destination": "/index.html" }],
       "headers": [
         {

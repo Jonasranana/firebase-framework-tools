@@ -1,7 +1,7 @@
 import { lazy, Suspense } from "react";
 import BrandLoader from "@/components/BrandLoader";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { Switch, Route } from "wouter";
+import { Switch, Route, Redirect } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -99,8 +99,13 @@ function Router() {
         <Route path="/aides" component={Aides} />
         <Route path="/realisations" component={Realisations} />
         <Route path="/contact" component={Contact} />
-        <Route path="/articles" component={ArticlesList} />
-        <Route path="/articles/:slug" component={ArticleDetail} />
+        {/* Rubrique « Conseils & actus » ; les anciennes adresses /articles redirigent ici. */}
+        <Route path="/conseils" component={ArticlesList} />
+        <Route path="/conseils/:slug" component={ArticleDetail} />
+        <Route path="/articles">
+          <Redirect to="/conseils" replace />
+        </Route>
+        <Route path="/articles/:slug">{(p: { slug: string }) => <Redirect to={`/conseils/${p.slug}`} replace />}</Route>
         <Route path="/mentions-legales" component={MentionsLegales} />
         <Route path="/confidentialite" component={Confidentialite} />
         {/* Espace Pro — accès restreint par connexion Google (2 comptes) */}

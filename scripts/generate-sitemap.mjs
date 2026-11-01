@@ -13,9 +13,9 @@ const articles = [...source.matchAll(/slug:\s*"([^"]+)"[\s\S]*?date:\s*"([^"]+)"
 
 const urls = [
   { loc: "/", lastmod: today, priority: "1.0" },
-  { loc: "/articles", lastmod: today, priority: "0.8" },
+  { loc: "/conseils", lastmod: today, priority: "0.8" },
   ...articles.map((a) => ({
-    loc: `/articles/${a.slug}`,
+    loc: `/conseils/${a.slug}`,
     lastmod: a.date,
     priority: "0.7",
   })),
