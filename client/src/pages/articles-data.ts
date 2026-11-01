@@ -415,7 +415,7 @@ export const ARTICLES: Article[] = [
     date: "2026-09-05",
     readMinutes: 5,
     image: img("aides-solaire-thermique-maprimerenov-cee"),
-    imageAlt: "Capteurs solaires thermiques à tubes sous vide",
+    imageAlt: "Panneaux solaires installés sur le toit en tuiles d'une maison",
     imageCredit: "Photo libre de droits",
     keyPoints: [
       "Le solaire thermique est éligible à MaPrimeRénov' et aux primes CEE.",
