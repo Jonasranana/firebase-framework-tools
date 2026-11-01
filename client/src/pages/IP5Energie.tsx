@@ -57,7 +57,7 @@ const IP5Energie = () => {
               e.preventDefault();
               document.getElementById("simulateur")?.scrollIntoView({ behavior: "smooth", block: "start" });
             }}
-            className="flex items-center justify-center gap-2.5 w-full rounded-2xl py-4 text-[17px] font-bold text-white bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-[#0e7490] shadow-lg shadow-blue-900/25 active:scale-[0.99] transition-transform"
+            className="flex items-center justify-center gap-2.5 w-full rounded-2xl py-4 text-[17px] font-bold text-[#0b1a2c] bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 shadow-lg shadow-amber-500/30 active:scale-[0.99] transition-transform"
           >
             Estimer mes aides gratuitement <ArrowRight size={19} />
           </a>
@@ -99,7 +99,7 @@ const IP5Energie = () => {
                       .getElementById("simulateur")
                       ?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }}
-                  className="inline-flex items-center justify-center gap-2.5 bg-white hover:bg-blue-50 text-[#173a5e] px-7 py-4 rounded-xl font-bold text-base shadow-xl transition-colors"
+                  className="inline-flex items-center justify-center gap-2.5 bg-amber-300 hover:bg-amber-200 text-[#0b1a2c] px-7 py-4 rounded-xl font-bold text-base shadow-xl transition-colors"
                 >
                   Estimer mes aides gratuitement <ArrowRight size={18} />
                 </a>
