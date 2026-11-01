@@ -78,16 +78,26 @@ export const LogoIP5 = ({
     >
       {metallic && (
         <defs>
-          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+          {/* Reflet argenté au milieu, bords foncés : le logo reste net jusqu'au bout. */}
+          <linearGradient id={gid} x1="0" y1="0" x2="865" y2="387" gradientUnits="userSpaceOnUse">
             <stop offset="0" stopColor="#0f2b4a" />
-            <stop offset=".45" stopColor="#2b5a8f" />
-            <stop offset=".7" stopColor="#5f7c9c" />
-            <stop offset=".86" stopColor="#a3b6c9" />
-            <stop offset="1" stopColor="#56708c" />
+            <stop offset=".38" stopColor="#2b5a8f" />
+            <stop offset=".56" stopColor="#9db2c7" />
+            <stop offset=".64" stopColor="#c9d5e1" />
+            <stop offset=".78" stopColor="#47709c" />
+            <stop offset="1" stopColor="#173a5e" />
           </linearGradient>
         </defs>
       )}
-      <path d={LOGO_FULL_D} fill={metallic ? `url(#${gid})` : "currentColor"} fillRule="evenodd" />
+      <path
+        d={LOGO_FULL_D}
+        fill={metallic ? `url(#${gid})` : "currentColor"}
+        fillRule="evenodd"
+        // Fin contour bleu nuit : les parties argentées gardent un bord net.
+        stroke={metallic ? "#173a5e" : undefined}
+        strokeWidth={metallic ? 5 : undefined}
+        strokeLinejoin="round"
+      />
     </svg>
   );
 };
