@@ -1078,7 +1078,7 @@ export const Simulator = ({
           </div>
           <h3 className={Q}>Où vous envoyer votre estimation&nbsp;?</h3>
           <p className={SUB}>
-            Encore {TOTAL_QUESTIONS - CONTACT_AFTER - (heatingPreset ? 1 : 0)} questions rapides ensuite. Un conseiller pourra
+            Encore quelques questions rapides ensuite. Un conseiller pourra
             vous rappeler si besoin.
           </p>
           <form onSubmit={saveEarlyContact} className="space-y-3" noValidate>
@@ -1511,10 +1511,21 @@ export const Simulator = ({
     : step <= TOTAL_QUESTIONS
       ? earlyContact
         ? "Vos coordonnées"
-        : `Question ${step} sur ${TOTAL_QUESTIONS}`
+        : step <= 2
+          ? "C'est parti !"
+          : step <= 5
+            ? "Ça avance bien"
+            : step < TOTAL_QUESTIONS
+              ? "Presque fini"
+              : "Dernière question"
       : step === TOTAL_QUESTIONS + 1
         ? "Votre estimation"
         : "Votre résultat";
+  // Barre continue, sans nombre de questions : elle démarre déjà un peu
+  // remplie et avance plus vite au début (on a l'impression d'être lancé,
+  // donc on va plus souvent au bout).
+  const ratio = Math.min((done + (earlyContact ? 0.5 : 0)) / TOTAL_QUESTIONS, 1);
+  const progressPct = Math.round(12 + 88 * (1 - Math.pow(1 - ratio, 1.6)));
   const stepAnim = goingBack ? "slide-in-from-left-4" : "slide-in-from-right-4";
 
   return (
@@ -1549,27 +1560,21 @@ export const Simulator = ({
           </span>
         </div>
         <div
-          className="relative mt-3.5 flex gap-1"
+          className="relative mt-3.5 h-2 rounded-full bg-white/20 overflow-hidden"
           role="progressbar"
           aria-valuemin={0}
-          aria-valuemax={TOTAL_QUESTIONS}
-          aria-valuenow={done}
+          aria-valuemax={100}
+          aria-valuenow={progressPct}
           aria-label="Progression de la simulation"
         >
-          {Array.from({ length: TOTAL_QUESTIONS }, (_, i) => {
-            const filled = i < done;
-            const current = i === done && inQuestions;
-            return (
-              <span key={i} className="relative flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
-                <span
-                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out ${filled ? "w-full bg-gradient-to-r from-amber-300 to-yellow-200" : current ? "w-1/2 bg-white/70" : "w-0"}`}
-                ></span>
-                {current && (
-                  <span className="ip5-anim absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/80 to-transparent" style={{ animation: "ip5-shine 1.6s ease-in-out infinite" }}></span>
-                )}
-              </span>
-            );
-          })}
+          <div
+            className="relative h-full rounded-full bg-gradient-to-r from-amber-300 via-yellow-200 to-white transition-[width] duration-500 ease-out overflow-hidden"
+            style={{ width: `${progressPct}%` }}
+          >
+            {inQuestions && (
+              <span className="ip5-anim absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/90 to-transparent" style={{ animation: "ip5-shine 1.6s ease-in-out infinite" }}></span>
+            )}
+          </div>
         </div>
         {step === 1 && inQuestions && !earlyContact && (
           <p className="relative mt-3 flex items-center gap-3 text-[11.5px] text-white/80">
