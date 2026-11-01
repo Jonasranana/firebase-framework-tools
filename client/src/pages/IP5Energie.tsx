@@ -17,24 +17,39 @@ const IP5Energie = () => {
   return (
     <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 100% d'aides">
       {/* Hero Section : sobre, factuel, orienté confiance */}
-      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <section className="relative pt-16 pb-10 lg:pt-40 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+        {/* Téléphone : grande photo avec le titre posé dessus, comme les sites
+            des grands installateurs. Sur ordinateur, la mise en page reste en
+            deux colonnes (texte + simulateur). */}
+        <div className="lg:hidden relative h-[230px] overflow-hidden">
+          <img
+            src="/images/hero-pac.jpg"
+            alt="Pompe à chaleur air/eau installée devant une maison"
+            className="absolute inset-0 w-full h-full object-cover object-[50%_45%]"
+            fetchPriority="high"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-[#0b1a2c]/60 via-transparent to-transparent"></div>
+          <span className="absolute left-5 bottom-4 inline-flex items-center gap-1.5 rounded-full bg-white/95 text-[#173a5e] px-3 py-1.5 text-xs font-bold shadow-md">
+            <ShieldCheck size={14} className="text-[#2b5a8f]" /> Installateur certifié RGE QualiPAC
+          </span>
+        </div>
+        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10 pt-6 lg:pt-0">
           <div className="lg:grid lg:grid-cols-12 gap-14 items-center">
-            <div className="lg:col-span-6 mb-12 lg:mb-0 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-white dark:bg-slate-900 text-[#173a5e] dark:text-blue-200 font-semibold text-sm mb-6 border border-slate-200 dark:border-slate-700">
+            <div className="lg:col-span-6 mb-10 lg:mb-0 text-left">
+              <div className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-white dark:bg-slate-900 text-[#173a5e] dark:text-blue-200 font-semibold text-sm mb-6 border border-slate-200 dark:border-slate-700">
                 <ShieldCheck size={16} className="text-[#2b5a8f] dark:text-blue-300" /> Installateur certifié RGE QualiPAC
               </div>
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight leading-[1.12] mb-6 text-[#0f2a47] dark:text-white">
+              <h1 className="text-[28px] sm:text-4xl md:text-5xl font-bold tracking-tight leading-[1.15] lg:leading-[1.12] mb-4 lg:mb-6 text-[#0f2a47] dark:text-white">
                 Votre pompe à chaleur, de l'étude à la mise en service, avec jusqu'à 100&nbsp;% d'aides
               </h1>
-              <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-base lg:text-lg text-slate-600 dark:text-slate-300 mb-6 lg:mb-8 max-w-xl lg:mx-0 leading-relaxed">
                 IP5 Énergie étudie votre projet, prépare vos dossiers{" "}
                 <b className="font-semibold text-slate-800 dark:text-slate-100">MaPrimeRénov'</b> et{" "}
                 <b className="font-semibold text-slate-800 dark:text-slate-100">CEE</b>, puis fait installer votre pompe à chaleur
                 par des artisans certifiés RGE. Un seul interlocuteur du début à la fin.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+              <div className="flex flex-col sm:flex-row gap-3 lg:justify-start">
                 <a
                   href="#simulateur"
                   onClick={(e) => {
@@ -54,7 +69,7 @@ const IP5Energie = () => {
                   <Phone size={18} /> 07 49 52 52 67
                 </a>
               </div>
-              <p className="mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-slate-500 dark:text-slate-400">
+              <p className="mt-5 flex items-center gap-x-5 gap-y-1.5 flex-wrap lg:justify-start text-sm text-slate-500 dark:text-slate-400">
                 <span className="flex items-center gap-1.5">
                   <CheckCircle2 className="text-[#2b5a8f] dark:text-blue-300" size={16} /> Étude gratuite
                 </span>
@@ -67,7 +82,7 @@ const IP5Energie = () => {
               </p>
 
               {/* Identité de l'entreprise : rassure par des faits vérifiables. */}
-              <div className="mt-9 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-start gap-3 justify-center lg:justify-start text-left">
+              <div className="mt-7 lg:mt-9 pt-5 lg:pt-6 border-t border-slate-200 dark:border-slate-800 flex items-start gap-3 lg:justify-start text-left">
                 <Building2 size={20} className="mt-0.5 text-[#2b5a8f] dark:text-blue-300 shrink-0" />
                 <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
                   <span className="font-semibold text-slate-700 dark:text-slate-200">IP5 CONSEILS</span> — société française, siège à Paris
@@ -89,24 +104,24 @@ const IP5Energie = () => {
 
       {/* Déroulé d'un projet : rassure sur ce qui se passe après la demande */}
       <Reveal>
-        <section className="py-20 bg-white dark:bg-slate-950">
+        <section className="py-14 md:py-20 bg-white dark:bg-slate-950">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mb-12">
+            <div className="max-w-2xl mb-8 md:mb-12">
               <p className="text-sm font-semibold uppercase tracking-wider text-[#2b5a8f] dark:text-blue-300 mb-2">Notre méthode</p>
               <h2 className="text-3xl font-bold text-[#0f2a47] dark:text-white mb-3">Un projet suivi de A à Z</h2>
               <p className="text-lg text-slate-600 dark:text-slate-300">
                 Vous n'avez pas à gérer les dossiers ni à chercher un artisan : nous coordonnons chaque étape.
               </p>
             </div>
-            <ol className="grid md:grid-cols-4 gap-6">
+            <ol className="grid md:grid-cols-4 gap-3 md:gap-6">
               {[
                 { icon: ClipboardCheck, title: "Étude de votre projet", text: "Vous répondez à quelques questions. Un conseiller vous rappelle pour vérifier votre éligibilité aux aides." },
                 { icon: Home, title: "Visite technique", text: "Un professionnel étudie votre logement et définit la pompe à chaleur adaptée à vos besoins." },
                 { icon: FileText, title: "Dossiers d'aides", text: "Nous montons vos dossiers MaPrimeRénov' et CEE. Les aides sont déduites de votre devis." },
                 { icon: Wrench, title: "Installation certifiée", text: "La pose est réalisée par un artisan certifié RGE, puis nous restons votre interlocuteur." },
               ].map((step, i) => (
-                <li key={step.title} className="relative bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6">
-                  <div className="flex items-center justify-between mb-5">
+                <li key={step.title} className="relative bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 md:p-6">
+                  <div className="flex items-center justify-between mb-3 md:mb-5">
                     <span className="w-10 h-10 rounded-lg bg-[#173a5e] text-white flex items-center justify-center">
                       <step.icon size={20} />
                     </span>
@@ -133,22 +148,22 @@ const IP5Energie = () => {
 
       {/* Raccourcis vers les pages détaillées */}
       <Reveal>
-      <section className="py-24 bg-white dark:bg-slate-950">
+      <section className="py-14 md:py-24 bg-white dark:bg-slate-950">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 border-blue-100 dark:border-blue-900">
               <Award size={14} /> Découvrir IP5 Énergie
             </span>
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
               Tout ce qu'il faut savoir sur votre projet
             </h2>
-            <p className="text-xl text-gray-600 dark:text-slate-300">
+            <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
               Nos pompes à chaleur, les aides de l'État et nos chantiers, en
               détail.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-3 gap-5 md:gap-8">
             {[
               {
                 href: "/pompe-a-chaleur",

@@ -70,7 +70,7 @@ function PageVille({ v }: { v: Ville }) {
   const autres = VILLES.filter((x) => x.slug !== v.slug).slice(0, 12);
   return (
     <PageLayout title={`Pompe à chaleur à ${v.nom} — aides et installation | IP5 Énergie`}>
-      <section className="relative pt-32 pb-16 lg:pt-40 lg:pb-24 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+      <section className="relative pt-24 pb-12 lg:pt-40 lg:pb-24 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="lg:grid lg:grid-cols-12 gap-14 items-center">
             <div className="lg:col-span-6 mb-12 lg:mb-0 text-center lg:text-left">

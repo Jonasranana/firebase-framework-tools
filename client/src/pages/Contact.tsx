@@ -46,7 +46,7 @@ const Contact = () => (
       subtitle="Une question, un devis, un rendez-vous ? Notre équipe familiale vous répond directement. Choisissez simplement le moyen qui vous convient."
     />
 
-    <section className="py-24 bg-gray-50 dark:bg-slate-950">
+    <section className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white mb-3">

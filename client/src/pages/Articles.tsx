@@ -155,7 +155,7 @@ export const ArticlesList = () => {
     <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-[#faf8f5] dark:bg-slate-950 min-h-screen">
       <SiteHeader />
 
-      <header className="pt-36 pb-8 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+      <header className="pt-24 lg:pt-36 pb-8 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#e8590c] mb-2">Le magazine d'IP5 Énergie</p>
           <h1 className="font-serif text-4xl md:text-6xl font-bold text-gray-900 dark:text-white leading-tight">{SECTION_NAME}</h1>
@@ -370,7 +370,7 @@ export const ArticleDetail = () => {
     <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-[#faf8f5] dark:bg-slate-950 min-h-screen">
       <SiteHeader />
 
-      <article className="pt-32 pb-20">
+      <article className="pt-24 lg:pt-32 pb-20">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <nav className="text-sm text-gray-500 dark:text-slate-400 mb-6 flex items-center gap-2">
             <a href="/" className="hover:text-[#2b5a8f]">Accueil</a>

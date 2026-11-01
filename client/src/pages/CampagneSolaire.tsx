@@ -110,7 +110,7 @@ const CampagneSolaire = () => {
   return (
     <PageLayout title="Chauffe-eau solaire : vérifiez vos aides — IP5 Énergie">
       {/* ── HERO : angle « eau chaude gratuite grâce au soleil » ── */}
-      <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden bg-white dark:bg-slate-950">
+      <section className="relative pt-24 pb-14 lg:pt-40 lg:pb-28 overflow-hidden bg-white dark:bg-slate-950">
         <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] rounded-full bg-amber-50 dark:bg-amber-900/20 blur-3xl opacity-70"></div>
         <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-blue-50 dark:bg-blue-900/20 blur-3xl opacity-70"></div>
 
@@ -173,10 +173,10 @@ const CampagneSolaire = () => {
       <TrustBar />
 
       {/* Pourquoi le chauffe-eau solaire */}
-      <section className="py-24 bg-gray-50 dark:bg-slate-950 relative overflow-hidden">
+      <section className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950 relative overflow-hidden">
         <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-amber-100/40 dark:bg-amber-900/20 blur-3xl"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center max-w-3xl mx-auto mb-16">
+          <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900">
               <Sun size={14} /> Les avantages
             </span>
@@ -220,7 +220,7 @@ const CampagneSolaire = () => {
       <AvisSection />
 
       {/* ── FAQ solaire ── */}
-      <section className="py-24 bg-gray-50 dark:bg-slate-950">
+      <section className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 border-blue-100 dark:border-blue-900">
@@ -243,7 +243,7 @@ const CampagneSolaire = () => {
       </section>
 
       {/* ── CTA final ── */}
-      <section className="py-20 bg-white dark:bg-slate-950">
+      <section className="py-14 md:py-20 bg-white dark:bg-slate-950">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="relative bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] rounded-[2.5rem] px-8 py-14 md:p-16 text-center text-white overflow-hidden shadow-2xl">
             <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-amber-400/20 blur-3xl"></div>
