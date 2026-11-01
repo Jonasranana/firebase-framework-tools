@@ -11,6 +11,7 @@
   color-scheme: light dark;
 
   --font-sans: 'Inter', 'Assistant', system-ui, sans-serif;
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
 
   --background: 0 0% 100%;
   --foreground: 222 47% 11%;
