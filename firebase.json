@@ -4,6 +4,7 @@
       "target": "ip5",
       "public": "dist/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "trailingSlash": false,
       "redirects": [
         { "source": "/articles", "destination": "/conseils", "type": 301 },
         { "source": "/articles/:slug", "destination": "/conseils/:slug", "type": 301 }
@@ -26,6 +27,7 @@
       "target": "legacy",
       "public": "dist/public",
       "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
+      "trailingSlash": false,
       "redirects": [
         { "source": "/articles", "destination": "/conseils", "type": 301 },
         { "source": "/articles/:slug", "destination": "/conseils/:slug", "type": 301 }

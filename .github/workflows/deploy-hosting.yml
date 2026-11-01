@@ -16,6 +16,8 @@ jobs:
       - run: npm ci
       - run: npx vite build
       - run: node scripts/generate-sitemap.mjs
+      # Une copie de la page par adresse, avec son image et son texte d'aperçu (WhatsApp, Facebook…).
+      - run: node scripts/generate-og-pages.mjs
 
       # Copier-coller depuis un éditeur de texte peut injecter des
       # caractères parasites dans le secret ; on ne garde que l'ASCII
