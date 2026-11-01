@@ -94,25 +94,50 @@ export const Button = ({
   );
 };
 
-// Étiquette décorative affichée au-dessus des titres de section.
+// Petite étiquette au-dessus des titres : un trait et un mot, sobre et identique partout.
 export const Kicker = ({
-  icon: Icon,
   children,
   onDark = false,
 }: {
-  icon: React.ElementType;
+  icon?: React.ElementType;
   children: React.ReactNode;
   onDark?: boolean;
 }) => (
   <span
-    className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border ${
-      onDark
-        ? "bg-white/10 text-blue-100 border-white/20"
-        : "bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 border-blue-100 dark:border-blue-900"
+    className={`inline-flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.18em] mb-4 ${
+      onDark ? "text-amber-200" : "text-[#2b5a8f] dark:text-blue-300"
     }`}
   >
-    <Icon size={14} /> {children}
+    <span className="w-6 h-px bg-current opacity-70" aria-hidden="true"></span>
+    {children}
   </span>
+);
+
+// En-tête de section commun à tout le site : étiquette, titre, sous-titre.
+export const SectionHead = ({
+  kicker,
+  title,
+  subtitle,
+  onDark = false,
+  align = "center",
+}: {
+  kicker: string;
+  title: React.ReactNode;
+  subtitle?: React.ReactNode;
+  onDark?: boolean;
+  align?: "center" | "left";
+}) => (
+  <div className={`${align === "center" ? "text-center mx-auto" : ""} max-w-3xl mb-10 md:mb-14`}>
+    <Kicker onDark={onDark}>{kicker}</Kicker>
+    <h2 className={`text-[28px] md:text-[2.5rem] leading-[1.15] font-extrabold tracking-tight ${onDark ? "text-white" : "text-[#0f2a47] dark:text-white"}`}>
+      {title}
+    </h2>
+    {subtitle && (
+      <p className={`mt-3 text-base md:text-lg leading-relaxed ${align === "center" ? "mx-auto" : ""} max-w-2xl ${onDark ? "text-blue-100/80" : "text-slate-500 dark:text-slate-400"}`}>
+        {subtitle}
+      </p>
+    )}
+  </div>
 );
 
 // Révèle son contenu en fondu + léger glissement vers le haut lorsqu'il entre
@@ -1725,17 +1750,7 @@ export const PageHero = ({
   imageAlt?: string;
   imagePosition?: string;
 }) => (
-  <section className="relative pt-28 pb-12 lg:pt-36 lg:pb-20 bg-gradient-to-br from-[#0f2b4a] via-[#1d4e89] to-[#122f4d] text-white overflow-hidden">
-    <div
-      className="absolute inset-0 opacity-10"
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
-        backgroundSize: "32px 32px",
-      }}
-    ></div>
-    <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-cyan-400/20 blur-3xl"></div>
-    <div className="absolute -bottom-32 -left-24 w-96 h-96 rounded-full bg-blue-300/10 blur-3xl"></div>
+  <section className="relative pt-28 pb-12 lg:pt-36 lg:pb-20 bg-gradient-to-br from-[#0b1a2c] via-[#0f2b4a] to-[#173a5e] text-white overflow-hidden">
     <div className={`${image ? "max-w-7xl lg:grid lg:grid-cols-12 lg:gap-14 lg:items-center" : "max-w-4xl"} mx-auto px-4 sm:px-6 lg:px-8 relative z-10`}>
       <div className={image ? "lg:col-span-7 text-center lg:text-left" : "text-center"}>
         <Kicker icon={kickerIcon} onDark>
@@ -1746,9 +1761,7 @@ export const PageHero = ({
           {highlight && (
             <>
               {" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-green-300">
-                {highlight}
-              </span>
+              <span className="text-amber-200">{highlight}</span>
             </>
           )}
         </h1>
@@ -1775,7 +1788,6 @@ export const PageHero = ({
       {image && (
         <div className="hidden lg:block lg:col-span-5">
           <div className="relative">
-            <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-cyan-300/30 to-amber-200/20 blur-xl" aria-hidden="true"></div>
             <img
               src={image}
               alt={imageAlt}
@@ -1803,7 +1815,7 @@ export const TrustBar = () => (
         { icon: Users, title: "Entreprise familiale", sub: "un seul interlocuteur" },
       ].map((item) => (
         <div key={item.title} className="flex items-center gap-3 justify-start sm:justify-center lg:justify-start">
-          <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border border-blue-100 dark:border-blue-900 text-[#2b5a8f] dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 text-[#173a5e] dark:text-blue-300 flex items-center justify-center flex-shrink-0">
             <item.icon size={22} />
           </div>
           <div className="leading-tight">
@@ -1818,64 +1830,34 @@ export const TrustBar = () => (
 
 // Section « avantages » : pourquoi choisir la pompe à chaleur (3 cartes).
 export const AvantagesSection = () => (
-  <section id="avantages" className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950 relative overflow-hidden">
-    <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100/40 dark:bg-blue-900/20 blur-3xl"></div>
-    <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-green-100/40 dark:bg-green-900/20 blur-3xl"></div>
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
-        <Kicker icon={Sparkles}>Les avantages</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-          Pourquoi choisir la{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#2b5a8f] to-cyan-500 dark:from-blue-400 dark:to-cyan-400">
-            pompe à chaleur
-          </span>{" "}
-          ?
-        </h2>
-        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
-          Le système de chauffage le plus performant et économique en France.
-        </p>
-      </div>
-
-      <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+  <section id="avantages" className="py-14 md:py-24 bg-[#0b1a2c] text-white">
+    <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
+      <SectionHead
+        onDark
+        kicker="Pourquoi la pompe à chaleur"
+        title="Le chauffage le plus économique"
+        subtitle="Elle puise la chaleur de l'air extérieur, même en hiver, pour chauffer toute la maison."
+      />
+      <dl className="grid md:grid-cols-3 md:divide-x divide-white/10 border-y border-white/10 md:border-y-0">
         {[
-          {
-            icon: PiggyBank,
-            title: "Jusqu'à 70% d'économies",
-            stat: "−70% sur votre facture",
-            text: "Pour 1 kWh d'électricité consommé, la pompe à chaleur restitue jusqu'à 4 kWh de chaleur. Votre facture fond instantanément.",
-          },
-          {
-            icon: Leaf,
-            title: "Écologique & performant",
-            stat: "Rendement jusqu'à ×4 (COP)",
-            text: "Fini le fioul et le gaz : vous utilisez les calories gratuites de l'air. Zéro énergie fossile, empreinte carbone réduite.",
-          },
-          {
-            icon: ShieldCheck,
-            title: "Valorisation du bien",
-            stat: "Meilleure étiquette énergie",
-            text: "Un meilleur DPE, c'est une maison qui vaut plus cher à la revente et se loue plus facilement. Un vrai atout pour votre patrimoine.",
-          },
-        ].map((a) => (
+          { stat: "−70 %", title: "sur la facture de chauffage", text: "Comparé à une vieille chaudière fioul, selon votre logement." },
+          { stat: "×4", title: "de chaleur pour 1 kWh consommé", text: "1 kWh d'électricité donne jusqu'à 4 kWh de chaleur (COP)." },
+          { stat: "DPE", title: "un logement mieux classé", text: "Une meilleure étiquette énergie, une maison qui prend de la valeur." },
+        ].map((a, i) => (
           <div
-            key={a.title}
-            className="group flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 p-8 md:p-9 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+            key={a.stat}
+            className={`flex md:flex-col items-center md:items-start gap-5 md:gap-3 py-6 md:py-2 md:px-10 md:first:pl-0 ${i > 0 ? "border-t border-white/10 md:border-t-0" : ""}`}
           >
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-950 dark:to-cyan-950 border border-blue-100 dark:border-blue-900 text-[#2b5a8f] dark:text-blue-300 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-              <a.icon size={26} strokeWidth={1.75} />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-              {a.title}
-            </h3>
-            <p className="text-gray-600 dark:text-slate-300 leading-relaxed mb-6">
-              {a.text}
-            </p>
-            <span className="mt-auto inline-flex items-center gap-2 self-start rounded-full bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 border border-blue-100 dark:border-blue-900 px-3.5 py-1.5 text-sm font-semibold">
-              <CheckCircle2 size={15} /> {a.stat}
-            </span>
+            <dt className="text-[38px] md:text-6xl font-extrabold tracking-tight text-amber-200 leading-none w-[112px] md:w-auto flex-shrink-0 whitespace-nowrap">
+              {a.stat}
+            </dt>
+            <dd>
+              <p className="font-bold text-white text-lg leading-snug">{a.title}</p>
+              <p className="text-blue-100/70 text-sm leading-relaxed mt-1">{a.text}</p>
+            </dd>
           </div>
         ))}
-      </div>
+      </dl>
     </div>
   </section>
 );
@@ -1912,7 +1894,7 @@ const VideoCard = ({
 }) => {
   const [play, setPlay] = useState(false);
   return (
-    <figure className="group bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col">
+    <figure className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:shadow-lg transition-shadow duration-300 overflow-hidden flex flex-col">
       <div className="relative aspect-video bg-gray-900">
         {play ? (
           <iframe
@@ -1937,8 +1919,8 @@ const VideoCard = ({
             />
             <span className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors" />
             <span className="absolute inset-0 flex items-center justify-center">
-              <span className="w-16 h-16 rounded-full bg-[#2b5a8f]/95 flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
-                <Play size={28} className="text-white ml-1" fill="currentColor" />
+              <span className="w-16 h-16 rounded-full bg-white/95 text-[#173a5e] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
+                <Play size={26} className="ml-1" fill="currentColor" />
               </span>
             </span>
           </button>
@@ -1959,20 +1941,15 @@ const VideoCard = ({
 // Section « Comprendre en vidéo » : explique la pompe à chaleur et les aides
 // aux visiteurs qui découvrent le sujet.
 export const VideoSection = () => (
-  <section id="videos" className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950">
+  <section id="videos" className="py-14 md:py-24 bg-white dark:bg-slate-950">
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-14">
-        <Kicker icon={Film}>Comprendre en vidéo</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-          Tout devient clair en 2 vidéos
-        </h2>
-        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
-          La pompe à chaleur et les aides de l'État, expliquées simplement. De
-          quoi y voir clair avant de vous lancer.
-        </p>
-      </div>
+      <SectionHead
+        kicker="Comprendre en vidéo"
+        title="Tout devient clair en 2 vidéos"
+        subtitle="La pompe à chaleur et les aides de l'État, expliquées simplement."
+      />
 
-      <div className="grid md:grid-cols-2 gap-8">
+      <div className="grid md:grid-cols-2 gap-5 md:gap-8">
         {VIDEOS.map((v) => (
           <VideoCard key={v.id} {...v} />
         ))}
@@ -1985,22 +1962,17 @@ export const VideoSection = () => (
 export const MarquesSection = () => (
   <section id="marques" className="py-14 md:py-24 bg-white dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
-        <Kicker icon={BadgeCheck}>Nos pompes à chaleur</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-          Les 6 marques que nous installons
-        </h2>
-        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
-          Nous sélectionnons les meilleures pompes à chaleur air/eau du marché.
-          Le modèle est choisi avec vous, selon votre logement et votre budget.
-        </p>
-      </div>
+      <SectionHead
+        kicker="Nos pompes à chaleur"
+        title="Les 6 marques que nous installons"
+        subtitle="Les meilleures pompes à chaleur air/eau du marché. Le modèle est choisi avec vous, selon votre logement et votre budget."
+      />
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8">
         {PAC_MODELS.map((m) => (
           <div
             key={m.brand}
-            className="group bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col overflow-hidden"
+            className="group bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:shadow-lg transition-shadow duration-300 flex flex-col overflow-hidden"
           >
             {/* Photo du produit (fiche constructeur) */}
             <div className="h-48 bg-gradient-to-br from-gray-50 to-blue-50/40 dark:from-slate-800 dark:to-slate-800 overflow-hidden">
@@ -2032,7 +2004,7 @@ export const MarquesSection = () => (
                 {m.specs.map((s) => (
                   <span
                     key={s}
-                    className="bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 text-xs font-semibold px-2.5 py-1 rounded-full border border-blue-100 dark:border-blue-900"
+                    className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold px-2.5 py-1 rounded-full"
                   >
                     {s}
                   </span>
@@ -2056,170 +2028,96 @@ export const MarquesSection = () => (
 // `asHero` : quand la section est en tête de la page /aides, on ajoute
 // l'espace nécessaire pour passer sous le menu fixe (évite le doublon de
 // bandeau bleu qui donnait un effet « coupé en deux »).
-export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => (
-  <section
-    id="subventions"
-    className={`${
-      asHero ? "pt-28 pb-16 lg:pt-44 lg:pb-24" : "py-14 md:py-24"
-    } bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] text-white relative overflow-hidden`}
-  >
-    <div
-      className="absolute inset-0 opacity-10"
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 2px 2px, white 1px, transparent 0)",
-        backgroundSize: "32px 32px",
-      }}
-    ></div>
-    <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-cyan-400/20 blur-3xl"></div>
-    <div className="absolute -bottom-32 -left-24 w-96 h-96 rounded-full bg-blue-300/10 blur-3xl"></div>
-
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-      <div className="grid lg:grid-cols-2 gap-16 items-center">
-        <div>
-          <Kicker icon={HandCoins} onDark>
-            Aides de l'État {new Date().getFullYear()}
-          </Kicker>
-          <h2 className="text-3xl md:text-5xl font-extrabold mb-6 leading-tight">
-            Financer votre projet n'a jamais été aussi simple.
-          </h2>
-          <p className="text-blue-100 text-lg mb-8 leading-relaxed">
-            L'État français encourage la transition énergétique. Avec{" "}
-            <b>MaPrimeRénov'</b> et les{" "}
-            <b>Certificats d'Économie d'Énergie (CEE)</b>, une grande partie du
-            coût de l'équipement est prise en charge.
-          </p>
-          <ul className="space-y-5 mb-8">
-            <li className="flex items-start gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-              <CheckCircle2
-                className="text-green-400 mt-0.5 flex-shrink-0"
-                size={24}
-              />
-              <span className="text-lg font-medium">
-                Nous calculons vos droits lors du premier appel.
-              </span>
-            </li>
-            <li className="flex items-start gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-              <CheckCircle2
-                className="text-green-400 mt-0.5 flex-shrink-0"
-                size={24}
-              />
-              <span className="text-lg font-medium">
-                L'équipe IP5 Énergie gère 100% de la paperasse pour vous.
-              </span>
-            </li>
-            <li className="flex items-start gap-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-              <CheckCircle2
-                className="text-green-400 mt-0.5 flex-shrink-0"
-                size={24}
-              />
-              <span className="text-lg font-medium">
-                L'aide est déduite directement du devis final.
-              </span>
-            </li>
-          </ul>
-
-          {/* Les dispositifs officiels que nous mobilisons */}
-          <div className="bg-white rounded-2xl p-5 shadow-lg">
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-4 text-center">
-              Les dispositifs officiels que nous mobilisons
+export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => {
+  const Title = asHero ? "h1" : "h2";
+  return (
+    <section
+      id="subventions"
+      className={`${
+        asHero ? "pt-28 pb-14 lg:pt-40 lg:pb-24" : "py-14 md:py-24"
+      } bg-gradient-to-br from-[#0b1a2c] via-[#0f2b4a] to-[#173a5e] text-white`}
+    >
+      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+        <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+          <div>
+            <Kicker onDark>Aides de l'État {new Date().getFullYear()}</Kicker>
+            <Title className="text-[30px] md:text-5xl font-extrabold mb-5 leading-[1.1] tracking-tight">
+              Votre projet financé jusqu'à <span className="text-amber-200">100&nbsp;%</span>
+            </Title>
+            <p className="text-blue-100/80 text-base md:text-lg mb-7 leading-relaxed">
+              Avec <b className="text-white">MaPrimeRénov'</b> et les{" "}
+              <b className="text-white">primes CEE</b>, une grande partie du coût de
+              l'équipement est prise en charge. Nous nous occupons de tout.
             </p>
-            <div className="flex items-center justify-center gap-4 sm:gap-6">
-              <img
-                src="/images/aides/maprimerenov.png"
-                alt="MaPrimeRénov' — Mieux chez moi, mieux pour la planète"
-                className="h-9 sm:h-11 w-auto"
-                loading="lazy"
-              />
-              <span className="w-px h-10 bg-gray-200 flex-shrink-0" />
-              <img
-                src="/images/aides/cee.png"
-                alt="CEE — Les certificats d'économies d'énergie"
-                className="h-11 sm:h-14 w-auto"
-                loading="lazy"
-              />
+            <ul className="space-y-3.5 mb-8">
+              {[
+                "Nous calculons vos droits dès le premier appel.",
+                "Nous montons tous les dossiers à votre place.",
+                "L'aide est déduite directement de votre devis.",
+              ].map((t) => (
+                <li key={t} className="flex items-start gap-3 text-base md:text-lg font-medium">
+                  <CheckCircle2 className="text-emerald-300 mt-0.5 flex-shrink-0" size={22} />
+                  {t}
+                </li>
+              ))}
+            </ul>
+            <div className="inline-flex items-center gap-5 bg-white rounded-2xl px-5 py-3.5">
+              <img src="/images/aides/maprimerenov.png" alt="MaPrimeRénov'" className="h-9 w-auto" loading="lazy" />
+              <span className="w-px h-9 bg-slate-200" />
+              <img src="/images/aides/cee.png" alt="CEE — Certificats d'économies d'énergie" className="h-11 w-auto" loading="lazy" />
             </div>
-            <p className="text-gray-400 text-[11px] text-center mt-3">
-              Montants attribués selon l'éligibilité de chaque foyer.
-            </p>
-          </div>
-        </div>
-
-        <div className="bg-white px-8 pb-8 pt-20 md:p-10 rounded-3xl shadow-2xl text-gray-900 relative">
-          <div className="absolute -top-6 right-5 md:-right-6 w-24 h-24 bg-yellow-400 rounded-full flex flex-col items-center justify-center shadow-lg transform rotate-12 border-4 border-white">
-            <span className="text-sm font-bold text-yellow-900 leading-none">
-              Jusqu'à
-            </span>
-            <span className="text-2xl font-black text-yellow-900 leading-none">
-              -100%
-            </span>
+            <p className="text-blue-100/50 text-xs mt-3">Montants attribués selon l'éligibilité de chaque foyer.</p>
           </div>
 
-          <h3 className="text-2xl font-bold mb-8 text-center border-b pb-6">
-            Votre projet clé en main
-          </h3>
-          <div className="space-y-8">
-            <div className="flex gap-5">
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2b5a8f] flex items-center justify-center font-black text-xl flex-shrink-0 shadow-sm border border-blue-100">
-                1
-              </div>
-              <div>
-                <h4 className="font-bold text-lg mb-1">Simulation en ligne</h4>
-                <p className="text-gray-600">
-                  Vous remplissez notre formulaire en 30 secondes pour évaluer
-                  votre profil.
-                </p>
-              </div>
+          <div className="bg-white rounded-3xl p-7 md:p-10 text-gray-900 shadow-2xl">
+            <div className="flex items-center justify-between gap-3 mb-7 pb-5 border-b border-slate-100">
+              <h3 className="text-xl md:text-2xl font-extrabold tracking-tight text-[#0f2a47]">Votre projet clé en main</h3>
+              <span className="rounded-full bg-amber-100 text-amber-900 text-xs font-bold px-3 py-1 whitespace-nowrap">Jusqu'à 100&nbsp;%</span>
             </div>
-            <div className="flex gap-5">
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2b5a8f] flex items-center justify-center font-black text-xl flex-shrink-0 shadow-sm border border-blue-100">
-                2
-              </div>
-              <div>
-                <h4 className="font-bold text-lg mb-1">Validation des aides</h4>
-                <p className="text-gray-600">
-                  Un expert IP5 confirme votre éligibilité selon votre
-                  département et vos revenus.
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-5">
-              <div className="w-12 h-12 rounded-full bg-blue-50 text-[#2b5a8f] flex items-center justify-center font-black text-xl flex-shrink-0 shadow-sm border border-blue-100">
-                3
-              </div>
-              <div>
-                <h4 className="font-bold text-lg mb-1">Installation RGE</h4>
-                <p className="text-gray-600">
-                  Nos techniciens certifiés installent votre pompe à chaleur
-                  dans les règles de l'art.
-                </p>
-              </div>
-            </div>
+            <ol className="relative space-y-7">
+              <span className="absolute left-5 top-6 bottom-6 w-px bg-slate-200" aria-hidden="true"></span>
+              {[
+                { t: "Simulation en ligne", d: "30 secondes pour évaluer votre profil." },
+                { t: "Validation des aides", d: "Un conseiller confirme vos droits selon votre département et vos revenus." },
+                { t: "Installation RGE", d: "Un artisan certifié pose votre pompe à chaleur dans les règles de l'art." },
+              ].map((step, i) => (
+                <li key={step.t} className="relative flex gap-5">
+                  <span className="relative z-10 w-10 h-10 rounded-full bg-[#173a5e] text-white flex items-center justify-center font-bold flex-shrink-0">
+                    {i + 1}
+                  </span>
+                  <div>
+                    <h4 className="font-bold text-lg leading-snug">{step.t}</h4>
+                    <p className="text-slate-500 mt-1">{step.d}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <a
+              href="/#simulateur"
+              className="mt-8 flex items-center justify-center gap-2 rounded-xl bg-[#173a5e] hover:bg-[#122f4d] text-white font-bold py-3.5 transition-colors"
+            >
+              Estimer mes aides gratuitement <ArrowRight size={18} />
+            </a>
           </div>
         </div>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 // Section « réalisations » : avant/après et détails de chantier.
 export const RealisationsSection = () => (
   <section id="realisations" className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
-        <Kicker icon={Award}>Notre savoir-faire</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-          Nos réalisations
-        </h2>
-        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
-          Un chantier récent réalisé par notre équipe : remplacement d'une
-          ancienne chaudière par une pompe à chaleur air/eau.
-        </p>
-      </div>
+      <SectionHead
+        kicker="Un chantier récent"
+        title="Avant, après : le travail en détail"
+        subtitle="Remplacement d'une ancienne chaudière par une pompe à chaleur air/eau, réalisé par notre équipe."
+      />
 
       {/* Avant / Après */}
-      <div className="grid md:grid-cols-2 gap-8 mb-8">
-        <figure className="relative rounded-3xl overflow-hidden shadow-lg border border-gray-100 group">
+      <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
+        <figure className="relative rounded-2xl overflow-hidden group">
           <img
             src="/images/realisations/avant-ancienne-chaudiere.jpg"
             alt="Ancienne chaudière avant remplacement"
@@ -2233,7 +2131,7 @@ export const RealisationsSection = () => (
             L'ancienne chaudière, avant intervention
           </figcaption>
         </figure>
-        <figure className="relative rounded-3xl overflow-hidden shadow-lg border border-gray-100 group">
+        <figure className="relative rounded-2xl overflow-hidden group">
           <img
             src="/images/realisations/interieur-pac-ballon.jpg"
             alt="Pompe à chaleur et ballon d'eau chaude installés"
@@ -2250,7 +2148,7 @@ export const RealisationsSection = () => (
       </div>
 
       {/* Détails du chantier */}
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         {[
           {
             src: "unite-exterieure.jpg",
@@ -2275,17 +2173,17 @@ export const RealisationsSection = () => (
         ].map((photo) => (
           <figure
             key={photo.src}
-            className="group rounded-2xl overflow-hidden shadow-sm hover:shadow-xl border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 hover:-translate-y-1"
+            className="group rounded-2xl overflow-hidden border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900"
           >
             <div className="overflow-hidden">
               <img
                 src={`/images/realisations/${photo.src}`}
                 alt={photo.alt}
-                className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-700"
+                className="w-full h-36 md:h-48 object-cover group-hover:scale-105 transition-transform duration-700"
                 loading="lazy"
               />
             </div>
-            <figcaption className="text-sm text-gray-600 dark:text-slate-300 px-4 py-3">
+            <figcaption className="text-[13px] md:text-sm text-slate-600 dark:text-slate-300 px-3.5 py-3 leading-snug">
               {photo.caption}
             </figcaption>
           </figure>
@@ -2299,34 +2197,24 @@ export const RealisationsSection = () => (
 export const AvisSection = () => (
   <section id="avis" className="py-14 md:py-24 bg-white dark:bg-slate-950">
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
-        <Kicker icon={Star}>Avis clients</Kicker>
-        <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-          Ils ont sauté le pas
-        </h2>
-        <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
-          Des propriétaires partout en France nous font confiance pour leur
-          transition énergétique.
-        </p>
-      </div>
+      <SectionHead
+        kicker="Avis clients"
+        title="Ils ont sauté le pas"
+        subtitle="Des propriétaires partout en France nous ont fait confiance."
+      />
 
-      <div className="grid md:grid-cols-3 gap-8">
+      <div className="grid md:grid-cols-3 gap-5 md:gap-8">
         {REVIEWS.map((review) => (
           <figure
             key={review.name}
-            className="relative bg-gray-50 dark:bg-slate-900 p-8 rounded-3xl border border-gray-100 dark:border-slate-800 flex flex-col hover:shadow-xl hover:-translate-y-1 hover:bg-white dark:hover:bg-slate-800 transition-all duration-300 overflow-hidden"
+            className="relative bg-white dark:bg-slate-900 p-6 md:p-8 rounded-2xl border border-slate-200/80 dark:border-slate-800 flex flex-col"
           >
-            <Quote
-              size={72}
-              className="absolute -top-2 -right-2 text-[#2b5a8f] dark:text-blue-400 opacity-[0.06] dark:opacity-[0.1] pointer-events-none"
-              fill="currentColor"
-            />
             <div
               className="flex gap-1 mb-4 text-yellow-400"
               aria-label="Note de 5 étoiles sur 5"
             >
               {Array.from({ length: 5 }).map((_, i) => (
-                <Star key={i} size={18} fill="currentColor" />
+                <Star key={i} size={16} fill="currentColor" />
               ))}
             </div>
             <blockquote className="text-gray-700 dark:text-slate-200 leading-relaxed mb-6 flex-1">
@@ -2334,7 +2222,7 @@ export const AvisSection = () => (
             </blockquote>
             <figcaption className="flex items-center gap-3 pt-4 border-t border-gray-100 dark:border-slate-700">
               <span
-                className="w-11 h-11 rounded-full bg-gradient-to-br from-[#2b5a8f] to-cyan-500 text-white font-bold text-sm flex items-center justify-center flex-shrink-0"
+                className="w-10 h-10 rounded-full bg-[#173a5e] text-white font-bold text-sm flex items-center justify-center flex-shrink-0"
                 aria-hidden="true"
               >
                 {review.name
@@ -2362,34 +2250,32 @@ export const AvisSection = () => (
 // Bandeau d'appel à l'action final, réutilisé en bas de chaque page. Le bouton
 // « Simuler » renvoie vers le simulateur de la page d'accueil (/#simulateur),
 // il fonctionne donc depuis n'importe quelle page.
-export const FinalCTA = () => (
-  <section className="py-12 md:py-20 bg-gray-50 dark:bg-slate-950">
-    <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div className="relative bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] rounded-3xl md:rounded-[2.5rem] px-6 py-10 md:p-16 text-center text-white overflow-hidden shadow-2xl">
-        <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-cyan-400/20 blur-3xl"></div>
-        <div className="absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-green-400/15 blur-3xl"></div>
-        <div className="relative">
-          <h2 className="text-3xl md:text-4xl font-extrabold mb-4 leading-tight">
-            Prêt à réduire vos factures de chauffage ?
+export const FinalCTA = ({ href = "/#simulateur" }: { href?: string }) => (
+  <section className="py-12 md:py-20 bg-white dark:bg-slate-950">
+    <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
+      <div className="bg-[#0b1a2c] rounded-3xl px-6 py-10 md:px-14 md:py-14 text-white md:flex md:items-center md:justify-between md:gap-10">
+        <div className="text-center md:text-left">
+          <h2 className="text-[26px] md:text-4xl font-extrabold tracking-tight leading-tight">
+            Prêt à réduire vos factures de chauffage&nbsp;?
           </h2>
-          <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-            Estimation gratuite en 30 secondes, sans engagement. Un expert IP5
-            Énergie vous rappelle pour valider vos aides.
+          <p className="text-blue-100/75 text-base md:text-lg mt-3 max-w-xl">
+            Estimation gratuite en 30 secondes, sans engagement. Un conseiller vous
+            rappelle pour valider vos aides.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a
-              href="/#simulateur"
-              className="inline-flex items-center justify-center gap-2 bg-white text-[#2b5a8f] px-6 md:px-8 py-3.5 md:py-4 rounded-full font-bold text-base md:text-lg whitespace-nowrap hover:bg-blue-50 transition-colors shadow-lg"
-            >
-              <Sparkles size={20} /> Simuler mes économies
-            </a>
-            <a
-              href="tel:+33749525267"
-              className="inline-flex items-center justify-center gap-2 bg-white/10 border-2 border-white/40 text-white px-6 md:px-8 py-3.5 md:py-4 rounded-full font-bold text-base md:text-lg whitespace-nowrap hover:bg-white/20 transition-colors"
-            >
-              07 49 52 52 67
-            </a>
-          </div>
+        </div>
+        <div className="mt-7 md:mt-0 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-3 flex-shrink-0">
+          <a
+            href={href}
+            className="inline-flex items-center justify-center gap-2 bg-white text-[#173a5e] px-6 py-4 rounded-xl font-bold whitespace-nowrap hover:bg-blue-50 transition-colors"
+          >
+            Estimer mes aides <ArrowRight size={18} />
+          </a>
+          <a
+            href="tel:+33749525267"
+            className="inline-flex items-center justify-center gap-2 border border-white/25 text-white px-6 py-4 rounded-xl font-semibold whitespace-nowrap hover:bg-white/10 transition-colors"
+          >
+            07 49 52 52 67
+          </a>
         </div>
       </div>
     </div>

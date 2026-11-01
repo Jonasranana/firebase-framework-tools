@@ -7,16 +7,16 @@ import {
   Clock,
   ShieldCheck,
   ChevronDown,
-  Phone,
-  Sparkles,
-  Gift,
+  ArrowRight,
 } from "lucide-react";
 import {
   PageLayout,
   Simulator,
-  TrustBar,
   AidesSection,
   AvisSection,
+  FinalCTA,
+  Kicker,
+  SectionHead,
 } from "./ip5-sections";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -110,23 +110,17 @@ const CampagneSolaire = () => {
   return (
     <PageLayout title="Chauffe-eau solaire : vérifiez vos aides — IP5 Énergie">
       {/* ── HERO : angle « eau chaude gratuite grâce au soleil » ── */}
-      <section className="relative pt-24 pb-14 lg:pt-40 lg:pb-28 overflow-hidden bg-white dark:bg-slate-950">
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 w-[30rem] h-[30rem] rounded-full bg-amber-50 dark:bg-amber-900/20 blur-3xl opacity-70"></div>
-        <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-80 h-80 rounded-full bg-blue-50 dark:bg-blue-900/20 blur-3xl opacity-70"></div>
+      <section className="relative pt-24 pb-14 lg:pt-36 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950">
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="lg:grid lg:grid-cols-12 gap-16 items-center">
             <div className="lg:col-span-6 mb-12 lg:mb-0 text-center lg:text-left">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-bold text-sm mb-6 border border-amber-100 dark:border-amber-900 shadow-sm">
-                <Gift size={16} /> Aides 2026 ouvertes — vérifiez votre montant
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6 text-gray-900 dark:text-white">
+              <Kicker>Aides 2026 ouvertes</Kicker>
+              <h1 className="text-[32px] md:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight leading-[1.1] mb-5 text-[#0f2a47] dark:text-white">
                 Eau chaude &amp; chauffage{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-400 dark:to-orange-400">
-                  solaires
-                </span>
+                <span className="text-[#2b5a8f] dark:text-blue-300">solaires</span>
               </h1>
-              <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300 mb-8 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+              <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-7 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
                 Des panneaux solaires thermiques pour votre eau chaude{" "}
                 <b>et</b> votre chauffage — <b>à partir de 0 €</b> selon
                 éligibilité, grâce à <b>MaPrimeRénov'</b> et la{" "}
@@ -138,29 +132,27 @@ const CampagneSolaire = () => {
                 <a
                   href="#simulateur"
                   onClick={scrollToSimulateur}
-                  className="inline-flex items-center justify-center gap-3 bg-gradient-to-r from-[#2b5a8f] to-cyan-500 text-white px-9 py-4 rounded-full font-bold text-lg shadow-xl shadow-blue-500/30 hover:shadow-2xl hover:shadow-blue-500/40 hover:scale-[1.03] transition-all duration-300"
+                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2.5 bg-[#173a5e] hover:bg-[#122f4d] text-white px-8 py-4 rounded-xl font-bold text-base shadow-lg transition-colors"
                 >
-                  <Sparkles size={22} fill="currentColor" /> Vérifier mes aides
-                  gratuitement
+                  Vérifier mes aides gratuitement <ArrowRight size={18} />
                 </a>
               </div>
               <p className="mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-gray-500 dark:text-slate-400 font-medium">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-green-500" size={16} /> 100%
+                  <CheckCircle2 className="text-[#2b5a8f]" size={16} /> 100%
                   gratuit
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Clock className="text-green-500" size={16} /> 2 minutes
+                  <Clock className="text-[#2b5a8f]" size={16} /> 2 minutes
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="text-green-500" size={16} /> Sans
+                  <ShieldCheck className="text-[#2b5a8f]" size={16} /> Sans
                   engagement
                 </span>
               </p>
             </div>
 
             <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
-              <div className="absolute inset-0 bg-gradient-to-tr from-amber-100 to-blue-50 transform rotate-3 rounded-[3rem] blur-lg opacity-50"></div>
               <div className="relative">
                 <Simulator source="landing-solaire-insta" />
               </div>
@@ -169,44 +161,25 @@ const CampagneSolaire = () => {
         </div>
       </section>
 
-      {/* Gages de confiance */}
-      <TrustBar />
 
       {/* Pourquoi le chauffe-eau solaire */}
-      <section className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950 relative overflow-hidden">
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full bg-amber-100/40 dark:bg-amber-900/20 blur-3xl"></div>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-          <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-100 dark:border-amber-900">
-              <Sun size={14} /> Les avantages
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-              Pourquoi passer au{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 to-orange-500 dark:from-amber-400 dark:to-orange-400">
-                chauffe-eau solaire
-              </span>{" "}
-              ?
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-slate-300">
-              Une eau chaude économique et écologique, offerte par le soleil.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+      <section className="py-14 md:py-24 bg-white dark:bg-slate-950">
+        <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
+          <SectionHead
+            kicker="Les avantages"
+            title="Pourquoi passer au chauffe-eau solaire&nbsp;?"
+            subtitle="Une eau chaude économique et écologique, offerte par le soleil."
+          />
+          <div className="grid md:grid-cols-3 gap-8 md:gap-10">
             {AVANTAGES.map((a) => (
-              <div
-                key={a.title}
-                className="group flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 p-8 md:p-9 shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950 dark:to-orange-950 border border-amber-100 dark:border-amber-900 text-amber-600 dark:text-amber-300 flex items-center justify-center mb-6 group-hover:scale-105 transition-transform">
-                  <a.icon size={26} strokeWidth={1.75} />
+              <div key={a.title} className="flex md:flex-col gap-4">
+                <span className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-[#173a5e] dark:text-blue-300 flex items-center justify-center flex-shrink-0">
+                  <a.icon size={22} />
+                </span>
+                <div>
+                  <h3 className="text-lg font-bold text-[#0f2a47] dark:text-white">{a.title}</h3>
+                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed mt-1.5">{a.text}</p>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                  {a.title}
-                </h3>
-                <p className="text-gray-600 dark:text-slate-300 leading-relaxed">
-                  {a.text}
-                </p>
               </div>
             ))}
           </div>
@@ -220,20 +193,13 @@ const CampagneSolaire = () => {
       <AvisSection />
 
       {/* ── FAQ solaire ── */}
-      <section className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950">
+      <section className="py-14 md:py-24 bg-slate-50 dark:bg-slate-950">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-14">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 border-blue-100 dark:border-blue-900">
-              <Droplets size={14} /> Vos questions
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-              Tout ce que vous vous demandez
-            </h2>
-            <p className="text-xl text-gray-600 dark:text-slate-300">
-              Les réponses aux questions les plus fréquentes sur le chauffe-eau
-              solaire.
-            </p>
-          </div>
+          <SectionHead
+            kicker="Vos questions"
+            title="Tout ce que vous vous demandez"
+            subtitle="Les réponses aux questions les plus fréquentes sur le chauffe-eau solaire."
+          />
           <div className="space-y-4">
             {FAQ_ITEMS.map((item) => (
               <FaqItem key={item.q} q={item.q} a={item.a} />
@@ -243,43 +209,7 @@ const CampagneSolaire = () => {
       </section>
 
       {/* ── CTA final ── */}
-      <section className="py-14 md:py-20 bg-white dark:bg-slate-950">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="relative bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] rounded-[2.5rem] px-8 py-14 md:p-16 text-center text-white overflow-hidden shadow-2xl">
-            <div className="absolute -top-20 -left-20 w-72 h-72 rounded-full bg-amber-400/20 blur-3xl"></div>
-            <div className="absolute -bottom-24 -right-16 w-72 h-72 rounded-full bg-cyan-400/15 blur-3xl"></div>
-            <div className="relative">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-white font-bold text-sm mb-6">
-                <ShieldCheck size={16} /> Installateur certifié RGE — France
-                entière
-              </div>
-              <h2 className="text-3xl md:text-4xl font-extrabold mb-4 leading-tight">
-                Découvrez vos aides en 2 minutes
-              </h2>
-              <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-                Estimation gratuite et sans engagement. Un expert IP5 Énergie
-                vous rappelle pour valider votre éligibilité et chiffrer votre
-                projet.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <a
-                  href="#simulateur"
-                  onClick={scrollToSimulateur}
-                  className="inline-flex items-center justify-center gap-2 bg-white text-[#2b5a8f] px-8 py-4 rounded-full font-bold text-lg hover:bg-blue-50 transition-colors shadow-lg"
-                >
-                  <Sparkles size={20} /> Vérifier mes aides
-                </a>
-                <a
-                  href="tel:+33749525267"
-                  className="inline-flex items-center justify-center gap-2 bg-white/10 border-2 border-white/40 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white/20 transition-colors"
-                >
-                  <Phone size={20} /> 07 49 52 52 67
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FinalCTA href="#simulateur" />
     </PageLayout>
   );
 };

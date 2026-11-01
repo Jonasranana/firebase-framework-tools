@@ -1,12 +1,12 @@
 import React from "react";
-import { ShieldCheck, CheckCircle2, ArrowRight, Award, Phone, Building2, ClipboardCheck, Home, FileText, Wrench, HandCoins, Users } from "lucide-react";
+import { ShieldCheck, CheckCircle2, ArrowRight, Phone, ClipboardCheck, Home, FileText, Wrench, HandCoins, Users } from "lucide-react";
 import {
   PageLayout,
   Simulator,
-  TrustBar,
   AvantagesSection,
   VideoSection,
   FinalCTA,
+  SectionHead,
   Reveal,
 } from "./ip5-sections";
 
@@ -121,16 +121,6 @@ const IP5Energie = () => {
                   <CheckCircle2 className="text-emerald-300" size={16} /> Rappel par un conseiller
                 </span>
               </p>
-
-              {/* Identité de l'entreprise : rassure par des faits vérifiables. */}
-              <div className="lg:mt-10 lg:pt-6 lg:border-t border-slate-200 lg:border-white/15 dark:border-slate-800 flex items-start gap-3 lg:justify-start text-left">
-                <Building2 size={20} className="mt-0.5 text-[#2b5a8f] lg:text-white/70 dark:text-blue-300 shrink-0" />
-                <p className="text-sm text-slate-500 lg:text-white/65 dark:text-slate-400 leading-relaxed">
-                  <span className="font-semibold text-slate-700 lg:text-white dark:text-slate-200">IP5 CONSEILS</span> — société française, siège à Paris
-                  <br />
-                  SIREN 890 293 277 · Certifiée RGE QualiPAC
-                </p>
-              </div>
             </div>
 
             <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
@@ -140,36 +130,38 @@ const IP5Energie = () => {
         </div>
       </section>
 
-      {/* Bande de confiance */}
-      <TrustBar />
-
-      {/* Déroulé d'un projet : rassure sur ce qui se passe après la demande */}
+      {/* Déroulé d'un projet : une frise en 4 étapes (horizontale sur ordinateur,
+          verticale sur téléphone), reliées par une ligne. */}
       <Reveal>
-        <section className="py-14 md:py-20 bg-white dark:bg-slate-950">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-2xl mb-8 md:mb-12">
-              <p className="text-sm font-semibold uppercase tracking-wider text-[#2b5a8f] dark:text-blue-300 mb-2">Notre méthode</p>
-              <h2 className="text-3xl font-bold text-[#0f2a47] dark:text-white mb-3">Un projet suivi de A à Z</h2>
-              <p className="text-lg text-slate-600 dark:text-slate-300">
-                Vous n'avez pas à gérer les dossiers ni à chercher un artisan : nous coordonnons chaque étape.
-              </p>
-            </div>
-            <ol className="grid md:grid-cols-4 gap-3 md:gap-6">
+        <section className="py-14 md:py-24 bg-white dark:bg-slate-950">
+          <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
+            <SectionHead
+              kicker="Notre méthode"
+              title="Un projet suivi de A à Z"
+              subtitle="Vous n'avez ni dossier à gérer ni artisan à chercher : nous coordonnons chaque étape."
+            />
+            <ol className="relative grid md:grid-cols-4 md:gap-8">
+              <span className="hidden md:block absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-cyan-500" aria-hidden="true"></span>
               {[
-                { icon: ClipboardCheck, title: "Étude de votre projet", text: "Vous répondez à quelques questions. Un conseiller vous rappelle pour vérifier votre éligibilité aux aides." },
-                { icon: Home, title: "Visite technique", text: "Un professionnel étudie votre logement et définit la pompe à chaleur adaptée à vos besoins." },
-                { icon: FileText, title: "Dossiers d'aides", text: "Nous montons vos dossiers MaPrimeRénov' et CEE. Les aides sont déduites de votre devis." },
-                { icon: Wrench, title: "Installation certifiée", text: "La pose est réalisée par un artisan certifié RGE, puis nous restons votre interlocuteur." },
-              ].map((step, i) => (
-                <li key={step.title} className="relative bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 md:p-6">
-                  <div className="flex items-center justify-between mb-3 md:mb-5">
-                    <span className="w-10 h-10 rounded-lg bg-[#173a5e] text-white flex items-center justify-center">
-                      <step.icon size={20} />
+                { icon: ClipboardCheck, title: "Étude de votre projet", text: "Quelques questions, puis un conseiller vous rappelle pour vérifier vos droits." },
+                { icon: Home, title: "Visite technique", text: "Un professionnel étudie votre logement et choisit la pompe à chaleur adaptée." },
+                { icon: FileText, title: "Dossiers d'aides", text: "Nous montons MaPrimeRénov' et CEE. Les aides sont déduites du devis." },
+                { icon: Wrench, title: "Installation certifiée", text: "Pose par un artisan RGE, et nous restons votre interlocuteur ensuite." },
+              ].map((step, i, all) => (
+                <li key={step.title} className="relative flex md:flex-col md:items-center md:text-center gap-5 md:gap-0 pb-8 md:pb-0 last:pb-0">
+                  {i < all.length - 1 && (
+                    <span className="md:hidden absolute left-7 top-14 bottom-0 w-px bg-slate-200 dark:bg-slate-800" aria-hidden="true"></span>
+                  )}
+                  <span className="relative z-10 w-14 h-14 rounded-full bg-white dark:bg-slate-900 border-2 border-[#173a5e] dark:border-blue-300 text-[#173a5e] dark:text-blue-300 flex items-center justify-center flex-shrink-0 md:mb-5 shadow-[0_0_0_6px_white] dark:shadow-[0_0_0_6px_#020617]">
+                    <step.icon size={22} />
+                    <span className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-300 text-[#0b1a2c] text-[11px] font-extrabold flex items-center justify-center">
+                      {i + 1}
                     </span>
-                    <span className="text-sm font-semibold text-slate-400">0{i + 1}</span>
+                  </span>
+                  <div className="pt-1 md:pt-0">
+                    <h3 className="text-lg font-bold text-[#0f2a47] dark:text-white leading-snug">{step.title}</h3>
+                    <p className="text-[15px] text-slate-500 dark:text-slate-400 leading-relaxed mt-1.5 md:max-w-[230px] md:mx-auto">{step.text}</p>
                   </div>
-                  <h3 className="text-base font-semibold text-[#0f2a47] dark:text-white mb-2">{step.title}</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{step.text}</p>
                 </li>
               ))}
             </ol>
@@ -189,20 +181,13 @@ const IP5Energie = () => {
 
       {/* Raccourcis vers les pages détaillées */}
       <Reveal>
-      <section className="py-14 md:py-24 bg-white dark:bg-slate-950">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center max-w-3xl mx-auto mb-10 md:mb-16">
-            <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-5 border bg-blue-50 dark:bg-blue-950/50 text-[#2b5a8f] dark:text-blue-300 border-blue-100 dark:border-blue-900">
-              <Award size={14} /> Découvrir IP5 Énergie
-            </span>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white mb-4">
-              Tout ce qu'il faut savoir sur votre projet
-            </h2>
-            <p className="text-lg md:text-xl text-gray-600 dark:text-slate-300">
-              Nos pompes à chaleur, les aides de l'État et nos chantiers, en
-              détail.
-            </p>
-          </div>
+      <section className="py-14 md:py-24 bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+          <SectionHead
+            kicker="Découvrir IP5 Énergie"
+            title="Tout savoir sur votre projet"
+            subtitle="Nos pompes à chaleur, les aides de l'État et nos chantiers, en détail."
+          />
 
           <div className="grid md:grid-cols-3 gap-5 md:gap-8">
             {[
@@ -231,7 +216,7 @@ const IP5Energie = () => {
               <a
                 key={card.href}
                 href={card.href}
-                className="group flex flex-col bg-white dark:bg-slate-900 rounded-3xl border border-gray-100 dark:border-slate-800 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 overflow-hidden"
+                className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 hover:shadow-lg transition-shadow duration-300 overflow-hidden"
               >
                 <div className="h-44 overflow-hidden bg-slate-50 dark:bg-slate-800 border-b border-gray-100 dark:border-slate-800">
                   {card.visual === "marques" && (
