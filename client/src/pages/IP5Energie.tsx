@@ -21,14 +21,14 @@ const IP5Energie = () => {
         {/* Téléphone : grande photo avec le titre posé dessus, comme les sites
             des grands installateurs. Sur ordinateur, la mise en page reste en
             deux colonnes (texte + simulateur). */}
-        <div className="lg:hidden relative h-[400px] overflow-hidden bg-[#0b1a2c]">
+        <div className="lg:hidden relative h-[420px] overflow-hidden bg-[#0b1a2c]">
           <img
             src="/images/hero-accueil.jpg"
-            alt="Un couple consulte ses factures de chauffage chez lui"
-            className="absolute inset-0 w-full h-full object-cover object-[45%_30%] scale-105"
+            alt="Un couple étudie son projet de rénovation avec un ordinateur"
+            className="absolute inset-0 w-full h-full object-cover object-[50%_22%]"
             fetchPriority="high"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/0 via-[#0b1a2c]/30 to-[#0b1a2c]/95"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/0 via-[#0b1a2c]/10 to-[#0b1a2c]/95"></div>
           <div className="absolute inset-x-0 bottom-0 px-5 pb-6 text-white animate-in fade-in slide-in-from-bottom-3 duration-700">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 px-3 py-1 text-[12px] font-semibold mb-3">
               <ShieldCheck size={14} className="text-emerald-300" /> Installateur certifié RGE QualiPAC
