@@ -59,17 +59,38 @@ export function useFrenchPageMeta(title: string) {
 // Logo IP5 Énergie : tracé vectoriel exact du logo officiel (voir ip5-logo.ts).
 // La couleur suit currentColor : bleu marque dans le header, blanchi par le
 // filtre du footer.
-export const LogoIP5 = ({ className = "" }: { className?: string }) => (
-  <svg
-    viewBox={LOGO_FULL_VIEWBOX}
-    className={`h-10 md:h-14 w-auto text-[#2b5a8f] ${className}`}
-    xmlns="http://www.w3.org/2000/svg"
-    role="img"
-    aria-label="IP5 Énergie"
-  >
-    <path d={LOGO_FULL_D} fill="currentColor" fillRule="evenodd" />
-  </svg>
-);
+export const LogoIP5 = ({
+  className = "",
+  metallic = false,
+}: {
+  className?: string;
+  // Dégradé bleu nuit → argent (effet métal brossé), utilisé dans l'en-tête.
+  metallic?: boolean;
+}) => {
+  const gid = `ip5-metal-${React.useId().replace(/:/g, "")}`;
+  return (
+    <svg
+      viewBox={LOGO_FULL_VIEWBOX}
+      className={`h-12 md:h-14 w-auto text-[#2b5a8f] ${className}`}
+      xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="IP5 Énergie"
+    >
+      {metallic && (
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#0f2b4a" />
+            <stop offset=".45" stopColor="#2b5a8f" />
+            <stop offset=".7" stopColor="#5f7c9c" />
+            <stop offset=".86" stopColor="#a3b6c9" />
+            <stop offset="1" stopColor="#56708c" />
+          </linearGradient>
+        </defs>
+      )}
+      <path d={LOGO_FULL_D} fill={metallic ? `url(#${gid})` : "currentColor"} fillRule="evenodd" />
+    </svg>
+  );
+};
 
 // Config Firebase du site (projet Kachoto), partagée par l'enregistrement des
 // leads (Firestore) et l'assistant IA (Firebase AI Logic / Gemini).
@@ -145,8 +166,8 @@ export const SiteHeader = () => {
             >
               {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
-            <a href="/">
-              <LogoIP5 />
+            <a href="/" aria-label="IP5 Énergie, accueil">
+              <LogoIP5 metallic className="!h-8 md:!h-14" />
             </a>
           </div>
           <div className="hidden lg:flex space-x-5 xl:space-x-8 items-center lg:ml-8 xl:ml-12">
