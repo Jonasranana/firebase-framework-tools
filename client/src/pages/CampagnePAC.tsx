@@ -114,7 +114,7 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 // Une couleur par énergie, au style des tuiles du simulateur.
 const HEATING_OPTIONS = [
   { value: "Fioul", label: "Fioul", icon: Droplet, tint: "from-amber-300 to-amber-500" },
-  { value: "Gaz", label: "Gaz", icon: Flame, tint: "from-sky-400 to-blue-600" },
+  { value: "Gaz", label: "Gaz", icon: Flame, tint: "from-[#2b5a8f] to-[#0f2b4a]" },
   { value: "Autre", label: "Autre", icon: HelpCircle, tint: "from-slate-400 to-slate-600" },
 ];
 
@@ -143,7 +143,7 @@ const QuickShell = ({
   badge: string;
 }) => (
   <div className="bg-white dark:bg-slate-900 rounded-[1.75rem] shadow-2xl shadow-blue-950/15 max-w-md w-full mx-auto overflow-hidden border border-slate-200/80 dark:border-slate-800 text-left">
-    <div className="bg-gradient-to-br from-[#0f2b4a] via-[#1d4e89] to-[#0e7490] px-5 pt-4 pb-4 text-white">
+    <div className="bg-gradient-to-br from-[#173a5e] via-[#1d4e89] to-[#2b5a8f] px-5 pt-4 pb-4 text-white">
       <div className="flex items-center justify-between gap-3">
         {onBack ? (
           <button
@@ -227,8 +227,8 @@ const QuickStart = ({ source }: { source: string }) => {
     return (
       <QuickShell badge="Demande envoyée">
         <div className="text-center py-2">
-          <span className="mx-auto mb-4 w-16 h-16 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center">
-            <CheckCircle2 className="text-emerald-500" size={36} />
+          <span className="mx-auto mb-4 w-16 h-16 rounded-full bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center">
+            <CheckCircle2 className="text-amber-500" size={36} />
           </span>
           <h3 className={title}>Merci {form.firstName.trim()} !</h3>
           <p className="text-slate-600 dark:text-slate-300 mt-2">
@@ -255,12 +255,12 @@ const QuickStart = ({ source }: { source: string }) => {
                 setHeating(value);
                 trackStep(source, 1, { currentHeating: value });
               }}
-              className="group flex flex-col items-center gap-2.5 py-4 sm:py-5 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all"
+              className="group flex flex-col items-center gap-3 py-5 sm:py-6 rounded-2xl border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.98] transition-all"
             >
-              <span className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br ${tint} text-white flex items-center justify-center shadow-md`}>
-                <Icon size={24} />
+              <span className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${tint} text-white flex items-center justify-center shadow-md`}>
+                <Icon size={28} />
               </span>
-              <span className="font-bold text-[15px] text-[#0f2a47] dark:text-white">{label}</span>
+              <span className="font-bold text-[17px] text-[#0f2a47] dark:text-white">{label}</span>
             </button>
           ))}
         </div>
@@ -464,7 +464,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
       {/* ── HERO calé sur l'annonce : angle AIDES. Téléphone : photo + titre,
           puis tout de suite la question rapide. Ordinateur : photo en fond,
           texte à gauche, question à droite (comme l'accueil). ── */}
-      <section className="relative pt-16 pb-10 lg:pt-36 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950 lg:bg-[#0b1a2c]">
+      <section className="relative pt-16 pb-12 lg:pt-36 lg:pb-24 overflow-hidden bg-[#0b1a2c]">
         <div className="hidden lg:block absolute inset-0" aria-hidden="true">
           <img src="/images/hero-pac.jpg" alt="" className="absolute inset-0 w-full h-full object-cover" fetchPriority="high" />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0b1a2c] via-[#0b1a2c]/85 to-[#0b1a2c]/40"></div>
@@ -478,10 +478,10 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
             className="absolute inset-0 w-full h-full object-cover"
             fetchPriority="high"
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/30 via-[#0b1a2c]/45 to-[#0b1a2c]/95"></div>
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/30 via-[#0b1a2c]/50 to-[#0b1a2c]"></div>
           <div className="absolute inset-x-0 bottom-0 px-5 pb-14 text-white animate-in fade-in slide-in-from-bottom-3 duration-700">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 px-3 py-1 text-[12px] font-semibold mb-3">
-              <ShieldCheck size={14} className="text-emerald-300" /> Aides 2026 : MaPrimeRénov' + CEE
+              <ShieldCheck size={14} className="text-amber-200" /> Aides 2026 : MaPrimeRénov' + CEE
             </span>
             <h1 className="text-[28px] leading-[1.1] font-extrabold tracking-tight drop-shadow-sm">
               Jusqu'à{" "}
@@ -495,7 +495,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
           <div className="lg:grid lg:grid-cols-12 gap-14 items-center">
             <div className="hidden lg:block lg:col-span-6 text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-white font-semibold text-sm mb-6 border border-white/20">
-                <ShieldCheck size={16} className="text-emerald-300" /> Aides 2026 : MaPrimeRénov' et prime CEE
+                <ShieldCheck size={16} className="text-amber-200" /> Aides 2026 : MaPrimeRénov' et prime CEE
               </div>
               <h1 className="text-[3.4rem] font-extrabold tracking-tight leading-[1.05] mb-6 text-white">
                 Jusqu'à{" "}
@@ -523,9 +523,9 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
                 </a>
               </div>
               <p className="mt-6 flex items-center gap-x-6 gap-y-1.5 flex-wrap text-sm text-white/80">
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-emerald-300" size={16} /> Étude gratuite</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-emerald-300" size={16} /> Sans engagement</span>
-                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-emerald-300" size={16} /> Artisans certifiés RGE</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-amber-200" size={16} /> Étude gratuite</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-amber-200" size={16} /> Sans engagement</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-amber-200" size={16} /> Artisans certifiés RGE</span>
               </p>
             </div>
 
@@ -541,9 +541,9 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
               { icon: HandCoins, label: "Aides déduites du devis" },
               { icon: Users, label: "Entreprise familiale" },
             ].map((g) => (
-              <li key={g.label} className="flex flex-col items-center gap-1.5 rounded-xl bg-white border border-slate-200 px-1.5 py-2.5 dark:bg-slate-900 dark:border-slate-800">
-                <g.icon size={18} className="text-[#2b5a8f] dark:text-blue-300" />
-                <span className="text-[11.5px] font-semibold leading-tight text-slate-700 dark:text-slate-200">{g.label}</span>
+              <li key={g.label} className="flex flex-col items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-1.5 py-2.5">
+                <g.icon size={18} className="text-amber-200" />
+                <span className="text-[11.5px] font-semibold leading-tight text-white/85">{g.label}</span>
               </li>
             ))}
           </ul>

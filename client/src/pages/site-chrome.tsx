@@ -271,7 +271,7 @@ export const SiteFooter = () => (
           </p>
           <div className="flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200">
-              <ShieldCheck size={14} className="text-emerald-400" /> Certifié RGE QualiPAC
+              <ShieldCheck size={14} className="text-amber-200" /> Certifié RGE QualiPAC
             </span>
             <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-slate-200">
               <Clock size={14} className="text-sky-300" /> Lun – sam, 8h – 19h
@@ -289,7 +289,7 @@ export const SiteFooter = () => (
             </li>
             <li>
               <a href="https://wa.me/33749525267" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-white transition-colors">
-                <MessageCircle size={16} className="text-emerald-400" /> <span>WhatsApp</span>
+                <MessageCircle size={16} className="text-amber-200" /> <span>WhatsApp</span>
               </a>
             </li>
             <li>
@@ -402,7 +402,7 @@ const AI_WELCOME_MESSAGE: ChatMessage = {
 // Badge de marque Gemini : dégradé aux couleurs de l'icône Google Gemini,
 // réutilisé sur le bouton flottant et dans l'en-tête du chat.
 const GeminiBadge = ({ size = 12 }: { size?: number }) => (
-  <span className="bg-gradient-to-br from-blue-400 via-purple-400 to-pink-400 rounded-full p-1 flex items-center justify-center flex-shrink-0">
+  <span className="bg-gradient-to-br from-[#2b5a8f] to-[#0f2b4a] rounded-full p-1 flex items-center justify-center flex-shrink-0">
     <Sparkles size={size} className="text-white" />
   </span>
 );
@@ -493,7 +493,7 @@ export const AIChatWidget = () => {
                 <GeminiBadge size={10} />
                 <span className="text-[11px] font-semibold text-blue-100">
                   Propulsé par{" "}
-                  <span className="bg-gradient-to-r from-blue-300 via-purple-300 to-pink-300 bg-clip-text text-transparent">
+                  <span className="bg-gradient-to-r from-amber-200 to-yellow-100 bg-clip-text text-transparent">
                     Google Gemini
                   </span>
                 </span>
@@ -565,11 +565,11 @@ export const AIChatWidget = () => {
       <button
         onClick={() => setIsOpen((v) => !v)}
         aria-label={isOpen ? "Fermer l'assistant Gemini" : "Ouvrir l'assistant Gemini"}
-        className="flex fixed bottom-[76px] right-4 lg:bottom-28 lg:right-6 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-[#4285f4] via-[#8b5cf6] to-[#ec4899] text-white rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-purple-500/30 active:scale-95 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
+        className="flex fixed bottom-[76px] right-4 lg:bottom-28 lg:right-6 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-[#1d4e89] to-[#0b1a2c] text-amber-200 rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-blue-950/30 active:scale-95 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
       >
         {!isOpen && (
           <span
-            className="absolute inset-0 rounded-full bg-gradient-to-br from-[#4285f4] via-[#8b5cf6] to-[#ec4899] animate-ping opacity-25"
+            className="absolute inset-0 rounded-full bg-[#2b5a8f] animate-ping opacity-25"
             aria-hidden="true"
           ></span>
         )}
