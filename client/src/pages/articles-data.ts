@@ -19,6 +19,9 @@
 //   photo réelle d'IP5 Énergie, photo fournie par le propriétaire, ou illustration dessinée.
 //   `imageCredit` dit honnêtement ce que c'est (« Photo IP5 Énergie », « Illustration »…).
 //   Jamais une image prise sur internet sans licence.
+// - Catégories : « Actualités », « Aides & subventions », « Pompe à chaleur », « Solaire »,
+//   « Certification & confiance ». Une actualité peut citer des chiffres publics officiels
+//   (ex. prix repère de la CRE) à condition d'en indiquer la source en fin d'article.
 
 export type ContentBlock =
   | { type: "p"; text: string }
@@ -45,6 +48,54 @@ export type Article = {
 const img = (slug: string) => `/images/articles/${slug}.jpg`;
 
 export const ARTICLES: Article[] = [
+  {
+    slug: "hausse-prix-gaz-chauffage-novembre-2026",
+    title: "Gaz : le kWh de chauffage a bondi de 52 % en un an, combien ça coûte vraiment à une maison",
+    excerpt:
+      "Au 1er novembre 2026, le prix repère du gaz pour le chauffage atteint 0,1576 € le kWh, contre 0,1035 € un an plus tôt. Pour une maison chauffée au gaz, l'addition annuelle peut grimper de plusieurs centaines d'euros. Nos calculs, et les solutions pour reprendre la main.",
+    category: "Actualités",
+    date: "2026-11-01",
+    readMinutes: 5,
+    image: img("hausse-prix-gaz-chauffage-novembre-2026"),
+    imageAlt: "Illustration : une flamme de gaz et un graphique de prix en forte hausse",
+    imageCredit: "Illustration IP5 Énergie",
+    keyPoints: [
+      "Le prix repère du gaz « chauffage » passe à 0,1576 € le kWh TTC au 1er novembre 2026 (+8,3 % en un mois, +52 % en un an).",
+      "Pour une maison consommant 12 000 kWh par an, le budget gaz passerait d'environ 1 572 € à 2 252 € sur un an : 680 € de plus.",
+      "Seuls les contrats indexés sur le prix repère suivent cette hausse ; à long terme, la pompe à chaleur divise la quantité d'énergie achetée.",
+    ],
+    content: [
+      { type: "p", text: "La saison de chauffe commence mal pour les foyers chauffés au gaz. Au 1er novembre 2026, le prix repère publié chaque mois par la Commission de régulation de l'énergie (CRE) fixe le kWh de gaz destiné au chauffage à 0,1576 € toutes taxes comprises. C'est 8,3 % de plus qu'en octobre, et surtout environ 52 % de plus qu'en novembre 2025, quand ce même kWh s'affichait autour de 0,1035 €." },
+      { type: "p", text: "Le prix repère sert de référence à de nombreuses offres du marché : les contrats « indexés » le suivent mois après mois. La hausse tombe au pire moment, au début des mois les plus froids, quand la chaudière tourne le plus." },
+      { type: "h2", text: "Notre calcul pour une maison de 12 000 kWh par an" },
+      { type: "p", text: "Prenons une maison individuelle chauffée au gaz qui consomme 12 000 kWh par an, un niveau courant pour une maison familiale. Nous avons appliqué les prix repère de novembre 2025 et de novembre 2026 comme s'ils restaient valables toute l'année. C'est un ordre de grandeur, pas une prévision : le prix repère change chaque mois." },
+      { type: "box", title: "Budget gaz sur un an, au prix repère « chauffage »", items: [
+        "Novembre 2025 : 12 000 kWh × 0,1035 € ≈ 1 241 €, plus l'abonnement (≈ 331 €), soit environ 1 572 € par an.",
+        "Novembre 2026 : 12 000 kWh × 0,1576 € ≈ 1 891 €, plus l'abonnement (≈ 361 €), soit environ 2 252 € par an.",
+        "Écart : environ 680 € de plus sur l'année, soit +43 % sur le budget total.",
+      ] },
+      { type: "p", text: "Le budget total augmente un peu moins vite que le prix du kWh, car l'abonnement, lui, a moins progressé. Pour estimer votre propre cas, une règle simple : comptez environ 54 € de plus par tranche de 1 000 kWh consommés, auxquels s'ajoutent une trentaine d'euros d'abonnement." },
+      { type: "tip", title: "Qui est concerné ?", text: "Seules les offres indexées sur le prix repère, ou qui évoluent avec lui, répercutent cette hausse. Les offres à prix fixe ne bougent pas pendant leur durée, même si les taxes et le coût d'acheminement peuvent, eux, évoluer. Votre dernière facture indique le type de contrat et votre consommation annuelle." },
+      { type: "h2", text: "À court terme : limiter la casse cet hiver" },
+      { type: "list", items: [
+        "Faire entretenir sa chaudière : c'est obligatoire chaque année, et une chaudière bien réglée consomme moins.",
+        "Baisser la consigne : chaque degré en moins sur le thermostat réduit sensiblement la consommation de chauffage.",
+        "Programmer le chauffage en fonction des heures de présence et des pièces réellement occupées.",
+        "Vérifier son contrat et comparer, en gardant en tête qu'un prix fixe protège de la hausse mais pas d'une éventuelle baisse.",
+      ] },
+      { type: "h2", text: "À long terme : la pompe à chaleur change l'équation" },
+      { type: "p", text: "Ces gestes limitent la facture, mais ne changent pas le fond du problème : une chaudière gaz restera exposée aux variations du marché. Une pompe à chaleur air/eau fonctionne autrement. Elle ne brûle rien : elle capte les calories de l'air extérieur et restitue en moyenne 3 à 4 kWh de chaleur pour 1 kWh d'électricité consommé." },
+      { type: "p", text: "Concrètement, pour notre maison de 12 000 kWh de gaz, la chaleur réellement utile tourne autour de 10 800 kWh, en tenant compte du rendement d'une chaudière. Une pompe à chaleur bien dimensionnée fournirait cette même chaleur avec environ 2 700 à 3 600 kWh d'électricité. La quantité d'énergie achetée est donc divisée par trois à quatre. L'économie exacte dépend ensuite du prix de votre électricité, de l'isolation et du réglage de l'installation." },
+      { type: "tip", title: "Les aides réduisent la facture d'installation", text: "Remplacer une chaudière gaz par une pompe à chaleur peut ouvrir droit à MaPrimeRénov' (selon vos revenus) et aux primes CEE, cumulables, à condition de passer par un installateur certifié RGE. Une nouvelle chaudière gaz, elle, n'est plus aidée par l'État." },
+      { type: "faq", items: [
+        { q: "Pourquoi le prix du gaz augmente-t-il autant ?", a: "Le prix repère suit les prix du gaz sur les marchés de gros, qui varient selon la demande, la saison et le contexte international. Il est mis à jour chaque mois par la CRE." },
+        { q: "Ma facture va-t-elle augmenter de 52 % ?", a: "Non : ce chiffre concerne le prix du kWh sur un an. Votre facture dépend de votre type de contrat (indexé ou fixe), de votre consommation et de l'abonnement. Dans notre exemple, le budget total augmente d'environ 43 %." },
+        { q: "Une pompe à chaleur convient-elle à ma maison chauffée au gaz ?", a: "Dans la plupart des cas, oui : elle se raccorde souvent aux radiateurs existants. Une étude gratuite sur place permet de le vérifier et de chiffrer le projet aides déduites." },
+      ] },
+      { type: "p", text: "Vous êtes chauffé au gaz et la facture vous inquiète ? Calculez en 30 secondes les aides auxquelles vous avez droit pour passer à la pompe à chaleur avec notre simulateur, ou appelez un conseiller IP5 Énergie au 07 49 52 52 67. L'étude est gratuite et sans engagement." },
+      { type: "p", text: "Source des prix : prix repère de vente de gaz naturel, usage chauffage, TTC, publiés par la Commission de régulation de l'énergie (CRE). Calculs IP5 Énergie, arrondis à l'euro." },
+    ],
+  },
   {
     slug: "maprimerenov-2026-quatre-profils",
     title: "MaPrimeRénov' : bleu, jaune, violet ou rose, quel profil êtes-vous ?",
@@ -237,7 +288,7 @@ export const ARTICLES: Article[] = [
     imageAlt: "Unité extérieure de pompe à chaleur installée sur un socle au pied d'une maison",
     imageCredit: "Photo IP5 Énergie",
     keyPoints: [
-      "Quatre dispositifs nationaux se combinent : MaPrimeRénov', CEE, éco-PTZ et TVA à 5,5 %.",
+      "Quatre dispositifs nationaux se combinent : MaPrimeRénov', CEE, éco-PTZ et TVA à 5,5 %.",
       "Des aides locales s'ajoutent parfois, selon la région ou le département.",
       "Chaque aide a ses propres conditions : une vérification au cas par cas s'impose.",
     ],
@@ -247,7 +298,7 @@ export const ARTICLES: Article[] = [
         "MaPrimeRénov' : aide directe de l'État, calculée selon les revenus et le type de travaux.",
         "Les primes CEE : financées par les fournisseurs d'énergie, cumulables avec MaPrimeRénov'.",
         "L'éco-prêt à taux zéro (éco-PTZ) : un prêt sans intérêts pour financer le reste à charge.",
-        "La TVA à 5,5 % : appliquée directement sur la facture des travaux au lieu de 20 %.",
+        "La TVA à 5,5 % : appliquée directement sur la facture des travaux au lieu de 20 %.",
       ] },
       { type: "h2", text: "Des coups de pouce locaux" },
       { type: "p", text: "Certaines régions, départements ou intercommunalités proposent des aides complémentaires. Leur existence, leurs montants et leurs critères varient d'un territoire à l'autre, et peuvent changer d'une année sur l'autre." },
@@ -255,7 +306,7 @@ export const ARTICLES: Article[] = [
       { type: "p", text: "MaPrimeRénov', les CEE, l'éco-PTZ et la TVA réduite peuvent se combiner sur un même projet de pompe à chaleur. Chacun conserve pourtant ses propres critères : revenus, ancienneté du logement, nature des travaux. Un dossier mal monté peut faire perdre une partie des aides." },
       { type: "tip", title: "Bon à savoir", text: "Les aides se demandent avant la signature du devis. Commencer les travaux trop tôt est l'erreur la plus coûteuse." },
       { type: "faq", items: [
-        { q: "Les aides peuvent-elles couvrir 100 % des travaux ?", a: "Cela dépend des revenus, du projet et des règles en vigueur : seul un calcul sur votre situation permet de le dire." },
+        { q: "Les aides peuvent-elles couvrir 100 % des travaux ?", a: "Cela dépend des revenus, du projet et des règles en vigueur : seul un calcul sur votre situation permet de le dire." },
         { q: "Qui monte le dossier ?", a: "Un installateur RGE peut s'en charger. Chez IP5 Énergie, le dossier d'aides est préparé de A à Z." },
       ] },
       { type: "p", text: "IP5 Énergie calcule vos droits réels et monte l'ensemble du dossier. Testez notre simulateur ou appelez le 07 49 52 52 67." },
