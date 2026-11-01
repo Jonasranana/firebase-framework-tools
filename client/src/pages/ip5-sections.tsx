@@ -659,19 +659,19 @@ const Choice = ({
 }) => {
   const t = TINTS[tint];
   const base =
-    "group relative w-full bg-white border-2 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2b5a8f] animate-in fade-in slide-in-from-bottom-2 fill-mode-both active:scale-[0.98]";
+    "group relative w-full bg-white border-2 touch-manipulation select-none transition-all duration-150 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2b5a8f] animate-in fade-in slide-in-from-bottom-1 active:scale-[0.98]";
   const state = picked
     ? `${t.ring} ring-2 ring-offset-0 ${t.soft} shadow-lg scale-[1.02]`
     : `border-slate-200 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 ${dimmed ? "opacity-50" : ""}`;
   const check = picked && (
     <span
       className={`absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br ${t.icon} text-white flex items-center justify-center shadow`}
-      style={{ animation: "ip5-pop .35s ease-out both" }}
+      style={{ animation: "ip5-pop .2s ease-out both" }}
     >
       <Check size={14} strokeWidth={3} />
     </span>
   );
-  const style = { animationDelay: `${delay}ms`, animationDuration: "400ms" };
+  const style = { animationDelay: `${Math.round(delay / 3)}ms`, animationDuration: "220ms" };
   if (layout === "number")
     return (
       <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl py-4 flex flex-col items-center justify-center`}>
@@ -803,7 +803,7 @@ export const Simulator = ({
     setIsCalculating(true);
     // Coordonnées déjà données en cours de route : la demande part directement, sans les redemander.
     const send = contactSaved ? sendLead(data) : Promise.resolve(false);
-    Promise.all([send, new Promise((r) => setTimeout(r, 1800))]).then(([sent]) => {
+    Promise.all([send, new Promise((r) => setTimeout(r, 1400))]).then(([sent]) => {
       setIsCalculating(false);
       setStep(sent ? TOTAL_QUESTIONS + 2 : TOTAL_QUESTIONS + 1);
     });
@@ -849,7 +849,7 @@ export const Simulator = ({
     pickTimer.current = window.setTimeout(() => {
       setPicked(null);
       advance(rewardFor(key, value), next);
-    }, 320);
+    }, 130);
   };
   const isPicked = (key: keyof SimulatorData, value: string) => picked === `${key}:${value}`;
   const pickProps = (key: keyof SimulatorData, value: string) => ({
@@ -1515,7 +1515,7 @@ export const Simulator = ({
       : step === TOTAL_QUESTIONS + 1
         ? "Votre estimation"
         : "Votre résultat";
-  const stepAnim = goingBack ? "slide-in-from-left-6" : "slide-in-from-right-6";
+  const stepAnim = goingBack ? "slide-in-from-left-4" : "slide-in-from-right-4";
 
   return (
     <div className="bg-white rounded-[1.75rem] shadow-2xl shadow-blue-950/15 max-w-md w-full mx-auto relative overflow-hidden border border-slate-200/80">
@@ -1590,10 +1590,10 @@ export const Simulator = ({
         {reward && showProgress && step <= TOTAL_QUESTIONS && (
           <div
             key={`r-${step}-${earlyContact}`}
-            className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-900 text-[13px] font-semibold rounded-2xl px-3 py-2.5 mb-4 animate-in fade-in slide-in-from-top-2 duration-500"
+            className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-900 text-[13px] font-semibold rounded-2xl px-3 py-2.5 mb-4 animate-in fade-in slide-in-from-top-1 duration-200"
             role="status"
           >
-            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm" style={{ animation: "ip5-pop .45s ease-out .15s both" }}>
+            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm" style={{ animation: "ip5-pop .3s ease-out both" }}>
               <Check size={15} strokeWidth={3} />
             </span>
             <span className="leading-snug">{reward}</span>
@@ -1619,7 +1619,7 @@ export const Simulator = ({
                 <li
                   key={line}
                   className="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2 text-[13px] font-semibold text-slate-700 animate-in fade-in slide-in-from-left-4 fill-mode-both"
-                  style={{ animationDelay: `${250 + i * 450}ms`, animationDuration: "400ms" }}
+                  style={{ animationDelay: `${150 + i * 350}ms`, animationDuration: "300ms" }}
                 >
                   <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0">
                     <Check size={12} strokeWidth={3} />
@@ -1630,7 +1630,7 @@ export const Simulator = ({
             </ul>
           </div>
         ) : (
-          <div key={`s-${step}-${earlyContact}`} className={`animate-in fade-in ${stepAnim} duration-300`}>
+          <div key={`s-${step}-${earlyContact}`} className={`animate-in fade-in ${stepAnim} duration-200`}>
             {step !== TOTAL_QUESTIONS + 1 && !earlyContact && (
               <div className="[&>div]:h-28 [&>div]:mb-4 md:[&>div]:h-32">
                 <StepIllustration step={step} surface={formData.surface} />
