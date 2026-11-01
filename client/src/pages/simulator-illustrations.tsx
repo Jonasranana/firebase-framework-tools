@@ -75,6 +75,8 @@ const Smoke = ({ x, y }: { x: number; y: number }) => (
 // 1 — Type de logement : maison + immeuble sous les flocons, fenêtres chaudes
 const HousingScene = () => (
   <Stage>
+      {/* Sol dessiné en premier : il passe derrière les objets. */}
+      <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
     <Snowflake x={110} y={30} />
     <Snowflake x={196} y={26} delay="1.2s" />
     <House x={4} y={4} />
@@ -98,13 +100,14 @@ const HousingScene = () => (
       )}
       <rect x="148" y="88" width="14" height="12" rx="2" fill="#2b5a8f" />
     </g>
-    <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
   </Stage>
 );
 
 // 2 — Propriétaire : maison + grande clé qui se balance
 const OwnerScene = () => (
   <Stage>
+      {/* Sol dessiné en premier : il passe derrière les objets. */}
+      <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
     <House x={14} y={4} />
     <Smoke x={82} y={28} />
     <g className="ip5-anim" style={{ ...anim("ip5-wiggle", "2.4s"), transformOrigin: "160px 45px" }}>
@@ -113,7 +116,6 @@ const OwnerScene = () => (
       <rect x="160" y="76" width="12" height="7" rx="2" fill="#f59e0b" />
       <rect x="160" y="86" width="9" height="6" rx="2" fill="#f59e0b" />
     </g>
-    <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
   </Stage>
 );
 
@@ -124,6 +126,8 @@ const SurfaceScene = ({ surface = 100 }: { surface?: number }) => {
   const scale = 0.72 + ((surface - 30) / 270) * 0.6;
   return (
     <Stage>
+      {/* Sol dessiné en premier : il passe derrière les objets. */}
+      <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
       <Snowflake x={30} y={34} />
       <Snowflake x={52} y={62} delay=".9s" />
       <Snowflake x={168} y={30} delay=".4s" />
@@ -137,7 +141,6 @@ const SurfaceScene = ({ surface = 100 }: { surface?: number }) => {
       >
         <House x={60} y={4} />
       </g>
-      <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
     </Stage>
   );
 };
@@ -146,6 +149,8 @@ const SurfaceScene = ({ surface = 100 }: { surface?: number }) => {
 // pendant qu'il neige dehors — tout le monde le reconnaît.
 const HeatingScene = () => (
   <Stage>
+      {/* Sol dessiné en premier : il passe derrière les objets. */}
+      <ellipse cx="110" cy="106" rx="80" ry="5" fill="#bfdbfe" opacity=".6" />
     <g>
       {/* radiateur blanc à colonnes, posé au sol */}
       {[0, 1, 2, 3, 4, 5].map((i) => (
@@ -188,7 +193,6 @@ const HeatingScene = () => (
     <Snowflake x={50} y={64} delay=".9s" />
     <Snowflake x={186} y={42} delay=".4s" />
     <Snowflake x={200} y={68} delay="1.3s" />
-    <ellipse cx="110" cy="106" rx="80" ry="5" fill="#bfdbfe" opacity=".6" />
   </Stage>
 );
 
@@ -226,6 +230,8 @@ const FamilyScene = () => {
   );
   return (
     <Stage>
+      {/* Sol dessiné en premier : il passe derrière les objets. */}
+      <ellipse cx="100" cy="106" rx="90" ry="5" fill="#bfdbfe" opacity=".6" />
       <g opacity=".3">
         <House x={132} y={8} />
       </g>
@@ -239,7 +245,6 @@ const FamilyScene = () => {
           fill="#f472b6"
         />
       </g>
-      <ellipse cx="100" cy="106" rx="90" ry="5" fill="#bfdbfe" opacity=".6" />
     </Stage>
   );
 };
@@ -247,6 +252,8 @@ const FamilyScene = () => {
 // 7 — Revenus : avis d'imposition + pièces qui tombent dans la tirelire
 const IncomeScene = () => (
   <Stage>
+      {/* Sol dessiné en premier : il passe derrière les objets. */}
+      <ellipse cx="110" cy="106" rx="90" ry="5" fill="#bfdbfe" opacity=".6" />
     <g transform="translate(48 22)">
       <rect x="0" y="0" width="58" height="76" rx="6" fill="#ffffff" stroke="#2b5a8f" strokeWidth="3.5" />
       <rect x="9" y="10" width="40" height="6" rx="3" fill="#93c5fd" />
@@ -270,7 +277,6 @@ const IncomeScene = () => (
       <rect x="148" y="55" width="16" height="4" rx="2" fill="#831843" />
       <path d="M138 92 l-3 8 M176 92 l3 8" stroke="#db2777" strokeWidth="4" strokeLinecap="round" />
     </g>
-    <ellipse cx="110" cy="106" rx="90" ry="5" fill="#bfdbfe" opacity=".6" />
   </Stage>
 );
 
@@ -333,6 +339,8 @@ const HeatPump = ({ x = 60, y = 30, spin = "1.6s" }: { x?: number; y?: number; s
 // Écran de calcul : PAC qui tourne + ondes de chaleur
 export const CalculatingScene = () => (
   <Stage>
+      {/* Sol dessiné en premier : il passe derrière les objets. */}
+      <ellipse cx="110" cy="102" rx="85" ry="5" fill="#bfdbfe" opacity=".6" />
     <HeatPump x={52} y={30} spin="0.9s" />
     {[0, 1, 2].map((i) => (
       <path
@@ -346,13 +354,14 @@ export const CalculatingScene = () => (
         style={anim("ip5-wave", "1.6s", `${i * 0.3}s`)}
       />
     ))}
-    <ellipse cx="110" cy="102" rx="85" ry="5" fill="#bfdbfe" opacity=".6" />
   </Stage>
 );
 
 // Résultats : dehors il neige, la PAC chauffe la maison, les euros s'envolent
 const ResultScene = () => (
   <Stage>
+      {/* Sol dessiné en premier : il passe derrière les objets. */}
+      <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
     <Snowflake x={196} y={26} delay=".6s" />
     <Snowflake x={124} y={26} />
     <House x={8} y={4} />
@@ -365,7 +374,6 @@ const ResultScene = () => (
         </text>
       </g>
     ))}
-    <ellipse cx="110" cy="106" rx="95" ry="5" fill="#bfdbfe" opacity=".6" />
   </Stage>
 );
 
