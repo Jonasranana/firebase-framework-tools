@@ -27,6 +27,11 @@ import {
   Sparkles,
   Play,
   Film,
+  Lock,
+  Check,
+  HelpCircle,
+  UserRound,
+  Gift,
 } from "lucide-react";
 import {
   FIREBASE_CONFIG,
@@ -610,6 +615,122 @@ export function trackStep(source: string, step: number, answers: Record<string, 
   }
 }
 
+// --- Habillage du simulateur ---
+// Chaque réponse a sa couleur : le parcours est plus vivant et plus lisible,
+// comme un vrai tunnel de vente d'agence.
+type Tint = "blue" | "violet" | "amber" | "orange" | "yellow" | "slate" | "emerald" | "sky" | "pink";
+const TINTS: Record<Tint, { icon: string; ring: string; soft: string; dot: string }> = {
+  blue: { icon: "from-blue-500 to-indigo-600", ring: "ring-blue-500 border-blue-500", soft: "bg-blue-50", dot: "bg-blue-600" },
+  violet: { icon: "from-violet-500 to-fuchsia-500", ring: "ring-violet-500 border-violet-500", soft: "bg-violet-50", dot: "bg-violet-500" },
+  amber: { icon: "from-amber-400 to-orange-500", ring: "ring-amber-500 border-amber-500", soft: "bg-amber-50", dot: "bg-amber-500" },
+  orange: { icon: "from-orange-500 to-rose-500", ring: "ring-orange-500 border-orange-500", soft: "bg-orange-50", dot: "bg-orange-500" },
+  yellow: { icon: "from-yellow-400 to-amber-500", ring: "ring-yellow-500 border-yellow-500", soft: "bg-yellow-50", dot: "bg-yellow-400" },
+  slate: { icon: "from-slate-500 to-slate-700", ring: "ring-slate-500 border-slate-500", soft: "bg-slate-50", dot: "bg-slate-500" },
+  emerald: { icon: "from-emerald-500 to-teal-500", ring: "ring-emerald-500 border-emerald-500", soft: "bg-emerald-50", dot: "bg-emerald-500" },
+  sky: { icon: "from-sky-400 to-cyan-500", ring: "ring-sky-500 border-sky-500", soft: "bg-sky-50", dot: "bg-sky-500" },
+  pink: { icon: "from-pink-500 to-rose-500", ring: "ring-pink-500 border-pink-500", soft: "bg-pink-50", dot: "bg-pink-500" },
+};
+
+// Bouton de réponse : grande tuile (2 par ligne) ou ligne (liste). Quand on
+// le touche, il s'allume (contour coloré + coche) une fraction de seconde
+// avant de passer à la question suivante.
+const Choice = ({
+  onClick,
+  picked,
+  dimmed,
+  tint,
+  icon: Icon,
+  title,
+  hint,
+  layout = "row",
+  delay = 0,
+  children,
+}: {
+  onClick: () => void;
+  picked: boolean;
+  dimmed: boolean;
+  tint: Tint;
+  icon?: React.ElementType;
+  title: React.ReactNode;
+  hint?: React.ReactNode;
+  layout?: "tile" | "row" | "number";
+  delay?: number;
+  children?: React.ReactNode;
+}) => {
+  const t = TINTS[tint];
+  const base =
+    "group relative w-full bg-white border-2 transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#2b5a8f] animate-in fade-in slide-in-from-bottom-2 fill-mode-both active:scale-[0.98]";
+  const state = picked
+    ? `${t.ring} ring-2 ring-offset-0 ${t.soft} shadow-lg scale-[1.02]`
+    : `border-slate-200 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 ${dimmed ? "opacity-50" : ""}`;
+  const check = picked && (
+    <span
+      className={`absolute top-2 right-2 w-6 h-6 rounded-full bg-gradient-to-br ${t.icon} text-white flex items-center justify-center shadow`}
+      style={{ animation: "ip5-pop .35s ease-out both" }}
+    >
+      <Check size={14} strokeWidth={3} />
+    </span>
+  );
+  const style = { animationDelay: `${delay}ms`, animationDuration: "400ms" };
+  if (layout === "number")
+    return (
+      <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl py-4 flex flex-col items-center justify-center`}>
+        <span className={`text-2xl font-extrabold ${picked ? "text-gray-900" : "text-gray-700"}`}>{title}</span>
+        {hint && <span className="text-[10px] font-semibold text-gray-400 mt-0.5">{hint}</span>}
+        {picked && <span className={`absolute inset-x-3 bottom-1.5 h-1 rounded-full bg-gradient-to-r ${t.icon}`}></span>}
+      </button>
+    );
+  if (layout === "tile")
+    return (
+      <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl p-4 pt-5 flex flex-col items-center text-center`}>
+        {check}
+        {Icon && (
+          <span className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${t.icon} text-white flex items-center justify-center shadow-md mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3`}>
+            <Icon size={28} strokeWidth={1.9} />
+          </span>
+        )}
+        {children}
+        <span className="font-bold text-gray-800">{title}</span>
+        {hint && <span className="text-xs text-gray-500 mt-0.5">{hint}</span>}
+      </button>
+    );
+  return (
+    <button type="button" onClick={onClick} style={style} className={`${base} ${state} rounded-2xl p-3.5 flex items-center gap-3.5 text-left`}>
+      {check}
+      {Icon ? (
+        <span className={`w-11 h-11 rounded-xl bg-gradient-to-br ${t.icon} text-white flex items-center justify-center shadow-sm flex-shrink-0 transition-transform duration-300 group-hover:scale-110`}>
+          <Icon size={22} strokeWidth={1.9} />
+        </span>
+      ) : (
+        <span className={`w-2 self-stretch rounded-full ${t.dot} flex-shrink-0`} aria-hidden="true"></span>
+      )}
+      <span className="flex-1 pr-6">
+        <span className="block font-bold text-gray-800 leading-snug">{title}</span>
+        {hint && <span className="block text-xs text-gray-500 mt-0.5">{hint}</span>}
+      </span>
+    </button>
+  );
+};
+
+// Petits confettis (CSS seul) pour fêter un bon résultat.
+const Confetti = () => (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    <style>{`@keyframes ip5-confetti { 0% { transform: translate3d(0,-20px,0) rotate(0); opacity: 0 } 10% { opacity: 1 } 100% { transform: translate3d(var(--x),260px,0) rotate(540deg); opacity: 0 } }`}</style>
+    {Array.from({ length: 22 }, (_, i) => (
+      <span
+        key={i}
+        className="ip5-anim absolute top-0 w-2 h-3 rounded-[2px]"
+        style={{
+          left: `${(i * 37) % 100}%`,
+          background: ["#f59e0b", "#10b981", "#3b82f6", "#ec4899", "#8b5cf6", "#06b6d4"][i % 6],
+          ["--x" as any]: `${((i * 53) % 80) - 40}px`,
+          animation: `ip5-confetti ${1.6 + (i % 5) * 0.25}s ease-out ${(i % 7) * 0.08}s both`,
+        }}
+      ></span>
+    ))}
+  </div>
+);
+
 export const Simulator = ({
   source = "simulateur-landing",
   tone = "default",
@@ -640,6 +761,12 @@ export const Simulator = ({
   // Étape « coordonnées » intercalée après la question CONTACT_AFTER.
   const [earlyContact, setEarlyContact] = useState(false);
   const [contactSaved, setContactSaved] = useState(false);
+  // Réponse qui vient d'être touchée (s'allume avant de passer à la suite)
+  // et sens de défilement des questions (avant / arrière).
+  const [picked, setPicked] = useState<string | null>(null);
+  const [goingBack, setGoingBack] = useState(false);
+  const pickTimer = useRef<number | undefined>(undefined);
+  useEffect(() => () => window.clearTimeout(pickTimer.current), []);
 
   // Source réelle du lead : un paramètre d'URL « ?src= » (ex. lien SMS)
   // prime sur la source de la page, pour mesurer les campagnes de réactivation.
@@ -685,6 +812,7 @@ export const Simulator = ({
   // Avance d'une étape en affichant le message d'encouragement lié à la
   // réponse qui vient d'être donnée.
   const advance = (rewardMsg: string | null, data: SimulatorData = formData) => {
+    setGoingBack(false);
     if (step === CONTACT_AFTER && !contactSaved) {
       setReward(rewardMsg);
       setEarlyContact(true);
@@ -699,6 +827,9 @@ export const Simulator = ({
   const nextStep = (from: number) => (heatingPreset && from + 1 === HEATING_STEP ? from + 2 : from + 1);
 
   const prevStep = () => {
+    window.clearTimeout(pickTimer.current);
+    setPicked(null);
+    setGoingBack(true);
     if (earlyContact) {
       setEarlyContact(false);
       setReward(null);
@@ -711,10 +842,21 @@ export const Simulator = ({
   };
 
   const choose = (key: keyof SimulatorData, value: string) => {
+    if (picked) return; // une réponse est déjà en cours de validation
     const next = { ...formData, [key]: value };
     setFormData(next);
-    advance(rewardFor(key, value), next);
+    setPicked(`${key}:${value}`);
+    pickTimer.current = window.setTimeout(() => {
+      setPicked(null);
+      advance(rewardFor(key, value), next);
+    }, 320);
   };
+  const isPicked = (key: keyof SimulatorData, value: string) => picked === `${key}:${value}`;
+  const pickProps = (key: keyof SimulatorData, value: string) => ({
+    onClick: () => choose(key, value),
+    picked: isPicked(key, value),
+    dimmed: !!picked && !isPicked(key, value),
+  });
 
   const validateContact = () => {
     const newErrors: typeof errors = {};
@@ -822,7 +964,7 @@ export const Simulator = ({
                     placeholder="Nom"
                     value={formData.lastName}
                     aria-invalid={!!errors.lastName}
-                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.lastName ? "border-red-400" : "border-gray-300"}`}
+                    className={`w-full px-4 py-3.5 rounded-xl border-2 focus:ring-4 focus:ring-blue-100 focus:border-[#2b5a8f] outline-none bg-slate-50 focus:bg-white text-gray-900 placeholder-gray-400 transition-all ${errors.lastName ? "border-red-400" : "border-slate-200"}`}
                     onChange={(e) =>
                       setFormData({ ...formData, lastName: e.target.value })
                     }
@@ -843,7 +985,7 @@ export const Simulator = ({
                     placeholder="Prénom"
                     value={formData.firstName}
                     aria-invalid={!!errors.firstName}
-                    className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.firstName ? "border-red-400" : "border-gray-300"}`}
+                    className={`w-full px-4 py-3.5 rounded-xl border-2 focus:ring-4 focus:ring-blue-100 focus:border-[#2b5a8f] outline-none bg-slate-50 focus:bg-white text-gray-900 placeholder-gray-400 transition-all ${errors.firstName ? "border-red-400" : "border-slate-200"}`}
                     onChange={(e) =>
                       setFormData({ ...formData, firstName: e.target.value })
                     }
@@ -866,7 +1008,7 @@ export const Simulator = ({
                   placeholder="Votre numéro de téléphone"
                   value={formData.phone}
                   aria-invalid={!!errors.phone}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.phone ? "border-red-400" : "border-gray-300"}`}
+                  className={`w-full px-4 py-3.5 rounded-xl border-2 focus:ring-4 focus:ring-blue-100 focus:border-[#2b5a8f] outline-none bg-slate-50 focus:bg-white text-gray-900 placeholder-gray-400 transition-all ${errors.phone ? "border-red-400" : "border-slate-200"}`}
                   onChange={(e) =>
                     setFormData({ ...formData, phone: e.target.value })
                   }
@@ -888,7 +1030,7 @@ export const Simulator = ({
                   placeholder="Votre e-mail"
                   value={formData.email}
                   aria-invalid={!!errors.email}
-                  className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-[#2b5a8f] focus:border-transparent outline-none bg-gray-50 text-gray-900 placeholder-gray-400 ${errors.email ? "border-red-400" : "border-gray-300"}`}
+                  className={`w-full px-4 py-3.5 rounded-xl border-2 focus:ring-4 focus:ring-blue-100 focus:border-[#2b5a8f] outline-none bg-slate-50 focus:bg-white text-gray-900 placeholder-gray-400 transition-all ${errors.email ? "border-red-400" : "border-slate-200"}`}
                   onChange={(e) =>
                     setFormData({ ...formData, email: e.target.value })
                   }
@@ -922,20 +1064,26 @@ export const Simulator = ({
     </>
   );
 
+  // Styles communs des questions.
+  const Q = "text-[22px] leading-tight font-extrabold text-gray-900 mb-1.5 text-center tracking-tight";
+  const SUB = "text-slate-500 text-sm mb-5 text-center";
+  const CTA = "!rounded-2xl py-3.5 bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-[#0e7490] shadow-lg shadow-blue-900/20 hover:brightness-110";
+
   const renderStep = () => {
     if (earlyContact) {
       return (
-        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
-            Où vous envoyer votre estimation&nbsp;?
-          </h3>
-          <p className="text-gray-500 text-sm mb-6 text-center">
+        <div>
+          <div className="mx-auto mb-3 w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-md" style={{ animation: "ip5-pop .5s ease-out both" }}>
+            <Gift size={24} />
+          </div>
+          <h3 className={Q}>Où vous envoyer votre estimation&nbsp;?</h3>
+          <p className={SUB}>
             Encore {TOTAL_QUESTIONS - CONTACT_AFTER - (heatingPreset ? 1 : 0)} questions rapides ensuite. Un conseiller pourra
             vous rappeler si besoin.
           </p>
-          <form onSubmit={saveEarlyContact} className="space-y-4" noValidate>
+          <form onSubmit={saveEarlyContact} className="space-y-3" noValidate>
             {contactFields()}
-            <Button type="submit" className="w-full">
+            <Button type="submit" className={`w-full ${CTA}`}>
               Continuer <ArrowRight size={18} />
             </Button>
           </form>
@@ -945,70 +1093,42 @@ export const Simulator = ({
     switch (step) {
       case 1:
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-              Quel est votre type de logement&nbsp;?
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => choose("housingType", "Maison")}
-                className="flex flex-col items-center p-6 border-2 border-gray-200 rounded-2xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all"
-              >
-                <Home size={48} className="text-[#2b5a8f] mb-4" />
-                <span className="font-semibold text-gray-700">Maison</span>
-              </button>
-              <button
-                onClick={() => choose("housingType", "Appartement")}
-                className="flex flex-col items-center p-6 border-2 border-gray-200 rounded-2xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all"
-              >
-                <Building size={48} className="text-[#2b5a8f] mb-4" />
-                <span className="font-semibold text-gray-700">Appartement</span>
-              </button>
+          <div>
+            <h3 className={Q}>Quel est votre type de logement&nbsp;?</h3>
+            <p className={SUB}>Pour adapter les aides à votre logement.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Choice layout="tile" tint="blue" icon={Home} title="Maison" hint="Individuelle" {...pickProps("housingType", "Maison")} />
+              <Choice layout="tile" tint="violet" icon={Building} title="Appartement" hint="En copropriété" delay={60} {...pickProps("housingType", "Appartement")} />
             </div>
           </div>
         );
       case 2:
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
-              Vous êtes…&nbsp;?
-            </h3>
-            <p className="text-gray-500 text-sm mb-6 text-center">
-              Les aides diffèrent selon votre situation.
-            </p>
-            <div className="space-y-3">
+          <div>
+            <h3 className={Q}>Vous êtes…&nbsp;?</h3>
+            <p className={SUB}>Les aides diffèrent selon votre situation.</p>
+            <div className="space-y-2.5">
               {[
-                { value: "Propriétaire", hint: "Vous habitez votre logement" },
-                { value: "Bientôt propriétaire", hint: "Achat en cours ou prévu" },
-                { value: "Locataire", hint: "Votre propriétaire décide des travaux" },
-              ].map((o) => (
-                <button
-                  key={o.value}
-                  onClick={() => choose("ownerStatus", o.value)}
-                  className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all text-left"
-                >
-                  <KeyRound size={24} className="text-[#2b5a8f] flex-shrink-0" />
-                  <span className="flex-1">
-                    <span className="block font-semibold text-gray-800">
-                      {o.value}
-                    </span>
-                    <span className="block text-xs text-gray-500">{o.hint}</span>
-                  </span>
-                </button>
+                { value: "Propriétaire", hint: "Vous habitez votre logement", tint: "emerald" as Tint, icon: KeyRound },
+                { value: "Bientôt propriétaire", hint: "Achat en cours ou prévu", tint: "sky" as Tint, icon: Home },
+                { value: "Locataire", hint: "Votre propriétaire décide des travaux", tint: "slate" as Tint, icon: UserRound },
+              ].map((o, i) => (
+                <Choice key={o.value} tint={o.tint} icon={o.icon} title={o.value} hint={o.hint} delay={i * 60} {...pickProps("ownerStatus", o.value)} />
               ))}
             </div>
           </div>
         );
-      case 3:
+      case 3: {
+        const pct = ((formData.surface - 30) / (300 - 30)) * 100;
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6">
-              Quelle est la surface à chauffer&nbsp;?
-            </h3>
-            <div className="mb-8">
-              <span className="text-5xl font-bold text-[#2b5a8f]">
-                {formData.surface} m²
+          <div className="text-center">
+            <h3 className={Q}>Quelle est la surface à chauffer&nbsp;?</h3>
+            <p className={SUB}>Une estimation suffit.</p>
+            <div className="mb-6">
+              <span key={formData.surface} className="inline-block text-6xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-cyan-500 animate-in zoom-in-95 duration-150">
+                {formData.surface}
               </span>
+              <span className="text-2xl font-bold text-slate-400 ml-1">m²</span>
             </div>
             <input
               type="range"
@@ -1020,80 +1140,61 @@ export const Simulator = ({
               onChange={(e) =>
                 setFormData({ ...formData, surface: Number(e.target.value) })
               }
-              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-[#2b5a8f] mb-8"
+              className="ip5-range w-full mb-5"
+              style={{ background: `linear-gradient(90deg, #2b5a8f 0%, #06b6d4 ${pct}%, #e2e8f0 ${pct}%)` }}
             />
-            <Button
-              onClick={() => advance(`${formData.surface} m², c'est noté !`)}
-              className="w-full"
-            >
+            <div className="flex justify-center gap-2 mb-7">
+              {[80, 100, 120, 150].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setFormData({ ...formData, surface: m })}
+                  className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${formData.surface === m ? "bg-[#173a5e] text-white border-[#173a5e]" : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"}`}
+                >
+                  {m} m²
+                </button>
+              ))}
+            </div>
+            <Button onClick={() => advance(`${formData.surface} m², c'est noté !`)} className={`w-full ${CTA}`}>
               Continuer <ArrowRight size={18} />
             </Button>
           </div>
         );
+      }
       case 4:
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-bold text-gray-800 mb-6 text-center">
-              Quel est votre chauffage actuel&nbsp;?
-            </h3>
-            <div className="grid grid-cols-2 gap-4">
-              <button
-                onClick={() => choose("currentHeating", "Fioul")}
-                className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-2xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all"
-              >
-                <Droplets size={32} className="text-gray-600 mb-2" />
-                <span className="font-semibold text-gray-700">Fioul</span>
-              </button>
-              <button
-                onClick={() => choose("currentHeating", "Gaz")}
-                className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-2xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all"
-              >
-                <Flame size={32} className="text-orange-500 mb-2" />
-                <span className="font-semibold text-gray-700">Gaz</span>
-              </button>
-              <button
-                onClick={() => choose("currentHeating", "Electrique")}
-                className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-2xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all"
-              >
-                <Zap size={32} className="text-yellow-500 mb-2" />
-                <span className="font-semibold text-gray-700">Électrique</span>
-              </button>
-              <button
-                onClick={() => choose("currentHeating", "Autre")}
-                className="flex flex-col items-center p-4 border-2 border-gray-200 rounded-2xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all"
-              >
-                <span className="text-[#2b5a8f] mb-2 text-2xl font-bold">?</span>
-                <span className="font-semibold text-gray-700">Autre</span>
-              </button>
+          <div>
+            <h3 className={Q}>Quel est votre chauffage actuel&nbsp;?</h3>
+            <p className={SUB}>C'est lui qui décide le plus des aides.</p>
+            <div className="grid grid-cols-2 gap-3">
+              <Choice layout="tile" tint="amber" icon={Droplets} title="Fioul" {...pickProps("currentHeating", "Fioul")} />
+              <Choice layout="tile" tint="orange" icon={Flame} title="Gaz" delay={50} {...pickProps("currentHeating", "Gaz")} />
+              <Choice layout="tile" tint="yellow" icon={Zap} title="Électrique" delay={100} {...pickProps("currentHeating", "Electrique")} />
+              <Choice layout="tile" tint="slate" icon={HelpCircle} title="Autre" delay={150} {...pickProps("currentHeating", "Autre")} />
             </div>
           </div>
         );
       case 5:
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              Dans quel département se situe votre projet&nbsp;?
-            </h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Les aides d'État (MaPrimeRénov') varient selon votre région.
-            </p>
+          <div className="text-center">
+            <h3 className={Q}>Dans quel département se situe votre projet&nbsp;?</h3>
+            <p className={SUB}>Les aides d'État (MaPrimeRénov') varient selon votre région.</p>
 
-            <div className="relative mb-8 text-left">
-              <MapPin
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
+            <div className="relative mb-7 text-left">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-rose-500 text-white flex items-center justify-center shadow-sm pointer-events-none">
+                <MapPin size={18} />
+              </span>
               <select
                 value={formData.department}
                 aria-label="Département du projet"
                 onChange={(e) =>
                   setFormData({ ...formData, department: e.target.value })
                 }
-                className="w-full pl-12 pr-4 py-4 rounded-xl border-2 border-gray-200 focus:ring-0 focus:border-[#2b5a8f] outline-none appearance-none bg-white font-medium text-gray-700 transition-colors cursor-pointer"
+                className={`w-full pl-16 pr-10 py-4 rounded-2xl border-2 outline-none appearance-none bg-white font-semibold text-gray-800 transition-all cursor-pointer focus:border-[#2b5a8f] focus:ring-4 focus:ring-blue-100 ${formData.department ? "border-[#2b5a8f]" : "border-slate-200"}`}
                 required
               >
                 <option value="" disabled>
-                  Sélectionnez votre département...
+                  Votre département…
                 </option>
                 {DEPARTMENTS.map((dep) => (
                   <option key={dep} value={dep}>
@@ -1101,14 +1202,14 @@ export const Simulator = ({
                   </option>
                 ))}
               </select>
-              <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                 <ArrowRight size={16} className="text-gray-400 rotate-90" />
               </div>
             </div>
 
             <Button
               onClick={() => advance(rewardFor("department", formData.department))}
-              className="w-full"
+              className={`w-full ${CTA}`}
               disabled={!formData.department}
             >
               Continuer <ArrowRight size={18} />
@@ -1117,26 +1218,25 @@ export const Simulator = ({
         );
       case 6:
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              Combien de personnes composent votre foyer&nbsp;?
-            </h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Ce critère est indispensable pour calculer le montant de vos
-              subventions.
-            </p>
-
-            <div className="grid grid-cols-5 gap-2 mb-8">
-              {["1", "2", "3", "4", "5+"].map((num) => (
-                <button
+          <div className="text-center">
+            <h3 className={Q}>Combien de personnes composent votre foyer&nbsp;?</h3>
+            <p className={SUB}>Indispensable pour calculer vos subventions.</p>
+            <div className="grid grid-cols-5 gap-2 mb-3">
+              {["1", "2", "3", "4", "5+"].map((num, i) => (
+                <Choice
                   key={num}
-                  onClick={() => choose("householdSize", num)}
-                  className="flex flex-col items-center justify-center py-4 border-2 border-gray-200 rounded-xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all font-bold text-gray-700 text-xl"
-                >
-                  {num}
-                </button>
+                  layout="number"
+                  tint="sky"
+                  title={num}
+                  hint="pers."
+                  delay={i * 40}
+                  {...pickProps("householdSize", num)}
+                />
               ))}
             </div>
+            <p className="flex items-center justify-center gap-1.5 text-xs text-slate-400">
+              <Users size={13} /> Vous compris, enfants inclus
+            </p>
           </div>
         );
       case 7: {
@@ -1144,37 +1244,24 @@ export const Simulator = ({
           formData.department,
           formData.householdSize,
         );
+        const tintOf: Record<string, Tint> = { Bleu: "blue", Jaune: "yellow", Violet: "violet", Rose: "pink" };
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 text-center">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2">
-              Quel est le revenu fiscal de votre foyer&nbsp;?
-            </h3>
-            <p className="text-gray-500 text-sm mb-6">
-              Il figure sur votre <b>avis d'imposition de l'année dernière</b>{" "}
-              (« revenu fiscal de référence »). C'est lui qui détermine votre
-              profil MaPrimeRénov'.
+          <div className="text-center">
+            <h3 className={Q}>Quel est le revenu fiscal de votre foyer&nbsp;?</h3>
+            <p className={SUB}>
+              Sur votre <b className="text-slate-700">avis d'imposition</b> (« revenu fiscal de
+              référence »). Il détermine votre profil MaPrimeRénov'.
             </p>
-
-            <div className="space-y-3 mb-2">
-              {brackets.map((b) => (
-                <button
+            <div className="space-y-2.5 mb-2">
+              {brackets.map((b, i) => (
+                <Choice
                   key={b.value}
-                  onClick={() => choose("incomeBracket", b.value)}
-                  className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all text-left"
-                >
-                  <span
-                    className={`w-3.5 h-3.5 rounded-full flex-shrink-0 ${b.dot}`}
-                    aria-hidden="true"
-                  ></span>
-                  <span className="flex-1">
-                    <span className="block font-semibold text-gray-800">
-                      {b.range}
-                    </span>
-                    <span className="block text-xs text-gray-500">
-                      {b.label} — profil {b.profile}
-                    </span>
-                  </span>
-                </button>
+                  tint={tintOf[b.profile]}
+                  title={b.range}
+                  hint={<>{b.label} — profil {b.profile}</>}
+                  delay={i * 50}
+                  {...pickProps("incomeBracket", b.value)}
+                />
               ))}
             </div>
             <p className="text-[11px] text-gray-400">
@@ -1186,32 +1273,16 @@ export const Simulator = ({
       }
       case 8:
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-2xl font-bold text-gray-800 mb-2 text-center">
-              Dernière question : c'est pour quand ?
-            </h3>
-            <p className="text-gray-500 text-sm mb-6 text-center">
-              Votre estimation est prête juste après 🎁
-            </p>
-            <div className="space-y-3">
+          <div>
+            <h3 className={Q}>Dernière question : c'est pour quand&nbsp;?</h3>
+            <p className={SUB}>Votre estimation est prête juste après 🎁</p>
+            <div className="space-y-2.5">
               {[
-                { value: "Dès que possible", hint: "Je veux avancer rapidement", icon: Zap },
-                { value: "Dans les 6 mois", hint: "Je prépare mon projet", icon: CalendarClock },
-                { value: "Je me renseigne", hint: "Je compare et je réfléchis", icon: Search },
-              ].map((o) => (
-                <button
-                  key={o.value}
-                  onClick={() => choose("projectTiming", o.value)}
-                  className="w-full flex items-center gap-4 p-4 border-2 border-gray-200 rounded-xl hover:border-[#2b5a8f] hover:bg-blue-50 transition-all text-left"
-                >
-                  <o.icon size={24} className="text-[#2b5a8f] flex-shrink-0" />
-                  <span className="flex-1">
-                    <span className="block font-semibold text-gray-800">
-                      {o.value}
-                    </span>
-                    <span className="block text-xs text-gray-500">{o.hint}</span>
-                  </span>
-                </button>
+                { value: "Dès que possible", hint: "Je veux avancer rapidement", icon: Zap, tint: "orange" as Tint },
+                { value: "Dans les 6 mois", hint: "Je prépare mon projet", icon: CalendarClock, tint: "blue" as Tint },
+                { value: "Je me renseigne", hint: "Je compare et je réfléchis", icon: Search, tint: "slate" as Tint },
+              ].map((o, i) => (
+                <Choice key={o.value} tint={o.tint} icon={o.icon} title={o.value} hint={o.hint} delay={i * 60} {...pickProps("projectTiming", o.value)} />
               ))}
             </div>
           </div>
@@ -1220,32 +1291,32 @@ export const Simulator = ({
         const savings = savingsEstimate();
 
         return (
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="bg-green-50 rounded-2xl p-6 mb-6 text-center border border-green-100 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-2 opacity-10">
-                <PiggyBank size={80} />
+          <div>
+            <div className="relative rounded-3xl p-6 mb-6 text-center text-white overflow-hidden bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600 shadow-xl shadow-emerald-600/25">
+              <Confetti />
+              <div className="absolute -top-6 -right-6 opacity-15">
+                <PiggyBank size={120} />
               </div>
-              <p className="text-green-800 font-semibold mb-2 flex items-center justify-center gap-2">
+              <p className="relative font-bold mb-1 flex items-center justify-center gap-2 text-emerald-50">
                 <PartyPopper size={18} /> Excellente nouvelle !
               </p>
-              <p className="text-gray-700 text-sm mb-2">
+              <p className="relative text-emerald-50/90 text-sm mb-1">
                 Vous pourriez économiser jusqu'à
               </p>
-              <p className="text-4xl font-extrabold text-green-600 mb-3">
+              <p className="relative text-[40px] leading-tight font-extrabold mb-3 drop-shadow-sm">
                 <AnimatedEuros value={savings} />
               </p>
-              <div className="inline-flex items-center justify-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
-                <CheckCircle2 size={14} />{" "}
-                Votre résultat détaillé juste après
+              <div className="relative inline-flex items-center justify-center gap-1.5 bg-white/20 backdrop-blur-sm border border-white/30 px-3 py-1 rounded-full text-xs font-bold">
+                <CheckCircle2 size={14} /> Votre résultat détaillé juste après
               </div>
-              <p className="text-[11px] text-gray-500 mt-3">
+              <p className="relative text-[10.5px] text-emerald-50/80 mt-3 leading-snug">
                 Estimation indicative, non contractuelle, basée sur vos
                 réponses. Le montant exact dépend de votre logement et de vos
                 revenus.
               </p>
             </div>
 
-            <h3 className="text-xl font-bold text-gray-800 mb-4 text-center">
+            <h3 className="text-xl font-extrabold text-gray-900 mb-4 text-center tracking-tight">
               Recevez votre devis exact gratuit
             </h3>
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
@@ -1264,10 +1335,10 @@ export const Simulator = ({
                           setFormData({ ...formData, projectType: p })
                         }
                         aria-pressed={formData.projectType === p}
-                        className={`px-2 py-2.5 rounded-xl border text-xs font-bold leading-tight transition ${
+                        className={`px-2 py-2.5 rounded-xl border-2 text-xs font-bold leading-tight transition-all ${
                           formData.projectType === p
-                            ? "border-[#2b5a8f] bg-[#2b5a8f] text-white shadow"
-                            : "border-gray-300 bg-gray-50 text-gray-700 hover:border-[#2b5a8f]"
+                            ? "border-transparent bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] text-white shadow-md scale-[1.03]"
+                            : "border-slate-200 bg-white text-gray-700 hover:border-slate-400"
                         }`}
                       >
                         {p}
@@ -1287,7 +1358,7 @@ export const Simulator = ({
                 type="submit"
                 variant="success"
                 disabled={isSubmitting}
-                className="w-full text-lg shadow-green-500/50 py-4"
+                className="w-full text-lg py-4 !rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 shadow-lg shadow-emerald-500/30 hover:brightness-110"
               >
                 {isSubmitting ? "Envoi en cours..." : "Voir mes résultats complets"}
               </Button>
@@ -1305,7 +1376,7 @@ export const Simulator = ({
         const smallPrint =
           "Estimation indicative selon vos réponses, sous réserve d'éligibilité. Le montant exact dépend de votre avis d'imposition et de votre logement : votre conseiller le confirmera avec vous.";
         const box = (tone: string, title: string, body: React.ReactNode, note?: React.ReactNode) => (
-          <div className={`rounded-2xl p-6 mb-6 border text-left ${tone}`}>
+          <div className={`relative rounded-2xl p-6 mb-6 border text-left overflow-hidden ${tone}`}>
             <p className="font-bold text-lg text-gray-900 mb-2">{title}</p>
             <div className="text-gray-700 text-sm leading-relaxed space-y-2">{body}</div>
             {note && <p className="text-[11px] text-gray-500 mt-4 leading-relaxed">{note}</p>}
@@ -1411,9 +1482,13 @@ export const Simulator = ({
             break;
         }
         return (
-          <div className="py-4 animate-in zoom-in duration-500">
-            <p className="flex items-center justify-center gap-2 text-sm font-semibold text-green-700 mb-4">
-              <CheckCircle2 size={18} /> Demande envoyée
+          <div className="relative py-2 animate-in zoom-in-95 fade-in duration-500">
+            {(result.kind === "zero" || result.kind === "rac") && <Confetti />}
+            <div className="mx-auto mb-3 w-14 h-14 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/30" style={{ animation: "ip5-pop .5s ease-out both" }}>
+              <Check size={28} strokeWidth={3} />
+            </div>
+            <p className="text-center text-sm font-bold text-emerald-700 mb-5">
+              Demande envoyée
             </p>
             {content}
             <Button variant="outline" className="w-full" onClick={restart}>
@@ -1427,126 +1502,151 @@ export const Simulator = ({
     }
   };
 
-  const progressPercentage = Math.min((step / (TOTAL_QUESTIONS + 1)) * 100, 100);
   const showProgress = step <= TOTAL_QUESTIONS + 1 && !isCalculating;
-  // Petit jalon d'encouragement affiché à côté du numéro d'étape.
-  const milestone = pro
-    ? ""
-    : step <= 2 ? "🚀 C'est parti" : step <= 5 ? "💪 À mi-chemin" : "🏁 Dernière ligne droite";
+  const inQuestions = step <= TOTAL_QUESTIONS && !isCalculating;
+  // Nombre d'étapes franchies (la saisie des coordonnées compte comme la question en cours).
+  const done = isCalculating || step > TOTAL_QUESTIONS ? TOTAL_QUESTIONS : step - 1;
+  const headerLabel = isCalculating
+    ? "Analyse en cours"
+    : step <= TOTAL_QUESTIONS
+      ? earlyContact
+        ? "Vos coordonnées"
+        : `Question ${step} sur ${TOTAL_QUESTIONS}`
+      : step === TOTAL_QUESTIONS + 1
+        ? "Votre estimation"
+        : "Votre résultat";
+  const stepAnim = goingBack ? "slide-in-from-left-6" : "slide-in-from-right-6";
 
   return (
-    <div className={pro ? "bg-white rounded-2xl shadow-xl shadow-slate-900/10 p-6 md:p-9 max-w-md w-full mx-auto relative overflow-hidden border border-slate-200" : "bg-white rounded-3xl shadow-2xl p-6 md:p-10 max-w-md w-full mx-auto relative overflow-hidden border border-gray-100"}>
-      {showProgress && (
-        <div
-          className={`absolute top-0 left-0 w-full bg-gray-100 ${pro ? "h-1" : "h-2"}`}
-          role="progressbar"
-          aria-valuemin={0}
-          aria-valuemax={100}
-          aria-valuenow={Math.round(progressPercentage)}
-          aria-label="Progression de la simulation"
-        >
-          <div
-            className={`h-full transition-all duration-500 ease-out ${pro ? "bg-[#173a5e]" : "bg-gradient-to-r from-[#2b5a8f] to-cyan-400"}`}
-            style={{ width: `${progressPercentage}%` }}
-          ></div>
-        </div>
-      )}
+    <div className="bg-white rounded-[1.75rem] shadow-2xl shadow-blue-950/15 max-w-md w-full mx-auto relative overflow-hidden border border-slate-200/80">
+      <style>{`
+        .ip5-range { -webkit-appearance: none; appearance: none; height: 10px; border-radius: 999px; outline: none; cursor: pointer; }
+        .ip5-range::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 999px; background: #fff; border: 3px solid #2b5a8f; box-shadow: 0 4px 14px rgba(23,58,94,.35); transition: transform .15s; }
+        .ip5-range::-webkit-slider-thumb:active { transform: scale(1.15); }
+        .ip5-range::-moz-range-thumb { width: 26px; height: 26px; border-radius: 999px; background: #fff; border: 3px solid #2b5a8f; box-shadow: 0 4px 14px rgba(23,58,94,.35); }
+        @keyframes ip5-shine { 0% { transform: translateX(-100%) } 100% { transform: translateX(200%) } }
+      `}</style>
 
-      {showProgress && (
-        <div className="flex items-center justify-between mb-6 pt-2">
-          {step > 1 ? (
+      {/* En-tête du simulateur : titre, étape et barre de progression en segments. */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#0f2b4a] via-[#1d4e89] to-[#0e7490] px-5 pt-4 pb-4 text-white">
+        <div className="absolute -top-10 -right-8 w-32 h-32 rounded-full bg-cyan-300/20 blur-2xl" aria-hidden="true"></div>
+        <div className="absolute -bottom-12 -left-6 w-28 h-28 rounded-full bg-amber-300/15 blur-2xl" aria-hidden="true"></div>
+        <div className="relative flex items-center justify-between gap-3">
+          {(step > 1 || earlyContact) && inQuestions ? (
             <button
               onClick={prevStep}
-              className="flex items-center gap-1 text-sm text-gray-400 hover:text-[#2b5a8f] font-medium transition-colors"
+              className="flex items-center gap-1 text-[13px] font-semibold text-white/80 hover:text-white transition-colors -ml-1 px-1 py-0.5 rounded-lg"
             >
               <ArrowLeft size={16} /> Retour
             </button>
           ) : (
-            <span />
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-bold whitespace-nowrap">
+              <Sparkles size={15} className="text-amber-300" /> Simulateur d'aides 2026
+            </span>
           )}
-          <p className="text-sm text-gray-400 font-medium">
-            {step <= TOTAL_QUESTIONS ? (
-              <>
-                {pro ? (
-                  <>Étape {step} sur {TOTAL_QUESTIONS}</>
-                ) : (
-                  <>
-                    <span className="mr-2">{milestone}</span>
-                    {step} / {TOTAL_QUESTIONS}
-                  </>
-                )}
-              </>
-            ) : (
-              "Votre résultat"
-            )}
-          </p>
+          <span className="text-[12px] font-semibold text-white/85 bg-white/10 border border-white/15 rounded-full px-2.5 py-0.5 whitespace-nowrap">
+            {headerLabel}
+          </span>
         </div>
-      )}
-
-      {step === 1 && !isCalculating && (
-        <p className="flex items-center justify-center gap-1.5 text-xs text-gray-400 -mt-3 mb-4">
-          <Clock size={13} /> 30 secondes, sans engagement
-        </p>
-      )}
-
-      {reward && showProgress && step <= TOTAL_QUESTIONS && (
         <div
-          key={step}
-          className="flex items-start gap-2 bg-green-50 border border-green-200 text-green-800 text-sm font-medium rounded-xl px-4 py-3 mb-5 animate-in fade-in slide-in-from-top-2 duration-500"
-          role="status"
+          className="relative mt-3.5 flex gap-1"
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={TOTAL_QUESTIONS}
+          aria-valuenow={done}
+          aria-label="Progression de la simulation"
         >
-          <CheckCircle2 size={17} className="flex-shrink-0 mt-0.5 text-green-600" />
-          <span>{reward}</span>
+          {Array.from({ length: TOTAL_QUESTIONS }, (_, i) => {
+            const filled = i < done;
+            const current = i === done && inQuestions;
+            return (
+              <span key={i} className="relative flex-1 h-1.5 rounded-full bg-white/20 overflow-hidden">
+                <span
+                  className={`absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out ${filled ? "w-full bg-gradient-to-r from-amber-300 to-yellow-200" : current ? "w-1/2 bg-white/70" : "w-0"}`}
+                ></span>
+                {current && (
+                  <span className="ip5-anim absolute inset-y-0 w-1/2 bg-gradient-to-r from-transparent via-white/80 to-transparent" style={{ animation: "ip5-shine 1.6s ease-in-out infinite" }}></span>
+                )}
+              </span>
+            );
+          })}
         </div>
-      )}
-
-      <IllustrationStyles />
-
-      {isCalculating ? (
-        <div className="flex flex-col items-center justify-center py-6">
-          <div className="w-full">
-            <CalculatingScene />
-          </div>
-          <div className="flex gap-2 my-4" aria-hidden="true">
-            {[0, 1, 2, 3, 4].map((i) => (
-              <span
-                key={i}
-                className="w-3 h-3 rounded-full bg-[#2b5a8f]"
-                style={{
-                  animation: `ip5-bounce-dot 1s ease-in-out ${i * 0.12}s infinite`,
-                }}
-              ></span>
-            ))}
-          </div>
-          <p className="text-gray-800 font-bold text-lg text-center mb-2">
-            Calcul de vos droits en cours...
+        {step === 1 && inQuestions && !earlyContact && (
+          <p className="relative mt-3 flex items-center gap-3 text-[11.5px] text-white/80">
+            <span className="flex items-center gap-1"><Clock size={12} /> 30 secondes</span>
+            <span className="flex items-center gap-1"><CheckCircle2 size={12} /> Gratuit</span>
+            <span className="flex items-center gap-1"><ShieldCheck size={12} /> Sans engagement</span>
           </p>
-          <p className="text-gray-500 text-sm text-center">
-            Secteur : {formData.department} • Foyer de {formData.householdSize}{" "}
-            pers.
+        )}
+      </div>
+
+      <div className="p-5 pt-5 md:p-7">
+        {!pro && inQuestions && !earlyContact && (
+          <p className="text-center text-xs font-bold text-slate-400 -mt-1 mb-3">
+            {step <= 2 ? "🚀 C'est parti !" : step <= 5 ? "💪 Vous êtes à mi-chemin" : "🏁 Dernière ligne droite"}
           </p>
-        </div>
-      ) : (
-        <>
-          {step !== TOTAL_QUESTIONS + 1 && (
-            <div
-              key={`illu-${step}`}
-              className="animate-in fade-in zoom-in-95 duration-500"
-            >
-              <StepIllustration step={step} surface={formData.surface} />
+        )}
+
+        {reward && showProgress && step <= TOTAL_QUESTIONS && (
+          <div
+            key={`r-${step}-${earlyContact}`}
+            className="flex items-center gap-2.5 bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200 text-emerald-900 text-[13px] font-semibold rounded-2xl px-3 py-2.5 mb-4 animate-in fade-in slide-in-from-top-2 duration-500"
+            role="status"
+          >
+            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm" style={{ animation: "ip5-pop .45s ease-out .15s both" }}>
+              <Check size={15} strokeWidth={3} />
+            </span>
+            <span className="leading-snug">{reward}</span>
+          </div>
+        )}
+
+        <IllustrationStyles />
+
+        {isCalculating ? (
+          <div className="flex flex-col items-center justify-center py-2">
+            <div className="w-full">
+              <CalculatingScene />
             </div>
-          )}
-          {renderStep()}
-          {step > 1 && step <= TOTAL_QUESTIONS && (
-            <button
-              onClick={prevStep}
-              className="mt-6 flex items-center gap-1.5 text-sm text-gray-400 hover:text-[#2b5a8f] font-medium transition-colors"
-            >
-              <ArrowLeft size={15} /> Je me suis trompé, revenir en arrière
-            </button>
-          )}
-        </>
-      )}
+            <p className="text-gray-900 font-extrabold text-lg text-center mt-1 mb-3">
+              Calcul de vos droits en cours…
+            </p>
+            <ul className="w-full space-y-2 mb-3">
+              {[
+                `Barème MaPrimeRénov' 2026 · ${formData.department.split(" ")[0] || "votre département"}`,
+                `Foyer de ${formData.householdSize} personne(s)`,
+                "Primes CEE des fournisseurs d'énergie",
+              ].map((line, i) => (
+                <li
+                  key={line}
+                  className="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2 text-[13px] font-semibold text-slate-700 animate-in fade-in slide-in-from-left-4 fill-mode-both"
+                  style={{ animationDelay: `${250 + i * 450}ms`, animationDuration: "400ms" }}
+                >
+                  <span className="w-5 h-5 rounded-full bg-emerald-500 text-white flex items-center justify-center flex-shrink-0">
+                    <Check size={12} strokeWidth={3} />
+                  </span>
+                  {line}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div key={`s-${step}-${earlyContact}`} className={`animate-in fade-in ${stepAnim} duration-300`}>
+            {step !== TOTAL_QUESTIONS + 1 && !earlyContact && (
+              <div className="[&>div]:h-28 [&>div]:mb-4 md:[&>div]:h-32">
+                <StepIllustration step={step} surface={formData.surface} />
+              </div>
+            )}
+            {renderStep()}
+          </div>
+        )}
+
+        {inQuestions && (
+          <div className="mt-5 pt-4 border-t border-slate-100 flex items-center justify-center gap-4 text-[11px] font-semibold text-slate-400">
+            <span className="flex items-center gap-1"><Lock size={12} /> Données protégées</span>
+            <span className="flex items-center gap-1"><BadgeCheck size={12} /> Conseiller RGE</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
