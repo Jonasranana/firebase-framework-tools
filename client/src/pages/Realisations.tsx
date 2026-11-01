@@ -18,6 +18,9 @@ const Realisations = () => (
       title="Des chantiers soignés, des clients"
       highlight="satisfaits"
       subtitle="Découvrez nos installations avant / après, le détail de notre travail, et les retours de propriétaires qui nous ont fait confiance partout en France."
+      image="/images/realisations/interieur-pac-ballon.jpg"
+      imageAlt="Module intérieur et ballon d'eau chaude installés par IP5 Énergie"
+      imagePosition="50% 45%"
     />
     <RealisationsSection />
     <AvisSection />
