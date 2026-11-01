@@ -17,7 +17,14 @@ const IP5Energie = () => {
   return (
     <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 100% d'aides">
       {/* Hero Section : sobre, factuel, orienté confiance */}
-      <section className="relative pt-16 pb-10 lg:pt-40 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800">
+      <section className="relative pt-16 pb-10 lg:pt-36 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950 lg:bg-[#0b1a2c] border-b border-slate-200 dark:border-slate-800 lg:border-0">
+        {/* Ordinateur : la photo occupe tout le bandeau, assombrie à gauche
+            pour le texte ; le simulateur est posé à droite. */}
+        <div className="hidden lg:block absolute inset-0" aria-hidden="true">
+          <img src="/images/hero-accueil.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-[60%_30%]" fetchPriority="high" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0b1a2c] via-[#0b1a2c]/85 to-[#0b1a2c]/35"></div>
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0b1a2c]/80 to-transparent"></div>
+        </div>
         {/* Téléphone : grande photo avec le titre posé dessus, comme les sites
             des grands installateurs. Sur ordinateur, la mise en page reste en
             deux colonnes (texte + simulateur). */}
@@ -70,17 +77,17 @@ const IP5Energie = () => {
         <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8 relative z-10 pt-8 lg:pt-0">
           <div className="lg:grid lg:grid-cols-12 gap-14 items-center">
             <div className="lg:col-span-6 mb-8 lg:mb-0 text-left">
-              <div className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md bg-white dark:bg-slate-900 text-[#173a5e] dark:text-blue-200 font-semibold text-sm mb-6 border border-slate-200 dark:border-slate-700">
-                <ShieldCheck size={16} className="text-[#2b5a8f] dark:text-blue-300" /> Installateur certifié RGE QualiPAC
+              <div className="hidden lg:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-white font-semibold text-sm mb-6 border border-white/20">
+                <ShieldCheck size={16} className="text-emerald-300" /> Installateur certifié RGE QualiPAC
               </div>
-              <h1 className="hidden lg:block text-4xl md:text-5xl font-bold tracking-tight leading-[1.15] lg:leading-[1.12] mb-4 lg:mb-6 text-[#0f2a47] dark:text-white">
-                Votre pompe à chaleur, de l'étude à la mise en service, avec jusqu'à 100&nbsp;% d'aides
+              <h1 className="hidden lg:block text-[3.6rem] font-extrabold tracking-tight leading-[1.05] mb-6 text-white">
+                Votre pompe à chaleur financée jusqu'à{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-200">100&nbsp;%</span>
               </h1>
-              <p className="hidden lg:block text-lg text-slate-600 dark:text-slate-300 mb-8 max-w-xl lg:mx-0 leading-relaxed">
-                IP5 Énergie étudie votre projet, prépare vos dossiers{" "}
-                <b className="font-semibold text-slate-800 dark:text-slate-100">MaPrimeRénov'</b> et{" "}
-                <b className="font-semibold text-slate-800 dark:text-slate-100">CEE</b>, puis fait installer votre pompe à chaleur
-                par des artisans certifiés RGE. Un seul interlocuteur du début à la fin.
+              <p className="hidden lg:block text-xl text-white/80 mb-9 max-w-xl leading-relaxed">
+                Étude, dossiers <b className="font-semibold text-white">MaPrimeRénov'</b> et{" "}
+                <b className="font-semibold text-white">CEE</b>, installation par des artisans certifiés RGE&nbsp;:
+                on s'occupe de tout, avec un seul interlocuteur.
               </p>
 
               <div className="hidden lg:flex flex-row gap-3 lg:justify-start">
@@ -92,34 +99,34 @@ const IP5Energie = () => {
                       .getElementById("simulateur")
                       ?.scrollIntoView({ behavior: "smooth", block: "center" });
                   }}
-                  className="inline-flex items-center justify-center gap-2.5 bg-[#173a5e] hover:bg-[#122f4d] text-white px-7 py-3.5 rounded-lg font-semibold text-base shadow-md transition-colors"
+                  className="inline-flex items-center justify-center gap-2.5 bg-white hover:bg-blue-50 text-[#173a5e] px-7 py-4 rounded-xl font-bold text-base shadow-xl transition-colors"
                 >
                   Estimer mes aides gratuitement <ArrowRight size={18} />
                 </a>
                 <a
                   href="tel:+33749525267"
-                  className="inline-flex items-center justify-center gap-2.5 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-[#173a5e] dark:text-blue-200 px-7 py-3.5 rounded-lg font-semibold text-base border border-slate-300 dark:border-slate-600 transition-colors"
+                  className="inline-flex items-center justify-center gap-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-7 py-4 rounded-xl font-semibold text-base border border-white/30 transition-colors"
                 >
                   <Phone size={18} /> 07 49 52 52 67
                 </a>
               </div>
-              <p className="hidden lg:flex mt-5 items-center gap-x-5 gap-y-1.5 flex-wrap lg:justify-start text-sm text-slate-500 dark:text-slate-400">
+              <p className="hidden lg:flex mt-6 items-center gap-x-6 gap-y-1.5 flex-wrap lg:justify-start text-sm text-white/80">
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-[#2b5a8f] dark:text-blue-300" size={16} /> Étude gratuite
+                  <CheckCircle2 className="text-emerald-300" size={16} /> Étude gratuite
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-[#2b5a8f] dark:text-blue-300" size={16} /> Sans engagement
+                  <CheckCircle2 className="text-emerald-300" size={16} /> Sans engagement
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-[#2b5a8f] dark:text-blue-300" size={16} /> Rappel par un conseiller
+                  <CheckCircle2 className="text-emerald-300" size={16} /> Rappel par un conseiller
                 </span>
               </p>
 
               {/* Identité de l'entreprise : rassure par des faits vérifiables. */}
-              <div className="lg:mt-9 lg:pt-6 lg:border-t border-slate-200 dark:border-slate-800 flex items-start gap-3 lg:justify-start text-left">
-                <Building2 size={20} className="mt-0.5 text-[#2b5a8f] dark:text-blue-300 shrink-0" />
-                <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                  <span className="font-semibold text-slate-700 dark:text-slate-200">IP5 CONSEILS</span> — société française, siège à Paris
+              <div className="lg:mt-10 lg:pt-6 lg:border-t border-slate-200 lg:border-white/15 dark:border-slate-800 flex items-start gap-3 lg:justify-start text-left">
+                <Building2 size={20} className="mt-0.5 text-[#2b5a8f] lg:text-white/70 dark:text-blue-300 shrink-0" />
+                <p className="text-sm text-slate-500 lg:text-white/65 dark:text-slate-400 leading-relaxed">
+                  <span className="font-semibold text-slate-700 lg:text-white dark:text-slate-200">IP5 CONSEILS</span> — société française, siège à Paris
                   <br />
                   SIREN 890 293 277 · Certifiée RGE QualiPAC
                 </p>

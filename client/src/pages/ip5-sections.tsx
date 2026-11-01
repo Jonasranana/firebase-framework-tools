@@ -1711,14 +1711,21 @@ export const PageHero = ({
   title,
   highlight,
   subtitle,
+  image,
+  imageAlt = "",
+  imagePosition = "50% 50%",
 }: {
   kicker: string;
   kickerIcon: React.ElementType;
   title: string;
   highlight?: string;
   subtitle: string;
+  // Photo affichée à droite sur ordinateur (le téléphone garde le bandeau seul).
+  image?: string;
+  imageAlt?: string;
+  imagePosition?: string;
 }) => (
-  <section className="relative pt-28 pb-12 lg:pt-44 lg:pb-20 bg-gradient-to-br from-[#173a5e] via-[#2b5a8f] to-[#122f4d] text-white overflow-hidden">
+  <section className="relative pt-28 pb-12 lg:pt-36 lg:pb-20 bg-gradient-to-br from-[#0f2b4a] via-[#1d4e89] to-[#122f4d] text-white overflow-hidden">
     <div
       className="absolute inset-0 opacity-10"
       style={{
@@ -1729,24 +1736,58 @@ export const PageHero = ({
     ></div>
     <div className="absolute -top-24 -right-24 w-96 h-96 rounded-full bg-cyan-400/20 blur-3xl"></div>
     <div className="absolute -bottom-32 -left-24 w-96 h-96 rounded-full bg-blue-300/10 blur-3xl"></div>
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center">
-      <Kicker icon={kickerIcon} onDark>
-        {kicker}
-      </Kicker>
-      <h1 className="text-3xl md:text-5xl font-extrabold mb-5 leading-tight">
-        {title}
-        {highlight && (
-          <>
-            {" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-green-300">
-              {highlight}
-            </span>
-          </>
+    <div className={`${image ? "max-w-7xl lg:grid lg:grid-cols-12 lg:gap-14 lg:items-center" : "max-w-4xl"} mx-auto px-4 sm:px-6 lg:px-8 relative z-10`}>
+      <div className={image ? "lg:col-span-7 text-center lg:text-left" : "text-center"}>
+        <Kicker icon={kickerIcon} onDark>
+          {kicker}
+        </Kicker>
+        <h1 className={`text-3xl md:text-5xl ${image ? "lg:text-[3.4rem]" : ""} font-extrabold mb-5 leading-tight tracking-tight`}>
+          {title}
+          {highlight && (
+            <>
+              {" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-green-300">
+                {highlight}
+              </span>
+            </>
+          )}
+        </h1>
+        <p className={`text-lg md:text-xl text-blue-100 max-w-2xl leading-relaxed ${image ? "mx-auto lg:mx-0" : "mx-auto"}`}>
+          {subtitle}
+        </p>
+        {image && (
+          <div className="hidden lg:flex mt-8 gap-3">
+            <a
+              href="/#simulateur"
+              className="inline-flex items-center gap-2 rounded-xl bg-white text-[#173a5e] px-6 py-3.5 font-bold shadow-lg hover:bg-blue-50 transition-colors"
+            >
+              Estimer mes aides gratuitement <ArrowRight size={18} />
+            </a>
+            <a
+              href="tel:+33749525267"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 py-3.5 font-semibold hover:bg-white/20 transition-colors"
+            >
+              07 49 52 52 67
+            </a>
+          </div>
         )}
-      </h1>
-      <p className="text-lg md:text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-        {subtitle}
-      </p>
+      </div>
+      {image && (
+        <div className="hidden lg:block lg:col-span-5">
+          <div className="relative">
+            <div className="absolute -inset-3 rounded-[2rem] bg-gradient-to-br from-cyan-300/30 to-amber-200/20 blur-xl" aria-hidden="true"></div>
+            <img
+              src={image}
+              alt={imageAlt}
+              className="relative w-full h-[380px] object-cover rounded-[1.75rem] ring-1 ring-white/20 shadow-2xl"
+              style={{ objectPosition: imagePosition }}
+            />
+            <span className="absolute -bottom-4 left-6 inline-flex items-center gap-2 rounded-2xl bg-white text-[#173a5e] px-4 py-2.5 text-sm font-bold shadow-xl">
+              <ShieldCheck size={18} className="text-emerald-600" /> Installateur certifié RGE QualiPAC
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   </section>
 );

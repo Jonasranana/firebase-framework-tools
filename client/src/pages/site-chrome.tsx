@@ -169,7 +169,7 @@ export const SiteHeader = () => {
             {/* Accès des artisans partenaires (création de compte + grille de pose) */}
             <a
               href="/espace-pro"
-              className="hidden lg:flex items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-[#173a5e] hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 transition-colors whitespace-nowrap"
+              className="hidden items-center gap-1.5 text-sm font-semibold text-slate-600 dark:text-slate-300 hover:text-[#173a5e] hover:bg-slate-50 dark:hover:bg-slate-800 dark:hover:text-white border border-slate-200 dark:border-slate-700 rounded-md px-2.5 py-1.5 transition-colors whitespace-nowrap"
               aria-label="Accès artisan : espace des artisans partenaires"
             >
               <Briefcase size={16} />
@@ -197,10 +197,10 @@ export const SiteHeader = () => {
               <span className="hidden md:inline lg:hidden xl:inline">07 49 52 52 67</span>
             </a>
             <a
-              href="/contact"
-              className="hidden 2xl:inline-flex items-center gap-2 whitespace-nowrap bg-[#173a5e] text-white px-5 py-2.5 rounded-lg font-semibold text-sm hover:bg-[#122f4d] transition-colors shadow-sm"
+              href="/#simulateur"
+              className="hidden xl:inline-flex items-center gap-2 whitespace-nowrap bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:brightness-110 transition shadow-md"
             >
-              Devis gratuit
+              Estimer mes aides <ArrowRight size={16} />
             </a>
           </div>
         </div>
