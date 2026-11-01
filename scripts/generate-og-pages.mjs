@@ -24,6 +24,7 @@ const home = {
   description: "Installateur certifié RGE QualiPAC : remplacez votre chaudière fioul ou gaz par une pompe à chaleur. Étude gratuite, aides MaPrimeRénov' et CEE gérées de A à Z.",
   image: og("accueil"),
   alt: "Pompe à chaleur installée devant une maison — IP5 Énergie",
+  preload: "/images/hero-accueil.jpg",
 };
 const simu = {
   title: "Simulez vos aides pour une pompe à chaleur en 2 minutes — IP5 Énergie",
@@ -120,6 +121,9 @@ for (const [route, p] of Object.entries(pages)) {
   doc = setMeta(doc, "property", "og:image:height", "630");
   doc = setMeta(doc, "property", "og:image:alt", p.alt);
   doc = setMeta(doc, "name", "twitter:image", p.image);
+  // Accueil : la photo du haut est demandée dès la lecture du HTML (avant le JavaScript),
+  // pour qu'elle s'affiche en même temps que la page.
+  if (p.preload) doc = doc.replace("</head>", `    <link rel="preload" as="image" href="${p.preload}" fetchpriority="high" />\n  </head>`);
   const file = route === "/" ? `${DIST}/index.html` : `${DIST}${route}/index.html`;
   mkdirSync(file.replace(/\/index\.html$/, ""), { recursive: true });
   writeFileSync(file, doc);

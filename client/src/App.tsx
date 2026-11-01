@@ -8,7 +8,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import IP5Energie from "@/pages/IP5Energie";
-import { useAuth } from "@/hooks/use-auth";
 
 // Chargées à la demande : la page d'accueil (IP5 Énergie) reste légère, le
 // reste du code (articles, pages légales, app voitures historique) n'est
@@ -61,16 +60,15 @@ const CarDetails = lazy(() => import("@/pages/CarDetails"));
 const ListCar = lazy(() => import("@/pages/ListCar"));
 const MyBookings = lazy(() => import("@/pages/MyBookings"));
 
-const PageSpinner = () => <BrandLoader full />;
+// Pages de l'outil interne (CRM, espace pro, ancienne app voitures) : chargement orange.
+// Partout ailleurs (site des clients) : chargement bleu, aux couleurs du site.
+const isInternalPath = () =>
+  /^\/(admin|outil-devis|espace-pro|marges-|gonflage-signature|autos|cars|list-car|my-|profile)/.test(window.location.pathname);
+const PageSpinner = () => <BrandLoader full tone={isInternalPath() ? "crm" : "site"} />;
 
 function Router() {
-  const { isLoading } = useAuth();
-
-  // Show loading spinner while checking auth status to prevent flicker
-  if (isLoading) {
-    return <PageSpinner />;
-  }
-
+  // Plus d'attente de la session avant d'afficher une page : seule l'ancienne app voitures s'en sert
+  // (ses pages la vérifient elles-mêmes). Le site des clients s'affiche donc tout de suite.
   return (
     <Suspense fallback={<PageSpinner />}>
       <Switch>

@@ -2,9 +2,11 @@ import { LOGO_FULL_D, LOGO_FULL_VIEWBOX } from "@/pages/ip5-logo";
 
 // Écran de chargement : le logo IP5 Énergie, pâle, traversé en boucle par un reflet (aucune barre).
 // full : occupe tout l'écran (démarrage du site et de l'outil) ; sinon centré dans la zone qui charge.
-export default function BrandLoader({ full = false, label = "Chargement" }: { full?: boolean; label?: string }) {
+// tone : orange pour le CRM (outil interne), bleu pour le site des clients.
+export default function BrandLoader({ full = false, label = "Chargement", tone = "crm" }: { full?: boolean; label?: string; tone?: "crm" | "site" }) {
+  const color = tone === "site" ? "text-[#173a5e] dark:text-blue-300" : "text-[#ff6a1a] dark:text-[#ff8a3d]";
   const logo = (
-    <svg viewBox={LOGO_FULL_VIEWBOX} className="h-16 w-auto text-[#ff6a1a] dark:text-[#ff8a3d] block" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <svg viewBox={LOGO_FULL_VIEWBOX} className={`h-16 w-auto ${color} block`} xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <path d={LOGO_FULL_D} fill="currentColor" fillRule="evenodd" />
     </svg>
   );
