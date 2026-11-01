@@ -399,7 +399,7 @@ export const ArticleDetail = () => {
             <Cover article={article} className="w-full aspect-[16/9] sm:rounded-2xl" />
             {article.imageCredit && (
               <figcaption className="text-xs text-gray-500 dark:text-slate-400 mt-2 px-4 sm:px-0">
-                {article.imageAlt ? `${article.imageAlt}. ` : ""}© {article.imageCredit}
+                {article.imageAlt ? `${article.imageAlt} · ` : ""}{article.imageCredit}
               </figcaption>
             )}
           </figure>
