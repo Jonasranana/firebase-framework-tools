@@ -643,8 +643,9 @@ export function trackStep(source: string, step: number, answers: Record<string, 
 // --- Habillage du simulateur ---
 // Chaque réponse a sa couleur : le parcours est plus vivant et plus lisible,
 // comme un vrai tunnel de vente d'agence.
-type Tint = "blue" | "violet" | "amber" | "orange" | "yellow" | "slate" | "emerald" | "sky" | "pink";
+type Tint = "gold" | "blue" | "violet" | "amber" | "orange" | "yellow" | "slate" | "emerald" | "sky" | "pink";
 const TINTS: Record<Tint, { icon: string; ring: string; soft: string; dot: string }> = {
+  gold: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
   blue: { icon: "from-blue-500 to-indigo-600", ring: "ring-blue-500 border-blue-500", soft: "bg-blue-50", dot: "bg-blue-600" },
   violet: { icon: "from-violet-500 to-fuchsia-500", ring: "ring-violet-500 border-violet-500", soft: "bg-violet-50", dot: "bg-violet-500" },
   amber: { icon: "from-amber-400 to-orange-500", ring: "ring-amber-500 border-amber-500", soft: "bg-amber-50", dot: "bg-amber-500" },
@@ -1122,8 +1123,8 @@ export const Simulator = ({
             <h3 className={Q}>Quel est votre type de logement&nbsp;?</h3>
             <p className={SUB}>Pour adapter les aides à votre logement.</p>
             <div className="grid grid-cols-2 gap-3">
-              <Choice layout="tile" tint="blue" icon={Home} title="Maison" hint="Individuelle" {...pickProps("housingType", "Maison")} />
-              <Choice layout="tile" tint="violet" icon={Building} title="Appartement" hint="En copropriété" delay={60} {...pickProps("housingType", "Appartement")} />
+              <Choice layout="tile" tint="gold" icon={Home} title="Maison" hint="Individuelle" {...pickProps("housingType", "Maison")} />
+              <Choice layout="tile" tint="gold" icon={Building} title="Appartement" hint="En copropriété" delay={60} {...pickProps("housingType", "Appartement")} />
             </div>
           </div>
         );
