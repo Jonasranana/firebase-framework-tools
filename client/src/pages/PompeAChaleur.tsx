@@ -16,7 +16,7 @@ const PompeAChaleur = () => (
       kickerIcon={BadgeCheck}
       title="La pompe à chaleur, le chauffage le plus"
       highlight="performant"
-      subtitle="Chauffage doux en hiver, jusqu'à 4 kWh de chaleur pour 1 kWh consommé, et un logement valorisé. Découvrez les 6 marques que nous installons."
+      subtitle="Chauffage doux en hiver, jusqu'à 4 kWh de chaleur pour 1 kWh consommé, et un logement valorisé. Découvrez les 7 marques que nous installons."
       image="/images/realisations/unite-exterieure.jpg"
       imageAlt="Unité extérieure de pompe à chaleur posée par IP5 Énergie"
       imagePosition="50% 60%"

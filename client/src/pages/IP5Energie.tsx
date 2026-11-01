@@ -194,7 +194,7 @@ const IP5Energie = () => {
               {
                 href: "/pompe-a-chaleur",
                 title: "Nos pompes à chaleur",
-                text: "Les 6 marques que nous installons et comment choisir le bon modèle pour votre logement.",
+                text: "Les 7 marques que nous installons et comment choisir le bon modèle pour votre logement.",
                 cta: "Voir les modèles",
                 visual: "marques",
               },
