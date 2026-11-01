@@ -12,6 +12,7 @@ import {
   Phone,
   Lightbulb,
   CheckCircle2,
+  Newspaper,
 } from "lucide-react";
 import {
   SiteHeader,
@@ -28,6 +29,7 @@ export const SECTION_PATH = "/conseils";
 const SITE = "https://ip5energie.fr";
 
 const CATEGORY_ICONS: Record<string, typeof PiggyBank> = {
+  Actualités: Newspaper,
   "Aides & subventions": PiggyBank,
   "Pompe à chaleur": Zap,
   Solaire: Sun,
