@@ -2732,6 +2732,124 @@ const ARTISAN_LINE_IDS = new Set(ARTISAN.ARTISAN_GRID_SECTIONS.flatMap((s) => s.
 const ARTISAN_TRAVEL_IDS = new Set(ARTISAN.TRAVEL_FIELDS.map((f) => f.id));
 const cleanAmount = (v) => String(v ?? "").replace(/[^0-9.,\s]/g, "").trim().slice(0, 12);
 
+// ── Accès personnel à la grille artisan ─────────────────────────────────
+// La grille de /espace-pro n'est plus visible par tout le monde :
+// 1) action « request » : l'artisan donne prénom, nom, SIRET, ville, e-mail
+//    (et téléphone). On crée un lien personnel (jeton aléatoire stocké dans
+//    artisan_access/{jeton}) et on le lui envoie par e-mail ; IP5 est prévenu.
+// 2) action « check » : la page /espace-pro?acces=… vérifie le jeton et
+//    récupère les coordonnées pour afficher la grille.
+// submitArtisanGrid n'accepte ensuite que les envois avec un jeton valide.
+exports.artisanAccess = onRequest(
+  {
+    secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+    region: "europe-west9",
+    cors: [SITE_URL, "https://www.ip5energie.fr", "https://ip5-energie.web.app"],
+    timeoutSeconds: 60,
+  },
+  async (req, res) => {
+    if (req.method !== "POST") {
+      res.status(405).send("method not allowed");
+      return;
+    }
+    const b = req.body ?? {};
+    const clip = (v, n) => String(v ?? "").trim().slice(0, n);
+
+    if (b.action === "check") {
+      const token = clip(b.token, 80);
+      if (!/^[A-Za-z0-9_-]{20,80}$/.test(token)) {
+        res.status(404).send("not found");
+        return;
+      }
+      const snap = await db.doc(`artisan_access/${token}`).get();
+      if (!snap.exists) {
+        res.status(404).send("not found");
+        return;
+      }
+      res.status(200).json({ identity: snap.data().identity ?? {} });
+      return;
+    }
+
+    if (b.action !== "request") {
+      res.status(400).send("invalid");
+      return;
+    }
+    if (b.company) {
+      res.status(200).send("ok"); // champ piège anti-robot
+      return;
+    }
+    const identity = {
+      prenom: clip(b.identity?.prenom, 60),
+      nom: clip(b.identity?.nom, 60),
+      siret: clip(b.identity?.siret, 20).replace(/\s/g, ""),
+      ville: clip(b.identity?.ville, 80),
+      email: clip(b.identity?.email, 120).toLowerCase(),
+      telephone: clip(b.identity?.telephone, 30),
+    };
+    if (!identity.prenom || !identity.nom || !identity.ville || !/^\d{14}$/.test(identity.siret) || !EMAIL_RE.test(identity.email)) {
+      res.status(400).send("invalid");
+      return;
+    }
+
+    // Anti-abus : au plus une demande de lien toutes les 2 minutes par e-mail.
+    const lockRef = db.doc(`artisan_access_requests/${emailKey(identity.email)}`);
+    const lock = await lockRef.get();
+    if (lock.exists && Date.now() - (lock.data().at?.toMillis?.() ?? 0) < 2 * 60 * 1000) {
+      res.status(429).send("too many");
+      return;
+    }
+    await lockRef.set({ at: FieldValue.serverTimestamp() });
+
+    const token = crypto.randomBytes(24).toString("base64url");
+    await db.doc(`artisan_access/${token}`).set({ identity, createdAt: FieldValue.serverTimestamp() });
+    const link = `${SITE_URL}/espace-pro?acces=${token}`;
+
+    try {
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const from = GMAIL_SENDER_EMAIL.value();
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: buildRawMessage({
+            to: identity.email,
+            from,
+            subject: "IP5 Énergie — Votre accès à la grille de prix de pose",
+            html: buildBrandedEmailShell({
+              bodyHtml: `
+                <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${escapeHtmlText(identity.prenom)},</p>
+                <p style="margin:0 0 12px 0;">Merci pour votre intérêt pour un partenariat avec IP5 Énergie. Voici votre accès personnel pour remplir votre grille de prix de pose (5 minutes, sur téléphone ou ordinateur) :</p>
+                <p style="margin:22px 0;"><a href="${link}" style="display:inline-block;background:#173a5e;color:#ffffff;text-decoration:none;padding:14px 26px;border-radius:999px;font-weight:bold;font-size:16px;">Remplir ma grille</a></p>
+                <p style="margin:0 0 12px 0; color:#607083; font-size:13px;">Ce lien vous est personnel : merci de ne pas le transférer.</p>
+                <p style="margin:0;">À très vite,<br>L'équipe IP5 Énergie</p>`,
+            }),
+          }),
+        },
+      });
+      await gmail.users.messages.send({
+        userId: "me",
+        requestBody: {
+          raw: buildRawMessage({
+            to: from,
+            from,
+            subject: `🧰 Demande d'accès grille artisan — ${identity.prenom} ${identity.nom}`,
+            html: `<div style="font-family:Arial,sans-serif;font-size:14px;color:#122f4d">
+              <p><b>${escapeHtmlText(`${identity.prenom} ${identity.nom}`)}</b> a demandé l'accès à la grille de prix de pose. Le lien personnel lui a été envoyé par e-mail.</p>
+              <p>${escapeHtmlText(identity.ville)} · SIRET ${escapeHtmlText(identity.siret)} · ${escapeHtmlText(identity.email)}${identity.telephone ? ` · ${escapeHtmlText(identity.telephone)}` : ""}</p>
+            </div>`,
+          }),
+        },
+      });
+    } catch (err) {
+      logger.error("Accès grille artisan : envoi du mail échoué", { error: err.message });
+      res.status(502).send("mail failed");
+      return;
+    }
+    res.status(200).send("ok");
+  },
+);
+
 exports.submitArtisanGrid = onRequest(
   {
     secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, MONDAY_API_TOKEN],
@@ -2750,13 +2868,22 @@ exports.submitArtisanGrid = onRequest(
       return;
     }
     const clip = (v, n) => String(v ?? "").trim().slice(0, n);
+    // Accès personnel obligatoire : les coordonnées viennent du lien envoyé
+    // par e-mail (artisan_access), pas du formulaire.
+    const token = clip(b.token, 80);
+    const access = /^[A-Za-z0-9_-]{20,80}$/.test(token) ? await db.doc(`artisan_access/${token}`).get() : null;
+    if (!access?.exists) {
+      res.status(403).send("forbidden");
+      return;
+    }
+    const known = access.data().identity ?? {};
     const identity = {
-      prenom: clip(b.identity?.prenom, 60),
-      nom: clip(b.identity?.nom, 60),
-      siret: clip(b.identity?.siret, 20).replace(/\s/g, ""),
-      ville: clip(b.identity?.ville, 80),
-      email: clip(b.identity?.email, 120).toLowerCase(),
-      telephone: clip(b.identity?.telephone, 30),
+      prenom: clip(known.prenom, 60),
+      nom: clip(known.nom, 60),
+      siret: clip(known.siret, 20).replace(/\s/g, ""),
+      ville: clip(known.ville, 80),
+      email: clip(known.email, 120).toLowerCase(),
+      telephone: clip(b.identity?.telephone || known.telephone, 30),
     };
     const prices = {};
     for (const [k, v] of Object.entries(b.prices ?? {})) if (ARTISAN_LINE_IDS.has(k) && cleanAmount(v)) prices[k] = cleanAmount(v);
@@ -2776,7 +2903,8 @@ exports.submitArtisanGrid = onRequest(
       return;
     }
     await lockRef.set({ at: FieldValue.serverTimestamp() });
-    await db.collection("artisan_submissions").add({ identity, prices, travel, comment, createdAt: FieldValue.serverTimestamp() });
+    await db.collection("artisan_submissions").add({ identity, prices, travel, comment, accessToken: token, createdAt: FieldValue.serverTimestamp() });
+    await access.ref.set({ lastSubmittedAt: FieldValue.serverTimestamp() }, { merge: true });
 
     const lineLabel = Object.fromEntries(
       ARTISAN.ARTISAN_GRID_SECTIONS.flatMap((s) => s.lines.map((l) => [l.id, `${s.title.replace(/^Pose — /, "")} ${l.label}`])),

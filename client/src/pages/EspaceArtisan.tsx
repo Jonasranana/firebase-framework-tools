@@ -6,6 +6,7 @@ import {
   ClipboardList,
   FileCheck2,
   Loader2,
+  Mail,
   MapPin,
   Package,
   Truck,
@@ -18,11 +19,14 @@ import {
   TRAVEL_FIELDS,
 } from "@/lib/artisanGrid";
 
-type Status = "ready" | "done";
+type Status = "ready" | "sent" | "done";
+type Access = "none" | "checking" | "ok" | "invalid";
 
 const DRAFT_KEY = "ip5_artisan_grid_draft";
 const SUBMIT_ENDPOINT =
   "https://europe-west9-kachoto-7554c.cloudfunctions.net/submitArtisanGrid";
+const ACCESS_ENDPOINT =
+  "https://europe-west9-kachoto-7554c.cloudfunctions.net/artisanAccess";
 
 type Identity = { prenom: string; nom: string; siret: string; ville: string; email: string; telephone: string };
 const EMPTY_IDENTITY: Identity = { prenom: "", nom: "", siret: "", ville: "", email: "", telephone: "" };
@@ -51,9 +55,11 @@ function loadDraft(): { identity: Identity; travel: Record<string, string>; pric
 
 // ─────────────────────────────────────────────────────────────────────────
 // ESPACE ARTISANS PARTENAIRES — route /espace-pro.
-// Pas de création de compte : l'artisan lit la présentation, remplit ses
-// coordonnées (prénom, nom, SIRET, e-mail) et sa grille, puis « J'ai
-// terminé ». La Cloud Function submitArtisanGrid enregistre la grille, met
+// Pas de création de compte, mais la grille n'est pas publique :
+// 1) l'artisan lit la présentation et donne ses coordonnées (prénom, nom,
+//    SIRET, ville, e-mail) ; la Cloud Function artisanAccess lui envoie par
+//    e-mail un lien personnel /espace-pro?acces=… ;
+// 2) avec ce lien, il voit et remplit sa grille, puis « J'ai terminé ». La Cloud Function submitArtisanGrid enregistre la grille, met
 // l'artisan dans le groupe « ✅ Grilles remplies » du tableau Monday de
 // recrutement et envoie le PDF à IP5 et à l'artisan. Le brouillon est gardé
 // dans le navigateur (localStorage) en attendant l'envoi.
@@ -70,6 +76,36 @@ export default function EspaceArtisan() {
   const [open, setOpen] = useState<string>("pose_mono");
   const [errors, setErrors] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  // Jeton du lien personnel reçu par e-mail (sinon : demande d'accès).
+  const accessToken = useMemo(() => {
+    try {
+      return new URLSearchParams(window.location.search).get("acces")?.trim() ?? "";
+    } catch {
+      return "";
+    }
+  }, []);
+  const [access, setAccess] = useState<Access>(accessToken ? "checking" : "none");
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancelled = false;
+    fetch(ACCESS_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "check", token: accessToken }),
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(String(res.status));
+        const data = await res.json();
+        if (cancelled) return;
+        setIdentity((v) => ({ ...v, ...EMPTY_IDENTITY, ...(data.identity ?? {}) }));
+        setAccess("ok");
+      })
+      .catch(() => !cancelled && setAccess("invalid"));
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   useEffect(() => {
     document.title = "Espace artisans partenaires — IP5 Énergie";
@@ -93,26 +129,54 @@ export default function EspaceArtisan() {
     [prices],
   );
 
-  const finish = async () => {
+  // Étape 1 : coordonnées → lien personnel envoyé par e-mail.
+  const requestAccess = async () => {
     const errs: string[] = [];
     const missing = IDENTITY_FIELDS.filter((f) => f.required && !identity[f.id].trim()).map((f) => f.label);
     if (missing.length) errs.push(`À compléter : ${missing.join(", ")}.`);
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(identity.email.trim())) errs.push("Adresse e-mail invalide.");
     if (identity.siret.trim() && identity.siret.replace(/\s/g, "").length !== 14)
       errs.push("Le SIRET doit contenir 14 chiffres.");
+    setErrors(errs);
+    if (errs.length) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(ACCESS_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "request", identity, company }),
+      });
+      if (res.status === 429) {
+        setErrors(["Un lien vient déjà de vous être envoyé. Vérifiez votre boîte mail (et les indésirables)."]);
+        return;
+      }
+      if (!res.ok) throw new Error(String(res.status));
+      setStatus("sent");
+      window.scrollTo({ top: 0 });
+    } catch {
+      setErrors(["L'envoi a échoué. Réessayez dans un instant ou appelez-nous au 07 49 52 52 67."]);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Étape 2 : grille remplie avec le lien personnel.
+  const finish = async () => {
+    const errs: string[] = [];
     if (filledPrices === 0) errs.push("Indiquez au moins un prix de pose.");
     setErrors(errs);
-    if (errs.length) {
-      if (missing.length) document.getElementById("coordonnees")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
-    }
+    if (errs.length) return;
     setSubmitting(true);
     try {
       const res = await fetch(SUBMIT_ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ identity, travel, prices, comment, company }),
+        body: JSON.stringify({ token: accessToken, identity, travel, prices, comment, company }),
       });
+      if (res.status === 403) {
+        setAccess("invalid");
+        throw new Error("403");
+      }
       if (!res.ok) throw new Error(String(res.status));
       try {
         localStorage.removeItem(DRAFT_KEY);
@@ -148,15 +212,34 @@ export default function EspaceArtisan() {
             </p>
             <p className="text-gray-600">Nous revenons vers vous très rapidement.</p>
           </div>
-        ) : (
+        ) : status === "sent" ? (
+          <div className="max-w-xl mx-auto bg-white rounded-3xl border border-gray-100 shadow-sm p-8 text-center">
+            <Mail className="mx-auto mb-4 text-[#2b5a8f]" size={48} />
+            <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Vérifiez votre boîte mail</h1>
+            <p className="text-gray-600 mb-2">
+              Merci {identity.prenom.trim()} ! Nous venons d'envoyer à <b>{identity.email.trim()}</b> votre lien
+              personnel pour remplir votre grille de tarifs.
+            </p>
+            <p className="text-sm text-gray-500">Pensez à regarder dans les courriers indésirables.</p>
+          </div>
+        ) : access === "checking" ? (
+          <div className="flex justify-center py-24">
+            <Loader2 className="animate-spin text-[#2b5a8f]" size={32} />
+          </div>
+        ) : access !== "ok" ? (
           <>
             <Presentation />
 
             <div id="grille" className="scroll-mt-6 max-w-3xl mx-auto mt-12">
-              <h2 className="text-2xl md:text-3xl font-extrabold text-[#0f2b4a]">Votre grille de tarifs</h2>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-[#0f2b4a]">Accéder à la grille de tarifs</h2>
+              {access === "invalid" && (
+                <p className="mt-3 text-sm font-semibold text-red-600 bg-red-50 border border-red-100 rounded-xl px-4 py-3">
+                  Ce lien n'est pas valide. Indiquez vos coordonnées ci-dessous pour recevoir un nouveau lien.
+                </p>
+              )}
               <p className="text-gray-600 mt-2">
-                Indiquez vos prix <b>hors taxes</b> pour la pose. Laissez vide ce que vous ne faites pas. Pas besoin
-                de créer de compte : vos réponses sont gardées sur cet appareil jusqu'à l'envoi.
+                Indiquez les coordonnées de votre entreprise. Vous recevez ensuite <b>par e-mail un lien personnel</b>{" "}
+                pour remplir votre grille de tarifs de pose.
               </p>
 
               <section id="coordonnees" className="scroll-mt-6 mt-6 bg-white rounded-2xl border border-gray-100 p-5">
@@ -188,6 +271,48 @@ export default function EspaceArtisan() {
                   aria-hidden="true"
                   className="hidden"
                 />
+              </section>
+
+
+              <div className="mt-4">
+                {errors.map((e) => (
+                  <p key={e} className="text-sm text-red-600 mb-2">
+                    {e}
+                  </p>
+                ))}
+                <button
+                  onClick={requestAccess}
+                  disabled={submitting}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#f28c28] hover:bg-[#e07a12] text-white font-bold px-6 py-3 rounded-full shadow-md disabled:opacity-50"
+                >
+                  {submitting && <Loader2 className="animate-spin" size={18} />}
+                  Recevoir mon accès par e-mail
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-4">
+                En envoyant ce formulaire, vous acceptez qu'IP5 Énergie utilise ces informations pour vous recontacter
+                au sujet d'un partenariat. Voir notre{" "}
+                <a href="/confidentialite" className="underline">politique de confidentialité</a>.
+              </p>
+            </div>
+          </>
+        ) : (
+          <>
+            <div id="grille" className="scroll-mt-6 max-w-3xl mx-auto">
+              <h1 className="text-2xl md:text-3xl font-extrabold text-[#0f2b4a]">Votre grille de tarifs</h1>
+              <p className="text-gray-600 mt-2">
+                Indiquez vos prix <b>hors taxes</b> pour la pose. Laissez vide ce que vous ne faites pas. Vos réponses
+                sont gardées sur cet appareil jusqu'à l'envoi.
+              </p>
+
+              <section className="mt-6 bg-white rounded-2xl border border-gray-100 p-5">
+                <h3 className="font-bold text-gray-900">Vos coordonnées</h3>
+                <p className="text-sm text-gray-600 mt-2">
+                  {identity.prenom} {identity.nom} · {identity.ville} · SIRET {identity.siret}
+                  <br />
+                  {identity.email}
+                  {identity.telephone ? ` · ${identity.telephone}` : ""}
+                </p>
               </section>
 
               <section className="mt-4 bg-white rounded-2xl border border-gray-100 p-5">
