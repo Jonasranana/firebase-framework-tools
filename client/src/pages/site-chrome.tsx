@@ -146,7 +146,7 @@ export const SiteHeader = () => {
               {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
             </button>
             <a href="/" aria-label="IP5 Énergie, accueil">
-              <LogoIP5 className="!h-8 md:!h-14 !text-[#173a5e] dark:!text-blue-200" />
+              <LogoIP5 className="!h-10 md:!h-14 !text-[#173a5e] dark:!text-blue-200" />
             </a>
           </div>
           <div className="hidden lg:flex space-x-5 xl:space-x-8 items-center lg:ml-8 xl:ml-12">
@@ -354,69 +354,23 @@ export const SiteFooter = () => (
 // Ouvre l'assistant IA depuis n'importe quel bouton (barre mobile, etc.).
 export const OPEN_ASSISTANT_EVENT = "ip5:open-assistant";
 
-// Bouton « Mes aides » : descend jusqu'au simulateur s'il est sur la page,
-// sinon ouvre la page du simulateur.
-const goToSimulator = (e: React.MouseEvent<HTMLAnchorElement>) => {
-  const el = document.getElementById("simulateur");
-  if (!el) return;
-  e.preventDefault();
-  el.scrollIntoView({ behavior: "smooth", block: "start" });
-};
-
-// Sur ordinateur : bulle WhatsApp flottante. Sur téléphone : une barre
-// d'actions fixée en bas (Appeler, WhatsApp, Assistant, Mes aides), plus
-// propre que des bulles qui cachent le texte.
+// Bulle WhatsApp flottante (téléphone et ordinateur), sous la bulle de
+// l'assistant IA. « Appeler » reste dans l'en-tête.
 export const WhatsAppButton = () => (
   <>
     <a
       href="https://wa.me/33749525267"
       target="_blank"
       rel="noopener noreferrer"
-      className="hidden lg:flex fixed bottom-6 right-6 bg-green-500 text-white p-4 rounded-full shadow-2xl hover:bg-green-600 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
+      className="flex fixed bottom-4 right-4 lg:bottom-6 lg:right-6 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-[#3ee07a] to-[#1faa52] text-white rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-green-600/30 hover:scale-110 active:scale-95 transition-all duration-300 z-50 items-center justify-center group"
       aria-label="Contactez-nous sur WhatsApp"
     >
-      <MessageCircle size={32} />
-      <span className="absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+      <MessageCircle size={24} className="lg:w-8 lg:h-8" />
+      <span className="hidden lg:block absolute right-20 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
         Une question ? Écrivez-nous !
       </span>
     </a>
 
-    <nav
-      aria-label="Actions rapides"
-      className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-6px_20px_rgba(15,42,71,0.08)]"
-      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
-    >
-      <div className="grid grid-cols-[1fr_1fr_1fr_1.45fr] items-center gap-1 px-2 py-2">
-        <a
-          href="tel:+33749525267"
-          className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold text-[#173a5e] dark:text-slate-200"
-        >
-          <Phone size={20} /> Appeler
-        </a>
-        <a
-          href="https://wa.me/33749525267"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold text-[#173a5e] dark:text-slate-200"
-        >
-          <MessageCircle size={20} className="text-green-600" /> WhatsApp
-        </a>
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new Event(OPEN_ASSISTANT_EVENT))}
-          className="flex flex-col items-center gap-0.5 py-1 text-[11px] font-semibold text-[#173a5e] dark:text-slate-200"
-        >
-          <Sparkles size={20} className="text-violet-600" /> Question ?
-        </button>
-        <a
-          href="/pac#simulateur"
-          onClick={goToSimulator}
-          className="flex items-center justify-center gap-1.5 h-11 rounded-xl bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] text-white text-sm font-bold shadow-md"
-        >
-          Mes aides <ArrowRight size={16} />
-        </a>
-      </div>
-    </nav>
   </>
 );
 
@@ -529,7 +483,7 @@ export const AIChatWidget = () => {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-x-3 bottom-20 lg:inset-x-auto lg:right-6 lg:bottom-40 lg:w-96 h-[28rem] max-h-[70vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-x-3 bottom-40 lg:inset-x-auto lg:right-6 lg:bottom-48 lg:w-96 h-[28rem] max-h-[70vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-gradient-to-r from-[#2b5a8f] via-[#41519e] to-[#6b4a9e] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
             <div>
               <div className="flex items-center gap-2 font-bold">
@@ -611,7 +565,7 @@ export const AIChatWidget = () => {
       <button
         onClick={() => setIsOpen((v) => !v)}
         aria-label={isOpen ? "Fermer l'assistant Gemini" : "Ouvrir l'assistant Gemini"}
-        className="hidden lg:flex fixed bottom-24 right-6 bg-gradient-to-br from-[#4285f4] via-[#8b5cf6] to-[#ec4899] text-white p-4 rounded-full shadow-2xl shadow-purple-500/40 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
+        className="flex fixed bottom-[76px] right-4 lg:bottom-28 lg:right-6 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-[#4285f4] via-[#8b5cf6] to-[#ec4899] text-white rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-purple-500/30 active:scale-95 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
       >
         {!isOpen && (
           <span
@@ -620,9 +574,9 @@ export const AIChatWidget = () => {
           ></span>
         )}
         {isOpen ? (
-          <X size={28} className="relative" />
+          <X size={22} className="relative lg:w-7 lg:h-7" />
         ) : (
-          <AIStar size={28} className="relative drop-shadow" />
+          <AIStar size={22} className="relative drop-shadow lg:w-7 lg:h-7" />
         )}
         {!isOpen && (
           <span className="hidden md:block absolute right-16 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
