@@ -11,8 +11,17 @@ const articles = [...source.matchAll(/slug:\s*"([^"]+)"[\s\S]*?date:\s*"([^"]+)"
   (m) => ({ slug: m[1], date: m[2] }),
 );
 
+// Pages « Pompe à chaleur à <ville> » (liste VILLES de PacVille.tsx).
+const villes = [...readFileSync("client/src/pages/PacVille.tsx", "utf8").matchAll(/\{\s*slug:\s*"([^"]+)",\s*nom:/g)].map((m) => m[1]);
+
 const urls = [
   { loc: "/", lastmod: today, priority: "1.0" },
+  { loc: "/pompe-a-chaleur", lastmod: today, priority: "0.9" },
+  { loc: "/solaire", lastmod: today, priority: "0.9" },
+  { loc: "/aides", lastmod: today, priority: "0.9" },
+  { loc: "/realisations", lastmod: today, priority: "0.8" },
+  { loc: "/contact", lastmod: today, priority: "0.7" },
+  ...villes.map((v) => ({ loc: `/pompe-a-chaleur/${v}`, lastmod: today, priority: "0.6" })),
   { loc: "/conseils", lastmod: today, priority: "0.8" },
   ...articles.map((a) => ({
     loc: `/conseils/${a.slug}`,
