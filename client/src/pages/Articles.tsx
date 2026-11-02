@@ -41,7 +41,7 @@ const CategoryBadge = ({ category, light }: { category: string; light?: boolean 
   return (
     <span
       className={`inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider ${
-        light ? "text-orange-200" : "text-[#e8590c]"
+        light ? "text-amber-200" : "text-[#2b5a8f] dark:text-blue-300"
       }`}
     >
       <Icon size={13} /> {category}
@@ -90,24 +90,11 @@ function useSeo(opts: { description: string; image?: string; jsonLd?: object[]; 
   }, [opts.description, opts.image, opts.type, JSON.stringify(opts.jsonLd ?? [])]);
 }
 
-// Police des titres façon presse (chargée seulement sur les pages de la rubrique).
-function useHeadlineFont() {
-  useEffect(() => {
-    const id = "font-playfair";
-    if (document.getElementById(id)) return;
-    const l = document.createElement("link");
-    l.id = id;
-    l.rel = "stylesheet";
-    l.href = "https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&display=swap";
-    document.head.appendChild(l);
-  }, []);
-}
-
 const Cover = ({ article, className = "" }: { article: Article; className?: string }) =>
   article.image ? (
     <img src={article.image} alt={article.imageAlt ?? ""} className={`object-cover ${className}`} loading="lazy" />
   ) : (
-    <div className={`bg-gradient-to-br from-[#0f2b4a] via-[#2b5a8f] to-[#ff8a00] ${className}`} />
+    <div className={`bg-gradient-to-br from-[#0f2b4a] via-[#2b5a8f] to-[#1d4e89] ${className}`} />
   );
 
 const Meta = ({ article, light }: { article: Article; light?: boolean }) => (
@@ -123,7 +110,6 @@ const Meta = ({ article, light }: { article: Article; light?: boolean }) => (
 
 export const ArticlesList = () => {
   useFrenchPageMeta(`${SECTION_NAME} : pompe à chaleur, aides et solaire — IP5 Énergie`);
-  useHeadlineFont();
   const all = sortedArticles();
   const categories = useMemo(() => Array.from(new Set(all.map((a) => a.category))), [all]);
   const [cat, setCat] = useState("");
@@ -152,14 +138,14 @@ export const ArticlesList = () => {
   });
 
   return (
-    <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-[#faf8f5] dark:bg-slate-950 min-h-screen">
+    <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 min-h-screen">
       <SiteHeader />
 
-      <header className="pt-24 lg:pt-36 pb-8 border-b border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-950">
+      <header className="pt-28 lg:pt-36 pb-10 lg:pb-14 bg-gradient-to-br from-[#0b1a2c] via-[#0f2b4a] to-[#173a5e] text-white">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <p className="text-xs font-extrabold uppercase tracking-[0.2em] text-[#e8590c] mb-2">Le magazine d'IP5 Énergie</p>
-          <h1 className="font-serif text-4xl md:text-6xl font-bold text-gray-900 dark:text-white leading-tight">{SECTION_NAME}</h1>
-          <p className="text-lg text-gray-600 dark:text-slate-300 max-w-2xl mt-3">
+          <p className="inline-flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.18em] text-amber-200 mb-3"><span className="w-6 h-px bg-current opacity-70"></span>Le magazine d'IP5 Énergie</p>
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight text-white leading-tight">Conseils <span className="text-amber-200">&amp; actus</span></h1>
+          <p className="text-lg text-blue-100/80 max-w-2xl mt-3">
             Pompe à chaleur, aides de l'État, solaire : nos conseils et les dernières nouveautés de la rénovation
             énergétique, expliqués simplement.
           </p>
@@ -170,8 +156,8 @@ export const ArticlesList = () => {
                 onClick={() => setCat(c)}
                 className={`text-sm font-semibold px-4 py-1.5 rounded-full border transition-colors ${
                   cat === c
-                    ? "bg-[#0f2b4a] text-white border-[#0f2b4a]"
-                    : "bg-white dark:bg-slate-900 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700 hover:border-gray-400"
+                    ? "bg-amber-300 text-[#0b1a2c] border-amber-300"
+                    : "bg-white/5 text-white/85 border-white/20 hover:border-white/50"
                 }`}
               >
                 {c || "Tout"}
@@ -189,7 +175,7 @@ export const ArticlesList = () => {
             </div>
             <div className="md:col-span-2">
               <CategoryBadge category={hero.category} />
-              <h2 className="font-serif text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mt-3 mb-3 leading-tight group-hover:text-[#2b5a8f]">
+              <h2 className="tracking-tight text-3xl md:text-4xl font-extrabold text-[#0f2a47] dark:text-white mt-3 mb-3 leading-tight group-hover:text-[#2b5a8f]">
                 {hero.title}
               </h2>
               <p className="text-gray-600 dark:text-slate-300 leading-relaxed mb-4">{hero.excerpt}</p>
@@ -205,7 +191,7 @@ export const ArticlesList = () => {
                 <Cover article={a} className="w-full aspect-[16/9] group-hover:scale-[1.03] transition-transform duration-500" />
               </div>
               <CategoryBadge category={a.category} />
-              <h3 className="font-serif text-xl font-bold text-gray-900 dark:text-white mt-2 mb-2 leading-snug group-hover:text-[#2b5a8f]">
+              <h3 className="tracking-tight text-xl font-extrabold text-[#0f2a47] dark:text-white mt-2 mb-2 leading-snug group-hover:text-[#2b5a8f]">
                 {a.title}
               </h3>
               <p className="text-sm text-gray-600 dark:text-slate-300 leading-relaxed line-clamp-3 flex-1">{a.excerpt}</p>
@@ -228,7 +214,7 @@ const renderBlock = (block: ContentBlock, i: number) => {
   switch (block.type) {
     case "h2":
       return (
-        <h2 key={i} className="font-serif text-2xl md:text-[28px] font-bold text-gray-900 dark:text-white mt-10 mb-3 leading-snug">
+        <h2 key={i} className="tracking-tight text-2xl md:text-[28px] font-extrabold text-[#0f2a47] dark:text-white mt-10 mb-3 leading-snug">
           {block.text}
         </h2>
       );
@@ -237,7 +223,7 @@ const renderBlock = (block: ContentBlock, i: number) => {
         <ul key={i} className="space-y-2 my-5">
           {block.items.map((item, j) => (
             <li key={j} className="flex items-start gap-3 text-[17px] text-gray-800 dark:text-slate-200 leading-relaxed">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#e8590c] mt-3 flex-shrink-0" />
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 mt-3 flex-shrink-0" />
               {item}
             </li>
           ))}
@@ -259,8 +245,8 @@ const renderBlock = (block: ContentBlock, i: number) => {
       );
     case "tip":
       return (
-        <aside key={i} className="my-8 rounded-2xl bg-orange-50 dark:bg-orange-950/30 border-l-4 border-[#ff8a00] p-5">
-          <p className="flex items-center gap-2 text-sm font-extrabold text-[#c2410c] dark:text-orange-300 mb-1.5">
+        <aside key={i} className="my-8 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border-l-4 border-amber-400 p-5">
+          <p className="flex items-center gap-2 text-sm font-extrabold text-[#0f2a47] dark:text-amber-200 mb-1.5">
             <Lightbulb size={16} /> {block.title ?? "Bon à savoir"}
           </p>
           <p className="text-[16px] text-gray-800 dark:text-slate-200 leading-relaxed">{block.text}</p>
@@ -269,13 +255,13 @@ const renderBlock = (block: ContentBlock, i: number) => {
     case "faq":
       return (
         <section key={i} className="my-10">
-          <h2 className="font-serif text-2xl font-bold text-gray-900 dark:text-white mb-4">Questions fréquentes</h2>
+          <h2 className="tracking-tight text-2xl font-extrabold text-[#0f2a47] dark:text-white mb-4">Questions fréquentes</h2>
           <div className="divide-y divide-gray-200 dark:divide-slate-800 border-y border-gray-200 dark:border-slate-800">
             {block.items.map((f, j) => (
               <details key={j} className="group py-4">
                 <summary className="cursor-pointer list-none flex items-center justify-between gap-4 font-semibold text-gray-900 dark:text-white">
                   {f.q}
-                  <span className="text-[#e8590c] text-xl group-open:rotate-45 transition-transform">+</span>
+                  <span className="text-[#2b5a8f] text-xl group-open:rotate-45 transition-transform">+</span>
                 </summary>
                 <p className="mt-2 text-gray-700 dark:text-slate-300 leading-relaxed">{f.a}</p>
               </details>
@@ -296,7 +282,7 @@ const NotFoundArticle = () => (
   <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
     <SiteHeader />
     <div className="pt-40 pb-24 max-w-2xl mx-auto px-4 text-center">
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Article introuvable</h1>
+      <h1 className="text-3xl font-extrabold text-[#0f2a47] dark:text-white mb-4">Article introuvable</h1>
       <p className="text-gray-600 dark:text-slate-300 mb-8">Cet article n'existe pas ou plus. Retrouvez tous nos conseils ci-dessous.</p>
       <a
         href={SECTION_PATH}
@@ -316,7 +302,6 @@ export const ArticleDetail = () => {
   const article = ARTICLES.find((a) => a.slug === slug) as Article | undefined;
 
   useFrenchPageMeta(article ? `${article.title} — IP5 Énergie` : "Article introuvable — IP5 Énergie");
-  useHeadlineFont();
   const faq = article?.content.find((b) => b.type === "faq") as Extract<ContentBlock, { type: "faq" }> | undefined;
   useSeo({
     description: article?.excerpt ?? "",
@@ -367,7 +352,7 @@ export const ArticleDetail = () => {
     .slice(0, 3);
 
   return (
-    <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-[#faf8f5] dark:bg-slate-950 min-h-screen">
+    <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-slate-50 dark:bg-slate-950 min-h-screen">
       <SiteHeader />
 
       <article className="pt-24 lg:pt-32 pb-20">
@@ -379,7 +364,7 @@ export const ArticleDetail = () => {
           </nav>
 
           <CategoryBadge category={article.category} />
-          <h1 className="font-serif text-3xl md:text-5xl font-bold text-gray-900 dark:text-white mt-3 mb-5 leading-[1.15]">
+          <h1 className="tracking-tight text-3xl md:text-5xl font-extrabold text-[#0f2a47] dark:text-white mt-3 mb-5 leading-[1.15]">
             {article.title}
           </h1>
           <p className="text-xl md:text-[22px] text-gray-700 dark:text-slate-300 leading-relaxed font-medium mb-6">{article.excerpt}</p>
@@ -408,11 +393,11 @@ export const ArticleDetail = () => {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 mt-8">
           {article.keyPoints && article.keyPoints.length > 0 && (
             <aside className="rounded-2xl bg-[#0f2b4a] text-white p-6 mb-8">
-              <p className="text-xs font-extrabold uppercase tracking-wider text-orange-300 mb-3">L'essentiel</p>
+              <p className="text-xs font-extrabold uppercase tracking-wider text-amber-200 mb-3">L'essentiel</p>
               <ul className="space-y-2">
                 {article.keyPoints.map((k, j) => (
                   <li key={j} className="flex items-start gap-2.5 leading-relaxed">
-                    <CheckCircle2 size={18} className="text-orange-300 mt-0.5 flex-shrink-0" />
+                    <CheckCircle2 size={18} className="text-amber-200 mt-0.5 flex-shrink-0" />
                     {k}
                   </li>
                 ))}
@@ -422,14 +407,14 @@ export const ArticleDetail = () => {
 
           <div>{article.content.map(renderBlock)}</div>
 
-          <div className="mt-12 rounded-3xl p-8 text-center text-white" style={{ background: "linear-gradient(120deg,#0f2b4a,#2b5a8f 60%,#e8590c)" }}>
-            <h3 className="font-serif text-2xl font-bold mb-2">Un projet de pompe à chaleur ou de solaire ?</h3>
+          <div className="mt-12 rounded-3xl p-8 text-center text-white bg-[#0b1a2c]">
+            <h3 className="tracking-tight text-2xl font-extrabold mb-2">Un projet de pompe à chaleur ou de solaire ?</h3>
             <p className="text-white/85 mb-5">Calculez vos aides en 30 secondes ou parlez directement à un conseiller IP5 Énergie.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a href="/#avantages" className="inline-flex items-center justify-center gap-2 bg-white text-[#0f2b4a] px-6 py-3 rounded-full font-bold hover:bg-orange-50 transition-colors">
+              <a href="/#simulateur" className="inline-flex items-center justify-center gap-2 bg-amber-300 text-[#0b1a2c] px-6 py-3 rounded-xl font-bold hover:bg-amber-200 transition-colors">
                 Simuler mes aides <ArrowRight size={18} />
               </a>
-              <a href="tel:+33749525267" className="inline-flex items-center justify-center gap-2 border-2 border-white/70 text-white px-6 py-3 rounded-full font-bold hover:bg-white/10 transition-colors">
+              <a href="tel:+33749525267" className="inline-flex items-center justify-center gap-2 border border-white/30 bg-white/10 text-white px-6 py-3 rounded-xl font-semibold hover:bg-white/20 transition-colors">
                 <Phone size={18} /> 07 49 52 52 67
               </a>
             </div>
@@ -438,7 +423,7 @@ export const ArticleDetail = () => {
 
         {others.length > 0 && (
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-16">
-            <h3 className="font-serif text-2xl font-bold text-gray-900 dark:text-white mb-6 pb-3 border-b border-gray-200 dark:border-slate-800">
+            <h3 className="tracking-tight text-2xl font-extrabold text-[#0f2a47] dark:text-white mb-6 pb-3 border-b border-gray-200 dark:border-slate-800">
               À lire aussi
             </h3>
             <div className="grid sm:grid-cols-3 gap-8">
@@ -448,7 +433,7 @@ export const ArticleDetail = () => {
                     <Cover article={o} className="w-full aspect-[16/9] group-hover:scale-[1.03] transition-transform duration-500" />
                   </div>
                   <CategoryBadge category={o.category} />
-                  <p className="font-serif text-lg font-bold text-gray-900 dark:text-white leading-snug mt-1 group-hover:text-[#2b5a8f]">{o.title}</p>
+                  <p className="tracking-tight text-lg font-extrabold text-[#0f2a47] dark:text-white leading-snug mt-1 group-hover:text-[#2b5a8f]">{o.title}</p>
                 </a>
               ))}
             </div>
