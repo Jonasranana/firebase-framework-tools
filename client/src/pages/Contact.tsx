@@ -44,9 +44,9 @@ const Contact = () => (
       title="Parlons de votre"
       highlight="projet"
       subtitle="Une question, un devis, un rendez-vous ? Notre équipe familiale vous répond directement. Choisissez simplement le moyen qui vous convient."
-      image="/images/hero-contact.jpg"
-      imageAlt="Un conseiller échange avec des propriétaires"
-      imagePosition="50% 35%"
+      image="/images/site/contact-conseillere.jpg"
+      imageAlt="Une conseillère souriante, avec son casque téléphonique"
+      imagePosition="50% 30%"
     />
 
     <section className="py-14 md:py-24 bg-gray-50 dark:bg-slate-950">
