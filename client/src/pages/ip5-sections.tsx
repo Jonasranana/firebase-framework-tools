@@ -1793,7 +1793,7 @@ export const PageHero = ({
           <div className="hidden lg:flex mt-8 gap-3">
             <a
               href="/#simulateur"
-              className="inline-flex items-center gap-2 rounded-xl bg-white text-[#173a5e] px-6 py-3.5 font-bold shadow-lg hover:bg-blue-50 transition-colors"
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-300 text-[#0b1a2c] px-6 py-3.5 font-bold shadow-lg hover:bg-amber-200 transition-colors"
             >
               Estimer mes aides gratuitement <ArrowRight size={18} />
             </a>
@@ -2126,7 +2126,7 @@ export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => {
               <span className="w-px h-9 bg-slate-200" />
               <img src="/images/aides/cee.png" alt="CEE — Certificats d'économies d'énergie" className="h-11 w-auto" loading="lazy" />
             </div>
-            <p className="text-blue-100/50 text-xs mt-3">Montants attribués selon l'éligibilité de chaque foyer.</p>
+            <p className="text-blue-100/50 text-xs mt-3">Montants attribués selon l'éligibilité de chaque foyer. Barèmes 2026, susceptibles d'évoluer.</p>
           </div>
 
           <div className="bg-white rounded-3xl p-7 md:p-10 text-gray-900 shadow-2xl">
@@ -2154,7 +2154,7 @@ export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => {
             </ol>
             <a
               href="/#simulateur"
-              className="mt-8 flex items-center justify-center gap-2 rounded-xl bg-[#173a5e] hover:bg-[#122f4d] text-white font-bold py-3.5 transition-colors"
+              className="mt-8 flex items-center justify-center gap-2 rounded-xl bg-amber-300 hover:bg-amber-200 text-[#0b1a2c] font-bold py-3.5 shadow-lg shadow-amber-500/20 transition-colors"
             >
               Estimer mes aides gratuitement <ArrowRight size={18} />
             </a>
@@ -2326,7 +2326,7 @@ export const FinalCTA = ({ href = "/#simulateur" }: { href?: string }) => (
         <div className="mt-7 md:mt-0 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-3 flex-shrink-0">
           <a
             href={href}
-            className="inline-flex items-center justify-center gap-2 bg-white text-[#173a5e] px-6 py-4 rounded-xl font-bold whitespace-nowrap hover:bg-blue-50 transition-colors"
+            className="inline-flex items-center justify-center gap-2 bg-amber-300 text-[#0b1a2c] px-6 py-4 rounded-xl font-bold whitespace-nowrap hover:bg-amber-200 transition-colors"
           >
             Estimer mes aides <ArrowRight size={18} />
           </a>
