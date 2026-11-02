@@ -222,7 +222,7 @@ const IP5Energie = () => {
                   {card.visual === "marques" && (
                     // Les marques de pompes à chaleur : logos sur plaques blanches (lisibles aussi en mode sombre).
                     <div className="grid grid-cols-3 gap-2 p-3 h-full">
-                      {["daikin.png", "atlantic.png", "dedietrich.png", "tcl.png", "blaupunkt.png", "aux.png"].map((logo) => (
+                      {["chappee.png", "atlantic.png", "daikin.png", "dedietrich.png", "tcl.png", "blaupunkt.png"].map((logo) => (
                         <div key={logo} className="bg-white rounded-lg flex items-center justify-center p-2 border border-slate-100">
                           <img src={`/images/marques/${logo}`} alt="" className="max-h-9 max-w-full object-contain" loading="lazy" />
                         </div>

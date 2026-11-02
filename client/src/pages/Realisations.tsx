@@ -3,13 +3,13 @@ import { Award } from "lucide-react";
 import {
   PageLayout,
   PageHero,
-  RealisationsSection,
   AvisSection,
   FinalCTA,
 } from "./ip5-sections";
+import { BeforeAfterSection, RealisationsGallerySection, EngagementsSection } from "./aides-real-sections";
 
-// Page « Réalisations » : nos chantiers (avant/après, détails) et les avis
-// de nos clients.
+// Page « Réalisations » : avant / après à glisser, galerie des détails
+// (agrandissement), nos engagements et les avis de nos clients.
 const Realisations = () => (
   <PageLayout title="Nos réalisations et avis clients — IP5 Énergie">
     <PageHero
@@ -22,7 +22,9 @@ const Realisations = () => (
       imageAlt="Module intérieur et ballon d'eau chaude installés par IP5 Énergie"
       imagePosition="50% 45%"
     />
-    <RealisationsSection />
+    <BeforeAfterSection />
+    <RealisationsGallerySection />
+    <EngagementsSection />
     <AvisSection />
     <FinalCTA />
   </PageLayout>
