@@ -45,8 +45,8 @@ export const PacFeaturesSection = () => (
       <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
         <div className="relative mb-10 lg:mb-0">
           <img
-            src="/images/realisations/interieur-pac-ballon.jpg"
-            alt="Module intérieur de pompe à chaleur et ballon d'eau chaude installés par IP5 Énergie"
+            src="/images/pac/famille.jpg"
+            alt="Une famille au chaud, assise sur le tapis de son salon"
             className="w-full h-72 md:h-[460px] object-cover rounded-2xl border border-slate-200/80 dark:border-slate-800"
             loading="lazy"
           />
@@ -257,37 +257,37 @@ export const PacHowItWorksSection = () => {
   );
 };
 
-// ── Ce que comprend l'installation : liste + photo du vrai chantier ─────
+// ── Ce que comprend l'installation : liste + photo d'illustration ──────
 const INSTALL_ITEMS = [
   {
     title: "Unité extérieure",
     text: "Posée sur plot béton ou support, à l'endroit le plus adapté pour le rendement et la tranquillité des voisins.",
-    photo: "unite-exterieure.jpg",
-    alt: "Unité extérieure de pompe à chaleur posée sur plot béton",
+    photo: "/images/articles/entretien-pompe-a-chaleur-obligatoire.jpg",
+    alt: "Un technicien contrôle l'unité extérieure d'une pompe à chaleur",
   },
   {
     title: "Module intérieur et ballon",
     text: "À la place de l'ancienne chaudière : le module hydraulique et, si besoin, le ballon d'eau chaude.",
-    photo: "interieur-pac-ballon.jpg",
-    alt: "Module intérieur de pompe à chaleur et ballon d'eau chaude",
+    photo: "/images/pac/module-ballon.jpg",
+    alt: "Ballon d'eau chaude et module intérieur dans une buanderie",
   },
   {
     title: "Raccordements soignés",
     text: "Raccordement à vos radiateurs ou à votre plancher, avec des finitions propres et isolées.",
-    photo: "detail-module-hydraulique.jpg",
-    alt: "Détail des raccordements hydrauliques du module intérieur",
+    photo: "/images/pac/raccordements.jpg",
+    alt: "Un technicien contrôle les raccordements en cuivre d'un circuit de chauffage",
   },
   {
     title: "Électricité aux normes",
     text: "Protection dédiée dans le tableau, étiquetée pour l'entretien, et coffret de coupure à l'extérieur.",
-    photo: "tableau-electrique-etiquete.jpg",
-    alt: "Tableau électrique dédié et étiqueté",
+    photo: "/images/pac/electricite.jpg",
+    alt: "Un électricien intervient sur le boîtier électrique d'une pompe à chaleur",
   },
   {
     title: "Mise en service",
     text: "Réglages, essais et explications : vous savez utiliser votre pompe à chaleur dès le premier jour.",
-    photo: "coffret-securite-exterieur.jpg",
-    alt: "Coffret de coupure extérieur aux normes",
+    photo: "/images/articles/rge-qualipac-pourquoi-choisir-installateur-certifie.jpg",
+    alt: "Un technicien règle le module intérieur d'une pompe à chaleur",
   },
 ];
 
@@ -300,7 +300,7 @@ export const PacInstallationSection = () => {
         <SectionHead
           kicker="Clé en main"
           title="Ce que comprend votre installation"
-          subtitle="Touchez chaque étape pour voir le travail sur un vrai chantier IP5 Énergie."
+          subtitle="Tout est compris, de la pose à la mise en service. Touchez chaque étape pour en savoir plus."
         />
         <div className="lg:grid lg:grid-cols-12 lg:gap-12 items-start">
           <ul className="lg:col-span-5 space-y-2 mb-6 lg:mb-0">
@@ -336,14 +336,11 @@ export const PacInstallationSection = () => {
           <figure className="lg:col-span-7 lg:sticky lg:top-28">
             <img
               key={item.photo}
-              src={`/images/realisations/${item.photo}`}
+              src={item.photo}
               alt={item.alt}
               className="w-full h-72 md:h-[440px] object-cover rounded-2xl border border-slate-200/80 dark:border-slate-800 animate-in fade-in duration-300"
               loading="lazy"
             />
-            <figcaption className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-              Photo d'un chantier réalisé par IP5 Énergie : {item.title.toLowerCase()}.
-            </figcaption>
           </figure>
         </div>
       </div>
