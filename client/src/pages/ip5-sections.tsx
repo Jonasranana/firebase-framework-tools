@@ -1444,6 +1444,9 @@ export const Simulator = ({
           result.kind === "zero" || result.kind === "rac"
             ? `profil ${result.profile} et votre département`
             : "";
+        // Le résultat parle de l'équipement choisi (« Les deux » reste sur la pompe à chaleur).
+        const equipement =
+          formData.projectType === "Panneaux solaires" ? "votre chauffe-eau solaire" : "votre pompe à chaleur";
         const smallPrint =
           "Estimation indicative selon vos réponses, sous réserve d'éligibilité. Le montant exact dépend de votre avis d'imposition et de votre logement : votre conseiller le confirmera avec vous.";
         const box = (tone: string, title: string, body: React.ReactNode, note?: React.ReactNode) => (
@@ -1462,7 +1465,7 @@ export const Simulator = ({
               <>
                 <p>
                   Avec votre {profil}, les aides de l'État (MaPrimeRénov' et
-                  prime CEE) peuvent financer votre pompe à chaleur{" "}
+                  prime CEE) peuvent financer {equipement}{" "}
                   <b>jusqu'à 100 %</b>.
                 </p>
                 <p className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
@@ -1479,7 +1482,7 @@ export const Simulator = ({
               <>
                 <p>
                   Avec votre {profil}, vous pouvez bénéficier de MaPrimeRénov'
-                  et de la prime CEE pour votre pompe à chaleur. Un reste à
+                  et de la prime CEE pour {equipement}. Un reste à
                   charge est à prévoir.
                 </p>
                 <p>
@@ -1501,7 +1504,7 @@ export const Simulator = ({
               <>
                 <p>
                   Avec vos revenus, MaPrimeRénov' ne s'applique pas, mais vous
-                  pouvez bénéficier de la prime CEE pour votre pompe à chaleur.
+                  pouvez bénéficier de la prime CEE pour {equipement}.
                   Un reste à charge est à prévoir.
                 </p>
                 <p>
@@ -1527,7 +1530,7 @@ export const Simulator = ({
               "bg-gray-50 border-gray-200",
               `Merci${prenom ? ` ${prenom}` : ""} pour votre demande`,
               <p>
-                Les aides à la pompe à chaleur sont réservées au propriétaire du
+                Les aides pour {equipement} sont réservées au propriétaire du
                 logement. Parlez-en à votre propriétaire : nous pouvons
                 l'accompagner dans toutes les démarches. Un conseiller peut vous
                 rappeler pour vous expliquer comment faire.
