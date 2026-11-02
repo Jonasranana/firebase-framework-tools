@@ -409,7 +409,7 @@ export const ArticleDetail = () => {
 
           <div className="mt-12 rounded-3xl p-8 text-center text-white bg-[#0b1a2c]">
             <h3 className="tracking-tight text-2xl font-extrabold mb-2">Un projet de pompe à chaleur ou de solaire ?</h3>
-            <p className="text-white/85 mb-5">Calculez vos aides en 30 secondes ou parlez directement à un conseiller IP5 Énergie.</p>
+            <p className="text-white/85 mb-5">Calculez vos aides en 2 minutes ou parlez directement à un conseiller IP5 Énergie.</p>
             <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <a href="/#simulateur" className="inline-flex items-center justify-center gap-2 bg-amber-300 text-[#0b1a2c] px-6 py-3 rounded-xl font-bold hover:bg-amber-200 transition-colors">
                 Simuler mes aides <ArrowRight size={18} />
