@@ -1659,7 +1659,7 @@ export const Simulator = ({
         </div>
         {step === 1 && inQuestions && !earlyContact && (
           <p className="relative mt-3 flex items-center gap-3 text-[11.5px] text-white/80">
-            <span className="flex items-center gap-1"><Clock size={12} /> 30 secondes</span>
+            <span className="flex items-center gap-1"><Clock size={12} /> 2 minutes</span>
             <span className="flex items-center gap-1"><CheckCircle2 size={12} /> Gratuit</span>
             <span className="flex items-center gap-1"><ShieldCheck size={12} /> Sans engagement</span>
           </p>
@@ -2192,7 +2192,7 @@ export const AidesSection = ({ asHero = false, equipment = "votre pompe à chale
             <ol className="relative space-y-7">
               <span className="absolute left-5 top-6 bottom-6 w-px bg-slate-200" aria-hidden="true"></span>
               {[
-                { t: "Simulation en ligne", d: "30 secondes pour évaluer votre profil." },
+                { t: "Simulation en ligne", d: "2 minutes pour évaluer votre profil." },
                 { t: "Validation des aides", d: "Un conseiller confirme vos droits selon votre département et vos revenus." },
                 { t: "Installation RGE", d: `Un artisan certifié pose ${equipment} dans les règles de l'art.` },
               ].map((step, i) => (
@@ -2374,7 +2374,7 @@ export const FinalCTA = ({ href = "/#simulateur" }: { href?: string }) => (
             Prêt à réduire vos factures de chauffage&nbsp;?
           </h2>
           <p className="text-blue-100/75 text-base md:text-lg mt-3 max-w-xl">
-            Estimation gratuite en 30 secondes, sans engagement. Un conseiller vous
+            Estimation gratuite en 2 minutes, sans engagement. Un conseiller vous
             rappelle pour valider vos aides.
           </p>
         </div>
