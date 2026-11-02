@@ -87,9 +87,9 @@ const CampagneSolaire = () => {
       <section className="relative pt-16 pb-12 lg:pt-36 lg:pb-24 overflow-hidden bg-[#0b1a2c]">
         <div className="hidden lg:block absolute inset-0" aria-hidden="true">
           <img
-            src="/images/articles/chauffe-eau-solaire-individuel-fonctionnement.jpg"
+            src="/images/site/solaire-toit.jpg"
             alt=""
-            className="absolute inset-0 w-full h-full object-cover object-[30%_50%]"
+            className="absolute inset-0 w-full h-full object-cover object-[70%_50%]"
             fetchPriority="high"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-[#0b1a2c] via-[#0b1a2c]/85 to-[#0b1a2c]/40"></div>
@@ -98,9 +98,9 @@ const CampagneSolaire = () => {
 
         <div className="lg:hidden relative h-[250px] overflow-hidden bg-[#0b1a2c]">
           <img
-            src="/images/articles/chauffe-eau-solaire-individuel-fonctionnement.jpg"
-            alt="Chauffe-eau solaire à tubes sous vide et son ballon, en plein soleil"
-            className="absolute inset-0 w-full h-full object-cover object-[35%_50%]"
+            src="/images/site/solaire-toit.jpg"
+            alt="Chauffe-eau solaire posé sur un toit en tuiles, sous un ciel bleu"
+            className="absolute inset-0 w-full h-full object-cover object-[50%_45%]"
             fetchPriority="high"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/30 via-[#0b1a2c]/50 to-[#0b1a2c]"></div>

@@ -12,7 +12,7 @@ import {
 // FAQ, puis l'appel à l'action.
 const Aides = () => (
   <PageLayout title="Aides de l'État (MaPrimeRénov', CEE) — IP5 Énergie">
-    <AidesSection asHero />
+    <AidesSection asHero image="/images/site/aides-couple.jpg" />
     <AidesDispositifsSection />
     <AidesProfilsSection />
     <AidesErreursSection />

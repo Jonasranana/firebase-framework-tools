@@ -334,17 +334,29 @@ const ENGAGEMENTS = [
 export const EngagementsSection = () => (
   <section className="py-14 md:py-24 bg-[#0b1a2c] text-white">
     <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
-      <SectionHead onDark kicker="Nos engagements" title="Sur chaque chantier" subtitle="La même exigence, quelle que soit la taille du projet." />
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-        {ENGAGEMENTS.map((e) => (
-          <div key={e.title} className="rounded-2xl bg-white/[0.04] border border-white/10 p-6">
-            <span className="w-11 h-11 rounded-full bg-amber-300 text-[#0b1a2c] flex items-center justify-center mb-4">
-              <e.icon size={20} />
-            </span>
-            <h3 className="font-bold text-lg">{e.title}</h3>
-            <p className="text-sm text-blue-100/70 leading-relaxed mt-1.5">{e.text}</p>
+      <div className="lg:grid lg:grid-cols-12 lg:gap-14 items-center">
+        <div className="lg:col-span-5 mb-10 lg:mb-0">
+          <img
+            src="/images/site/artisan-pac.jpg"
+            alt="Un artisan installe l'unité extérieure d'une pompe à chaleur"
+            className="w-full h-64 md:h-[460px] object-cover rounded-2xl border border-white/10"
+            loading="lazy"
+          />
+        </div>
+        <div className="lg:col-span-7">
+          <SectionHead onDark align="left" kicker="Nos engagements" title="Sur chaque chantier" subtitle="La même exigence, quelle que soit la taille du projet." />
+          <div className="grid sm:grid-cols-2 gap-4 md:gap-5 -mt-2">
+            {ENGAGEMENTS.map((e) => (
+              <div key={e.title} className="rounded-2xl bg-white/[0.04] border border-white/10 p-5">
+                <span className="w-10 h-10 rounded-full bg-amber-300 text-[#0b1a2c] flex items-center justify-center mb-3">
+                  <e.icon size={18} />
+                </span>
+                <h3 className="font-bold">{e.title}</h3>
+                <p className="text-sm text-blue-100/70 leading-relaxed mt-1">{e.text}</p>
+              </div>
+            ))}
           </div>
-        ))}
+        </div>
       </div>
     </div>
   </section>

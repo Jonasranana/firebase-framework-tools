@@ -1843,12 +1843,12 @@ export const PageHero = ({
         )}
       </div>
       {image && (
-        <div className="hidden lg:block lg:col-span-5">
+        <div className="mt-8 lg:mt-0 lg:col-span-5">
           <div className="relative">
             <img
               src={image}
               alt={imageAlt}
-              className="relative w-full h-[380px] object-cover rounded-[1.75rem] ring-1 ring-white/20 shadow-2xl"
+              className="relative w-full h-56 sm:h-72 lg:h-[380px] object-cover rounded-[1.75rem] ring-1 ring-white/20 shadow-2xl"
               style={{ objectPosition: imagePosition }}
             />
             <span className="absolute -bottom-4 left-6 inline-flex items-center gap-2 rounded-2xl bg-white text-[#173a5e] px-4 py-2.5 text-sm font-bold shadow-xl">
@@ -2134,16 +2134,22 @@ export const MarquesSection = () => {
 // `asHero` : quand la section est en tête de la page /aides, on ajoute
 // l'espace nécessaire pour passer sous le menu fixe (évite le doublon de
 // bandeau bleu qui donnait un effet « coupé en deux »).
-export const AidesSection = ({ asHero = false, equipment = "votre pompe à chaleur" }: { asHero?: boolean; equipment?: string }) => {
+export const AidesSection = ({ asHero = false, equipment = "votre pompe à chaleur", image }: { asHero?: boolean; equipment?: string; image?: string }) => {
   const Title = asHero ? "h1" : "h2";
   return (
     <section
       id="subventions"
       className={`${
         asHero ? "pt-28 pb-14 lg:pt-40 lg:pb-24" : "py-14 md:py-24"
-      } bg-gradient-to-br from-[#0b1a2c] via-[#0f2b4a] to-[#173a5e] text-white`}
+      } relative overflow-hidden bg-gradient-to-br from-[#0b1a2c] via-[#0f2b4a] to-[#173a5e] text-white`}
     >
-      <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
+      {image && (
+        <div className="absolute inset-0" aria-hidden="true">
+          <img src={image} alt="" className="absolute inset-0 w-full h-full object-cover object-[60%_40%]" fetchPriority="high" />
+          <div className="absolute inset-0 bg-gradient-to-b lg:bg-gradient-to-r from-[#0b1a2c]/90 via-[#0b1a2c]/70 to-[#0b1a2c]/35"></div>
+        </div>
+      )}
+      <div className="relative max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           <div>
             <Kicker onDark>Aides de l'État {new Date().getFullYear()}</Kicker>

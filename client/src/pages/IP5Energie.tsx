@@ -230,12 +230,11 @@ const IP5Energie = () => {
                     </div>
                   )}
                   {card.visual === "aides" && (
-                    <div className="h-full flex items-center justify-center gap-5 px-5">
-                      <div className="bg-white rounded-xl border border-slate-100 flex items-center justify-center h-24 flex-1 px-3">
-                        <img src="/images/aides/maprimerenov.png" alt="MaPrimeRénov'" className="max-h-14 max-w-full object-contain" loading="lazy" />
-                      </div>
-                      <div className="bg-white rounded-xl border border-slate-100 flex items-center justify-center h-24 flex-1 px-3">
-                        <img src="/images/aides/cee.png" alt="Certificats d'économies d'énergie" className="max-h-16 max-w-full object-contain" loading="lazy" />
+                    <div className="relative h-full">
+                      <img src="/images/site/aides-signature.jpg" alt="Un couple signe son dossier d'aides" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                      <div className="absolute bottom-2.5 left-2.5 flex gap-1.5">
+                        <span className="bg-white rounded-lg px-2 py-1 shadow"><img src="/images/aides/maprimerenov.png" alt="MaPrimeRénov'" className="h-6 object-contain" loading="lazy" /></span>
+                        <span className="bg-white rounded-lg px-2 py-1 shadow"><img src="/images/aides/cee.png" alt="CEE" className="h-6 object-contain" loading="lazy" /></span>
                       </div>
                     </div>
                   )}
