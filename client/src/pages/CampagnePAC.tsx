@@ -25,6 +25,7 @@ import {
   AvisSection,
   FinalCTA,
   SectionHead,
+  GLASS_CSS,
   FRENCH_PHONE_REGEX,
   submitCallbackRequest,
   trackStep,
@@ -114,7 +115,7 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 // Une couleur par énergie, au style des tuiles du simulateur.
 const HEATING_OPTIONS = [
   { value: "Fioul", label: "Fioul", icon: Droplet, tint: "from-amber-300 to-amber-500" },
-  { value: "Gaz", label: "Gaz", icon: Flame, tint: "from-[#2b5a8f] to-[#0f2b4a]" },
+  { value: "Gaz", label: "Gaz", icon: Flame, tint: "from-[#4a7fc1] to-[#1d4e89]" },
   { value: "Autre", label: "Autre", icon: HelpCircle, tint: "from-slate-400 to-slate-600" },
 ];
 
@@ -142,8 +143,9 @@ const QuickShell = ({
   onBack?: () => void;
   badge: string;
 }) => (
-  <div className="bg-white dark:bg-slate-900 rounded-[1.75rem] shadow-[0_28px_80px_-24px_rgba(11,26,44,0.55),0_10px_40px_-18px_rgba(251,191,36,0.35)] max-w-md w-full mx-auto overflow-hidden border border-slate-200/80 dark:border-slate-800 text-left">
-    <div className="relative bg-gradient-to-br from-[#173a5e] via-[#1d4e89] to-[#2b5a8f] px-5 pt-4 pb-4 text-white">
+  <div className="ip5-glass rounded-[1.75rem] max-w-md w-full mx-auto overflow-hidden text-left text-white bg-gradient-to-b from-white/[0.14] to-[#0b1a2c]/40 backdrop-blur-2xl border border-white/20 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.25)]">
+    <style>{GLASS_CSS}</style>
+    <div className="relative bg-white/[0.06] border-b border-white/10 px-5 pt-4 pb-4 text-white">
       <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/80 to-transparent" aria-hidden="true"></div>
       <div className="flex items-center justify-between gap-3">
         {onBack ? (
@@ -186,7 +188,7 @@ const QuickStart = ({ source }: { source: string }) => {
   const [done, setDone] = useState(false);
 
   if (mode === "simulation") {
-    return <Simulator source={source} tone="pro" initialHeating={heating} />;
+    return <Simulator source={source} tone="pro" initialHeating={heating} glass />;
   }
 
   const trackCall = () => {

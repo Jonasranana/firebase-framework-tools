@@ -26,7 +26,7 @@ const anim = (name: string, dur: string, delay = "0s", timing = "ease-in-out") =
 
 // Scène commune : fond dégradé doux, sans fioritures.
 const Stage = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative h-36 mb-5 rounded-2xl bg-gradient-to-br from-[#eaf2fb] via-white to-[#fdf3d8] border border-slate-100 overflow-hidden flex items-center justify-center">
+  <div className="ip5-stage relative h-36 mb-5 rounded-2xl bg-gradient-to-br from-[#eaf2fb] via-white to-[#fdf3d8] border border-slate-100 overflow-hidden flex items-center justify-center">
     <svg viewBox="0 0 220 120" className="relative h-full w-auto" aria-hidden="true">
       {children}
     </svg>

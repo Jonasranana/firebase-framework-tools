@@ -124,7 +124,7 @@ const IP5Energie = () => {
             </div>
 
             <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
-              <Simulator tone="pro" />
+              <Simulator tone="pro" glass />
             </div>
           </div>
         </div>
