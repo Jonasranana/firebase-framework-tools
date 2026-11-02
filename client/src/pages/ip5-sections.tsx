@@ -2103,7 +2103,7 @@ export const MarquesSection = () => {
 // `asHero` : quand la section est en tête de la page /aides, on ajoute
 // l'espace nécessaire pour passer sous le menu fixe (évite le doublon de
 // bandeau bleu qui donnait un effet « coupé en deux »).
-export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => {
+export const AidesSection = ({ asHero = false, equipment = "votre pompe à chaleur" }: { asHero?: boolean; equipment?: string }) => {
   const Title = asHero ? "h1" : "h2";
   return (
     <section
@@ -2154,7 +2154,7 @@ export const AidesSection = ({ asHero = false }: { asHero?: boolean }) => {
               {[
                 { t: "Simulation en ligne", d: "30 secondes pour évaluer votre profil." },
                 { t: "Validation des aides", d: "Un conseiller confirme vos droits selon votre département et vos revenus." },
-                { t: "Installation RGE", d: "Un artisan certifié pose votre pompe à chaleur dans les règles de l'art." },
+                { t: "Installation RGE", d: `Un artisan certifié pose ${equipment} dans les règles de l'art.` },
               ].map((step, i) => (
                 <li key={step.t} className="relative flex gap-5">
                   <span className="relative z-10 w-10 h-10 rounded-full bg-[#173a5e] text-white flex items-center justify-center font-bold flex-shrink-0">

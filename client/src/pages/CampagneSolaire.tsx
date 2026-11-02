@@ -1,23 +1,14 @@
 import React, { useState } from "react";
-import {
-  Sun,
-  Droplets,
-  Leaf,
-  CheckCircle2,
-  Clock,
-  ShieldCheck,
-  ChevronDown,
-  ArrowRight,
-} from "lucide-react";
+import { ArrowRight, ChevronDown, HandCoins, Phone, ShieldCheck, CheckCircle2, Users } from "lucide-react";
 import {
   PageLayout,
   Simulator,
   AidesSection,
   AvisSection,
   FinalCTA,
-  Kicker,
   SectionHead,
 } from "./ip5-sections";
+import { SolarStatsBand, SolarHowItWorksSection, SolarOffersSection } from "./solar-sections";
 
 // ─────────────────────────────────────────────────────────────────────────
 // LANDING PAGE DÉDIÉE — Campagne panneaux solaires thermiques (chauffe-eau
@@ -36,25 +27,6 @@ const scrollToSimulateur = (e: React.MouseEvent) => {
     .getElementById("simulateur")
     ?.scrollIntoView({ behavior: "smooth", block: "center" });
 };
-
-// Points forts du chauffe-eau solaire (3 cartes).
-const AVANTAGES = [
-  {
-    icon: Sun,
-    title: "Jusqu'à 70 % d'eau chaude gratuite",
-    text: "Le soleil chauffe votre eau toute l'année. Une grande partie de votre eau chaude devient gratuite, sans rien faire.",
-  },
-  {
-    icon: Leaf,
-    title: "Énergie 100 % renouvelable",
-    text: "Fini le gaz ou l'électricité pour l'eau chaude : vous utilisez une énergie propre, gratuite et inépuisable.",
-  },
-  {
-    icon: Droplets,
-    title: "Facture d'eau chaude réduite",
-    text: "L'eau chaude représente une grosse part de la facture. Le solaire la réduit fortement, dès le premier été.",
-  },
-];
 
 const FAQ_ITEMS = [
   {
@@ -82,12 +54,12 @@ const FAQ_ITEMS = [
 const FaqItem = ({ q, a }: { q: string; a: string }) => {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border border-gray-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
+    <div className="border border-slate-200/80 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-900 overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="w-full flex items-center justify-between gap-4 text-left px-6 py-5 font-bold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
+        className="w-full flex items-center justify-between gap-4 text-left px-6 py-5 font-semibold text-[#0f2a47] dark:text-white hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
       >
         <span>{q}</span>
         <ChevronDown
@@ -108,88 +80,102 @@ const FaqItem = ({ q, a }: { q: string; a: string }) => {
 
 const CampagneSolaire = () => {
   return (
-    <PageLayout title="Chauffe-eau solaire : vérifiez vos aides — IP5 Énergie">
-      {/* ── HERO : angle « eau chaude gratuite grâce au soleil » ── */}
-      <section className="relative pt-24 pb-14 lg:pt-36 lg:pb-24 overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <PageLayout title="Chauffe-eau solaire : vérifiez vos aides — IP5 Énergie" hideFloatingWhileVisible="simulateur">
+      {/* ── HERO : même présentation que l'accueil et /pac. Téléphone : photo
+          + titre, puis tout de suite le simulateur sur fond bleu nuit.
+          Ordinateur : photo en fond, texte à gauche, simulateur à droite. ── */}
+      <section className="relative pt-16 pb-12 lg:pt-36 lg:pb-24 overflow-hidden bg-[#0b1a2c]">
+        <div className="hidden lg:block absolute inset-0" aria-hidden="true">
+          <img
+            src="/images/articles/chauffe-eau-solaire-individuel-fonctionnement.jpg"
+            alt=""
+            className="absolute inset-0 w-full h-full object-cover object-[30%_50%]"
+            fetchPriority="high"
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0b1a2c] via-[#0b1a2c]/85 to-[#0b1a2c]/40"></div>
+          <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0b1a2c]/80 to-transparent"></div>
+        </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-          <div className="lg:grid lg:grid-cols-12 gap-16 items-center">
-            <div className="lg:col-span-6 mb-12 lg:mb-0 text-center lg:text-left">
-              <Kicker>Aides 2026 ouvertes</Kicker>
-              <h1 className="text-[32px] md:text-5xl lg:text-[3.4rem] font-extrabold tracking-tight leading-[1.1] mb-5 text-[#0f2a47] dark:text-white">
-                Eau chaude &amp; chauffage{" "}
-                <span className="text-[#2b5a8f] dark:text-blue-300">solaires</span>
+        <div className="lg:hidden relative h-[250px] overflow-hidden bg-[#0b1a2c]">
+          <img
+            src="/images/articles/chauffe-eau-solaire-individuel-fonctionnement.jpg"
+            alt="Chauffe-eau solaire à tubes sous vide et son ballon, en plein soleil"
+            className="absolute inset-0 w-full h-full object-cover object-[35%_50%]"
+            fetchPriority="high"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/30 via-[#0b1a2c]/50 to-[#0b1a2c]"></div>
+          <div className="absolute inset-x-0 bottom-0 px-5 pb-14 text-white animate-in fade-in slide-in-from-bottom-3 duration-700">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 px-3 py-1 text-[12px] font-semibold mb-3">
+              <ShieldCheck size={14} className="text-amber-200" /> Aides 2026 : MaPrimeRénov' + CEE
+            </span>
+            <h1 className="text-[28px] leading-[1.1] font-extrabold tracking-tight drop-shadow-sm">
+              Eau chaude et chauffage{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-200">solaires</span>
+            </h1>
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 -mt-10 lg:mt-0">
+          <div className="lg:grid lg:grid-cols-12 gap-14 items-center">
+            <div className="hidden lg:block lg:col-span-6 text-left">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-white font-semibold text-sm mb-6 border border-white/20">
+                <ShieldCheck size={16} className="text-amber-200" /> Aides 2026 : MaPrimeRénov' et prime CEE
+              </div>
+              <h1 className="text-[3.4rem] font-extrabold tracking-tight leading-[1.05] mb-6 text-white">
+                Eau chaude et chauffage{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-200">solaires</span>
               </h1>
-              <p className="text-base md:text-lg text-slate-600 dark:text-slate-300 mb-7 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                Des panneaux solaires thermiques pour votre eau chaude{" "}
-                <b>et</b> votre chauffage — <b>à partir de 0 €</b> selon
-                éligibilité, grâce à <b>MaPrimeRénov'</b> et la{" "}
-                <b>prime CEE</b>. Découvrez en 2 minutes le montant d'aides
-                auquel vous avez droit.
+              <p className="text-xl text-white/80 mb-9 max-w-xl leading-relaxed">
+                Des panneaux solaires thermiques pour votre eau chaude <b className="font-semibold text-white">et</b> votre
+                chauffage, <b className="font-semibold text-white">à partir de 0{"\u00a0"}€</b> selon éligibilité grâce à{" "}
+                <b className="font-semibold text-white">MaPrimeRénov'</b> et à la <b className="font-semibold text-white">prime CEE</b>.
               </p>
-
-              <div className="flex justify-center lg:justify-start">
+              <div className="flex flex-row gap-3">
                 <a
                   href="#simulateur"
                   onClick={scrollToSimulateur}
-                  className="inline-flex w-full sm:w-auto items-center justify-center gap-2.5 bg-[#173a5e] hover:bg-[#122f4d] text-white px-8 py-4 rounded-xl font-bold text-base shadow-lg transition-colors"
+                  className="inline-flex items-center justify-center gap-2.5 bg-amber-300 hover:bg-amber-200 text-[#0b1a2c] px-7 py-4 rounded-xl font-bold text-base shadow-xl transition-colors"
                 >
                   Vérifier mes aides gratuitement <ArrowRight size={18} />
                 </a>
+                <a
+                  href="tel:+33749525267"
+                  className="inline-flex items-center justify-center gap-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md text-white px-7 py-4 rounded-xl font-semibold text-base border border-white/30 transition-colors"
+                >
+                  <Phone size={18} /> 07 49 52 52 67
+                </a>
               </div>
-              <p className="mt-5 flex items-center gap-x-5 gap-y-1 flex-wrap justify-center lg:justify-start text-sm text-gray-500 dark:text-slate-400 font-medium">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="text-[#2b5a8f]" size={16} /> 100%
-                  gratuit
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <Clock className="text-[#2b5a8f]" size={16} /> 2 minutes
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className="text-[#2b5a8f]" size={16} /> Sans
-                  engagement
-                </span>
+              <p className="mt-6 flex items-center gap-x-6 gap-y-1.5 flex-wrap text-sm text-white/80">
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-amber-200" size={16} /> Étude gratuite</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-amber-200" size={16} /> Sans engagement</span>
+                <span className="flex items-center gap-1.5"><CheckCircle2 className="text-amber-200" size={16} /> Installateur certifié RGE</span>
               </p>
             </div>
 
-            <div id="simulateur" className="lg:col-span-6 relative scroll-mt-28">
-              <div className="relative">
-                <Simulator source="landing-solaire-insta" />
-              </div>
+            <div id="simulateur" className="lg:col-span-6 relative scroll-mt-24">
+              <Simulator source="landing-solaire-insta" tone="pro" />
             </div>
           </div>
-        </div>
-      </section>
 
-
-      {/* Pourquoi le chauffe-eau solaire */}
-      <section className="py-14 md:py-24 bg-white dark:bg-slate-950">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
-          <SectionHead
-            kicker="Les avantages"
-            title="Pourquoi passer au chauffe-eau solaire&nbsp;?"
-            subtitle="Une eau chaude économique et écologique, offerte par le soleil."
-          />
-          <div className="grid md:grid-cols-3 gap-8 md:gap-10">
-            {AVANTAGES.map((a) => (
-              <div key={a.title} className="flex md:flex-col gap-4">
-                <span className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 text-[#173a5e] dark:text-blue-300 flex items-center justify-center flex-shrink-0">
-                  <a.icon size={22} />
-                </span>
-                <div>
-                  <h3 className="text-lg font-bold text-[#0f2a47] dark:text-white">{a.title}</h3>
-                  <p className="text-slate-500 dark:text-slate-400 leading-relaxed mt-1.5">{a.text}</p>
-                </div>
-              </div>
+          <ul className="lg:hidden mt-5 grid grid-cols-3 gap-2 text-center">
+            {[
+              { icon: ShieldCheck, label: "Certifié RGE" },
+              { icon: HandCoins, label: "Aides déduites du devis" },
+              { icon: Users, label: "Entreprise familiale" },
+            ].map((g) => (
+              <li key={g.label} className="flex flex-col items-center gap-1.5 rounded-xl bg-white/5 border border-white/10 px-1.5 py-2.5">
+                <g.icon size={18} className="text-amber-200" />
+                <span className="text-[11.5px] font-semibold leading-tight text-white/85">{g.label}</span>
+              </li>
             ))}
-          </div>
+          </ul>
         </div>
       </section>
 
-      {/* Les aides détaillées */}
-      <AidesSection />
-
-      {/* Avis clients */}
+      <SolarOffersSection />
+      <SolarStatsBand />
+      <SolarHowItWorksSection />
+      <AidesSection equipment="votre installation solaire" />
       <AvisSection />
 
       {/* ── FAQ solaire ── */}
@@ -197,10 +183,10 @@ const CampagneSolaire = () => {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHead
             kicker="Vos questions"
-            title="Tout ce que vous vous demandez"
+            title="Tout savoir sur le solaire thermique"
             subtitle="Les réponses aux questions les plus fréquentes sur le chauffe-eau solaire."
           />
-          <div className="space-y-4">
+          <div className="space-y-3">
             {FAQ_ITEMS.map((item) => (
               <FaqItem key={item.q} q={item.q} a={item.a} />
             ))}
@@ -208,7 +194,6 @@ const CampagneSolaire = () => {
         </div>
       </section>
 
-      {/* ── CTA final ── */}
       <FinalCTA href="#simulateur" />
     </PageLayout>
   );
