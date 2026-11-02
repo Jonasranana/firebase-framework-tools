@@ -142,8 +142,9 @@ const QuickShell = ({
   onBack?: () => void;
   badge: string;
 }) => (
-  <div className="bg-white dark:bg-slate-900 rounded-[1.75rem] shadow-2xl shadow-blue-950/15 max-w-md w-full mx-auto overflow-hidden border border-slate-200/80 dark:border-slate-800 text-left">
-    <div className="bg-gradient-to-br from-[#173a5e] via-[#1d4e89] to-[#2b5a8f] px-5 pt-4 pb-4 text-white">
+  <div className="bg-white dark:bg-slate-900 rounded-[1.75rem] shadow-[0_28px_80px_-24px_rgba(11,26,44,0.55),0_10px_40px_-18px_rgba(251,191,36,0.35)] max-w-md w-full mx-auto overflow-hidden border border-slate-200/80 dark:border-slate-800 text-left">
+    <div className="relative bg-gradient-to-br from-[#173a5e] via-[#1d4e89] to-[#2b5a8f] px-5 pt-4 pb-4 text-white">
+      <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/80 to-transparent" aria-hidden="true"></div>
       <div className="flex items-center justify-between gap-3">
         {onBack ? (
           <button
