@@ -344,7 +344,6 @@ export const SiteFooter = () => (
           <a href="/mentions-legales" className="hover:text-slate-300 transition-colors">Mentions légales</a>
           <a href="/confidentialite" className="hover:text-slate-300 transition-colors">Confidentialité</a>
           <a href="/espace-pro" className="hover:text-slate-300 transition-colors">Espace artisans</a>
-          <a href="/admin" className="hover:text-slate-300 transition-colors">Accès admin</a>
         </p>
       </div>
     </div>

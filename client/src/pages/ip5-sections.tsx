@@ -1444,6 +1444,9 @@ export const Simulator = ({
           result.kind === "zero" || result.kind === "rac"
             ? `profil ${result.profile} et votre département`
             : "";
+        // Le résultat parle de l'équipement choisi (« Les deux » reste sur la pompe à chaleur).
+        const equipement =
+          formData.projectType === "Panneaux solaires" ? "votre chauffe-eau solaire" : "votre pompe à chaleur";
         const smallPrint =
           "Estimation indicative selon vos réponses, sous réserve d'éligibilité. Le montant exact dépend de votre avis d'imposition et de votre logement : votre conseiller le confirmera avec vous.";
         const box = (tone: string, title: string, body: React.ReactNode, note?: React.ReactNode) => (
@@ -1462,7 +1465,7 @@ export const Simulator = ({
               <>
                 <p>
                   Avec votre {profil}, les aides de l'État (MaPrimeRénov' et
-                  prime CEE) peuvent financer votre pompe à chaleur{" "}
+                  prime CEE) peuvent financer {equipement}{" "}
                   <b>jusqu'à 100 %</b>.
                 </p>
                 <p className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-bold">
@@ -1479,7 +1482,7 @@ export const Simulator = ({
               <>
                 <p>
                   Avec votre {profil}, vous pouvez bénéficier de MaPrimeRénov'
-                  et de la prime CEE pour votre pompe à chaleur. Un reste à
+                  et de la prime CEE pour {equipement}. Un reste à
                   charge est à prévoir.
                 </p>
                 <p>
@@ -1501,7 +1504,7 @@ export const Simulator = ({
               <>
                 <p>
                   Avec vos revenus, MaPrimeRénov' ne s'applique pas, mais vous
-                  pouvez bénéficier de la prime CEE pour votre pompe à chaleur.
+                  pouvez bénéficier de la prime CEE pour {equipement}.
                   Un reste à charge est à prévoir.
                 </p>
                 <p>
@@ -1527,7 +1530,7 @@ export const Simulator = ({
               "bg-gray-50 border-gray-200",
               `Merci${prenom ? ` ${prenom}` : ""} pour votre demande`,
               <p>
-                Les aides à la pompe à chaleur sont réservées au propriétaire du
+                Les aides pour {equipement} sont réservées au propriétaire du
                 logement. Parlez-en à votre propriétaire : nous pouvons
                 l'accompagner dans toutes les démarches. Un conseiller peut vous
                 rappeler pour vous expliquer comment faire.
@@ -1656,7 +1659,7 @@ export const Simulator = ({
         </div>
         {step === 1 && inQuestions && !earlyContact && (
           <p className="relative mt-3 flex items-center gap-3 text-[11.5px] text-white/80">
-            <span className="flex items-center gap-1"><Clock size={12} /> 30 secondes</span>
+            <span className="flex items-center gap-1"><Clock size={12} /> 2 minutes</span>
             <span className="flex items-center gap-1"><CheckCircle2 size={12} /> Gratuit</span>
             <span className="flex items-center gap-1"><ShieldCheck size={12} /> Sans engagement</span>
           </p>
@@ -2189,7 +2192,7 @@ export const AidesSection = ({ asHero = false, equipment = "votre pompe à chale
             <ol className="relative space-y-7">
               <span className="absolute left-5 top-6 bottom-6 w-px bg-slate-200" aria-hidden="true"></span>
               {[
-                { t: "Simulation en ligne", d: "30 secondes pour évaluer votre profil." },
+                { t: "Simulation en ligne", d: "2 minutes pour évaluer votre profil." },
                 { t: "Validation des aides", d: "Un conseiller confirme vos droits selon votre département et vos revenus." },
                 { t: "Installation RGE", d: `Un artisan certifié pose ${equipment} dans les règles de l'art.` },
               ].map((step, i) => (
@@ -2371,7 +2374,7 @@ export const FinalCTA = ({ href = "/#simulateur" }: { href?: string }) => (
             Prêt à réduire vos factures de chauffage&nbsp;?
           </h2>
           <p className="text-blue-100/75 text-base md:text-lg mt-3 max-w-xl">
-            Estimation gratuite en 30 secondes, sans engagement. Un conseiller vous
+            Estimation gratuite en 2 minutes, sans engagement. Un conseiller vous
             rappelle pour valider vos aides.
           </p>
         </div>
