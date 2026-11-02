@@ -21,8 +21,8 @@ const IP5Energie = () => {
         {/* Ordinateur : la photo occupe tout le bandeau, assombrie à gauche
             pour le texte ; le simulateur est posé à droite. */}
         <div className="hidden lg:block absolute inset-0" aria-hidden="true">
-          <img src="/images/hero-accueil.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-[60%_30%]" fetchPriority="high" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0b1a2c] via-[#0b1a2c]/85 to-[#0b1a2c]/35"></div>
+          <img src="/images/hero-accueil-pac.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-[30%_60%]" fetchPriority="high" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0b1a2c] from-25% via-[#0b1a2c]/60 to-[#0b1a2c]/25"></div>
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0b1a2c]/80 to-transparent"></div>
         </div>
         {/* Téléphone : grande photo avec le titre posé dessus, comme les sites
