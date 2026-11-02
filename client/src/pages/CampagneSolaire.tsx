@@ -41,18 +41,18 @@ const scrollToSimulateur = (e: React.MouseEvent) => {
 const AVANTAGES = [
   {
     icon: Sun,
-    title: "Jusqu'à 70% d'eau chaude gratuite",
+    title: "Jusqu'à 70 % d'eau chaude gratuite",
     text: "Le soleil chauffe votre eau toute l'année. Une grande partie de votre eau chaude devient gratuite, sans rien faire.",
   },
   {
     icon: Leaf,
-    title: "Énergie 100% renouvelable",
+    title: "Énergie 100 % renouvelable",
     text: "Fini le gaz ou l'électricité pour l'eau chaude : vous utilisez une énergie propre, gratuite et inépuisable.",
   },
   {
     icon: Droplets,
     title: "Facture d'eau chaude réduite",
-    text: "L'eau chaude représente une grosse part de la facture. Le solaire la fait fondre, dès le premier été.",
+    text: "L'eau chaude représente une grosse part de la facture. Le solaire la réduit fortement, dès le premier été.",
   },
 ];
 
@@ -71,7 +71,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Le simulateur m'engage-t-il à quelque chose ?",
-    a: "Non. Il est 100% gratuit et sans engagement. Vous obtenez une estimation de vos aides, et nous vous rappelons simplement pour affiner votre projet.",
+    a: "Non. Il est 100 % gratuit et sans engagement. Vous obtenez une estimation de vos aides, et nous vous rappelons simplement pour affiner votre projet.",
   },
   {
     q: "Combien de temps dure l'installation ?",

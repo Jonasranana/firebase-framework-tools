@@ -50,9 +50,9 @@ const img = (slug: string) => `/images/articles/${slug}.jpg`;
 export const ARTICLES: Article[] = [
   {
     slug: "hausse-prix-gaz-chauffage-novembre-2026",
-    title: "Gaz : le kWh de chauffage a bondi de 52 % en un an, combien ça coûte vraiment à une maison",
+    title: "Gaz : +52 % en un an ! Quel impact sur la facture de chauffage de votre maison ?",
     excerpt:
-      "Au 1er novembre 2026, le prix repère du gaz pour le chauffage atteint 0,1576 € le kWh, contre 0,1035 € un an plus tôt. Pour une maison chauffée au gaz, l'addition annuelle peut grimper de plusieurs centaines d'euros. Nos calculs, et les solutions pour reprendre la main.",
+      "Au 1er novembre 2026, le prix repère du gaz pour le chauffage atteint 0,1576 € le kWh, contre 0,1035 € un an plus tôt. Pour une maison chauffée au gaz, la facture annuelle peut augmenter de plusieurs centaines d'euros. Voici nos calculs et les solutions pour reprendre la main.",
     category: "Actualités",
     date: "2026-11-01",
     readMinutes: 5,
@@ -76,14 +76,14 @@ export const ARTICLES: Article[] = [
       ] },
       { type: "p", text: "Le budget total augmente un peu moins vite que le prix du kWh, car l'abonnement, lui, a moins progressé. Pour estimer votre propre cas, une règle simple : comptez environ 54 € de plus par tranche de 1 000 kWh consommés, auxquels s'ajoutent une trentaine d'euros d'abonnement." },
       { type: "tip", title: "Qui est concerné ?", text: "Seules les offres indexées sur le prix repère, ou qui évoluent avec lui, répercutent cette hausse. Les offres à prix fixe ne bougent pas pendant leur durée, même si les taxes et le coût d'acheminement peuvent, eux, évoluer. Votre dernière facture indique le type de contrat et votre consommation annuelle." },
-      { type: "h2", text: "À court terme : limiter la casse cet hiver" },
+      { type: "h2", text: "Cet hiver : limiter la hausse" },
       { type: "list", items: [
         "Faire entretenir sa chaudière : c'est obligatoire chaque année, et une chaudière bien réglée consomme moins.",
         "Baisser la consigne : chaque degré en moins sur le thermostat réduit sensiblement la consommation de chauffage.",
         "Programmer le chauffage en fonction des heures de présence et des pièces réellement occupées.",
         "Vérifier son contrat et comparer, en gardant en tête qu'un prix fixe protège de la hausse mais pas d'une éventuelle baisse.",
       ] },
-      { type: "h2", text: "À long terme : la pompe à chaleur change l'équation" },
+      { type: "h2", text: "Sur le long terme : la pompe à chaleur change la donne" },
       { type: "p", text: "Ces gestes limitent la facture, mais ne changent pas le fond du problème : une chaudière gaz restera exposée aux variations du marché. Une pompe à chaleur air/eau fonctionne autrement. Elle ne brûle rien : elle capte les calories de l'air extérieur et restitue en moyenne 3 à 4 kWh de chaleur pour 1 kWh d'électricité consommé." },
       { type: "p", text: "Concrètement, pour notre maison de 12 000 kWh de gaz, la chaleur réellement utile tourne autour de 10 800 kWh, en tenant compte du rendement d'une chaudière. Une pompe à chaleur bien dimensionnée fournirait cette même chaleur avec environ 2 700 à 3 600 kWh d'électricité. La quantité d'énergie achetée est donc divisée par trois à quatre. L'économie exacte dépend ensuite du prix de votre électricité, de l'isolation et du réglage de l'installation." },
       { type: "tip", title: "Les aides réduisent la facture d'installation", text: "Remplacer une chaudière gaz par une pompe à chaleur peut ouvrir droit à MaPrimeRénov' (selon vos revenus) et aux primes CEE, cumulables, à condition de passer par un installateur certifié RGE. Une nouvelle chaudière gaz, elle, n'est plus aidée par l'État." },
@@ -92,7 +92,7 @@ export const ARTICLES: Article[] = [
         { q: "Ma facture va-t-elle augmenter de 52 % ?", a: "Non : ce chiffre concerne le prix du kWh sur un an. Votre facture dépend de votre type de contrat (indexé ou fixe), de votre consommation et de l'abonnement. Dans notre exemple, le budget total augmente d'environ 43 %." },
         { q: "Une pompe à chaleur convient-elle à ma maison chauffée au gaz ?", a: "Dans la plupart des cas, oui : elle se raccorde souvent aux radiateurs existants. Une étude gratuite sur place permet de le vérifier et de chiffrer le projet aides déduites." },
       ] },
-      { type: "p", text: "Vous êtes chauffé au gaz et la facture vous inquiète ? Calculez en 30 secondes les aides auxquelles vous avez droit pour passer à la pompe à chaleur avec notre simulateur, ou appelez un conseiller IP5 Énergie au 07 49 52 52 67. L'étude est gratuite et sans engagement." },
+      { type: "p", text: "Votre maison est chauffée au gaz et la facture vous inquiète ? Calculez en 30 secondes les aides auxquelles vous avez droit pour passer à la pompe à chaleur avec notre simulateur, ou appelez un conseiller IP5 Énergie au 07 49 52 52 67. L'étude est gratuite et sans engagement." },
       { type: "p", text: "Source des prix : prix repère de vente de gaz naturel, usage chauffage, TTC, publiés par la Commission de régulation de l'énergie (CRE). Calculs IP5 Énergie, arrondis à l'euro." },
     ],
   },
