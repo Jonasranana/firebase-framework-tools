@@ -671,10 +671,10 @@ const TINTS: Record<Tint, { icon: string; ring: string; soft: string; dot: strin
   yellow: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
   orange: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
   pink: { icon: "from-amber-300 to-amber-500", ring: "ring-amber-400 border-amber-400", soft: "bg-amber-50", dot: "bg-amber-400" },
-  blue: { icon: "from-[#2b5a8f] to-[#0f2b4a]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
-  violet: { icon: "from-[#2b5a8f] to-[#0f2b4a]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
-  sky: { icon: "from-[#2b5a8f] to-[#0f2b4a]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
-  emerald: { icon: "from-[#2b5a8f] to-[#0f2b4a]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
+  blue: { icon: "from-[#4a7fc1] to-[#1d4e89]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
+  violet: { icon: "from-[#4a7fc1] to-[#1d4e89]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
+  sky: { icon: "from-[#4a7fc1] to-[#1d4e89]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
+  emerald: { icon: "from-[#4a7fc1] to-[#1d4e89]", ring: "ring-[#2b5a8f] border-[#2b5a8f]", soft: "bg-blue-50", dot: "bg-[#2b5a8f]" },
   slate: { icon: "from-slate-400 to-slate-600", ring: "ring-slate-500 border-slate-500", soft: "bg-slate-50", dot: "bg-slate-500" },
 };
 
@@ -778,12 +778,36 @@ const Confetti = () => (
   </div>
 );
 
+// Habillage « verre dépoli » du simulateur : on éclaircit les textes et on
+// rend les fonds translucides, sans toucher au contenu des étapes.
+export const GLASS_CSS = String.raw`
+.ip5-glass .bg-white{background-color:rgba(255,255,255,.07)!important}
+.ip5-glass .bg-slate-50,.ip5-glass .bg-gray-50{background-color:rgba(255,255,255,.06)!important}
+.ip5-glass .bg-blue-50,.ip5-glass .bg-amber-50,.ip5-glass .bg-slate-100{background-color:rgba(255,255,255,.14)!important}
+.ip5-glass [class*="border-slate-"],.ip5-glass [class*="border-gray-"],.ip5-glass .border-amber-200{border-color:rgba(255,255,255,.18)!important}
+.ip5-glass .text-gray-900,.ip5-glass .text-gray-800,.ip5-glass .text-gray-700,.ip5-glass .text-slate-700,.ip5-glass .text-slate-800,.ip5-glass .text-\[\#0f2a47\],.ip5-glass .text-\[\#173a5e\]{color:#fff!important}
+.ip5-glass .text-gray-600,.ip5-glass .text-gray-500,.ip5-glass .text-slate-600,.ip5-glass .text-slate-500{color:rgba(255,255,255,.72)!important}
+.ip5-glass .text-gray-400,.ip5-glass .text-slate-400{color:rgba(255,255,255,.55)!important}
+.ip5-glass input,.ip5-glass select,.ip5-glass textarea{background-color:rgba(255,255,255,.08)!important;color:#fff!important;border-color:rgba(255,255,255,.22)!important}
+.ip5-glass input::placeholder{color:rgba(255,255,255,.55)!important}
+.ip5-glass option{color:#0b1a2c}
+.ip5-glass .bg-clip-text{background-image:linear-gradient(90deg,#fcd34d,#fef3c7)!important}
+.ip5-glass .text-red-600,.ip5-glass .text-red-700{color:#fca5a5!important}
+.ip5-glass .bg-red-50{background-color:rgba(248,113,113,.12)!important}
+.ip5-glass [class*="border-red-"]{border-color:rgba(248,113,113,.35)!important}
+.ip5-glass button:disabled{background:rgba(255,255,255,.12)!important;color:rgba(255,255,255,.5)!important;box-shadow:none!important;opacity:1!important}
+.ip5-glass .ip5-stage{background:rgba(255,255,255,.06)!important;border-color:rgba(255,255,255,.12)!important}
+`;
+
 export const Simulator = ({
   source = "simulateur-landing",
   tone = "default",
   initialHeating = "",
+  glass = false,
 }: {
   source?: string;
+  // « glass » : bulle transparente (verre dépoli) pour les bandeaux bleu nuit.
+  glass?: boolean;
   // Chauffage déjà choisi avant le simulateur (question rapide de /pac) : la question n'est pas reposée.
   initialHeating?: string;
   // « pro » : présentation plus sobre (page d'accueil) ; défaut : présentation d'origine des pages de campagne.
@@ -1576,7 +1600,14 @@ export const Simulator = ({
   const stepAnim = goingBack ? "slide-in-from-left-4" : "slide-in-from-right-4";
 
   return (
-    <div className="bg-white rounded-[1.75rem] max-w-md w-full mx-auto relative overflow-hidden border border-slate-200/80 shadow-[0_28px_80px_-24px_rgba(11,26,44,0.55),0_10px_40px_-18px_rgba(251,191,36,0.35)]">
+    <div
+      className={`rounded-[1.75rem] max-w-md w-full mx-auto relative overflow-hidden ${
+        glass
+          ? "ip5-glass bg-gradient-to-b from-white/[0.14] to-[#0b1a2c]/40 backdrop-blur-2xl border border-white/20 text-white shadow-[0_30px_90px_-30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.25)]"
+          : "bg-white border border-slate-200/80 shadow-[0_28px_80px_-24px_rgba(11,26,44,0.55),0_10px_40px_-18px_rgba(251,191,36,0.35)]"
+      }`}
+    >
+      {glass && <style>{GLASS_CSS}</style>}
       <style>{`
         .ip5-range { -webkit-appearance: none; appearance: none; height: 10px; border-radius: 999px; outline: none; cursor: pointer; }
         .ip5-range::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 999px; background: #fff; border: 3px solid #2b5a8f; box-shadow: 0 4px 14px rgba(23,58,94,.35); transition: transform .15s; }
@@ -1586,7 +1617,7 @@ export const Simulator = ({
       `}</style>
 
       {/* En-tête du simulateur : titre, étape et barre de progression en segments. */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-[#173a5e] via-[#1d4e89] to-[#2b5a8f] px-5 pt-4 pb-4 text-white">
+      <div className={`relative overflow-hidden px-5 pt-4 pb-4 text-white ${glass ? "bg-white/[0.06] border-b border-white/10" : "bg-gradient-to-br from-[#173a5e] via-[#1d4e89] to-[#2b5a8f]"}`}>
         <div className="absolute -bottom-12 -left-6 w-28 h-28 rounded-full bg-amber-300/15 blur-2xl" aria-hidden="true"></div>
         <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/80 to-transparent" aria-hidden="true"></div>
         <div className="relative flex items-center justify-between gap-3">

@@ -153,7 +153,7 @@ const CampagneSolaire = () => {
             </div>
 
             <div id="simulateur" className="lg:col-span-6 relative scroll-mt-24">
-              <Simulator source="landing-solaire-insta" tone="pro" />
+              <Simulator source="landing-solaire-insta" tone="pro" glass />
             </div>
           </div>
 
