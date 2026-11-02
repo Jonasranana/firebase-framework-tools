@@ -64,7 +64,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "Le simulateur m'engage-t-il à quelque chose ?",
-    a: "Non. Il est 100% gratuit et sans engagement. Vous obtenez une estimation de vos aides, et nous vous rappelons simplement pour affiner votre projet. Vous restez libre à chaque étape.",
+    a: "Non. Il est 100 % gratuit et sans engagement. Vous obtenez une estimation de vos aides, et nous vous rappelons simplement pour affiner votre projet. Vous restez libre à chaque étape.",
   },
   {
     q: "Qui s'occupe des démarches administratives ?",
@@ -242,7 +242,7 @@ const QuickStart = ({ source }: { source: string }) => {
   if (!heating) {
     return (
       <QuickShell badge="C'est parti !">
-        <h3 className={title}>Vous chauffez votre logement au&nbsp;:</h3>
+        <h3 className={title}>Comment chauffez-vous votre logement&nbsp;?</h3>
         <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-1.5">
           Pour estimer vos aides MaPrimeRénov' et CEE.
         </p>

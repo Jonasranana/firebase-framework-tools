@@ -304,7 +304,7 @@ export const PAC_MODELS: {
     logo: "aux.png",
     photo: "aux.jpg",
     model: "Titan R290",
-    desc: "Monobloc au fluide écologique R-290, marque française.",
+    desc: "Pompe à chaleur monobloc au fluide écologique R-290.",
     specs: ["Air/eau", "Fluide R-290", "Garantie 10 ans"],
   },
 ];
@@ -1212,7 +1212,7 @@ export const Simulator = ({
         return (
           <div>
             <h3 className={Q}>Quel est votre chauffage actuel&nbsp;?</h3>
-            <p className={SUB}>C'est lui qui décide le plus des aides.</p>
+            <p className={SUB}>C'est lui qui détermine le montant de vos aides.</p>
             <div className="grid grid-cols-2 gap-3">
               <Choice layout="tile" tint="amber" icon={Droplets} title="Fioul" {...pickProps("currentHeating", "Fioul")} />
               <Choice layout="tile" tint="orange" icon={Flame} title="Gaz" delay={50} {...pickProps("currentHeating", "Gaz")} />
