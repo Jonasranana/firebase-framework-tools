@@ -198,7 +198,7 @@ export const SiteHeader = () => {
             </a>
             <a
               href="/#simulateur"
-              className="hidden xl:inline-flex items-center gap-2 whitespace-nowrap bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:brightness-110 transition shadow-md"
+              className="hidden xl:inline-flex items-center gap-2 whitespace-nowrap bg-amber-300 hover:bg-amber-200 text-[#0b1a2c] px-5 py-2.5 rounded-xl font-bold text-sm transition shadow-md shadow-amber-500/20"
             >
               Estimer mes aides <ArrowRight size={16} />
             </a>

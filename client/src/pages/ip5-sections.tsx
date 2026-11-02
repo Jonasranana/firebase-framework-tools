@@ -1112,9 +1112,9 @@ export const Simulator = ({
   );
 
   // Styles communs des questions.
-  const Q = "text-[22px] leading-tight font-extrabold text-gray-900 mb-1.5 text-center tracking-tight";
+  const Q = "text-[22px] md:text-[24px] leading-tight font-extrabold text-[#0f2a47] mb-1.5 text-center tracking-tight";
   const SUB = "text-slate-500 text-sm mb-5 text-center";
-  const CTA = "!rounded-2xl py-3.5 bg-gradient-to-r from-[#0f2b4a] via-[#173a5e] to-[#2b5a8f] shadow-lg shadow-blue-900/20 hover:brightness-110";
+  const CTA = "!rounded-2xl py-4 !text-[#0b1a2c] font-bold text-[16px] bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 shadow-lg shadow-amber-500/25 hover:brightness-105 active:scale-[0.99]";
 
   const renderStep = () => {
     if (earlyContact) {
@@ -1576,7 +1576,7 @@ export const Simulator = ({
   const stepAnim = goingBack ? "slide-in-from-left-4" : "slide-in-from-right-4";
 
   return (
-    <div className="bg-white rounded-[1.75rem] shadow-2xl shadow-blue-950/15 max-w-md w-full mx-auto relative overflow-hidden border border-slate-200/80">
+    <div className="bg-white rounded-[1.75rem] max-w-md w-full mx-auto relative overflow-hidden border border-slate-200/80 shadow-[0_28px_80px_-24px_rgba(11,26,44,0.55),0_10px_40px_-18px_rgba(251,191,36,0.35)]">
       <style>{`
         .ip5-range { -webkit-appearance: none; appearance: none; height: 10px; border-radius: 999px; outline: none; cursor: pointer; }
         .ip5-range::-webkit-slider-thumb { -webkit-appearance: none; width: 30px; height: 30px; border-radius: 999px; background: #fff; border: 3px solid #2b5a8f; box-shadow: 0 4px 14px rgba(23,58,94,.35); transition: transform .15s; }
@@ -1588,6 +1588,7 @@ export const Simulator = ({
       {/* En-tête du simulateur : titre, étape et barre de progression en segments. */}
       <div className="relative overflow-hidden bg-gradient-to-br from-[#173a5e] via-[#1d4e89] to-[#2b5a8f] px-5 pt-4 pb-4 text-white">
         <div className="absolute -bottom-12 -left-6 w-28 h-28 rounded-full bg-amber-300/15 blur-2xl" aria-hidden="true"></div>
+        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/80 to-transparent" aria-hidden="true"></div>
         <div className="relative flex items-center justify-between gap-3">
           {(step > 1 || earlyContact) && inQuestions ? (
             <button
@@ -1598,7 +1599,7 @@ export const Simulator = ({
             </button>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-[13px] font-bold whitespace-nowrap">
-              <Sparkles size={15} className="text-amber-300" /> Simulateur d'aides 2026
+              <Sparkles size={16} className="text-amber-300" /> <span className="text-[14px]">Simulateur d'aides 2026</span>
             </span>
           )}
           <span className="text-[12px] font-semibold text-white/85 bg-white/10 border border-white/15 rounded-full px-2.5 py-0.5 whitespace-nowrap">
@@ -1614,7 +1615,7 @@ export const Simulator = ({
           aria-label="Progression de la simulation"
         >
           <div
-            className="relative h-full rounded-full bg-gradient-to-r from-amber-300 via-yellow-200 to-white transition-[width] duration-500 ease-out overflow-hidden"
+            className="relative h-full rounded-full bg-gradient-to-r from-amber-300 via-yellow-200 to-white transition-[width] duration-500 ease-out overflow-hidden shadow-[0_0_12px_rgba(252,211,77,0.75)]"
             style={{ width: `${progressPct}%` }}
           >
             {inQuestions && (
@@ -1658,9 +1659,13 @@ export const Simulator = ({
             <div className="w-full">
               <CalculatingScene />
             </div>
-            <p className="text-gray-900 font-extrabold text-lg text-center mt-1 mb-3">
+            <p className="text-[#0f2a47] font-extrabold text-lg text-center mt-1 mb-3">
               Calcul de vos droits en cours…
             </p>
+            <style>{`@keyframes ip5-calc { from { width: 4% } to { width: 100% } }`}</style>
+            <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden mb-4" aria-hidden="true">
+              <div className="h-full rounded-full bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400" style={{ animation: "ip5-calc 1.4s ease-out both" }}></div>
+            </div>
             <ul className="w-full space-y-2 mb-3">
               {[
                 `Barème MaPrimeRénov' 2026 · ${formData.department.split(" ")[0] || "votre département"}`,

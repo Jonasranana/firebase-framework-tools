@@ -15,7 +15,7 @@ import {
 // pages détaillées (nos pompes à chaleur, aides de l'État, réalisations).
 const IP5Energie = () => {
   return (
-    <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 100 % d'aides">
+    <PageLayout title="IP5 Énergie — Pompes à chaleur, jusqu'à 100 % d'aides" hideFloatingWhileVisible="simulateur">
       {/* Hero Section : sobre, factuel, orienté confiance */}
       <section className="relative pt-16 pb-12 lg:pt-36 lg:pb-24 overflow-hidden bg-[#0b1a2c]">
         {/* Ordinateur : la photo occupe tout le bandeau, assombrie à gauche
