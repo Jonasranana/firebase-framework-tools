@@ -1883,7 +1883,7 @@ export const AvantagesSection = () => (
   </section>
 );
 
-// Les 2 vidéos pédagogiques de la page d'accueil. Faciles à remplacer : il
+// Les vidéos pédagogiques de la page d'accueil. Faciles à remplacer : il
 // suffit de changer l'identifiant YouTube (`id`) — la partie après « v= »
 // dans l'URL de la vidéo.
 const VIDEOS = [
@@ -1899,6 +1899,14 @@ const VIDEOS = [
     caption:
       "MaPrimeRénov' et les Certificats d'Économie d'Énergie (financés par les fournisseurs d'énergie) peuvent couvrir une grande partie de votre installation.",
   },
+  {
+    // Format court (YouTube Shorts) : vignette 16:9 « maxresdefault ».
+    id: "ozeySFh5Bnw",
+    thumb: "maxresdefault",
+    title: "La PAC air-eau en moins d'une minute",
+    caption:
+      "Le principe de la pompe à chaleur air-eau, expliqué très simplement en format court.",
+  },
 ];
 
 // Lecteur vidéo « respect de la vie privée » : on n'affiche qu'une vignette
@@ -1908,10 +1916,12 @@ const VideoCard = ({
   id,
   title,
   caption,
+  thumb = "hqdefault",
 }: {
   id: string;
   title: string;
   caption: string;
+  thumb?: string;
 }) => {
   const [play, setPlay] = useState(false);
   return (
@@ -1933,7 +1943,7 @@ const VideoCard = ({
             className="absolute inset-0 w-full h-full"
           >
             <img
-              src={`https://i.ytimg.com/vi/${id}/hqdefault.jpg`}
+              src={`https://i.ytimg.com/vi/${id}/${thumb}.jpg`}
               alt=""
               className="w-full h-full object-cover"
               loading="lazy"
@@ -1966,11 +1976,11 @@ export const VideoSection = () => (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
       <SectionHead
         kicker="Comprendre en vidéo"
-        title="Tout devient clair en 2 vidéos"
+        title="Tout devient clair en 3 vidéos"
         subtitle="La pompe à chaleur et les aides de l'État, expliquées simplement."
       />
 
-      <div className="grid md:grid-cols-2 gap-5 md:gap-8">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-8">
         {VIDEOS.map((v) => (
           <VideoCard key={v.id} {...v} />
         ))}
