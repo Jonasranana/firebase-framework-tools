@@ -447,8 +447,8 @@ export const ARTICLES: Article[] = [
     date: "2026-11-02",
     readMinutes: 5,
     image: img("entretien-pompe-a-chaleur-obligatoire"),
-    imageAlt: "Unité extérieure d'une pompe à chaleur posée sur un plot béton, contre le mur d'une maison",
-    imageCredit: "Photo IP5 Énergie",
+    imageAlt: "Un technicien contrôle l'unité extérieure d'une pompe à chaleur dans le jardin d'une maison",
+    imageCredit: "Photo libre de droits",
     keyPoints: [
       "Les pompes à chaleur d'une puissance comprise entre 4 et 70 kW doivent être entretenues au moins tous les deux ans par un professionnel (décret n° 2020-912 du 28 juillet 2020).",
       "La visite contrôle le circuit frigorifique, les réglages, l'état de l'unité extérieure et les performances de l'appareil.",
