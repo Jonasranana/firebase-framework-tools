@@ -1727,6 +1727,7 @@ const REVEAL_CSS = `
 .ip5-rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease-out,transform .7s cubic-bezier(.2,.7,.2,1)}
 .ip5-rv.ip5-in{opacity:1;transform:none}
 @media (prefers-reduced-motion: reduce){.ip5-rv{opacity:1;transform:none;transition:none}}
+@media (hover:hover) and (min-width:1024px){.ip5-rv.ip5-in[class*="rounded-2xl"]{transition:opacity .7s ease-out,transform .35s ease,box-shadow .35s ease}.ip5-rv.ip5-in[class*="rounded-2xl"]:hover{transform:translateY(-4px);box-shadow:0 18px 40px -18px rgba(11,26,44,.28)}}
 `;
 function useScrollReveal() {
   const ref = useRef<HTMLDivElement>(null);
