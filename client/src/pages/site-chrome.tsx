@@ -375,31 +375,31 @@ export const WhatsAppButton = () => (
 export const MobileActionBar = () => (
   <nav
     aria-label="Actions rapides"
-    className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-8px_24px_rgba(11,26,44,0.10)]"
-    style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    className="lg:hidden fixed inset-x-0 bottom-0 z-50 px-3 pointer-events-none"
+    style={{ paddingBottom: "max(10px, env(safe-area-inset-bottom))" }}
   >
-    <div className="grid grid-cols-[1.25fr_1fr_1fr] gap-2 px-3 py-2.5">
+    <div className="pointer-events-auto mx-auto max-w-md flex items-center gap-1 p-1.5 rounded-full bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-slate-200/80 dark:border-slate-700 shadow-[0_8px_30px_rgba(11,26,44,0.18)]">
       <a
         href="tel:+33749525267"
-        className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-[#173a5e] text-white font-bold text-[15px] shadow-md active:scale-[0.98] transition-transform"
+        className="flex-1 inline-flex items-center justify-center gap-1.5 h-12 rounded-full bg-[#173a5e] text-white text-[15px] font-bold active:scale-[0.97] transition-transform"
         aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
       >
-        <Phone size={18} /> Appeler
+        <Phone size={17} /> Appeler
       </a>
       <a
         href="https://wa.me/33749525267"
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center justify-center gap-1.5 h-12 rounded-2xl bg-gradient-to-br from-[#3ee07a] to-[#1faa52] text-white font-bold text-[15px] shadow-md active:scale-[0.98] transition-transform"
+        className="flex-1 inline-flex items-center justify-center gap-1.5 h-12 rounded-full text-[#1a9e4b] dark:text-green-400 text-[15px] font-bold active:bg-slate-100 dark:active:bg-slate-800"
       >
-        <MessageCircle size={18} /> WhatsApp
+        <MessageCircle size={17} /> WhatsApp
       </a>
       <button
         type="button"
         onClick={() => window.dispatchEvent(new Event(OPEN_ASSISTANT_EVENT))}
-        className="flex items-center justify-center gap-1.5 h-12 rounded-2xl border-2 border-slate-200 dark:border-slate-700 text-[#173a5e] dark:text-slate-100 font-bold text-[15px] active:scale-[0.98] transition-transform"
+        className="flex-1 inline-flex items-center justify-center gap-1.5 h-12 rounded-full text-[#173a5e] dark:text-slate-100 text-[15px] font-bold active:bg-slate-100 dark:active:bg-slate-800"
       >
-        <Sparkles size={17} className="text-amber-500" /> Question
+        <Sparkles size={16} className="text-amber-500" /> Question
       </button>
     </div>
   </nav>
