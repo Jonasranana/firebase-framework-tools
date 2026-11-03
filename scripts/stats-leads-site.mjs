@@ -1,0 +1,22 @@
+// LECTURE SEULE : statistiques des demandes du site (collection ip5_leads).
+import { createRequire } from "node:module";
+const require = createRequire(new URL("../functions/package.json", import.meta.url));
+const { initializeApp } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+initializeApp();
+const db = getFirestore();
+const snap = await db.collection("ip5_leads").get();
+const all = snap.docs.map((d) => d.data());
+const count = (arr, f) => Object.entries(arr.reduce((m, x) => ((m[f(x)] = (m[f(x)] ?? 0) + 1), m), {})).sort((a, b) => b[1] - a[1]);
+const month = (x) => x.createdAt?.toDate?.()?.toISOString().slice(0, 7) ?? "?";
+const src = (x) => (x.source || "(vide)").replace(/-rappel$/, " (rappel)");
+const apt = all.filter((x) => x.housingType === "Appartement");
+console.log(`TOTAL demandes site : ${all.length}`);
+console.log(`Premiere : ${all.map((x) => x.createdAt?.toDate?.()).filter(Boolean).sort((a, b) => a - b)[0]?.toISOString()}`);
+console.log("Type de logement : " + JSON.stringify(count(all, (x) => x.housingType || "(non demande)")));
+console.log("Appartement par source : " + JSON.stringify(count(apt, src)));
+console.log("Appartement par mois : " + JSON.stringify(count(apt, month)));
+console.log("Total par source : " + JSON.stringify(count(all, src)));
+console.log("Total par mois : " + JSON.stringify(count(all, month)));
+console.log("Statut proprietaire : " + JSON.stringify(count(all, (x) => x.ownerStatus || "(non demande)")));
+console.log("Chauffage : " + JSON.stringify(count(all, (x) => x.currentHeating || "(vide)")));

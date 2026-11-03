@@ -32,6 +32,7 @@ import {
   HelpCircle,
   UserRound,
   Gift,
+  MessageCircle,
 } from "lucide-react";
 import {
   FIREBASE_CONFIG,
@@ -525,7 +526,10 @@ async function submitLead(
   try {
     // Les leads des campagnes de réactivation (mail/SMS) ne viennent pas
     // d'une pub : les compter fausserait l'optimisation des campagnes Meta.
-    if (!source.startsWith("reactivation"))
+    // Locataire : la demande reste dans le CRM (on peut convaincre son
+    // propriétaire), mais Meta ne la compte pas comme un prospect, pour
+    // qu'il apprenne à viser les propriétaires.
+    if (!source.startsWith("reactivation") && data.ownerStatus !== "Locataire")
       (window as any).fbq?.("track", "Lead", { content_category: source });
   } catch {
     /* le tracking ne doit jamais casser l'enregistrement du lead */
@@ -787,6 +791,10 @@ export const Simulator = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Étape « coordonnées » intercalée après la question CONTACT_AFTER.
   const [earlyContact, setEarlyContact] = useState(false);
+  // Appartement : la pompe à chaleur air/eau (et le chauffe-eau solaire)
+  // concernent les maisons. On l'explique et on s'arrête là : pas de lead
+  // enregistré, pas de « prospect » compté par Meta.
+  const [apartStop, setApartStop] = useState(false);
   const [contactSaved, setContactSaved] = useState(false);
   // Réponse qui vient d'être touchée (s'allume avant de passer à la suite)
   // et sens de défilement des questions (avant / arrière).
@@ -840,6 +848,11 @@ export const Simulator = ({
   // réponse qui vient d'être donnée.
   const advance = (rewardMsg: string | null, data: SimulatorData = formData) => {
     setGoingBack(false);
+    if (step === 1 && data.housingType === "Appartement") {
+      setReward(null);
+      setApartStop(true);
+      return;
+    }
     if (step === CONTACT_AFTER && !contactSaved) {
       setReward(rewardMsg);
       setEarlyContact(true);
@@ -857,6 +870,11 @@ export const Simulator = ({
     window.clearTimeout(pickTimer.current);
     setPicked(null);
     setGoingBack(true);
+    if (apartStop) {
+      setApartStop(false);
+      setFormData((d) => ({ ...d, housingType: "" }));
+      return;
+    }
     if (earlyContact) {
       setEarlyContact(false);
       setReward(null);
@@ -1097,6 +1115,30 @@ export const Simulator = ({
   const CTA = "!rounded-2xl py-4 !text-[#0b1a2c] font-bold text-[16px] bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 shadow-lg shadow-amber-500/25 hover:brightness-105 active:scale-[0.99]";
 
   const renderStep = () => {
+    if (apartStop) {
+      return (
+        <div className="text-center py-2">
+          <span className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center">
+            <Building size={28} />
+          </span>
+          <h3 className={Q}>Nos installations sont réservées aux maisons</h3>
+          <p className={`${SUB} max-w-sm mx-auto`}>
+            Une pompe à chaleur ou un chauffe-eau solaire demande de la place à l'extérieur et l'accord de la
+            copropriété : nous ne les installons donc pas en appartement. Merci de votre intérêt !
+          </p>
+          <Button
+            type="button"
+            className="mt-5 mx-auto"
+            onClick={() => {
+              setApartStop(false);
+              setFormData((d) => ({ ...d, housingType: "" }));
+            }}
+          >
+            Je me suis trompé, c'est une maison
+          </Button>
+        </div>
+      );
+    }
     if (earlyContact) {
       return (
         <div>
@@ -1491,6 +1533,21 @@ export const Simulator = ({
                 l'accompagner dans toutes les démarches. Un conseiller peut vous
                 rappeler pour vous expliquer comment faire.
               </p>,
+            );
+            content = (
+              <>
+                {content}
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    "Bonjour, j'ai vu qu'il existe jusqu'à 100 % d'aides pour remplacer la chaudière par une pompe à chaleur. IP5 Énergie s'occupe de tout, étude gratuite : https://www.ip5energie.fr/pac",
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-white bg-[#25D366] hover:brightness-105 transition"
+                >
+                  <MessageCircle size={18} /> Envoyer le lien à mon propriétaire
+                </a>
+              </>
             );
             break;
           case "etude":
