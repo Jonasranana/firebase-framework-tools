@@ -830,7 +830,7 @@ export const Simulator = ({
     setIsCalculating(true);
     // Coordonnées déjà données en cours de route : la demande part directement, sans les redemander.
     const send = contactSaved ? sendLead(data) : Promise.resolve(false);
-    Promise.all([send, new Promise((r) => setTimeout(r, 1400))]).then(([sent]) => {
+    Promise.all([send, new Promise((r) => setTimeout(r, 900))]).then(([sent]) => {
       setIsCalculating(false);
       setStep(sent ? TOTAL_QUESTIONS + 2 : TOTAL_QUESTIONS + 1);
     });
@@ -1724,10 +1724,10 @@ function useHiddenWhileVisible(anchorId?: string) {
 // cartes glissent doucement vers le haut quand elles arrivent à l'écran.
 // Ajouté uniquement par le script : sans JavaScript, tout reste visible.
 const REVEAL_CSS = `
-.ip5-rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease-out,transform .7s cubic-bezier(.2,.7,.2,1)}
+.ip5-rv{opacity:0;transform:translateY(16px);transition:opacity .4s ease-out,transform .45s cubic-bezier(.2,.7,.2,1)}
 .ip5-rv.ip5-in{opacity:1;transform:none}
 @media (prefers-reduced-motion: reduce){.ip5-rv{opacity:1;transform:none;transition:none}}
-@media (hover:hover) and (min-width:1024px){.ip5-rv.ip5-in[class*="rounded-2xl"]{transition:opacity .7s ease-out,transform .35s ease,box-shadow .35s ease}.ip5-rv.ip5-in[class*="rounded-2xl"]:hover{transform:translateY(-4px);box-shadow:0 18px 40px -18px rgba(11,26,44,.28)}}
+@media (hover:hover) and (min-width:1024px){.ip5-rv.ip5-in[class*="rounded-2xl"]{transition:opacity .4s ease-out,transform .35s ease,box-shadow .35s ease}.ip5-rv.ip5-in[class*="rounded-2xl"]:hover{transform:translateY(-4px);box-shadow:0 18px 40px -18px rgba(11,26,44,.28)}}
 `;
 function useScrollReveal() {
   const ref = useRef<HTMLDivElement>(null);
@@ -1766,7 +1766,7 @@ function useScrollReveal() {
           }
         }
       },
-      { threshold: 0.12, rootMargin: "0px 0px -30px 0px" },
+      { threshold: 0.04, rootMargin: "0px 0px 0px 0px" },
     );
     targets.forEach((t) => io.observe(t));
     return () => io.disconnect();

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, type ComponentType } from "react";
 import BrandLoader from "@/components/BrandLoader";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { Switch, Route, Redirect } from "wouter";
@@ -9,13 +9,29 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import IP5Energie from "@/pages/IP5Energie";
 
+
+// Page chargée à la demande, mais qu'on peut télécharger à l'avance (preload) :
+// une fois téléchargée, elle s'affiche directement, sans écran de chargement.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type AnyPage = ComponentType<any>;
+function lazyPage(factory: () => Promise<{ default: unknown }>) {
+  let Loaded: AnyPage | null = null;
+  const preload = (): Promise<unknown> =>
+    factory().then((m) => { Loaded = m.default as AnyPage; return m; });
+  const Lazy = lazy(preload as () => Promise<{ default: AnyPage }>);
+  const Page = (props: any) => (Loaded ? <Loaded {...props} /> : <Lazy {...props} />);
+  Page.preload = preload;
+  return Page;
+}
+/* eslint-enable @typescript-eslint/no-explicit-any */
+
 // Chargées à la demande : la page d'accueil (IP5 Énergie) reste légère, le
 // reste du code (articles, pages légales, app voitures historique) n'est
 // téléchargé que si le visiteur s'y rend.
-const ArticlesList = lazy(() =>
+const ArticlesList = lazyPage(() =>
   import("@/pages/Articles").then((m) => ({ default: m.ArticlesList })),
 );
-const ArticleDetail = lazy(() =>
+const ArticleDetail = lazyPage(() =>
   import("@/pages/Articles").then((m) => ({ default: m.ArticleDetail })),
 );
 const MentionsLegales = lazy(() =>
@@ -26,23 +42,23 @@ const Confidentialite = lazy(() =>
 );
 // Pages du site IP5 Énergie (multi-pages). L'accueil (IP5Energie) est chargé
 // d'emblée ; les pages intérieures sont chargées à la demande.
-const PompeAChaleur = lazy(() => import("@/pages/PompeAChaleur"));
-const PacVille = lazy(() => import("@/pages/PacVille"));
+const PompeAChaleur = lazyPage(() => import("@/pages/PompeAChaleur"));
+const PacVille = lazyPage(() => import("@/pages/PacVille"));
 const ClientSpace = lazy(() => import("@/pages/ClientSpace"));
 // Espace client : construit mais PAS publié. Passer à true le jour où il est mis en service
 // (et activer crm_settings/client_space côté serveur).
 const CLIENT_SPACE_PUBLIC = false;
 // Landing pages dédiées aux campagnes publicitaires Meta (Facebook / Instagram).
-const CampagnePAC = lazy(() => import("@/pages/CampagnePAC"));
+const CampagnePAC = lazyPage(() => import("@/pages/CampagnePAC"));
 const Desinscription = lazy(() => import("@/pages/Desinscription"));
 const Avis = lazy(() => import("@/pages/Avis"));
-const CampagneSolaire = lazy(() => import("@/pages/CampagneSolaire"));
+const CampagneSolaire = lazyPage(() => import("@/pages/CampagneSolaire"));
 // Landing B2B : stations de gonflage des pneumatiques (CEE TRA-SE-104),
 // vendue aux entreprises/collectivités, pas aux particuliers.
 const CampagneGonflage = lazy(() => import("@/pages/CampagneGonflage"));
-const Aides = lazy(() => import("@/pages/Aides"));
-const Realisations = lazy(() => import("@/pages/Realisations"));
-const Contact = lazy(() => import("@/pages/Contact"));
+const Aides = lazyPage(() => import("@/pages/Aides"));
+const Realisations = lazyPage(() => import("@/pages/Realisations"));
+const Contact = lazyPage(() => import("@/pages/Contact"));
 // Outil interne privé (accès Google restreint) — non lié depuis le site public.
 const OutilDevis = lazy(() => import("@/pages/OutilDevis"));
 const EspaceArtisan = lazy(() => import("@/pages/EspaceArtisan"));
@@ -65,6 +81,27 @@ const MyBookings = lazy(() => import("@/pages/MyBookings"));
 const isInternalPath = () =>
   /^\/(admin|outil-devis|espace-pro|marges-|gonflage-signature|autos|cars|list-car|my-|profile)/.test(window.location.pathname);
 const PageSpinner = () => <BrandLoader full tone={isInternalPath() ? "crm" : "site"} />;
+
+// Vitesse : une fois la page affichée, on télécharge discrètement les autres
+// pages du site client. Un clic sur un bouton ou le menu s'ouvre alors tout de
+// suite, sans écran de chargement. (Pas pour l'outil interne, ni en économie
+// de données.)
+if (typeof window !== "undefined" && !isInternalPath()) {
+  const prefetch = () => {
+    const c = (navigator as unknown as { connection?: { saveData?: boolean } }).connection;
+    if (c?.saveData) return;
+    [PompeAChaleur, CampagnePAC, Aides, Contact, Realisations, CampagneSolaire, ArticlesList, ArticleDetail, PacVille]
+      .map((page) => page.preload)
+      .reduce((p: Promise<unknown>, load) => p.then(() => load().catch(() => undefined)), Promise.resolve());
+  };
+  const later = () => {
+    const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback;
+    if (ric) ric(prefetch, { timeout: 3000 });
+    else setTimeout(prefetch, 1200);
+  };
+  if (document.readyState === "complete") later();
+  else window.addEventListener("load", later, { once: true });
+}
 
 function Router() {
   // Plus d'attente de la session avant d'afficher une page : seule l'ancienne app voitures s'en sert
