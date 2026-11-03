@@ -126,6 +126,14 @@ const ThemeToggle = () => {
 
 export const SiteHeader = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  // En-tête qui s'affine et prend une ombre dès qu'on fait défiler la page.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 12);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
   const [location] = useLocation();
   // La page d'accueil (« / ») ne doit être active que sur la racine exacte ;
   // les autres pages le sont dès que l'URL commence par leur chemin.
@@ -133,12 +141,12 @@ export const SiteHeader = () => {
     href === "/" ? location === "/" : location.startsWith(href);
 
   return (
-    <nav className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md fixed w-full z-50 top-0 border-b border-slate-200 dark:border-slate-800">
+    <nav className={`fixed w-full z-50 top-0 border-b backdrop-blur-md transition-all duration-300 ${scrolled ? "bg-white/90 dark:bg-slate-900/90 border-slate-200/80 dark:border-slate-800 shadow-[0_6px_24px_rgba(11,26,44,0.08)]" : "bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800"}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16 lg:h-20">
+        <div className={`flex justify-between items-center h-16 transition-[height] duration-300 ${scrolled ? "lg:h-16" : "lg:h-20"}`}>
           <div className="flex items-center gap-3">
             <a href="/" aria-label="IP5 Énergie, accueil">
-              <LogoIP5 className="!h-10 md:!h-14 !text-[#173a5e] dark:!text-blue-200" />
+              <LogoIP5 className={`!h-10 transition-all duration-300 ${scrolled ? "md:!h-11" : "md:!h-14"} !text-[#173a5e] dark:!text-blue-200`} />
             </a>
           </div>
           <div className="hidden lg:flex space-x-5 xl:space-x-8 items-center lg:ml-8 xl:ml-12">
@@ -147,7 +155,7 @@ export const SiteHeader = () => {
                 key={link.href}
                 href={link.href}
                 aria-current={isActive(link.href) ? "page" : undefined}
-                className={`relative py-7 text-[15px] font-medium whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors ${
+                className={`relative ${scrolled ? "py-5" : "py-7"} text-[15px] font-medium whitespace-nowrap transition-colors after:absolute after:left-0 after:right-0 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors ${
                   isActive(link.href)
                     ? "text-[#173a5e] dark:text-white font-semibold after:bg-[#173a5e] dark:after:bg-blue-300"
                     : "text-slate-600 dark:text-slate-300 hover:text-[#173a5e] dark:hover:text-white after:bg-transparent hover:after:bg-slate-300 dark:hover:after:bg-slate-600"
