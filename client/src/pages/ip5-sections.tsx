@@ -643,12 +643,25 @@ export const FRENCH_PHONE_REGEX = /^(?:\+33|0)\s*[1-9](?:[\s.\-]*\d{2}){4}$/;
 // alourdir le bundle. Le honeypot est vérifié avant l'appel.
 // Les règles Firestore doivent autoriser la création sur ip5_leads :
 //   match /ip5_leads/{doc} { allow create: if true; allow read: if false; }
+// Demande venue d'une pub Google : l'origine « …-meta » devient « …-google »
+// (ou « -google » est ajouté), pour comparer les canaux dans le CRM.
+export function adjustSourceForAds(source: string): string {
+  try {
+    if (sessionStorage.getItem("ip5-from") !== "google") return source;
+  } catch {
+    return source;
+  }
+  if (source.includes("google")) return source;
+  return source.includes("meta") ? source.replace("meta", "google") : `${source}-google`;
+}
+
 async function submitLead(
   data: SimulatorData,
   source = "simulateur-landing",
   extra: Record<string, string> = {},
 ): Promise<void> {
   if (data.company) return; // bot détecté, on ignore silencieusement
+  source = adjustSourceForAds(source);
   const [appMod, fsMod]: any[] = await Promise.all([
     // Imports CDN à l'exécution (hors bundle), pas de types disponibles.
     // @ts-ignore
@@ -712,6 +725,7 @@ export async function submitCallbackRequest(
   source: string,
 ): Promise<void> {
   if (data.company) return;
+  source = adjustSourceForAds(source);
   const [appMod, fsMod]: any[] = await Promise.all([
     // @ts-ignore
     import(/* @vite-ignore */ "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"),
@@ -768,6 +782,7 @@ export function getVisitId(): string {
 export function trackStep(source: string, step: number, answers: Record<string, unknown>) {
   try {
     if (source.startsWith("reactivation")) return;
+    source = adjustSourceForAds(source);
     const sid = getVisitId();
     if (!sid) return;
     const body = JSON.stringify({ sid, source, step, answers });
