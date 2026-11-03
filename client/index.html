@@ -100,11 +100,21 @@
           n.loaded = !0;
           n.version = "2.0";
           n.queue = [];
-          t = b.createElement(e);
-          t.async = !0;
-          t.src = v;
-          s = b.getElementsByTagName(e)[0];
-          s.parentNode.insertBefore(t, s);
+          // Le script Meta (lourd) est chargé une fois la page affichée :
+          // les événements sont mis en file d'attente d'ici là, rien n'est perdu.
+          var load = function () {
+            t = b.createElement(e);
+            t.async = !0;
+            t.src = v;
+            s = b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t, s);
+          };
+          var later = function () {
+            if (f.requestIdleCallback) f.requestIdleCallback(load, { timeout: 4000 });
+            else setTimeout(load, 1500);
+          };
+          if (b.readyState === "complete") later();
+          else f.addEventListener("load", later);
         })(
           window,
           document,

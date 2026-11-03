@@ -21,7 +21,11 @@ const IP5Energie = () => {
         {/* Ordinateur : la photo occupe tout le bandeau, assombrie à gauche
             pour le texte ; le simulateur est posé à droite. */}
         <div className="hidden lg:block absolute inset-0" aria-hidden="true">
-          <img src="/images/hero-accueil-pac.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-[30%_60%]" fetchPriority="high" />
+          <picture>
+            {/* Téléphone : pas de téléchargement de la grande photo ordinateur */}
+            <source media="(max-width: 1023px)" srcSet="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />
+            <img src="/images/hero-accueil-pac.jpg" alt="" className="absolute inset-0 w-full h-full object-cover object-[30%_60%]" fetchPriority="high" />
+          </picture>
           <div className="absolute inset-0 bg-gradient-to-r from-[#0b1a2c] from-25% via-[#0b1a2c]/60 to-[#0b1a2c]/25"></div>
           <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0b1a2c]/80 to-transparent"></div>
         </div>
@@ -29,12 +33,15 @@ const IP5Energie = () => {
             des grands installateurs. Sur ordinateur, la mise en page reste en
             deux colonnes (texte + simulateur). */}
         <div className="lg:hidden relative h-[420px] overflow-hidden bg-[#0b1a2c]">
-          <img
-            src="/images/hero-accueil.jpg"
-            alt="Un couple étudie son projet de rénovation avec un ordinateur"
-            className="absolute inset-0 w-full h-full object-cover object-[50%_22%]"
-            fetchPriority="high"
-          />
+          <picture>
+            <source media="(min-width: 1024px)" srcSet="data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==" />
+            <img
+              src="/images/hero-accueil.jpg"
+              alt="Un couple étudie son projet de rénovation avec un ordinateur"
+              className="absolute inset-0 w-full h-full object-cover object-[50%_22%]"
+              fetchPriority="high"
+            />
+          </picture>
           <div className="absolute inset-0 bg-gradient-to-b from-[#0b1a2c]/0 via-[#0b1a2c]/10 to-[#0b1a2c]"></div>
           <div className="absolute inset-x-0 bottom-0 px-5 pb-6 text-white animate-in fade-in slide-in-from-bottom-3 duration-700">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 backdrop-blur-md border border-white/25 px-3 py-1 text-[12px] font-semibold mb-3">

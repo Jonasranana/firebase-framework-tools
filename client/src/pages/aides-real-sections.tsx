@@ -235,9 +235,9 @@ export const BeforeAfterSection = () => {
           }}
           onPointerMove={(e) => dragging.current && move(e.clientX)}
         >
-          <img src="/images/realisations/interieur-pac-ballon.jpg" alt="Après : module intérieur de pompe à chaleur et ballon d'eau chaude" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+          <img src="/images/realisations/interieur-pac-ballon.jpg" alt="Après : module intérieur de pompe à chaleur et ballon d'eau chaude" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" draggable={false} />
           <div className="absolute inset-0 overflow-hidden" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
-            <img src="/images/realisations/avant-ancienne-chaudiere.jpg" alt="Avant : ancienne chaudière fioul" className="absolute inset-0 w-full h-full object-cover" draggable={false} />
+            <img src="/images/realisations/avant-ancienne-chaudiere.jpg" alt="Avant : ancienne chaudière fioul" className="absolute inset-0 w-full h-full object-cover" loading="lazy" decoding="async" draggable={false} />
           </div>
           <span className="absolute top-4 left-4 bg-[#0b1a2c]/85 text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">Avant</span>
           <span className="absolute top-4 right-4 bg-amber-300 text-[#0b1a2c] text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">Après</span>
