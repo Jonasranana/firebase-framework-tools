@@ -21,6 +21,20 @@ console.log("Total par mois : " + JSON.stringify(count(all, month)));
 console.log("Statut proprietaire : " + JSON.stringify(count(all, (x) => x.ownerStatus || "(non demande)")));
 console.log("Chauffage : " + JSON.stringify(count(all, (x) => x.currentHeating || "(vide)")));
 
+// Demandes des dernières 24 h dans le CRM (toutes origines), sans données personnelles.
+{
+  const since = new Date(Date.now() - 24 * 3600 * 1000);
+  const crm = await db.collection("crm_leads").where("createdAt", ">=", since).get();
+  console.log(`CRM : ${crm.size} fiche(s) créée(s) depuis 24 h`);
+  for (const d of crm.docs) {
+    const x = d.data();
+    const t = x.createdAt?.toDate?.()?.toISOString().slice(0, 16) ?? "?";
+    console.log(`  ${t} | id ${d.id.slice(0, 12)} | type ${x.type ?? ""} | source ${x.source ?? ""} | details: ${Object.keys(x.details ?? {}).join(", ")}`);
+  }
+  const site = all.filter((x) => (x.createdAt?.toDate?.() ?? 0) >= since);
+  console.log(`SITE (ip5_leads) depuis 24 h : ${site.length} | avec adresse : ${site.filter((x) => x.address).length} | avec DPE : ${site.filter((x) => x.dpe && !String(x.dpe).startsWith("Aucun")).length}`);
+}
+
 // Règles Firestore en vigueur pour ip5_leads (lecture seule, pour vérifier les champs autorisés).
 try {
   const { google } = require("googleapis");
