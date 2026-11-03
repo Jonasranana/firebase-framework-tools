@@ -298,7 +298,7 @@ export const SiteFooter = () => (
               </a>
             </li>
             <li>
-              <a href="https://wa.me/33749525267" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-white transition-colors">
+              <a href={whatsappHref()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 hover:text-white transition-colors">
                 <MessageCircle size={16} className="text-amber-200" /> <span>WhatsApp</span>
               </a>
             </li>
@@ -363,13 +363,25 @@ export const SiteFooter = () => (
 // Ouvre l'assistant IA depuis n'importe quel bouton (barre mobile, etc.).
 export const OPEN_ASSISTANT_EVENT = "ip5:open-assistant";
 
+// Lien WhatsApp avec un message déjà écrit : le client n'a qu'à appuyer sur
+// « Envoyer ». Le sujet s'adapte à la page (solaire ou pompe à chaleur) et on
+// lui demande son code postal pour savoir tout de suite s'il est dans la zone.
+export const whatsappHref = () => {
+  const path = typeof window !== "undefined" ? window.location.pathname : "/";
+  const sujet = /solaire/.test(path)
+    ? "un chauffe-eau solaire et les aides possibles"
+    : "une pompe à chaleur et les aides possibles";
+  const msg = `Bonjour IP5 Énergie 👋\nJe souhaite des informations sur ${sujet}.\nJe suis propriétaire d'une maison, mon code postal : `;
+  return `https://wa.me/33749525267?text=${encodeURIComponent(msg)}`;
+};
+
 // Bulle WhatsApp flottante (téléphone et ordinateur), sous la bulle de
 // l'assistant IA. « Appeler » reste dans l'en-tête.
 // Ordinateur : bulle WhatsApp flottante. Téléphone : barre fixe en bas
 // (Appeler, WhatsApp, Assistant), plus pratique au pouce que l'en-tête.
 export const WhatsAppButton = () => (
   <a
-    href="https://wa.me/33749525267"
+    href={whatsappHref()}
     target="_blank"
     rel="noopener noreferrer"
     className="hidden lg:flex fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-[#3ee07a] to-[#1faa52] text-white rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-green-600/30 hover:scale-110 active:scale-95 transition-all duration-300 z-50 items-center justify-center group"
@@ -397,7 +409,7 @@ export const MobileActionBar = () => (
         <Phone size={17} /> Appeler
       </a>
       <a
-        href="https://wa.me/33749525267"
+        href={whatsappHref()}
         target="_blank"
         rel="noopener noreferrer"
         className="flex-1 inline-flex items-center justify-center gap-1.5 h-12 rounded-full text-[#1a9e4b] dark:text-green-400 text-[15px] font-bold active:bg-slate-100 dark:active:bg-slate-800"

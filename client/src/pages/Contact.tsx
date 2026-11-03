@@ -8,7 +8,7 @@ import {
   submitCallbackRequest,
   type CallbackRequest,
 } from "./ip5-sections";
-import { FACEBOOK_URL } from "./site-chrome";
+import { FACEBOOK_URL, whatsappHref } from "./site-chrome";
 
 // Page « Contact » : demande de rappel (même circuit que le rappel de /pac :
 // collection ip5_leads, notification, CRM), les moyens de nous joindre et le
@@ -25,7 +25,7 @@ const CONTACT_CHANNELS = [
     icon: MessageCircle,
     label: "Sur WhatsApp",
     value: "07 49 52 52 67",
-    href: "https://wa.me/33749525267",
+    href: whatsappHref(),
     hint: "Réponse rapide",
   },
   {
