@@ -8,8 +8,6 @@ import {
   FinalCTA,
   SectionHead,
   Reveal,
-  BrandMarquee,
-  GRID_BG,
 } from "./ip5-sections";
 
 // Page d'accueil d'IP5 Énergie : accroche + simulateur (capture de leads),
@@ -139,52 +137,44 @@ const IP5Energie = () => {
         </div>
       </section>
 
-      <BrandMarquee />
-
-      {/* Déroulé d'un projet : 4 grandes cartes photo numérotées (défilement
-          horizontal sur téléphone, grille sur ordinateur). */}
-      <section className={`py-14 md:py-24 bg-slate-50 dark:bg-slate-950 ${GRID_BG}`}>
-        <div className="max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
-          <SectionHead
-            kicker="Notre méthode"
-            title="Un projet suivi de A à Z"
-            subtitle="Vous n'avez ni dossier à gérer ni artisan à chercher : nous coordonnons chaque étape."
-          />
-          <ol className="-mx-5 px-5 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 overflow-x-auto sm:overflow-visible snap-x snap-mandatory pb-2 [scrollbar-width:none]">
-            {[
-              { img: "/images/site/contact-conseillere.jpg", title: "Étude de votre projet", text: "Quelques questions en ligne, puis un conseiller vous rappelle pour vérifier vos droits.", points: ["Gratuit et sans engagement", "Rappel sous 24 h"] },
-              { img: "/images/pac/module-ballon.jpg", title: "Visite technique", text: "Un professionnel étudie votre maison et choisit la pompe à chaleur adaptée.", points: ["Bilan de votre chauffage", "Matériel dimensionné"] },
-              { img: "/images/site/aides-signature.jpg", title: "Dossiers d'aides", text: "Nous montons MaPrimeRénov' et CEE à votre place.", points: ["Aides déduites du devis", "Aucune avance de votre part"] },
-              { img: "/images/site/artisan-pac.jpg", title: "Installation certifiée", text: "Pose par un artisan RGE, puis nous restons votre interlocuteur.", points: ["Mise en service incluse", "Suivi après l'installation"] },
-            ].map((step, i) => (
-              <li
-                key={step.title}
-                className="snap-start shrink-0 w-[82%] sm:w-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 p-3 shadow-[0_10px_40px_-24px_rgba(11,26,44,0.35)] flex flex-col"
-              >
-                <div className="relative overflow-hidden rounded-2xl aspect-[4/3]">
-                  <img src={step.img} alt="" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
-                </div>
-                <div className="px-2 pt-5 pb-3 flex-1 flex flex-col">
-                  <div className="flex items-center gap-3">
-                    <span className="w-10 h-10 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-[#173a5e] dark:text-blue-200 font-extrabold flex items-center justify-center shrink-0">
+      {/* Déroulé d'un projet : une frise en 4 étapes (horizontale sur ordinateur,
+          verticale sur téléphone), reliées par une ligne. */}
+      <Reveal>
+        <section className="py-14 md:py-24 bg-white dark:bg-slate-950">
+          <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
+            <SectionHead
+              kicker="Notre méthode"
+              title="Un projet suivi de A à Z"
+              subtitle="Vous n'avez ni dossier à gérer ni artisan à chercher : nous coordonnons chaque étape."
+            />
+            <ol className="relative grid md:grid-cols-4 md:gap-8">
+              <span className="hidden md:block absolute top-7 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-[#173a5e] via-[#2b5a8f] to-[#2b5a8f]" aria-hidden="true"></span>
+              {[
+                { icon: ClipboardCheck, title: "Étude de votre projet", text: "Quelques questions, puis un conseiller vous rappelle pour vérifier vos droits." },
+                { icon: Home, title: "Visite technique", text: "Un professionnel étudie votre logement et choisit la pompe à chaleur adaptée." },
+                { icon: FileText, title: "Dossiers d'aides", text: "Nous montons MaPrimeRénov' et CEE. Les aides sont déduites du devis." },
+                { icon: Wrench, title: "Installation certifiée", text: "Pose par un artisan RGE, et nous restons votre interlocuteur ensuite." },
+              ].map((step, i, all) => (
+                <li key={step.title} className="relative flex md:flex-col md:items-center md:text-center gap-5 md:gap-0 pb-8 md:pb-0 last:pb-0">
+                  {i < all.length - 1 && (
+                    <span className="md:hidden absolute left-7 top-14 bottom-0 w-px bg-slate-200 dark:bg-slate-800" aria-hidden="true"></span>
+                  )}
+                  <span className="relative z-10 w-14 h-14 rounded-full bg-white dark:bg-slate-900 border-2 border-[#173a5e] dark:border-blue-300 text-[#173a5e] dark:text-blue-300 flex items-center justify-center flex-shrink-0 md:mb-5 shadow-[0_0_0_6px_white] dark:shadow-[0_0_0_6px_#020617]">
+                    <step.icon size={22} />
+                    <span className="absolute -top-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-300 text-[#0b1a2c] text-[11px] font-extrabold flex items-center justify-center">
                       {i + 1}
                     </span>
+                  </span>
+                  <div className="pt-1 md:pt-0">
                     <h3 className="text-lg font-bold text-[#0f2a47] dark:text-white leading-snug">{step.title}</h3>
+                    <p className="text-[15px] text-slate-500 dark:text-slate-400 leading-relaxed mt-1.5 md:max-w-[230px] md:mx-auto">{step.text}</p>
                   </div>
-                  <p className="text-[15px] text-slate-500 dark:text-slate-400 leading-relaxed mt-3">{step.text}</p>
-                  <ul className="mt-3 space-y-1.5">
-                    {step.points.map((pt) => (
-                      <li key={pt} className="flex items-center gap-2 text-[14px] font-medium text-slate-700 dark:text-slate-300">
-                        <ArrowRight size={16} className="text-amber-500 shrink-0" /> {pt}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </section>
+      </Reveal>
 
       {/* Avantages de la pompe à chaleur */}
       <Reveal>
@@ -198,7 +188,7 @@ const IP5Energie = () => {
 
       {/* Raccourcis vers les pages détaillées */}
       <Reveal>
-      <section className={`py-14 md:py-24 bg-slate-50 dark:bg-slate-950 ${GRID_BG}`}>
+      <section className="py-14 md:py-24 bg-slate-50 dark:bg-slate-950">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHead
             kicker="Découvrir IP5 Énergie"
