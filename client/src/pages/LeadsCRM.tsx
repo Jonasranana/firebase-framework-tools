@@ -104,14 +104,47 @@ async function patchLead(
   // Le compteur « jours depuis le changement » repart à zéro quand le statut appel ou l'étape change.
   const etapeKeys = LEAD_COLUMNS.filter((c) => c.type === "status" && /^[^A-Za-z\u00C0-\u00FF]*[EeÉé]tape/.test(c.title)).map((c) => `fields.${c.key}`);
   const statusTouched = "status" in patch || etapeKeys.some((k) => k in patch);
-  await m.updateDoc(m.doc(db, CRM_LEADS_COLLECTION, id), {
+  const ref = m.doc(db, CRM_LEADS_COLLECTION, id);
+  const rappelPose = typeof patch.rappelLe === "string" && patch.rappelLe !== "";
+  // Étiquette changée (n'importe où : tableau, fiche, mobile) = le client a été appelé :
+  // son rappel quitte « À rappeler », sauf si l'étiquette veut dire « à rappeler encore »
+  // ou si un rappel vient d'être posé (moins de 10 minutes).
+  let retirerRappel = false;
+  if ("status" in patch && !("rappelLe" in patch) && !STATUTS_GARDENT_RAPPEL.has(String(patch.status))) {
+    try {
+      const snap = await m.getDoc(ref);
+      const d = snap.data() as { status?: string; rappelLe?: string; rappelSetAt?: { toMillis?: () => number } } | undefined;
+      const poseIlYa = Date.now() - (d?.rappelSetAt?.toMillis?.() ?? 0);
+      retirerRappel = !!d?.rappelLe && d.status !== patch.status && poseIlYa > 10 * 60 * 1000;
+    } catch {
+      /* lecture impossible : on ne touche pas au rappel */
+    }
+  }
+  await m.updateDoc(ref, {
     ...patch,
     crmOwned: true,
     ...(statusTouched ? { statusChangedAt: m.serverTimestamp() } : {}),
+    ...(rappelPose ? { rappelSetAt: m.serverTimestamp() } : {}),
     updatedAt: m.serverTimestamp(),
     updatedBy: email,
   });
+  if (retirerRappel) {
+    await m.updateDoc(ref, {
+      rappelLe: "",
+      [`fields.${RAPPEL_HEURE_KEY}`]: "",
+      notes: m.arrayUnion({
+        id: newId(),
+        text: "🔕 Rappel retiré de « À rappeler » (étiquette changée)",
+        by: email,
+        at: new Date().toISOString(),
+        kind: "statut",
+      } satisfies LeadNote),
+    });
+  }
 }
+
+// Étiquettes qui veulent dire « il faut encore rappeler » : le rappel prévu est gardé.
+const STATUTS_GARDENT_RAPPEL = new Set<string>(["rappel_demande", "me_rappelle", "a_rap_carole", "a_relancer", "a_appeler", "nrp", "nrp2"]);
 
 async function addLeadNote(id: string, email: string, note: LeadNote) {
   const { m } = await fs();
