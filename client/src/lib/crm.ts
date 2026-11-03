@@ -408,3 +408,8 @@ export function ageLevel(l: Lead, now: number = Date.now()): AgeLevel | null {
 
 // Comptes qui voient les totaux en bas des groupes (montants, marges…).
 export const TOTALS_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "contact@ip5energie.com"];
+
+// Comptes qui voient la page « Actualités aides » (veille quotidienne
+// MaPrimeRénov' / CEE / pompe à chaleur) : la famille + l'adresse contact.
+// À garder identique à la règle Firestore crm_news (scripts/regles-actus.mjs).
+export const NEWS_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"];

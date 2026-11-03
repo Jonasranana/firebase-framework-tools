@@ -1,4 +1,4 @@
-import { TOTALS_VIEWERS } from "@/lib/crm";
+import { TOTALS_VIEWERS, NEWS_VIEWERS } from "@/lib/crm";
 import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   LogOut,
@@ -28,6 +28,7 @@ const CorbeilleEtDoublons = lazy(() => import("./CorbeilleEtDoublons"));
 const DocumentsPage = lazy(() => import("./DocumentsPage"));
 const TeamPage = lazy(() => import("./TeamPage"));
 const PraimyCRM = lazy(() => import("./PraimyCRM"));
+const ActusCRM = lazy(() => import("./ActusCRM"));
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -940,6 +941,7 @@ export default function OutilDevis() {
         {p === "marges" && (TOTALS_VIEWERS.includes(email.toLowerCase()) ? narrow(<MargesPremi />) : <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>)}
         {p === "clients" && narrow(<ClientsCRM email={email} />)}
         {p === "praimy" && <PraimyCRM email={email} />}
+        {p === "actus" && (NEWS_VIEWERS.includes(email.toLowerCase()) ? <ActusCRM /> : <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée à la direction.</p>)}
       </Suspense>
     );
     return (
