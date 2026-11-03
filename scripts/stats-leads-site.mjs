@@ -20,3 +20,18 @@ console.log("Total par source : " + JSON.stringify(count(all, src)));
 console.log("Total par mois : " + JSON.stringify(count(all, month)));
 console.log("Statut proprietaire : " + JSON.stringify(count(all, (x) => x.ownerStatus || "(non demande)")));
 console.log("Chauffage : " + JSON.stringify(count(all, (x) => x.currentHeating || "(vide)")));
+
+// Règles Firestore en vigueur pour ip5_leads (lecture seule, pour vérifier les champs autorisés).
+try {
+  const { google } = require("googleapis");
+  const auth = new google.auth.GoogleAuth({ scopes: ["https://www.googleapis.com/auth/cloud-platform"] });
+  const client = await auth.getClient();
+  const project = process.env.GCLOUD_PROJECT;
+  const rel = await client.request({ url: `https://firebaserules.googleapis.com/v1/projects/${project}/releases/cloud.firestore` });
+  const rs = await client.request({ url: `https://firebaserules.googleapis.com/v1/${rel.data.rulesetName}` });
+  const src = rs.data.source.files.map((f) => f.content).join("\n");
+  const i = src.indexOf("ip5_leads");
+  console.log("REGLES ip5_leads :\n" + (i >= 0 ? src.slice(Math.max(0, i - 200), i + 1500) : "(non trouvé)"));
+} catch (e) {
+  console.log("Règles illisibles : " + e.message);
+}
