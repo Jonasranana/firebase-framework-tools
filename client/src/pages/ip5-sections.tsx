@@ -795,6 +795,11 @@ export const Simulator = ({
   // concernent les maisons. On l'explique et on s'arrête là : pas de lead
   // enregistré, pas de « prospect » compté par Meta.
   const [apartStop, setApartStop] = useState(false);
+  // Locataire : on lui propose de continuer (pour connaître le prix) ou
+  // d'envoyer le lien du site à son propriétaire (message prêt à copier).
+  const [tenantChoice, setTenantChoice] = useState(false);
+  const [tenantShare, setTenantShare] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [contactSaved, setContactSaved] = useState(false);
   // Réponse qui vient d'être touchée (s'allume avant de passer à la suite)
   // et sens de défilement des questions (avant / arrière).
@@ -853,6 +858,12 @@ export const Simulator = ({
       setApartStop(true);
       return;
     }
+    if (step === 2 && data.ownerStatus === "Locataire" && !tenantChoice) {
+      setReward(null);
+      setTenantShare(false);
+      setTenantChoice(true);
+      return;
+    }
     if (step === CONTACT_AFTER && !contactSaved) {
       setReward(rewardMsg);
       setEarlyContact(true);
@@ -870,6 +881,11 @@ export const Simulator = ({
     window.clearTimeout(pickTimer.current);
     setPicked(null);
     setGoingBack(true);
+    if (tenantChoice) {
+      setTenantChoice(false);
+      setFormData((d) => ({ ...d, ownerStatus: "" }));
+      return;
+    }
     if (apartStop) {
       setApartStop(false);
       setFormData((d) => ({ ...d, housingType: "" }));
@@ -1115,6 +1131,93 @@ export const Simulator = ({
   const CTA = "!rounded-2xl py-4 !text-[#0b1a2c] font-bold text-[16px] bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 shadow-lg shadow-amber-500/25 hover:brightness-105 active:scale-[0.99]";
 
   const renderStep = () => {
+    if (tenantChoice) {
+      const msg =
+        "Bonjour, je suis votre locataire. J'ai vu qu'il existe jusqu'à 100 % d'aides (MaPrimeRénov' + CEE) pour remplacer la chaudière par une pompe à chaleur. IP5 Énergie s'occupe de tout et l'étude est gratuite : https://www.ip5energie.fr/pac";
+      const copy = async () => {
+        try {
+          await navigator.clipboard.writeText(msg);
+        } catch {
+          const t = document.createElement("textarea");
+          t.value = msg;
+          document.body.appendChild(t);
+          t.select();
+          document.execCommand("copy");
+          t.remove();
+        }
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2500);
+      };
+      const opt = "w-full rounded-2xl py-4 px-4 font-bold text-[16px] transition active:scale-[0.99]";
+      return (
+        <div className="text-center">
+          <h3 className={Q}>Vous êtes locataire&nbsp;?</h3>
+          <p className={`${SUB} max-w-sm mx-auto`}>
+            Les aides sont versées au propriétaire du logement. Deux possibilités&nbsp;:
+          </p>
+          {!tenantShare ? (
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={() => setTenantShare(true)}
+                className={`${opt} text-[#0b1a2c] bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 shadow-lg shadow-amber-500/25`}
+              >
+                Envoyer le lien à mon propriétaire
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setTenantChoice(false);
+                  setReward(null);
+                  setStep(nextStep(step));
+                }}
+                className={`${opt} border-2 border-slate-200 bg-white text-[#173a5e]`}
+              >
+                Continuer pour connaître le prix
+              </button>
+            </div>
+          ) : (
+            <div className="text-left">
+              <p className="text-sm font-semibold text-slate-600 mb-2">Message à envoyer à votre propriétaire&nbsp;:</p>
+              <div className="rounded-xl border-2 border-slate-200 bg-slate-50 p-3.5 text-[14px] leading-relaxed text-slate-700 select-all">
+                {msg}
+              </div>
+              <button
+                type="button"
+                onClick={copy}
+                className={`${opt} mt-3 text-[#0b1a2c] bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 shadow-lg shadow-amber-500/25`}
+              >
+                {copied ? "✓ Message copié !" : "Copier le message"}
+              </button>
+              <div className="grid grid-cols-2 gap-3 mt-3">
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(msg)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl py-3 text-center font-bold text-white bg-[#25D366]"
+                >
+                  WhatsApp
+                </a>
+                <a href={`sms:?&body=${encodeURIComponent(msg)}`} className="rounded-xl py-3 text-center font-bold text-white bg-[#2b5a8f]">
+                  SMS
+                </a>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setTenantChoice(false);
+                  setReward(null);
+                  setStep(nextStep(step));
+                }}
+                className="mt-4 w-full text-center text-sm font-semibold text-slate-500 underline underline-offset-2"
+              >
+                Continuer quand même la simulation
+              </button>
+            </div>
+          )}
+        </div>
+      );
+    }
     if (apartStop) {
       return (
         <div className="text-center py-2">
