@@ -444,11 +444,13 @@ const AgendaView = ({
   email,
   onOpen,
   onStatus,
+  onPatch,
 }: {
   all: Lead[];
   email: string;
   onOpen: (id: string) => void;
   onStatus: (id: string, status: LeadStatus) => void;
+  onPatch: (id: string, patch: Record<string, unknown>) => void;
 }) => {
   // « Mes rappels » = les clients qui me sont attribués (le prénom de l'attribution se retrouve dans mon adresse).
   const mine = ATTRIBUE.find((o) => !o.off && email.toLowerCase().includes(o.label.toLowerCase().slice(0, 4)));
@@ -475,13 +477,15 @@ const AgendaView = ({
       { key: "later", title: "Plus tard", tone: "text-gray-800", test: () => true },
     ];
     const used = new Set<string>();
-    return defs
+    const built = defs
       .map((d) => {
         const list = items.filter((l) => !used.has(l.id) && d.test(l));
         list.forEach((l) => used.add(l.id));
         return { ...d, list };
       })
       .filter((d) => d.list.length);
+    // Les rappels à venir d'abord (le plus important) ; les rappels en retard en bas.
+    return [...built.filter((d) => d.key !== "late"), ...built.filter((d) => d.key === "late")];
   }, [items]);
 
   const upcoming = items.filter((l) => !rappelEnRetard(l.rappelLe, l.fields[RAPPEL_HEURE_KEY] ?? ""));
@@ -509,9 +513,9 @@ const AgendaView = ({
       <div className="grid grid-cols-3 gap-2 mb-3">
         {(
           [
-            ["En retard", sections.find((x) => x.key === "late")?.list.length ?? 0, "bg-red-50 text-red-700 border-red-100"],
             ["Aujourd'hui", sections.find((x) => x.key === "today")?.list.length ?? 0, "bg-orange-50 text-orange-700 border-orange-100"],
             ["À venir", items.length - (sections.find((x) => x.key === "late")?.list.length ?? 0) - (sections.find((x) => x.key === "today")?.list.length ?? 0), "bg-white text-gray-700 border-gray-200"],
+            ["En retard", sections.find((x) => x.key === "late")?.list.length ?? 0, "bg-red-50 text-red-700 border-red-100"],
           ] as const
         ).map(([label, n, cls]) => (
           <div key={label} className={`rounded-2xl border px-2 py-2 text-center ${cls}`}>
@@ -533,7 +537,20 @@ const AgendaView = ({
               const tel = telHref(l.phone);
               const late = sec.key === "late";
               return (
-                <div key={l.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${late ? "border-red-200" : "border-gray-100"}`}>
+                <div key={l.id} className={`relative bg-white rounded-2xl border shadow-sm overflow-hidden ${late ? "border-red-200" : "border-gray-100"}`}>
+                  {late && (
+                    // Petite croix : efface ce rappel en retard (la fiche client, elle, reste).
+                    <button
+                      onClick={() => {
+                        if (window.confirm(`Effacer le rappel en retard de ${l.name || "ce client"} ?\nLa fiche client est conservée.`))
+                          onPatch(l.id, { rappelLe: "", [`fields.${RAPPEL_HEURE_KEY}`]: "" });
+                      }}
+                      aria-label={`Effacer le rappel de ${l.name || "ce client"}`}
+                      className="absolute top-2 right-2 z-10 w-8 h-8 rounded-full bg-red-50 text-red-600 border border-red-100 flex items-center justify-center text-lg font-bold leading-none active:bg-red-100"
+                    >
+                      ×
+                    </button>
+                  )}
                   <button onClick={() => onOpen(l.id)} className="w-full text-left p-3 flex items-center gap-3 active:bg-orange-50/60">
                     <div className={`shrink-0 w-14 text-center rounded-xl py-1.5 ${late ? "bg-red-50 text-red-700" : "bg-orange-50 text-orange-800"}`}>
                       <p className="text-base font-extrabold leading-tight">{time || "—"}</p>
@@ -546,7 +563,7 @@ const AgendaView = ({
                         <StatusPill status={l.status} />
                       </div>
                     </div>
-                    <ChevronRight size={18} className="text-gray-300 shrink-0" />
+                    {!late && <ChevronRight size={18} className="text-gray-300 shrink-0" />}
                   </button>
                   <div className="flex border-t border-gray-100 text-sm font-bold">
                     {tel && (
@@ -730,7 +747,7 @@ export default function MobileLeads(props: Props) {
         )}
       </div>
 
-      {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} onStatus={props.onStatus} />}
+      {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} onStatus={props.onStatus} onPatch={props.onPatch} />}
 
       {tab === "liste" && (
       <div className="space-y-2.5 mt-1">
