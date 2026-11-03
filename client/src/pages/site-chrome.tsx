@@ -137,14 +137,6 @@ export const SiteHeader = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 lg:h-20">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsMobileMenuOpen((v) => !v)}
-              aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
-              aria-expanded={isMobileMenuOpen}
-              className="lg:hidden text-[#173a5e] dark:text-slate-200 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors p-1 -ml-1"
-            >
-              {isMobileMenuOpen ? <X size={26} /> : <Menu size={26} />}
-            </button>
             <a href="/" aria-label="IP5 Énergie, accueil">
               <LogoIP5 className="!h-10 md:!h-14 !text-[#173a5e] dark:!text-blue-200" />
             </a>
@@ -189,11 +181,10 @@ export const SiteHeader = () => {
             </a>
             <a
               href="tel:+33749525267"
-              className="flex items-center gap-2 text-[#173a5e] dark:text-blue-300 font-semibold hover:text-[#2b5a8f] dark:hover:text-blue-200 transition-colors whitespace-nowrap max-md:bg-[#173a5e] max-md:text-white max-md:rounded-full max-md:px-3.5 max-md:py-2 max-md:text-sm max-md:shadow-sm"
+              className="hidden md:flex items-center gap-2 text-[#173a5e] dark:text-blue-300 font-semibold hover:text-[#2b5a8f] dark:hover:text-blue-200 transition-colors whitespace-nowrap"
               aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
             >
               <Phone size={16} />
-              <span className="md:hidden">Appeler</span>
               <span className="hidden md:inline lg:hidden xl:inline">07 49 52 52 67</span>
             </a>
             <a
@@ -202,6 +193,15 @@ export const SiteHeader = () => {
             >
               Estimer mes aides <ArrowRight size={16} />
             </a>
+            {/* Téléphone : menu en haut à droite, comme sur la plupart des sites français. */}
+            <button
+              onClick={() => setIsMobileMenuOpen((v) => !v)}
+              aria-label={isMobileMenuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+              aria-expanded={isMobileMenuOpen}
+              className="lg:hidden text-[#173a5e] dark:text-slate-200 hover:text-[#2b5a8f] dark:hover:text-blue-400 transition-colors p-1.5 -mr-1.5"
+            >
+              {isMobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+            </button>
           </div>
         </div>
       </div>
@@ -355,22 +355,54 @@ export const OPEN_ASSISTANT_EVENT = "ip5:open-assistant";
 
 // Bulle WhatsApp flottante (téléphone et ordinateur), sous la bulle de
 // l'assistant IA. « Appeler » reste dans l'en-tête.
+// Ordinateur : bulle WhatsApp flottante. Téléphone : barre fixe en bas
+// (Appeler, WhatsApp, Assistant), plus pratique au pouce que l'en-tête.
 export const WhatsAppButton = () => (
-  <>
-    <a
-      href="https://wa.me/33749525267"
-      target="_blank"
-      rel="noopener noreferrer"
-      className="flex fixed bottom-4 right-4 lg:bottom-6 lg:right-6 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-[#3ee07a] to-[#1faa52] text-white rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-green-600/30 hover:scale-110 active:scale-95 transition-all duration-300 z-50 items-center justify-center group"
-      aria-label="Contactez-nous sur WhatsApp"
-    >
-      <MessageCircle size={24} className="lg:w-8 lg:h-8" />
-      <span className="hidden lg:block absolute right-20 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
-        Une question ? Écrivez-nous !
-      </span>
-    </a>
+  <a
+    href="https://wa.me/33749525267"
+    target="_blank"
+    rel="noopener noreferrer"
+    className="hidden lg:flex fixed bottom-6 right-6 w-16 h-16 bg-gradient-to-br from-[#3ee07a] to-[#1faa52] text-white rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-green-600/30 hover:scale-110 active:scale-95 transition-all duration-300 z-50 items-center justify-center group"
+    aria-label="Contactez-nous sur WhatsApp"
+  >
+    <MessageCircle size={32} />
+    <span className="absolute right-20 bg-white text-gray-900 text-sm font-bold py-2 px-4 rounded-xl shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none whitespace-nowrap">
+      Une question ? Écrivez-nous !
+    </span>
+  </a>
+);
 
-  </>
+export const MobileActionBar = () => (
+  <nav
+    aria-label="Actions rapides"
+    className="lg:hidden fixed inset-x-0 bottom-0 z-50 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200 dark:border-slate-800 shadow-[0_-8px_24px_rgba(11,26,44,0.10)]"
+    style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+  >
+    <div className="grid grid-cols-[1.25fr_1fr_1fr] gap-2 px-3 py-2.5">
+      <a
+        href="tel:+33749525267"
+        className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-[#173a5e] text-white font-bold text-[15px] shadow-md active:scale-[0.98] transition-transform"
+        aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
+      >
+        <Phone size={18} /> Appeler
+      </a>
+      <a
+        href="https://wa.me/33749525267"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-1.5 h-12 rounded-2xl bg-gradient-to-br from-[#3ee07a] to-[#1faa52] text-white font-bold text-[15px] shadow-md active:scale-[0.98] transition-transform"
+      >
+        <MessageCircle size={18} /> WhatsApp
+      </a>
+      <button
+        type="button"
+        onClick={() => window.dispatchEvent(new Event(OPEN_ASSISTANT_EVENT))}
+        className="flex items-center justify-center gap-1.5 h-12 rounded-2xl border-2 border-slate-200 dark:border-slate-700 text-[#173a5e] dark:text-slate-100 font-bold text-[15px] active:scale-[0.98] transition-transform"
+      >
+        <Sparkles size={17} className="text-amber-500" /> Question
+      </button>
+    </div>
+  </nav>
 );
 
 // Consignes données à Gemini : cadrent les réponses sur le métier d'IP5
@@ -482,7 +514,7 @@ export const AIChatWidget = () => {
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-x-3 bottom-40 lg:inset-x-auto lg:right-6 lg:bottom-48 lg:w-96 h-[28rem] max-h-[70vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="fixed inset-x-3 bottom-[84px] lg:inset-x-auto lg:right-6 lg:bottom-48 lg:w-96 h-[28rem] max-h-[70vh] bg-white dark:bg-slate-900 rounded-3xl shadow-2xl border border-gray-100 dark:border-slate-700 flex flex-col overflow-hidden z-50 animate-in fade-in slide-in-from-bottom-4 duration-300">
           <div className="bg-gradient-to-r from-[#2b5a8f] via-[#41519e] to-[#6b4a9e] text-white px-5 py-4 flex items-center justify-between flex-shrink-0">
             <div>
               <div className="flex items-center gap-2 font-bold">
@@ -564,7 +596,7 @@ export const AIChatWidget = () => {
       <button
         onClick={() => setIsOpen((v) => !v)}
         aria-label={isOpen ? "Fermer l'assistant Gemini" : "Ouvrir l'assistant Gemini"}
-        className="flex fixed bottom-[76px] right-4 lg:bottom-28 lg:right-6 w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-[#1d4e89] to-[#0b1a2c] text-amber-200 rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-blue-950/30 active:scale-95 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
+        className="hidden lg:flex fixed lg:bottom-28 lg:right-6 w-16 h-16 bg-gradient-to-br from-[#1d4e89] to-[#0b1a2c] text-amber-200 rounded-full ring-[3px] ring-white/90 dark:ring-slate-900/90 shadow-xl shadow-blue-950/30 active:scale-95 hover:scale-110 transition-all duration-300 z-50 items-center justify-center group"
       >
         {!isOpen && (
           <span

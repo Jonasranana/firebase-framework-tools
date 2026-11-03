@@ -38,6 +38,7 @@ import {
   SiteHeader,
   SiteFooter,
   WhatsAppButton,
+  MobileActionBar,
   AIChatWidget,
   useFrenchPageMeta,
 } from "./site-chrome";
@@ -144,56 +145,11 @@ export const SectionHead = ({
 // dans l'écran. Donne au site un rythme moderne « au défilement », sans
 // bibliothèque. Respecte le réglage système « animations réduites » (dans ce
 // cas le contenu s'affiche immédiatement, sans animation).
-export const Reveal = ({
-  children,
-  delay = 0,
-  className = "",
-}: {
-  children: React.ReactNode;
-  delay?: number;
-  className?: string;
-}) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [shown, setShown] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    if (reduce || typeof IntersectionObserver === "undefined") {
-      setShown(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setShown(true);
-            io.disconnect();
-            break;
-          }
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -40px 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  return (
-    <div
-      ref={ref}
-      className={`transition-all duration-700 ease-out motion-reduce:transition-none ${
-        shown ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-      } ${className}`}
-      style={{ transitionDelay: shown ? `${delay}ms` : "0ms" }}
-    >
-      {children}
-    </div>
-  );
-};
+// L'apparition au défilement est maintenant gérée pour toute la page par
+// useScrollReveal (PageLayout) : Reveal ne fait plus qu'envelopper.
+export const Reveal = ({ children, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) => (
+  <div className={className}>{children}</div>
+);
 
 const DEPARTMENTS = [
   "01 - Ain", "02 - Aisne", "03 - Allier", "04 - Alpes-de-Haute-Provence", "05 - Hautes-Alpes",
@@ -1764,6 +1720,59 @@ function useHiddenWhileVisible(anchorId?: string) {
   return hidden;
 }
 
+// Apparition au défilement : chaque section (sauf le bandeau du haut) et ses
+// cartes glissent doucement vers le haut quand elles arrivent à l'écran.
+// Ajouté uniquement par le script : sans JavaScript, tout reste visible.
+const REVEAL_CSS = `
+.ip5-rv{opacity:0;transform:translateY(26px);transition:opacity .7s ease-out,transform .7s cubic-bezier(.2,.7,.2,1)}
+.ip5-rv.ip5-in{opacity:1;transform:none}
+@media (prefers-reduced-motion: reduce){.ip5-rv{opacity:1;transform:none;transition:none}}
+`;
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = ref.current;
+    if (!root || typeof IntersectionObserver === "undefined") return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    if (!document.getElementById("ip5-rv-css")) {
+      const st = document.createElement("style");
+      st.id = "ip5-rv-css";
+      st.textContent = REVEAL_CSS;
+      document.head.appendChild(st);
+    }
+    const sections = Array.from(root.querySelectorAll<HTMLElement>("section")).filter(
+      (sec, i) => i > 0 && !sec.querySelector("#simulateur"),
+    );
+    const targets: HTMLElement[] = [];
+    for (const sec of sections) {
+      const r = sec.getBoundingClientRect();
+      if (r.top < window.innerHeight * 0.9) continue; // déjà à l'écran : pas d'effet
+      // En-tête de section, puis chaque carte d'une grille, légèrement décalées.
+      const parts = Array.from(sec.querySelectorAll<HTMLElement>(":scope > div > div:not(.grid), :scope > div > .grid > *, :scope > div > div > .grid > *, :scope > div > ol > li")).slice(0, 14);
+      const list = parts.length ? parts : [sec];
+      list.forEach((el, i) => {
+        el.classList.add("ip5-rv");
+        el.style.transitionDelay = `${Math.min(i, 5) * 90}ms`;
+        targets.push(el);
+      });
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (e.isIntersecting) {
+            e.target.classList.add("ip5-in");
+            io.unobserve(e.target);
+          }
+        }
+      },
+      { threshold: 0.12, rootMargin: "0px 0px -30px 0px" },
+    );
+    targets.forEach((t) => io.observe(t));
+    return () => io.disconnect();
+  }, []);
+  return ref;
+}
+
 export const PageLayout = ({
   title,
   children,
@@ -1775,15 +1784,17 @@ export const PageLayout = ({
 }) => {
   useFrenchPageMeta(title);
   const hideFloating = useHiddenWhileVisible(hideFloatingWhileVisible);
+  const pageRef = useScrollReveal();
   return (
-    <div dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
+    <div ref={pageRef} dir="ltr" className="font-sans text-gray-900 dark:text-slate-100 bg-gray-50 dark:bg-slate-950 min-h-screen">
       <SiteHeader />
       {children}
       <SiteFooter />
+      <AIChatWidget />
       <div className={hideFloating ? "hidden" : undefined}>
-        <AIChatWidget />
         <WhatsAppButton />
       </div>
+      <MobileActionBar />
     </div>
   );
 };
