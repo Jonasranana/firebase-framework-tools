@@ -2710,14 +2710,49 @@ export const AvisSection = () => (
   </section>
 );
 
+// Bandeau des marques qui défile en continu (logos en gris, couleur au survol).
+const MARQUEE_CSS = `@keyframes ip5-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}.ip5-marquee{animation:ip5-marquee 32s linear infinite}.ip5-marquee:hover{animation-play-state:paused}@media (prefers-reduced-motion: reduce){.ip5-marquee{animation:none}}`;
+export const BrandMarquee = () => {
+  const logos = ["chappee", "atlantic", "daikin", "dedietrich", "tcl", "blaupunkt"];
+  const row = [...logos, ...logos];
+  return (
+    <section className="py-8 md:py-10 bg-white dark:bg-slate-950 border-b border-slate-100 dark:border-slate-900 overflow-hidden">
+      <style>{MARQUEE_CSS}</style>
+      <p className="text-center text-[11px] md:text-xs font-bold uppercase tracking-[0.2em] text-slate-400 mb-5 md:mb-7">
+        Les marques que nous installons
+      </p>
+      <div className="relative [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+        <div className="ip5-marquee flex w-max items-center gap-12 md:gap-20">
+          {row.map((l, i) => (
+            <img
+              key={`${l}-${i}`}
+              src={`/images/marques/${l}.png`}
+              alt={i < logos.length ? l : ""}
+              aria-hidden={i >= logos.length}
+              loading="lazy"
+              className="h-7 md:h-9 w-auto object-contain grayscale opacity-60 hover:grayscale-0 hover:opacity-100 transition dark:invert dark:opacity-70"
+            />
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+};
+
+// Fond quadrillé discret (pointillés) pour les sections claires.
+export const GRID_BG =
+  "bg-[radial-gradient(circle,rgba(23,58,94,0.13)_1px,transparent_1.2px)] [background-size:22px_22px]";
+
 // Bandeau d'appel à l'action final, réutilisé en bas de chaque page. Le bouton
 // « Simuler » renvoie vers le simulateur de la page d'accueil (/#simulateur),
 // il fonctionne donc depuis n'importe quelle page.
 export const FinalCTA = ({ href = "/#simulateur" }: { href?: string }) => (
   <section className="py-12 md:py-20 bg-white dark:bg-slate-950">
     <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
-      <div className="bg-[#0b1a2c] rounded-3xl px-6 py-10 md:px-14 md:py-14 text-white md:flex md:items-center md:justify-between md:gap-10">
-        <div className="text-center md:text-left">
+      <div className="relative overflow-hidden bg-gradient-to-br from-[#0b1a2c] via-[#173a5e] to-[#1d4e89] rounded-3xl px-6 py-10 md:px-14 md:py-16 text-white md:flex md:items-center md:justify-between md:gap-10 shadow-[0_30px_80px_-30px_rgba(11,26,44,0.6)]">
+        <span className="pointer-events-none absolute -top-24 -right-16 w-80 h-80 rounded-full bg-amber-300/20 blur-3xl" aria-hidden="true"></span>
+        <span className="pointer-events-none absolute -bottom-28 -left-20 w-96 h-96 rounded-full bg-sky-400/15 blur-3xl" aria-hidden="true"></span>
+        <div className="relative text-center md:text-left">
           <h2 className="text-[26px] md:text-4xl font-extrabold tracking-tight leading-tight">
             Prêt à réduire vos factures de chauffage&nbsp;?
           </h2>
@@ -2726,7 +2761,7 @@ export const FinalCTA = ({ href = "/#simulateur" }: { href?: string }) => (
             rappelle pour valider vos aides.
           </p>
         </div>
-        <div className="mt-7 md:mt-0 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-3 flex-shrink-0">
+        <div className="relative mt-7 md:mt-0 flex flex-col sm:flex-row md:flex-col lg:flex-row gap-3 flex-shrink-0">
           <a
             href={href}
             className="inline-flex items-center justify-center gap-2 bg-amber-300 text-[#0b1a2c] px-6 py-4 rounded-xl font-bold whitespace-nowrap hover:bg-amber-200 transition-colors"

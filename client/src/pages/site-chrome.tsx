@@ -141,15 +141,17 @@ export const SiteHeader = () => {
     href === "/" ? location === "/" : location.startsWith(href);
 
   return (
-    <nav className={`fixed w-full z-50 top-0 border-b backdrop-blur-md transition-all duration-300 ${scrolled ? "bg-white/90 dark:bg-slate-900/90 border-slate-200/80 dark:border-slate-800 shadow-[0_6px_24px_rgba(11,26,44,0.08)]" : "bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-slate-800"}`}>
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    // En-tête « flottant » : une capsule arrondie en verre dépoli, décollée des
+    // bords, posée par-dessus la page.
+    <nav className="fixed inset-x-0 z-50 top-0 px-2 pt-2 lg:px-4 lg:pt-3 pointer-events-none">
+      <div className={`pointer-events-auto max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-6 rounded-2xl border backdrop-blur-xl transition-all duration-300 ${scrolled ? "bg-white/85 dark:bg-slate-900/85 border-slate-200/80 dark:border-slate-700/70 shadow-[0_10px_30px_-10px_rgba(11,26,44,0.25)]" : "bg-white/80 dark:bg-slate-900/80 border-white/60 dark:border-slate-700/60 shadow-[0_8px_30px_-12px_rgba(11,26,44,0.3)]"}`}>
         <div className={`flex justify-between items-center h-16 transition-[height] duration-300 ${scrolled ? "lg:h-16" : "lg:h-20"}`}>
           <div className="flex items-center gap-3">
             <a href="/" aria-label="IP5 Énergie, accueil">
               <LogoIP5 className={`!h-10 transition-all duration-300 ${scrolled ? "md:!h-11" : "md:!h-14"} !text-[#173a5e] dark:!text-blue-200`} />
             </a>
           </div>
-          <div className="hidden lg:flex space-x-5 xl:space-x-8 items-center lg:ml-8 xl:ml-12">
+          <div className="hidden lg:flex space-x-5 xl:space-x-7 items-center lg:ml-6 xl:ml-8">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.href}
@@ -193,7 +195,7 @@ export const SiteHeader = () => {
               aria-label="Appeler IP5 Énergie au 07 49 52 52 67"
             >
               <Phone size={16} />
-              <span className="hidden md:inline lg:hidden xl:inline">07 49 52 52 67</span>
+              <span className="hidden md:inline lg:hidden 2xl:inline">07 49 52 52 67</span>
             </a>
             <a
               href="/#simulateur"
@@ -216,7 +218,7 @@ export const SiteHeader = () => {
 
       {/* Menu déroulant mobile */}
       {isMobileMenuOpen && (
-        <div className="lg:hidden border-t border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="pointer-events-auto lg:hidden mt-2 max-w-7xl mx-auto rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="px-4 py-3 flex flex-col">
             {NAV_LINKS.map((link) => (
               <a
