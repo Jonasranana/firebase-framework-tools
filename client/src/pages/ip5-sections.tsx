@@ -277,6 +277,12 @@ type SimulatorData = {
   surface: number;
   currentHeating: string;
   department: string;
+  // Adresse (facultative) choisie dans la recherche, et diagnostic énergétique
+  // (DPE, base publique de l'ADEME) retrouvé pour cette maison.
+  address: string;
+  postalCode: string;
+  city: string;
+  dpe: string;
   householdSize: string;
   incomeBracket: string;
   projectTiming: string;
@@ -298,6 +304,10 @@ const INITIAL_DATA: SimulatorData = {
   surface: 100,
   currentHeating: "",
   department: "",
+  address: "",
+  postalCode: "",
+  city: "",
+  dpe: "",
   householdSize: "",
   incomeBracket: "",
   projectTiming: "",
@@ -456,6 +466,155 @@ export function describeSimulationResult(r: SimulationResult): string {
     case "etude":
       return "Cas à étudier (appartement ou chauffage hors fioul/gaz)";
   }
+}
+
+// ─── Recherche d'adresse + diagnostic énergétique (DPE) ────────────────────
+// Adresses : Base Adresse Nationale (data.geopf.fr). DPE : base publique de
+// l'ADEME (logements existants, depuis juillet 2021). Tout est gratuit, sans
+// clé, et n'envoie rien tant que la personne n'a pas choisi une adresse.
+type DpeInfo = {
+  etiquette_dpe?: string;
+  annee_construction?: number;
+  periode_construction?: string;
+  surface_habitable_logement?: number;
+  type_energie_principale_chauffage?: string;
+  date_etablissement_dpe?: string;
+};
+const DPE_COLORS: Record<string, string> = {
+  A: "#009c6d", B: "#52b153", C: "#78bd76", D: "#f4e70f", E: "#f0b50f", F: "#eb8235", G: "#d7221f",
+};
+type AddressHit = { id: string; label: string; postcode: string; city: string; depcode: string };
+
+function AddressDpe({ onPick }: { onPick: (a: AddressHit, dpe: DpeInfo | null) => void }) {
+  const [q, setQ] = useState("");
+  const [hits, setHits] = useState<AddressHit[]>([]);
+  const [picked, setPicked] = useState<AddressHit | null>(null);
+  const [dpe, setDpe] = useState<DpeInfo | null | undefined>(undefined);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (picked || q.trim().length < 4) {
+      setHits([]);
+      return;
+    }
+    const ctrl = new AbortController();
+    const t = window.setTimeout(async () => {
+      try {
+        const r = await fetch(
+          `https://data.geopf.fr/geocodage/search?autocomplete=1&limit=5&type=housenumber&q=${encodeURIComponent(q)}`,
+          { signal: ctrl.signal },
+        );
+        const j = await r.json();
+        setHits(
+          (j.features ?? []).map((f: any) => ({
+            id: f.properties.id,
+            label: f.properties.label,
+            postcode: f.properties.postcode,
+            city: f.properties.city,
+            depcode: f.properties.depcode ?? String(f.properties.postcode ?? "").slice(0, 2),
+          })),
+        );
+      } catch {
+        /* recherche annulée ou hors ligne : on garde la liste des départements */
+      }
+    }, 250);
+    return () => {
+      ctrl.abort();
+      window.clearTimeout(t);
+    };
+  }, [q, picked]);
+
+  const pick = async (a: AddressHit) => {
+    setPicked(a);
+    setQ(a.label);
+    setHits([]);
+    setLoading(true);
+    let info: DpeInfo | null = null;
+    try {
+      const params = new URLSearchParams({
+        size: "1",
+        sort: "-date_etablissement_dpe",
+        select:
+          "etiquette_dpe,annee_construction,periode_construction,surface_habitable_logement,type_energie_principale_chauffage,date_etablissement_dpe",
+        qs: `identifiant_ban:"${a.id}" AND type_batiment:maison`,
+      });
+      const r = await fetch(`https://data.ademe.fr/data-fair/api/v1/datasets/dpe03existant/lines?${params}`);
+      const j = await r.json();
+      info = j.results?.[0] ?? null;
+    } catch {
+      info = null;
+    }
+    setDpe(info);
+    setLoading(false);
+    onPick(a, info);
+  };
+
+  const label = dpe?.etiquette_dpe?.toUpperCase();
+  const built = dpe?.annee_construction ? `construite en ${dpe.annee_construction}` : dpe?.periode_construction ? `construite ${dpe.periode_construction.startsWith("avant") ? dpe.periode_construction : `entre ${dpe.periode_construction.replace("-", " et ")}`}` : "";
+  return (
+    <div className="text-left">
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 text-white flex items-center justify-center shadow-sm pointer-events-none">
+          <Home size={18} />
+        </span>
+        <input
+          value={q}
+          onChange={(e) => {
+            setQ(e.target.value);
+            if (picked) {
+              setPicked(null);
+              setDpe(undefined);
+            }
+          }}
+          placeholder="Ex. : 12 rue des Lilas, Tours"
+          autoComplete="street-address"
+          aria-label="Adresse de votre maison"
+          className="w-full pl-16 pr-4 py-4 rounded-2xl border-2 border-slate-200 bg-white font-semibold text-gray-800 outline-none focus:border-[#2b5a8f] focus:ring-4 focus:ring-blue-100"
+        />
+        {hits.length > 0 && (
+          <ul className="absolute z-20 left-0 right-0 mt-1 rounded-2xl border border-[#e2e8f0] bg-[#ffffff] shadow-xl overflow-hidden">
+            {hits.map((h) => (
+              <li key={h.id}>
+                <button
+                  type="button"
+                  onClick={() => pick(h)}
+                  className="w-full text-left px-4 py-3 text-[15px] text-[#1e293b] hover:bg-[#f1f5f9] border-b border-[#f1f5f9] last:border-0"
+                >
+                  {h.label}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+      {loading && <p className="mt-3 text-sm text-slate-500">Recherche du diagnostic énergétique de votre maison…</p>}
+      {picked && !loading && dpe && label && (
+        <div className="mt-3 rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 flex items-center gap-4 animate-in fade-in zoom-in-95 duration-300">
+          <span
+            className="w-14 h-14 shrink-0 rounded-xl flex items-center justify-center text-3xl font-black text-white shadow"
+            style={{ background: DPE_COLORS[label] ?? "#64748b", textShadow: "0 1px 2px rgba(0,0,0,.35)" }}
+          >
+            {label}
+          </span>
+          <div className="text-sm text-slate-600 leading-snug">
+            <p className="font-bold text-slate-800 text-[15px]">Diagnostic énergétique de votre maison trouvé&nbsp;!</p>
+            <p>
+              Étiquette {label}
+              {built && ` · ${built}`}
+              {dpe.surface_habitable_logement ? ` · ${Math.round(dpe.surface_habitable_logement)} m²` : ""}
+              {dpe.type_energie_principale_chauffage ? ` · chauffage ${dpe.type_energie_principale_chauffage.toLowerCase()}` : ""}
+            </p>
+            {"EFG".includes(label) && <p className="mt-1 font-semibold text-slate-700">Une pompe à chaleur peut nettement améliorer cette étiquette.</p>}
+          </div>
+        </div>
+      )}
+      {picked && !loading && dpe === null && (
+        <p className="mt-3 text-sm text-slate-500">
+          Pas encore de diagnostic énergétique enregistré pour cette adresse : pas de souci, votre conseiller l'estime avec vous.
+        </p>
+      )}
+    </div>
+  );
 }
 
 const euros = (n: number) => `${n.toLocaleString("fr-FR")} €`;
@@ -1349,8 +1508,25 @@ export const Simulator = ({
       case 5:
         return (
           <div className="text-center">
-            <h3 className={Q}>Dans quel département se situe votre projet&nbsp;?</h3>
-            <p className={SUB}>Les aides d'État (MaPrimeRénov') varient selon votre région.</p>
+            <h3 className={Q}>Où se trouve votre maison&nbsp;?</h3>
+            <p className={SUB}>Les aides varient selon votre région. Avec votre adresse, on retrouve aussi le diagnostic énergétique de votre maison.</p>
+
+            <AddressDpe
+              onPick={(a, dpe) => {
+                const dep = DEPARTMENTS.find((d) => d.split(" - ")[0] === a.depcode) ?? formData.department;
+                const summary = dpe?.etiquette_dpe
+                  ? [
+                      `Étiquette ${dpe.etiquette_dpe}`,
+                      dpe.annee_construction ? `construite en ${dpe.annee_construction}` : dpe.periode_construction,
+                      dpe.surface_habitable_logement ? `${Math.round(dpe.surface_habitable_logement)} m²` : "",
+                      dpe.type_energie_principale_chauffage ? `chauffage ${dpe.type_energie_principale_chauffage}` : "",
+                      dpe.date_etablissement_dpe ? `DPE du ${dpe.date_etablissement_dpe.split("-").reverse().join("/")}` : "",
+                    ].filter(Boolean).join(" · ")
+                  : "Aucun DPE trouvé pour cette adresse";
+                setFormData((d) => ({ ...d, department: dep, address: a.label, postalCode: a.postcode, city: a.city, dpe: summary }));
+              }}
+            />
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider my-4">ou seulement votre département</p>
 
             <div className="relative mb-7 text-left">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-gradient-to-br from-[#2b5a8f] to-[#0f2b4a] text-white flex items-center justify-center shadow-sm pointer-events-none">
