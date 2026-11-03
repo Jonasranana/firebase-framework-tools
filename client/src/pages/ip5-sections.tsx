@@ -32,6 +32,7 @@ import {
   HelpCircle,
   UserRound,
   Gift,
+  MessageCircle,
 } from "lucide-react";
 import {
   FIREBASE_CONFIG,
@@ -525,7 +526,10 @@ async function submitLead(
   try {
     // Les leads des campagnes de réactivation (mail/SMS) ne viennent pas
     // d'une pub : les compter fausserait l'optimisation des campagnes Meta.
-    if (!source.startsWith("reactivation"))
+    // Locataire : la demande reste dans le CRM (on peut convaincre son
+    // propriétaire), mais Meta ne la compte pas comme un prospect, pour
+    // qu'il apprenne à viser les propriétaires.
+    if (!source.startsWith("reactivation") && data.ownerStatus !== "Locataire")
       (window as any).fbq?.("track", "Lead", { content_category: source });
   } catch {
     /* le tracking ne doit jamais casser l'enregistrement du lead */
@@ -1529,6 +1533,21 @@ export const Simulator = ({
                 l'accompagner dans toutes les démarches. Un conseiller peut vous
                 rappeler pour vous expliquer comment faire.
               </p>,
+            );
+            content = (
+              <>
+                {content}
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent(
+                    "Bonjour, j'ai vu qu'il existe jusqu'à 100 % d'aides pour remplacer la chaudière par une pompe à chaleur. IP5 Énergie s'occupe de tout, étude gratuite : https://www.ip5energie.fr/pac",
+                  )}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 w-full inline-flex items-center justify-center gap-2 rounded-2xl py-3.5 font-bold text-white bg-[#25D366] hover:brightness-105 transition"
+                >
+                  <MessageCircle size={18} /> Envoyer le lien à mon propriétaire
+                </a>
+              </>
             );
             break;
           case "etude":
