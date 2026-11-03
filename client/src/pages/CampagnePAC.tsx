@@ -186,6 +186,8 @@ const QuickStart = ({ source }: { source: string }) => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  // Maison ou appartement : la pompe à chaleur air/eau ne concerne que les maisons.
+  const [housing, setHousing] = useState<"" | "Maison" | "Appartement">("");
 
   if (mode === "simulation") {
     return <Simulator source={source} tone="pro" initialHeating={heating} glass />;
@@ -203,6 +205,7 @@ const QuickStart = ({ source }: { source: string }) => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const next: Record<string, string> = {};
+    if (!housing) next.housing = "Indiquez votre type de logement.";
     if (!form.firstName.trim()) next.firstName = "Indiquez votre prénom.";
     if (!form.lastName.trim()) next.lastName = "Indiquez votre nom.";
     if (!FRENCH_PHONE_REGEX.test(form.phone.trim()))
@@ -275,6 +278,23 @@ const QuickStart = ({ source }: { source: string }) => {
     );
   }
 
+  if (mode === "rappel" && housing === "Appartement") {
+    return (
+      <QuickShell badge="Rappel gratuit" onBack={() => setHousing("")}>
+        <div className="text-center py-2">
+          <h3 className={title}>Nos installations sont réservées aux maisons</h3>
+          <p className="text-slate-600 dark:text-slate-300 mt-2 text-sm">
+            Une pompe à chaleur demande de la place à l'extérieur et l'accord de la copropriété : nous ne
+            l'installons donc pas en appartement. Merci de votre intérêt !
+          </p>
+          <button type="button" onClick={() => setHousing("Maison")} className={`${goldBtn} mt-5`}>
+            Je me suis trompé, c'est une maison
+          </button>
+        </div>
+      </QuickShell>
+    );
+  }
+
   if (mode === "rappel") {
     return (
       <QuickShell badge="Rappel gratuit" onBack={() => setMode("")}>
@@ -293,6 +313,21 @@ const QuickStart = ({ source }: { source: string }) => {
             aria-hidden="true"
           />
           <div className="space-y-3">
+            <div>
+              <div className="grid grid-cols-2 gap-3">
+                {(["Maison", "Appartement"] as const).map((h) => (
+                  <button
+                    key={h}
+                    type="button"
+                    onClick={() => { setHousing(h); setErrors((e) => ({ ...e, housing: "" })); }}
+                    className={`rounded-xl border-2 py-3 font-bold text-[15px] transition ${housing === h ? "border-amber-300 bg-amber-50 text-[#0f2a47]" : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"}`}
+                  >
+                    {h}
+                  </button>
+                ))}
+              </div>
+              {errors.housing && <p className="text-red-600 text-xs mt-1">{errors.housing}</p>}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <input

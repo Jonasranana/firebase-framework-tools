@@ -787,6 +787,10 @@ export const Simulator = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Étape « coordonnées » intercalée après la question CONTACT_AFTER.
   const [earlyContact, setEarlyContact] = useState(false);
+  // Appartement : la pompe à chaleur air/eau (et le chauffe-eau solaire)
+  // concernent les maisons. On l'explique et on s'arrête là : pas de lead
+  // enregistré, pas de « prospect » compté par Meta.
+  const [apartStop, setApartStop] = useState(false);
   const [contactSaved, setContactSaved] = useState(false);
   // Réponse qui vient d'être touchée (s'allume avant de passer à la suite)
   // et sens de défilement des questions (avant / arrière).
@@ -840,6 +844,11 @@ export const Simulator = ({
   // réponse qui vient d'être donnée.
   const advance = (rewardMsg: string | null, data: SimulatorData = formData) => {
     setGoingBack(false);
+    if (step === 1 && data.housingType === "Appartement") {
+      setReward(null);
+      setApartStop(true);
+      return;
+    }
     if (step === CONTACT_AFTER && !contactSaved) {
       setReward(rewardMsg);
       setEarlyContact(true);
@@ -857,6 +866,11 @@ export const Simulator = ({
     window.clearTimeout(pickTimer.current);
     setPicked(null);
     setGoingBack(true);
+    if (apartStop) {
+      setApartStop(false);
+      setFormData((d) => ({ ...d, housingType: "" }));
+      return;
+    }
     if (earlyContact) {
       setEarlyContact(false);
       setReward(null);
@@ -1097,6 +1111,30 @@ export const Simulator = ({
   const CTA = "!rounded-2xl py-4 !text-[#0b1a2c] font-bold text-[16px] bg-gradient-to-r from-amber-200 via-amber-300 to-amber-200 shadow-lg shadow-amber-500/25 hover:brightness-105 active:scale-[0.99]";
 
   const renderStep = () => {
+    if (apartStop) {
+      return (
+        <div className="text-center py-2">
+          <span className="mx-auto mb-4 w-14 h-14 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center">
+            <Building size={28} />
+          </span>
+          <h3 className={Q}>Nos installations sont réservées aux maisons</h3>
+          <p className={`${SUB} max-w-sm mx-auto`}>
+            Une pompe à chaleur ou un chauffe-eau solaire demande de la place à l'extérieur et l'accord de la
+            copropriété : nous ne les installons donc pas en appartement. Merci de votre intérêt !
+          </p>
+          <Button
+            type="button"
+            className="mt-5 mx-auto"
+            onClick={() => {
+              setApartStop(false);
+              setFormData((d) => ({ ...d, housingType: "" }));
+            }}
+          >
+            Je me suis trompé, c'est une maison
+          </Button>
+        </div>
+      );
+    }
     if (earlyContact) {
       return (
         <div>
