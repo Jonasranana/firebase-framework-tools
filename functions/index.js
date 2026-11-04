@@ -2094,6 +2094,19 @@ const phoneKeyOf = (raw) => {
   return d;
 };
 
+// Réponses du formulaire Facebook → colonnes du tableau (comme crmSiteFields
+// pour le site) : chauffage, foyer, surface, date du 1er contact, type de demande.
+const crmFacebookFields = (details, createdAt) => {
+  const out = { premierContact: parisDate(createdAt), typeDemande: "📘 Formulaire Facebook" };
+  for (const [k, v] of Object.entries(details ?? {})) {
+    const val = String(v ?? "").replace(/_/g, " ").trim();
+    if (!val) continue;
+    if (/chauffage/i.test(k) && !out.chauffageSite) out.chauffageSite = val;
+    else if (/foyer|personnes/i.test(k) && !out.foyerSite) out.foyerSite = val;
+    else if (/surface/i.test(k) && !out.surface) out.surface = val;
+  }
+  return out;
+};
 async function createCrmFacebookLead({ docId, name, phone, email, postalCode, city, details, createdAt }) {
   try {
     const phoneKey = phoneKeyOf(phone);
@@ -2120,6 +2133,7 @@ async function createCrmFacebookLead({ docId, name, phone, email, postalCode, ci
       group: "nouveaux",
       rappelLe: "",
       details: details ?? {},
+      fields: crmFacebookFields(details, createdAt),
       notes: [],
       createdAt: createdAt ?? FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp(),

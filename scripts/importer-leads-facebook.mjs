@@ -25,6 +25,20 @@ const phoneKeyOf = (raw) => {
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const joli = (s) => String(s ?? "").replace(/_/g, " ");
 
+// Même règle que crmFacebookFields (functions/index.js) : colonnes du tableau.
+const parisDate = (d) => new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+const fbFields = (details, created) => {
+  const out = { premierContact: parisDate(created), typeDemande: "📘 Formulaire Facebook" };
+  for (const [k, v] of Object.entries(details)) {
+    const val = String(v ?? "").replace(/_/g, " ").trim();
+    if (!val) continue;
+    if (/chauffage/i.test(k) && !out.chauffageSite) out.chauffageSite = val;
+    else if (/foyer|personnes/i.test(k) && !out.foyerSite) out.foyerSite = val;
+    else if (/surface/i.test(k) && !out.surface) out.surface = val;
+  }
+  return out;
+};
+
 let gmail = null;
 if (!dry) {
   const o = new google.auth.OAuth2(process.env.GMAIL_CLIENT_ID, process.env.GMAIL_CLIENT_SECRET);
@@ -42,13 +56,23 @@ for (const l of leads) {
   const doc = {
     name, phone, phoneKey, email: String(l.email ?? "").trim().toLowerCase(), postalCode: clean(l.post_code), city: "",
     type: "PAC", source: "formulaire-facebook", projet: "Pompe à chaleur", status: "nouveau_lead", group: "nouveaux", rappelLe: "",
-    details, notes: [],
+    details, fields: fbFields(details, l.created_time ? new Date(l.created_time) : new Date()), notes: [],
     createdAt: l.created_time ? Timestamp.fromDate(new Date(l.created_time)) : FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(), updatedBy: "",
   };
   const dup = phoneKey ? await db.collection("crm_leads").where("phoneKey", "==", phoneKey).limit(1).get() : { empty: true };
-  console.log(`${name} | ${phone} | ${doc.postalCode} | ${JSON.stringify(details)}${dup.empty ? "" : " | DÉJÀ DANS LE CRM : ignoré"}`);
-  if (dry || !dup.empty) continue;
+  if (!dup.empty) {
+    // Fiche déjà là : on complète seulement les colonnes encore vides (pas de mail).
+    const ref = dup.docs[0].ref;
+    const cur = dup.docs[0].data().fields ?? {};
+    const patch = {};
+    for (const [k, v] of Object.entries(doc.fields)) if (!String(cur[k] ?? "").trim()) patch[`fields.${k}`] = v;
+    console.log(`${name} | DÉJÀ DANS LE CRM (${ref.id}) → colonnes à compléter : ${JSON.stringify(patch)}`);
+    if (!dry && Object.keys(patch).length) await ref.update({ ...patch, updatedAt: FieldValue.serverTimestamp() });
+    continue;
+  }
+  console.log(`${name} | ${phone} | ${doc.postalCode} | ${JSON.stringify(details)} | colonnes ${JSON.stringify(doc.fields)}`);
+  if (dry) continue;
   await db.doc(`crm_leads/fb_${id}`).create(doc);
   const rows = [["Nom", name], ["Téléphone", phone], ["Code postal", doc.postalCode], ...Object.entries(details)];
   const html = `<div style="font-family:Arial,sans-serif;max-width:560px"><h2 style="color:#122f4d">📘 Nouveau prospect – formulaire Facebook</h2><table style="border-collapse:collapse;width:100%">${rows

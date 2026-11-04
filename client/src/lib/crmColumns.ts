@@ -85,6 +85,7 @@ export const TYPE_DEMANDE: Opt[] = [
   o("📞 Rappel demandé", "#00c875"),
   o("🧮 Simulation", "#579bfc"),
   o("✉️ Réactivation", "#9d50dd"),
+  o("📘 Formulaire Facebook", "#1877f2"),
 ];
 export const POSEUR: Opt[] = [o("NousGeorges", "#9cd326"), o("Premy", "#cab641"), o("PRAIMY", "#cab641"), o("BETS", "#757575")];
 export const RESSENTI: Opt[] = [
