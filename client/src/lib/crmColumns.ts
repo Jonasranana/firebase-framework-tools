@@ -297,6 +297,11 @@ export const region = (cp: string) => (!String(cp ?? "").trim() ? "" : IDF.inclu
 const SEUILS_IDF = [[24031, 29253, 40851], [35270, 42933, 60051], [42357, 51564, 71846], [49455, 60208, 84562], [56580, 68877, 96817]];
 const SEUILS_PROV = [[17363, 22259, 31185], [25393, 32553, 45842], [30540, 39148, 55196], [35676, 45735, 64550], [40835, 52348, 73907]];
 
+// Prospect du formulaire Facebook sans revenu : Meta interdit de le demander,
+// le commercial doit le demander au téléphone (pastille « 💰 Revenu à demander »).
+export const revenuADemander = (l: { source?: string; fields?: Record<string, unknown> }) =>
+  l.source === "formulaire-facebook" && !String(l.fields?.revenuFiscal ?? "").trim() && !String(l.fields?.tranche ?? "").trim();
+
 export const profilAides = (cp: string, revenu: number, foyer: number) => {
   if (!(revenu > 0) || !(foyer > 0) || !String(cp ?? "").trim()) return "";
   const table = IDF.includes(dept(cp)) ? SEUILS_IDF : SEUILS_PROV;
