@@ -3004,23 +3004,21 @@ exports.submitArtisanGrid = onRequest(
 );
 
 // ── Webhook Meta Lead Ads → CRM (étape 6) ────────────────────────────────
-// DÉSACTIVÉ tant que les 3 secrets META_* n'existent pas dans Secret
-// Manager (voir « Activer le webhook Meta » dans functions/README.md) :
-// décommenter alors le bloc ci-dessous.
-//
-// Object.assign(
-//   exports,
-//   require("./metaLeads")({
-//     createCrmFacebookLead,
-//     buildLeadNotificationEmailHtml,
-//     buildRawMessage,
-//     escapeHtmlText,
-//     GMAIL_CLIENT_ID,
-//     GMAIL_CLIENT_SECRET,
-//     GMAIL_REFRESH_TOKEN,
-//     GMAIL_SENDER_EMAIL,
-//   }),
-// );
+// Activé le 04/11/2026 : les 3 secrets META_* existent dans Secret Manager
+// (app Meta « IP5 CRM », utilisateur système ip5-crm). Voir functions/metaLeads.js.
+Object.assign(
+  exports,
+  require("./metaLeads")({
+    createCrmFacebookLead,
+    buildLeadNotificationEmailHtml,
+    buildRawMessage,
+    escapeHtmlText,
+    GMAIL_CLIENT_ID,
+    GMAIL_CLIENT_SECRET,
+    GMAIL_REFRESH_TOKEN,
+    GMAIL_SENDER_EMAIL,
+  }),
+);
 
 // ── Assistant de relance (CRM) : compte-rendu d'appel → plan de relance ──
 // Activé : le secret ANTHROPIC_API_KEY existe dans Secret Manager (créé par
