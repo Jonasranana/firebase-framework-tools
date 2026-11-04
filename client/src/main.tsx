@@ -18,15 +18,4 @@ window.addEventListener("vite:preloadError", (event) => {
   window.location.reload();
 });
 
-// Visiteur arrivé par une pub Google (identifiant de clic gclid/gbraid/wbraid
-// ou utm_source=google) : on le retient pour toute la visite, afin que sa
-// demande arrive étiquetée « google » dans le CRM.
-try {
-  const q = new URLSearchParams(window.location.search);
-  if (q.get("gclid") || q.get("gbraid") || q.get("wbraid") || /google/i.test(q.get("utm_source") ?? ""))
-    sessionStorage.setItem("ip5-from", "google");
-} catch {
-  /* stockage indisponible : pas d'étiquette, la demande arrive quand même */
-}
-
 createRoot(document.getElementById("root")!).render(<App />);
