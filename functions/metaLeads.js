@@ -24,13 +24,24 @@ const GRAPH = "https://graph.facebook.com/v21.0";
 // dans les « infos » de la fiche.
 const STANDARD = {
   full_name: "name",
+  nom_complet: "name",
   first_name: "firstName",
+  prenom: "firstName",
   last_name: "lastName",
+  nom: "lastName",
+  nom_de_famille: "lastName",
   email: "email",
+  e_mail: "email",
+  adresse_e_mail: "email",
+  courriel: "email",
   phone_number: "phone",
+  numero_de_telephone: "phone",
+  telephone: "phone",
   zip_code: "postalCode",
   post_code: "postalCode",
+  code_postal: "postalCode",
   city: "city",
+  ville: "city",
 };
 
 module.exports = function buildMetaLeads({
@@ -54,8 +65,16 @@ module.exports = function buildMetaLeads({
     for (const { name, values } of body.field_data) {
       const v = String(values?.[0] ?? "").trim();
       if (!v) continue;
-      if (STANDARD[name]) f[STANDARD[name]] = v;
-      else details[name.replace(/_/g, " ")] = v;
+      // Les formulaires créés en français ont des clés traduites
+      // (« nom_complet », « numéro_de_téléphone »…) : on compare sans accents.
+      const key = String(name ?? "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_|_$/g, "");
+      if (STANDARD[key]) f[STANDARD[key]] = v;
+      else details[String(name).replace(/_/g, " ")] = v;
     }
     const name = f.name || `${f.firstName ?? ""} ${f.lastName ?? ""}`.trim() || "Lead Facebook";
     if (body.form_id) details["Formulaire Meta"] = String(body.form_id);
