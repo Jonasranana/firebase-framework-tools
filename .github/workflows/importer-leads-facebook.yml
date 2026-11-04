@@ -1,0 +1,42 @@
+name: Importer des prospects du formulaire Facebook (lancement manuel)
+on:
+  workflow_dispatch:
+    inputs:
+      leads:
+        description: "Prospects (JSON encodé en base64)"
+        required: true
+      dry_run:
+        description: "Essai à blanc (rien n'est écrit ni envoyé)"
+        type: boolean
+        default: true
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+      - name: Importer
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          LEADS_B64: ${{ inputs.leads }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "false" ]; then
+            gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+            for s in GMAIL_CLIENT_ID GMAIL_CLIENT_SECRET GMAIL_REFRESH_TOKEN GMAIL_SENDER_EMAIL; do
+              v=$(gcloud secrets versions access latest --secret=$s --project kachoto-7554c | tr -d '\r\n')
+              echo "::add-mask::$v"
+              export "$s=$v"
+            done
+          fi
+          node scripts/importer-leads-facebook.mjs
