@@ -5,7 +5,7 @@ import { etapeOptions, type DossierMove } from "./DossiersBoard";
 import { authorName, dayLabel, hhmm, isChat, isMailReceived, movementText } from "./LeadChat";
 import { RappelPicker } from "@/components/RappelCell";
 import { NEWS_VIEWERS, LEAD_STATUSES, formatPhone, isClosedStatus, statusInfo, telHref, whatsappHref, type Lead, type LeadStatus } from "@/lib/crm";
-import { ATTRIBUE, ATTRIBUE_KEY, type LeadColumn } from "@/lib/crmColumns";
+import { ATTRIBUE, ATTRIBUE_KEY, revenuADemander, type LeadColumn } from "@/lib/crmColumns";
 import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelShort } from "@/lib/rappel";
 import { buildIcs, openIcs, type IcsEvent } from "@/lib/ics";
 import { trancheInfo } from "@/lib/tranche";
@@ -257,6 +257,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
         <div className="min-w-0 flex-1">
           <p className="font-extrabold text-gray-900 truncate leading-tight">{lead.name || "Sans nom"}</p>
           <p className="text-xs text-gray-500 truncate">{[lead.phone && formatPhone(lead.phone), lead.postalCode].filter(Boolean).join(" · ")}</p>
+          {revenuADemander(lead) && <p className="text-[11px] font-semibold text-[#1a56b8]">💰 Revenu à demander (prospect Facebook)</p>}
         </div>
         <StatusPill status={lead.status} />
       </div>
@@ -794,6 +795,7 @@ export default function MobileLeads(props: Props) {
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 mt-2">
                   <StatusPill status={l.status} />
+                  {revenuADemander(l) && <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-[#e8f0fe] text-[#1a56b8]">💰 Revenu à demander</span>}
                   {etape && (
                     <span className="text-[11px] font-semibold px-2 py-1 rounded-full text-white" style={{ background: etape.hex }}>
                       {etape.label}

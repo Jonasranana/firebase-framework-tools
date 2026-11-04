@@ -68,6 +68,7 @@ import {
   columnTotal,
   formulaValue,
   type LeadColumn,
+  revenuADemander,
 } from "@/lib/crmColumns";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -966,6 +967,14 @@ const LeadRow = memo(function LeadRow({
             <div className="flex-1 min-w-0 h-full overflow-hidden">
               <EditableCell value={l.name} placeholder="Sans nom" onSave={(v) => onPatch(l.id, { name: v })} />
             </div>
+            {revenuADemander(l) && (
+              <span
+                title="Prospect Facebook : demandez son revenu fiscal au téléphone et tapez-le dans « 💰 Revenu fiscal (Calcul) »"
+                className="shrink-0 inline-flex items-center h-6 rounded-full px-1.5 text-[10px] font-bold bg-[#e8f0fe] text-[#1a56b8]"
+              >
+                💰 Revenu à demander
+              </span>
+            )}
             {/* Le client a répondu par mail et personne n'a encore ouvert la fiche. */}
             {l.mailNonLu && (
               <button
