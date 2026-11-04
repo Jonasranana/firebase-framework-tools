@@ -970,9 +970,10 @@ const LeadRow = memo(function LeadRow({
             {revenuADemander(l) && (
               <span
                 title="Prospect Facebook : demandez son revenu fiscal au téléphone et tapez-le dans « 💰 Revenu fiscal (Calcul) »"
-                className="shrink-0 inline-flex items-center h-6 rounded-full px-1.5 text-[10px] font-bold bg-[#e8f0fe] text-[#1a56b8]"
+                aria-label="Revenu à demander"
+                className="shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] bg-[#e8f0fe]"
               >
-                💰 Revenu à demander
+                💰
               </span>
             )}
             {/* Le client a répondu par mail et personne n'a encore ouvert la fiche. */}
