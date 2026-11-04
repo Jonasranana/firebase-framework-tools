@@ -2102,7 +2102,11 @@ const crmFacebookFields = (details, createdAt) => {
     const val = String(v ?? "").replace(/_/g, " ").trim();
     if (!val) continue;
     if (/chauff/i.test(k) && !out.chauffageSite) out.chauffageSite = val;
-    else if (/foyer|personnes/i.test(k) && !out.foyerSite) out.foyerSite = val;
+    else if (/foyer|personnes/i.test(k) && !out.foyerSite) {
+      out.foyerSite = val;
+      const n = parseInt(val, 10); // « 5 et + » → 5 : sert au calcul du profil d'aides
+      if (n > 0) out.foyerCalc = String(n);
+    }
     else if (/surface/i.test(k) && !out.surface) out.surface = val;
   }
   return out;
