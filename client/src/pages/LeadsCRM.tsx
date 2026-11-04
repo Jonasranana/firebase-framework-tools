@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/sheet";
 import MobileLeads from "./MobileLeads";
 import DossiersBoard, { findEtapeColumn, etapeOptions } from "./DossiersBoard";
-import RelanceIA from "@/components/RelanceIA";
 import LeadChat from "./LeadChat";
 import ClientSpaceDashboard from "./ClientSpaceDashboard";
 import { buildClientView } from "@/lib/clientSpace";
@@ -804,8 +803,6 @@ const LeadSheet = ({
               onSummary={(sm) => patchLead(lead.id, email, sm).catch(console.error)}
             />
           )}
-
-          {lead && <RelanceIA lead={lead} email={email} etapeCol={findEtapeColumn(LEAD_COLUMNS)} />}
 
           {lead && (
             <div id="updates-section" className="pt-3 border-t border-gray-100">
