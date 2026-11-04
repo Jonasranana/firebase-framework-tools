@@ -1,6 +1,6 @@
-// Mail « ⏰ Rappel dans 10 min » : toutes les 2 minutes, cherche les fiches
+// Mail « ⏰ À rappeler dans 20 min » (nom de fonction gardé : rappelMail10min) : toutes les 2 minutes, cherche les fiches
 // dont le rappel (rappelLe + fields.rappelHeure, heure de Paris) tombe dans les
-// 10 prochaines minutes et prévient la personne qui doit rappeler (« Attribué
+// 20 prochaines minutes et prévient la personne qui doit rappeler (« Attribué
 // à », sinon « Commercial ») + la boîte contact@. Un seul mail par rappel
 // (trace dans rappel_mails/<fiche>_<date>_<heure>). Rappels sans heure : rien.
 // Minuterie Cloud Scheduler : rôle « Administrateur Cloud Scheduler » donné au
@@ -42,7 +42,7 @@ module.exports = function buildRappelMails({ db, logger, google, buildRawMessage
         const m = /^(\d{1,2}):(\d{2})/.exec(String(x.fields?.rappelHeure ?? ""));
         if (!m) continue;
         const until = Number(m[1]) * 60 + Number(m[2]) - now.minutes;
-        if (until > 0 && until <= 10) due.push({ d, x, heure: `${m[1].padStart(2, "0")}:${m[2]}`, until });
+        if (until > 0 && until <= 20) due.push({ d, x, heure: `${m[1].padStart(2, "0")}:${m[2]}`, until });
       }
       if (!due.length) return;
 
@@ -66,7 +66,7 @@ module.exports = function buildRappelMails({ db, logger, google, buildRawMessage
         const last = notes.length ? String(notes[notes.length - 1].text).slice(0, 500) : "";
         const tel = String(x.phone ?? "").trim();
         const html = `<div style="font-family:Arial,sans-serif;max-width:560px">
-<h2 style="color:#122f4d;margin:0 0 8px">⏰ Rappel dans ${until} min — ${escapeHtmlText(heure)}</h2>
+<h2 style="color:#122f4d;margin:0 0 8px">⏰ À rappeler dans ${until} min, à ${escapeHtmlText(heure.replace(":", "h"))}</h2>
 <p style="font-size:16px;margin:0 0 12px">À rappeler par : <b style="color:#c2410c">${escapeHtmlText(qui || "personne n'est désigné (à voir avec l'équipe)")}</b></p>
 <table style="border-collapse:collapse;width:100%">
 <tr><td style="padding:6px 10px;color:#666">Client</td><td style="padding:6px 10px;font-weight:bold">${escapeHtmlText(name)}</td></tr>
@@ -79,7 +79,7 @@ ${last ? `<tr><td style="padding:6px 10px;color:#666;vertical-align:top">Dernier
         try {
           await gmail.users.messages.send({
             userId: "me",
-            requestBody: { raw: buildRawMessage({ to, from, subject: `⏰ ${heure} — rappeler ${name}${qui ? ` (${qui})` : ""}`, html }) },
+            requestBody: { raw: buildRawMessage({ to, from, subject: `⏰ À rappeler dans ${until} min à ${heure.replace(":", "h")} : ${name}${qui ? ` (par ${qui})` : ""}`, html }) },
           });
           logger.info("Mail de rappel envoyé", { leadId: d.id, heure, qui });
         } catch (err) {
