@@ -58,7 +58,7 @@ export function RappelPicker({
   const label = date ? rappelShort(date, time) : "";
 
   const validate = () => {
-    if (!d) return;
+    if (!d || !t) return;
     onSave(ymdOf(d), t);
     setOpen(false);
   };
@@ -125,9 +125,10 @@ export function RappelPicker({
               step={300}
               value={t}
               onChange={(e) => setT(e.target.value)}
-              className="text-base sm:text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2 py-1 [color-scheme:light]"
+              className={`text-base sm:text-sm bg-white text-gray-900 border rounded-md px-2 py-1 [color-scheme:light] ${d && !t ? "border-red-400" : "border-gray-300"}`}
             />
           </div>
+          {d && !t && <p className="text-xs font-semibold text-red-500 -mt-1 mb-2">Choisis l'heure du rappel</p>}
           <div className="flex flex-wrap gap-1.5 mb-3">
             {QUICK_HOURS.map((h) => (
               <button
@@ -162,7 +163,8 @@ export function RappelPicker({
             )}
             <button
               onClick={validate}
-              disabled={!d}
+              disabled={!d || !t}
+              title={d && !t ? "Choisis d'abord l'heure" : undefined}
               className="text-sm font-bold text-white px-4 py-1.5 rounded-full bg-gradient-to-r from-orange-500 to-fuchsia-600 disabled:opacity-40"
             >
               Valider

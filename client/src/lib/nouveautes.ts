@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-04-rappel-heure-obligatoire",
+    date: "2026-11-04",
+    emoji: "🔔",
+    titre: "Rappel : l'heure est maintenant obligatoire",
+    points: [
+      "Dans « 🔔 Rappel », le bouton Valider reste grisé tant que vous n'avez pas choisi une heure.",
+      "Comme ça, chaque rappel déclenche bien le mail 10 minutes avant.",
+    ],
+  },
+  {
     id: "2026-11-04-rappel-mail",
     date: "2026-11-04",
     emoji: "⏰",
