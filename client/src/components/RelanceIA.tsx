@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { LEAD_STATUSES, NEWS_VIEWERS, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
-import type { LeadColumn } from "@/lib/crmColumns";
+import { LEAD_COLUMNS, cellValue, type LeadColumn } from "@/lib/crmColumns";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Assistant de relance, dans la discussion d'un client :
@@ -57,6 +57,19 @@ const lists = (etapeCol?: LeadColumn) => {
   return { etapes, statuts, labels };
 };
 
+// Toute la ligne du tableau en clair (sans téléphone ni e-mail, inutiles à l'analyse).
+const ligneDe = (lead: Lead) =>
+  LEAD_COLUMNS.filter((c) => c.core !== "phone" && c.core !== "email")
+    .map((c) => {
+      let v = "";
+      try {
+        v = cellValue(lead, c);
+      } catch {}
+      const opt = c.options?.find((o) => o.key === v);
+      return { titre: c.title, valeur: String(opt?.label ?? v ?? "").slice(0, 200) };
+    })
+    .filter((c) => c.valeur);
+
 // Petit bouton sous un message de la discussion.
 export function IaAnalyseButton({ lead, note, etapeCol, light }: { lead: Lead; note: LeadNote; etapeCol?: LeadColumn; light?: boolean }) {
   const [busy, setBusy] = useState(false);
@@ -69,7 +82,7 @@ export function IaAnalyseButton({ lead, note, etapeCol, light }: { lead: Lead; n
     setError("");
     try {
       const { etapes, statuts } = lists(etapeCol);
-      await callFn("planifierRelance", { leadId: lead.id, sourceNoteId: note.id, statuts, etapes, etapeKey: etapeCol?.key ?? "" });
+      await callFn("planifierRelance", { leadId: lead.id, sourceNoteId: note.id, statuts, etapes, etapeKey: etapeCol?.key ?? "", ligne: ligneDe(lead) });
     } catch (e) {
       setError(errText(e));
     } finally {
@@ -87,6 +100,75 @@ export function IaAnalyseButton({ lead, note, etapeCol, light }: { lead: Lead; n
         {busy ? "🤖 L'IA analyse… (10 à 30 s)" : dejaFait ? "🤖 Analyser à nouveau" : "🤖 Analyser et planifier la relance"}
       </button>
       {error && <p className={`text-[11px] mt-0.5 ${light ? "text-amber-200" : "text-red-600"}`}>{error}</p>}
+    </div>
+  );
+}
+
+const INFOS: [string, string][] = [
+  ["logement", "🏠 Logement"],
+  ["chauffage", "🔥 Chauffage"],
+  ["foyer_revenus", "👪 Foyer"],
+  ["projet", "🎯 Projet"],
+  ["freins", "🚧 Freins"],
+  ["disponibilites", "🕑 Dispo"],
+  ["documents", "📄 Documents"],
+];
+const jourFr = (ymd: string) => {
+  const d = new Date(`${ymd}T12:00:00`);
+  return isNaN(d.getTime()) ? ymd : d.toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
+};
+
+// Proposition rangée : d'abord quoi faire et quand, puis le client, puis les détails (repliés).
+function PlanVue({ plan, labels }: { plan: Plan; labels: Record<string, string> }) {
+  const [details, setDetails] = useState(false);
+  const liste = (t: string, arr?: string[]) =>
+    arr?.length ? (
+      <p className="text-[13px] leading-snug">
+        <b className="text-gray-600">{t} :</b> {arr.join(" · ")}
+      </p>
+    ) : null;
+  return (
+    <div className="space-y-2 text-gray-900">
+      <div className="rounded-xl bg-white border border-violet-100 p-2.5">
+        <p className="text-[14px] font-bold leading-snug">➡️ {plan.prochaine_action}</p>
+        {plan.rappel_date && (
+          <p className="text-[13px] mt-1">
+            📅 <b className="capitalize">{jourFr(plan.rappel_date)}</b>
+            {plan.rappel_heure ? ` à ${plan.rappel_heure.replace(/^0?(\d+):00$/, "$1 h").replace(/^0?(\d+):(\d\d)$/, "$1 h $2")}` : ""}
+            {plan.pourquoi ? <span className="text-gray-500"> · {plan.pourquoi}</span> : null}
+          </p>
+        )}
+        <div className="flex flex-wrap gap-1.5 mt-1.5">
+          {plan.statut && <span className="text-[11px] font-bold rounded-full bg-gray-100 px-2 py-0.5">🏷️ {labels[plan.statut] ?? plan.statut}</span>}
+          {plan.etape && <span className="text-[11px] font-bold rounded-full bg-gray-100 px-2 py-0.5">🧭 {labels[plan.etape] ?? plan.etape}</span>}
+        </div>
+      </div>
+      {plan.argument_cle && <p className="text-[13px] leading-snug">💬 <i>{plan.argument_cle}</i></p>}
+      {plan.infos_client && (
+        <div className="grid grid-cols-1 gap-0.5 rounded-xl bg-white/70 p-2">
+          {INFOS.map(([k, t]) => {
+            const v = plan.infos_client?.[k] || "Non précisé";
+            return (
+              <p key={k} className={`text-[12.5px] leading-snug ${/^non précisé/i.test(v) ? "text-gray-400" : ""}`}>
+                <b className="text-gray-600">{t} :</b> {v}
+              </p>
+            );
+          })}
+        </div>
+      )}
+      {plan.vigilance && <p className="text-[12.5px] text-amber-800 bg-amber-50 rounded-lg px-2 py-1">⚠️ {plan.vigilance}</p>}
+      <button type="button" onClick={() => setDetails((d) => !d)} className="text-[12px] font-semibold text-violet-700">
+        {details ? "▲ Masquer le détail" : "▼ Résumé et détail de l'appel"}
+      </button>
+      {details && (
+        <div className="space-y-1">
+          <p className="text-[13px] leading-snug">📝 {plan.resume}</p>
+          {liste("Négocié", plan.negocie)}
+          {liste("Le client doit", plan.attentes_client)}
+          {liste("IP5 doit", plan.a_faire_ip5)}
+          {plan.rappel_alternative && <p className="text-[12.5px] text-gray-500">Sinon : {plan.rappel_alternative.replace(/^sinon\s*:?\s*/i, "")}</p>}
+        </div>
+      )}
     </div>
   );
 }
@@ -120,10 +202,11 @@ export function IaBubble({ lead, note, email, etapeCol }: { lead: Lead; note: Le
   const msg = (edit ?? plan)?.message_relance ?? "";
 
   return (
-    <div className="flex justify-start">
+    <div className="flex justify-start" dir="ltr">
       <div className="max-w-[92%] rounded-2xl rounded-bl-sm px-3 py-2 shadow-sm bg-violet-50 border border-violet-200 text-gray-900">
         <p className="text-[11px] font-bold mb-0.5 text-violet-700">🤖 Assistant IA · proposition de relance</p>
-        {!edit && <p className="text-sm whitespace-pre-wrap break-words">{n.text.replace(/^🤖 Proposition de relance\n?/, "")}</p>}
+        {!edit && plan && <PlanVue plan={plan} labels={labels} />}
+        {!edit && !plan && <p className="text-sm whitespace-pre-wrap break-words">{n.text.replace(/^🤖 Proposition de relance\n?/, "")}</p>}
 
         {edit && (
           <div className="space-y-2 mt-1">

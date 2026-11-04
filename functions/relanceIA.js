@@ -28,6 +28,7 @@ Règles :
 - Choisis l'étiquette (statut) dans la liste fournie ; garde l'actuelle si rien ne justifie un changement.
 - Propose TOUJOURS une étape du dossier, choisie uniquement parmi les étiquettes de la colonne « Étape » fournies, en fonction de l'avancement réel décrit dans le compte-rendu et l'historique ; si rien n'a avancé, reprends l'étape actuelle (si aucune étape n'existe encore, choisis la première étape qui correspond à la situation).
 - Le message de relance (SMS/WhatsApp) est court, poli, vouvoie le client, signé « IP5 Énergie » ; laisse vide s'il n'est pas utile.
+- SOIS BREF ET RANGÉ : résumé en 2 phrases maximum ; chaque rubrique d'infos client en 10 mots maximum ; chaque liste 3 éléments maximum de 12 mots ; prochaine action en 1 phrase ; argument clé en 1 phrase ; « pourquoi » en 1 phrase courte ; message de relance en 2 phrases maximum. Pas de répétition d'une rubrique à l'autre.
 - Dans « infos_client », remplis TOUJOURS les 7 rubriques, avec les informations de l'appel et de la fiche (sinon « Non précisé ») : phrases courtes, sans répéter ailleurs.
 - Français simple, phrases courtes.`;
 
@@ -76,20 +77,20 @@ module.exports = function buildRelanceIA({ db, onCall, HttpsError, defineSecret,
       ["disponibilites", "🕑 Disponibilités"],
       ["documents", "📄 Documents"],
     ];
-    const infos = (o) => (o && typeof o === "object" ? `\n\n👤 Infos client\n${ORDRE.map(([k, t]) => `${t} : ${String(o[k] ?? "Non précisé").slice(0, 300) || "Non précisé"}`).join("\n")}\n` : "");
+    const infos = (o) => (o && typeof o === "object" ? `\n👤 ${ORDRE.map(([k, t]) => `${t} : ${String(o[k] ?? "Non précisé").slice(0, 300) || "Non précisé"}`).join(" | ")}` : "");
+    const lst = (t, arr) => (Array.isArray(arr) && arr.length ? `\n${t} : ${arr.map((x) => String(x).slice(0, 200)).join(" · ")}` : "");
     return (
-      `🤖 Proposition de relance\n📝 ${String(p.resume ?? "").slice(0, 1200)}` +
+      `🤖 Proposition de relance` +
+      `\n➡️ ${String(p.prochaine_action ?? "").slice(0, 400)}` +
+      (date ? `\n📅 ${date.split("-").reverse().join("/")}${heure ? ` à ${heure}` : ""}${p.pourquoi ? ` (${String(p.pourquoi).slice(0, 200)})` : ""}` : "") +
+      (p.statut || p.etape ? `\n🏷️ ${labels[p.statut] ?? p.statut ?? ""}${p.etape ? ` · 🧭 ${labels[p.etape] ?? p.etape}` : ""}` : "") +
+      (p.argument_cle ? `\n💬 ${String(p.argument_cle).slice(0, 300)}` : "") +
+      `\n\n📝 ${String(p.resume ?? "").slice(0, 600)}` +
       infos(p.infos_client) +
-      list("Négocié / proposé", p.negocie) +
-      list("Le client doit", p.attentes_client) +
-      list("IP5 doit", p.a_faire_ip5) +
-      `\n➡️ Prochaine action : ${String(p.prochaine_action ?? "").slice(0, 600)}` +
-      (p.argument_cle ? `\n💬 Argument clé : ${String(p.argument_cle).slice(0, 400)}` : "") +
-      (date ? `\n📅 Rappel : ${date.split("-").reverse().join("/")}${heure ? ` à ${heure}` : ""} — ${String(p.pourquoi ?? "").slice(0, 400)}` : "") +
-      (p.rappel_alternative ? `\n(Sinon : ${String(p.rappel_alternative).slice(0, 200)})` : "") +
-      (p.statut ? `\n🏷️ Étiquette : ${labels[p.statut] ?? p.statut}` : "") +
-      (p.etape ? `\n🧭 Étape : ${labels[p.etape] ?? p.etape}` : "") +
-      (p.vigilance ? `\n⚠️ ${String(p.vigilance).slice(0, 400)}` : "")
+      lst("Négocié", p.negocie) +
+      lst("Client doit", p.attentes_client) +
+      lst("IP5 doit", p.a_faire_ip5) +
+      (p.vigilance ? `\n⚠️ ${String(p.vigilance).slice(0, 300)}` : "")
     );
   };
 
@@ -134,6 +135,13 @@ module.exports = function buildRelanceIA({ db, onCall, HttpsError, defineSecret,
       .filter(([, v]) => v)
       .map(([k, v]) => `${k} : ${String(v).slice(0, 200)}`)
       .join("\n");
+    // Toute la ligne du tableau (colonnes envoyées par le CRM : titre + valeur lisible).
+    const ligne = (Array.isArray(request.data?.ligne) ? request.data.ligne : [])
+      .map((c) => ({ t: String(c?.titre ?? "").slice(0, 60), v: String(c?.valeur ?? "").replace(/\s+/g, " ").slice(0, 200) }))
+      .filter((c) => c.t && c.v)
+      .slice(0, 80)
+      .map((c) => `${c.t} : ${c.v}`)
+      .join("\n");
     const now = parisNow();
 
     const prompt = `Nous sommes le ${now.label} (heure de Paris).
@@ -148,6 +156,8 @@ Statut actuel : ${statutActuel}
 Rappel déjà prévu : ${l.rappelLe ? `${l.rappelLe} ${f.rappelHeure ?? ""}` : "aucun"}
 Infos du formulaire :
 ${details || "(aucune)"}
+Ligne complète du tableau :
+${ligne || "(non transmise)"}
 
 HISTORIQUE (du plus ancien au plus récent) :
 ${notes || "(vide)"}
@@ -166,7 +176,7 @@ ${etapes.length ? etapes.map((e) => `${e.key} = ${e.label}`).join("\n") : "(aucu
       additionalProperties: false,
       required: ["resume", "infos_client", "negocie", "attentes_client", "a_faire_ip5", "prochaine_action", "argument_cle", "rappel_date", "rappel_heure", "rappel_alternative", "pourquoi", "statut", "etape", "message_relance", "vigilance"],
       properties: {
-        resume: { type: "string", description: "Résumé de l'appel en 2 à 4 phrases." },
+        resume: { type: "string", description: "Résumé de l'appel en 2 phrases maximum." },
         infos_client: {
           type: "object",
           additionalProperties: false,
@@ -189,7 +199,7 @@ ${etapes.length ? etapes.map((e) => `${e.key} = ${e.label}`).join("\n") : "(aucu
         rappel_date: { type: "string", description: "Date de rappel AAAA-MM-JJ." },
         rappel_heure: { type: "string", description: "Heure de rappel HH:MM (24 h)." },
         rappel_alternative: { type: "string", description: "Créneau de secours en clair (ex. « sinon vendredi matin »)." },
-        pourquoi: { type: "string", description: "Pourquoi ce délai et ce moment, en une ou deux phrases." },
+        pourquoi: { type: "string", description: "Pourquoi ce moment, 1 phrase courte." },
         statut: { type: "string", enum: statuts.map((s) => s.key) },
         etape: { type: "string", enum: etapes.length ? etapes.map((e) => e.key) : [""] },
         message_relance: { type: "string", description: "SMS/WhatsApp prêt à envoyer, ou chaîne vide." },
