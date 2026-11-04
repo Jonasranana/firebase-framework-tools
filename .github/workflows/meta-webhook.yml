@@ -1,0 +1,36 @@
+name: Branchement Meta → CRM (lancement manuel)
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "verifier (lecture seule) ou brancher"
+        type: choice
+        options: [verifier, brancher]
+        default: verifier
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+      - name: Meta
+        env:
+          ACTION: ${{ inputs.action }}
+          META_APP_ID: "2351411198939956"
+          WEBHOOK_URL: https://europe-west9-kachoto-7554c.cloudfunctions.net/metaLeadWebhook
+        run: |
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+          for s in META_APP_SECRET META_PAGE_TOKEN META_VERIFY_TOKEN; do
+            v=$(gcloud secrets versions access latest --secret=$s --project kachoto-7554c 2>/dev/null | tr -d '\r\n' || true)
+            if [ -n "$v" ]; then echo "::add-mask::$v"; fi
+            export "$s=$v"
+          done
+          node scripts/meta-webhook.mjs
