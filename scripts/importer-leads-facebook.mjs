@@ -32,7 +32,7 @@ const fbFields = (details, created) => {
   for (const [k, v] of Object.entries(details)) {
     const val = String(v ?? "").replace(/_/g, " ").trim();
     if (!val) continue;
-    if (/chauffage/i.test(k) && !out.chauffageSite) out.chauffageSite = val;
+    if (/chauff/i.test(k) && !out.chauffageSite) out.chauffageSite = val;
     else if (/foyer|personnes/i.test(k) && !out.foyerSite) out.foyerSite = val;
     else if (/surface/i.test(k) && !out.surface) out.surface = val;
   }
