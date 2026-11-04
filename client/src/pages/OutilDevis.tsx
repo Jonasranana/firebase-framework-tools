@@ -29,6 +29,7 @@ const DocumentsPage = lazy(() => import("./DocumentsPage"));
 const TeamPage = lazy(() => import("./TeamPage"));
 const PraimyCRM = lazy(() => import("./PraimyCRM"));
 const ActusCRM = lazy(() => import("./ActusCRM"));
+import Nouveautes from "@/components/Nouveautes";
 
 // ─────────────────────────────────────────────────────────────────────────
 // OUTIL INTERNE — Simulateur de marge + aides pour nos devis de pompes à
@@ -945,6 +946,8 @@ export default function OutilDevis() {
       </Suspense>
     );
     return (
+      <>
+      <Nouveautes email={email} />
       <AdminShell
         email={email}
         userName={userName}
@@ -954,6 +957,7 @@ export default function OutilDevis() {
         onSignOut={signOut}
         renderPage={renderPage}
       />
+      </>
     );
   }
 

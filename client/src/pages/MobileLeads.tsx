@@ -11,7 +11,7 @@ import { buildIcs, openIcs, type IcsEvent } from "@/lib/ics";
 import { trancheInfo } from "@/lib/tranche";
 import { useUnreadNews } from "./ActusCRM";
 const ActusCRM = lazy(() => import("./ActusCRM"));
-import RelanceIA from "@/components/RelanceIA";
+import { IaAnalyseButton, IaBubble, canUseIa, isIaNote } from "@/components/RelanceIA";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Version simple du CRM pour le téléphone : une liste de cartes au lieu du tableau,
@@ -283,8 +283,6 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
           </div>
         )}
 
-        <RelanceIA lead={lead} email={email} etapeCol={etapeCol} />
-
         <Section title="Où en est le dossier">
           <Row label="Statut d'appel">
             <select value={lead.status} onChange={(e) => onStatus(lead.id, e.target.value as LeadStatus)} className={inputCls}>
@@ -344,6 +342,14 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
                     </div>
                   ) : null;
                 lastDay = day;
+                if (isIaNote(n)) {
+                  return (
+                    <div key={n.id}>
+                      {sep}
+                      <IaBubble lead={lead} note={n} email={email} etapeCol={etapeCol} />
+                    </div>
+                  );
+                }
                 if (isChat(n) || isMailReceived(n)) {
                   const mine = isChat(n) && n.by === email;
                   const client = isMailReceived(n);
@@ -363,6 +369,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
                           )}
                           <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : <MentionText text={n.text} light={mine} />}</p>
                           <TaggedLine note={n} light={mine} />
+                          {isChat(n) && canUseIa(email) && <IaAnalyseButton lead={lead} note={n} etapeCol={etapeCol} light={mine} />}
                           <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-white/70" : "text-gray-400"}`}>{hhmm(n.at)}</p>
                         </div>
                       </div>

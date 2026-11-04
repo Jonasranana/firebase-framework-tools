@@ -2,9 +2,11 @@ import { MentionPicker, MentionText, TaggedLine } from "@/components/Mentions";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, ExternalLink, X, Paperclip, MessageSquareText } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { APPEL_SLOTS } from "@/lib/crmColumns";
+import { APPEL_SLOTS, LEAD_COLUMNS } from "@/lib/crmColumns";
+import { IaAnalyseButton, IaBubble, isIaNote } from "@/components/RelanceIA";
+import { findEtapeColumn } from "./DossiersBoard";
 import { RAPPEL_HEURE_KEY, rappelShort } from "@/lib/rappel";
-import { formatDateTime, formatPhone, statusInfo, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
+import { NEWS_VIEWERS, formatDateTime, formatPhone, statusInfo, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
 
 // Prénom lisible à partir d'une adresse e-mail (« jonas.sitbon@… » → « Jonas »).
 export const authorName = (by: string) => {
@@ -142,6 +144,9 @@ export default function LeadChat({
   const [tpl, setTpl] = useState("");
   const [templates, setTemplates] = useState<{ key: string; subject: string; sms?: string }[]>([]);
   const [smsOpen, setSmsOpen] = useState(false);
+  // Assistant de relance (direction seulement) : bouton « 🤖 » sous chaque message.
+  const canIa = NEWS_VIEWERS.includes(email.toLowerCase());
+  const etapeCol = findEtapeColumn(LEAD_COLUMNS);
   const [smsText, setSmsText] = useState("");
   const [smsTpl, setSmsTpl] = useState("");
   const [smsBusy, setSmsBusy] = useState(false);
@@ -508,7 +513,7 @@ export default function LeadChat({
             <p className="text-center text-xs text-gray-500 mt-8">Aucun message pour l'instant. Écrivez le premier ci-dessous.</p>
           )}
           {notes
-            .filter((n) => tab === "tout" || (tab === "messages" ? isChat(n) || isMailReceived(n) : !(isChat(n) || isMailReceived(n))))
+            .filter((n) => tab === "tout" || (tab === "messages" ? isChat(n) || isMailReceived(n) || isIaNote(n) : !(isChat(n) || isMailReceived(n) || isIaNote(n))))
             .map((n) => {
             const day = dayLabel(n.at);
             const sep =
@@ -519,6 +524,15 @@ export default function LeadChat({
               ) : null;
             lastDay = day;
 
+            // Proposition de l'assistant IA (bulle violette, avec Valider).
+            if (isIaNote(n) && lead) {
+              return (
+                <div key={n.id}>
+                  {sep}
+                  <IaBubble lead={lead} note={n} email={email} etapeCol={etapeCol} />
+                </div>
+              );
+            }
             // Grande bulle : un message d'équipe ou un mail reçu du client.
             if (isChat(n) || isMailReceived(n)) {
               const mine = isChat(n) && n.by === email;
@@ -543,6 +557,7 @@ export default function LeadChat({
                       )}
                       <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : <MentionText text={n.text} light={mine} />}</p>
                       <TaggedLine note={n} light={mine} />
+                      {isChat(n) && canIa && lead && <IaAnalyseButton lead={lead} note={n} etapeCol={etapeCol} light={mine} />}
                       <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-white/70" : "text-gray-400"}`}>{hhmm(n.at)}</p>
                     </div>
                   </div>
@@ -596,6 +611,7 @@ export default function LeadChat({
               <Send size={16} />
             </button>
           </div>
+          {canIa && <p className="text-[11px] text-violet-700 font-semibold mt-1 px-1">🤖 Après l'envoi, le bouton « Analyser et planifier la relance » sous le message demande à l'IA la marche à suivre.</p>}
           <p className="text-[10px] text-gray-400 mt-1 px-1">Entrée pour envoyer · Maj+Entrée pour aller à la ligne · tapez @ pour taguer (Carole, Mebarek, Alexis, Jonas) : la personne reçoit aussi le message sur son mail perso</p>
         </div>
       </SheetContent>

@@ -1,21 +1,26 @@
 import { useState } from "react";
 import { getEspaceProApp } from "@/lib/espacePro";
-import { LEAD_STATUSES, NEWS_VIEWERS, whatsappHref, type Lead } from "@/lib/crm";
+import { LEAD_STATUSES, NEWS_VIEWERS, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
 import type { LeadColumn } from "@/lib/crmColumns";
 
 // ─────────────────────────────────────────────────────────────────────────
-// Assistant de relance : on raconte l'appel, Claude propose la marche à
-// suivre (résumé, prochaine action, jour et heure de rappel, étiquette,
-// étape du dossier, message de relance). Rien n'est enregistré avant le clic
-// sur « Valider ». Réservé à la direction (NEWS_VIEWERS).
-// Fonctions serveur : planifierRelance / validerRelance (functions/relanceIA.js).
+// Assistant de relance, dans la discussion d'un client :
+// - sous chaque message de l'équipe, un petit bouton « 🤖 Analyser » ;
+// - l'IA (fonction planifierRelance) écrit sa proposition juste en dessous,
+//   dans la discussion (bulle violette, sans e-mail) : résumé, prochaine
+//   action, jour/heure de rappel, étiquette, étape, message de relance ;
+// - « ✅ Valider » (ou « ✏️ Modifier » puis Valider) applique le rappel,
+//   l'étiquette et l'étape (fonction validerRelance).
+// Réservé à la direction (NEWS_VIEWERS).
 // ─────────────────────────────────────────────────────────────────────────
-type Plan = {
+export type Plan = {
   resume: string;
+  infos_client?: Record<string, string>;
   negocie: string[];
   attentes_client: string[];
   a_faire_ip5: string[];
   prochaine_action: string;
+  argument_cle?: string;
   rappel_date: string;
   rappel_heure: string;
   rappel_alternative: string;
@@ -25,6 +30,10 @@ type Plan = {
   message_relance: string;
   vigilance: string;
 };
+type IaNote = LeadNote & { plan?: Plan; validatedAt?: string; validatedBy?: string; sourceId?: string };
+
+export const canUseIa = (email: string) => NEWS_VIEWERS.includes(email.toLowerCase());
+export const isIaNote = (n: LeadNote) => (n as { kind?: string }).kind === "ia";
 
 async function callFn<T>(name: string, data?: unknown): Promise<T> {
   const app = await getEspaceProApp();
@@ -36,124 +45,105 @@ async function callFn<T>(name: string, data?: unknown): Promise<T> {
 const errText = (e: unknown) => {
   const code = String((e as { code?: string })?.code ?? "");
   const msg = String((e as { message?: string })?.message ?? "");
-  // Fonction pas encore mise en ligne : Firebase renvoie « not-found » ou « internal » sans message utile.
   if ((code.endsWith("not-found") && /^not[ _-]?found$/i.test(msg)) || (code.endsWith("internal") && /^internal$/i.test(msg)))
-    return "L'assistant n'est pas encore activé (clé d'accès à l'IA à enregistrer).";
+    return "L'assistant n'est pas joignable pour le moment, réessayez.";
   return msg || "Une erreur est survenue, réessayez.";
 };
 
-const List = ({ title, items }: { title: string; items: string[] }) =>
-  items?.length ? (
-    <div className="mt-2">
-      <p className="text-[12px] font-bold uppercase tracking-wide text-gray-500">{title}</p>
-      <ul className="mt-1 space-y-0.5">
-        {items.map((x, i) => (
-          <li key={i} className="text-[14px] text-gray-800 leading-snug">
-            • {x}
-          </li>
-        ))}
-      </ul>
-    </div>
-  ) : null;
-
-export default function RelanceIA({ lead, email, etapeCol }: { lead: Lead; email: string; etapeCol?: LeadColumn }) {
-  const [cr, setCr] = useState("");
-  const [plan, setPlan] = useState<Plan | null>(null);
-  const [busy, setBusy] = useState<"" | "analyse" | "valide">("");
-  const [error, setError] = useState("");
-  const [done, setDone] = useState("");
-  const [copied, setCopied] = useState(false);
-  if (!NEWS_VIEWERS.includes(email.toLowerCase())) return null;
-
+const lists = (etapeCol?: LeadColumn) => {
   const etapes = (etapeCol?.options ?? []).filter((o) => o.label && !o.off).map((o) => ({ key: o.key, label: o.label }));
   const statuts = LEAD_STATUSES.filter((s) => s.label).map((s) => ({ key: s.key, label: s.label }));
   const labels: Record<string, string> = Object.fromEntries([...statuts, ...etapes].map((o) => [o.key, o.label]));
+  return { etapes, statuts, labels };
+};
 
-  const analyser = async () => {
+// Petit bouton sous un message de la discussion.
+export function IaAnalyseButton({ lead, note, etapeCol, light }: { lead: Lead; note: LeadNote; etapeCol?: LeadColumn; light?: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const dejaFait = (lead.notes ?? []).some((n) => isIaNote(n) && (n as IaNote).sourceId === note.id);
+  if ((note.text ?? "").trim().length < 10) return null;
+  const go = async () => {
+    if (dejaFait && !window.confirm("Ce message a déjà été analysé. Relancer une analyse (quelques centimes) ?")) return;
+    setBusy(true);
     setError("");
-    setDone("");
-    setBusy("analyse");
     try {
-      const r = await callFn<{ plan: Plan }>("planifierRelance", { leadId: lead.id, compteRendu: cr, statuts, etapes, etapeKey: etapeCol?.key ?? "" });
-      setPlan(r.plan);
+      const { etapes, statuts } = lists(etapeCol);
+      await callFn("planifierRelance", { leadId: lead.id, sourceNoteId: note.id, statuts, etapes, etapeKey: etapeCol?.key ?? "" });
     } catch (e) {
       setError(errText(e));
     } finally {
-      setBusy("");
+      setBusy(false);
     }
   };
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={go}
+        disabled={busy}
+        className={`text-[11px] font-bold rounded-full px-2.5 py-1 ${light ? "bg-white/20 text-white" : "bg-violet-50 text-violet-700 border border-violet-200"} disabled:opacity-60`}
+      >
+        {busy ? "🤖 L'IA analyse… (10 à 30 s)" : dejaFait ? "🤖 Analyser à nouveau" : "🤖 Analyser et planifier la relance"}
+      </button>
+      {error && <p className={`text-[11px] mt-0.5 ${light ? "text-amber-200" : "text-red-600"}`}>{error}</p>}
+    </div>
+  );
+}
 
-  const valider = async () => {
-    if (!plan) return;
+// Bulle « proposition de l'IA » dans la discussion.
+export function IaBubble({ lead, note, email, etapeCol }: { lead: Lead; note: LeadNote; email: string; etapeCol?: LeadColumn }) {
+  const n = note as IaNote;
+  const [edit, setEdit] = useState<Plan | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+  const { etapes, statuts, labels } = lists(etapeCol);
+  const plan = n.plan;
+  const allowed = canUseIa(email);
+
+  const valider = async (p: Plan) => {
+    setBusy(true);
     setError("");
-    setBusy("valide");
     try {
-      await callFn("validerRelance", { leadId: lead.id, compteRendu: cr, plan, etapeKey: etapeCol?.key ?? "", labels });
-      setDone(`✅ Enregistré : ${labels[plan.statut] ?? "statut"}${plan.etape ? ` · étape ${labels[plan.etape] ?? plan.etape}` : ""}${plan.rappel_date ? ` · rappel le ${plan.rappel_date.split("-").reverse().join("/")}${plan.rappel_heure ? ` à ${plan.rappel_heure}` : ""}` : ""}`);
-      setPlan(null);
-      setCr("");
+      await callFn("validerRelance", { leadId: lead.id, noteId: n.id, plan: p, etapeKey: etapeCol?.key ?? "", labels });
+      setEdit(null);
     } catch (e) {
       setError(errText(e));
     } finally {
-      setBusy("");
+      setBusy(false);
     }
   };
-
-  const set = (k: keyof Plan, v: string) => plan && setPlan({ ...plan, [k]: v });
-  const field = "w-full rounded-lg border border-gray-200 bg-white px-2.5 py-2 text-[15px]";
+  const field = "w-full rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-[14px] text-gray-900";
+  const set = (k: keyof Plan, v: string) => edit && setEdit({ ...edit, [k]: v });
   const wa = whatsappHref(lead.phone);
+  const msg = (edit ?? plan)?.message_relance ?? "";
 
   return (
-    <div className="rounded-2xl border border-violet-200 bg-violet-50/40 p-3.5 my-3">
-      <p className="font-extrabold text-gray-900">🤖 Assistant de relance</p>
-      {!plan && (
-        <>
-          <textarea
-            value={cr}
-            onChange={(e) => setCr(e.target.value)}
-            rows={5}
-            placeholder="Racontez l'appel : ce qui a été dit, proposé, promis, les documents attendus, ses disponibilités… (sur téléphone, le micro du clavier permet de dicter)"
-            className="mt-2 w-full rounded-xl border border-gray-200 bg-white p-3 text-[16px] leading-relaxed"
-          />
-          <button
-            type="button"
-            onClick={analyser}
-            disabled={busy !== "" || cr.trim().length < 10}
-            className="mt-2 w-full rounded-xl bg-violet-600 text-white font-bold py-3 disabled:opacity-50"
-          >
-            {busy === "analyse" ? "Analyse en cours… (10 à 30 secondes)" : "🤖 Analyser et planifier"}
-          </button>
-        </>
-      )}
-      {done && <p className="mt-2 text-[14px] font-semibold text-emerald-700">{done}</p>}
-      {error && <p className="mt-2 text-[14px] text-red-600">{error}</p>}
+    <div className="flex justify-start">
+      <div className="max-w-[92%] rounded-2xl rounded-bl-sm px-3 py-2 shadow-sm bg-violet-50 border border-violet-200 text-gray-900">
+        <p className="text-[11px] font-bold mb-0.5 text-violet-700">🤖 Assistant IA · proposition de relance</p>
+        {!edit && <p className="text-sm whitespace-pre-wrap break-words">{n.text.replace(/^🤖 Proposition de relance\n?/, "")}</p>}
 
-      {plan && (
-        <div className="mt-2 rounded-xl bg-white border border-gray-200 p-3">
-          <p className="text-[15px] text-gray-800 leading-relaxed">{plan.resume}</p>
-          <List title="Négocié / proposé" items={plan.negocie} />
-          <List title="Le client doit" items={plan.attentes_client} />
-          <List title="IP5 doit" items={plan.a_faire_ip5} />
-          <div className="mt-3 rounded-lg bg-violet-50 p-2.5">
-            <p className="text-[12px] font-bold uppercase tracking-wide text-violet-700">Prochaine action</p>
-            <textarea value={plan.prochaine_action} onChange={(e) => set("prochaine_action", e.target.value)} rows={2} className={`${field} mt-1`} />
-          </div>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <label className="text-[12px] font-bold text-gray-500">
-              Jour du rappel
-              <input type="date" value={plan.rappel_date} onChange={(e) => set("rappel_date", e.target.value)} className={field} />
+        {edit && (
+          <div className="space-y-2 mt-1">
+            <label className="block text-[11px] font-bold text-gray-500">
+              Prochaine action
+              <textarea value={edit.prochaine_action} onChange={(e) => set("prochaine_action", e.target.value)} rows={2} className={field} />
             </label>
-            <label className="text-[12px] font-bold text-gray-500">
-              Heure
-              <input type="time" value={plan.rappel_heure} onChange={(e) => set("rappel_heure", e.target.value)} className={field} />
-            </label>
-          </div>
-          {plan.pourquoi && <p className="mt-1 text-[13px] text-gray-600">💡 {plan.pourquoi}</p>}
-          {plan.rappel_alternative && <p className="text-[13px] text-gray-500">Sinon : {plan.rappel_alternative}</p>}
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-            <label className="text-[12px] font-bold text-gray-500">
-              Étiquette (statut)
-              <select value={plan.statut} onChange={(e) => set("statut", e.target.value)} className={field}>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-[11px] font-bold text-gray-500">
+                Jour du rappel
+                <input type="date" value={edit.rappel_date} onChange={(e) => set("rappel_date", e.target.value)} className={field} />
+              </label>
+              <label className="text-[11px] font-bold text-gray-500">
+                Heure
+                <input type="time" value={edit.rappel_heure} onChange={(e) => set("rappel_heure", e.target.value)} className={field} />
+              </label>
+            </div>
+            <label className="block text-[11px] font-bold text-gray-500">
+              Étiquette
+              <select value={edit.statut} onChange={(e) => set("statut", e.target.value)} className={field}>
                 {statuts.map((s) => (
                   <option key={s.key} value={s.key}>
                     {s.label}
@@ -161,55 +151,78 @@ export default function RelanceIA({ lead, email, etapeCol }: { lead: Lead; email
                 ))}
               </select>
             </label>
-            <label className="text-[12px] font-bold text-gray-500">
-              Étape du dossier
-              <select value={plan.etape} onChange={(e) => set("etape", e.target.value)} className={field}>
-                <option value="">— Ne pas changer —</option>
-                {etapes.map((s) => (
-                  <option key={s.key} value={s.key}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+            {etapes.length > 0 && (
+              <label className="block text-[11px] font-bold text-gray-500">
+                Étape du dossier
+                <select value={edit.etape} onChange={(e) => set("etape", e.target.value)} className={field}>
+                  {etapes.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            <label className="block text-[11px] font-bold text-gray-500">
+              Message de relance
+              <textarea value={edit.message_relance} onChange={(e) => set("message_relance", e.target.value)} rows={3} className={field} />
             </label>
           </div>
-          {plan.vigilance && <p className="mt-3 text-[13px] text-amber-800 bg-amber-50 rounded-lg p-2">⚠️ {plan.vigilance}</p>}
-          {plan.message_relance && (
-            <div className="mt-3">
-              <p className="text-[12px] font-bold uppercase tracking-wide text-gray-500">Message de relance</p>
-              <textarea value={plan.message_relance} onChange={(e) => set("message_relance", e.target.value)} rows={3} className={`${field} mt-1`} />
-              <div className="flex gap-2 mt-1.5">
-                <button
-                  type="button"
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(plan.message_relance);
-                      setCopied(true);
-                      setTimeout(() => setCopied(false), 2000);
-                    } catch {}
-                  }}
-                  className="flex-1 rounded-lg border border-gray-200 py-2 text-[14px] font-semibold"
-                >
-                  {copied ? "✓ Copié" : "Copier"}
-                </button>
-                {wa && (
-                  <a href={`${wa}?text=${encodeURIComponent(plan.message_relance)}`} target="_blank" rel="noreferrer" className="flex-1 rounded-lg bg-[#25D366] text-white py-2 text-[14px] font-semibold text-center">
-                    WhatsApp
-                  </a>
-                )}
-              </div>
-            </div>
-          )}
-          <div className="flex gap-2 mt-4">
-            <button type="button" onClick={() => setPlan(null)} disabled={busy !== ""} className="rounded-xl border border-gray-200 px-4 py-3 font-semibold text-gray-600">
-              Modifier le texte
+        )}
+
+        {msg && !n.validatedAt && (
+          <div className="flex gap-1.5 mt-2">
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await navigator.clipboard.writeText(msg);
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                } catch {}
+              }}
+              className="text-[11px] font-bold rounded-full px-2.5 py-1 bg-white border border-gray-200"
+            >
+              {copied ? "✓ Message copié" : "📋 Copier le message"}
             </button>
-            <button type="button" onClick={valider} disabled={busy !== ""} className="flex-1 rounded-xl bg-emerald-600 text-white font-bold py-3 disabled:opacity-50">
-              {busy === "valide" ? "Enregistrement…" : "✅ Valider"}
-            </button>
+            {wa && (
+              <a href={`${wa}?text=${encodeURIComponent(msg)}`} target="_blank" rel="noreferrer" className="text-[11px] font-bold rounded-full px-2.5 py-1 bg-[#25D366] text-white">
+                WhatsApp
+              </a>
+            )}
           </div>
-        </div>
-      )}
+        )}
+
+        {n.validatedAt ? (
+          <p className="text-[11px] font-semibold text-emerald-700 mt-1.5">
+            ✅ Validé{n.validatedBy ? ` par ${n.validatedBy.split("@")[0]}` : ""} : rappel, étiquette et étape appliqués
+          </p>
+        ) : (
+          allowed &&
+          plan && (
+            <div className="flex gap-1.5 mt-2">
+              {edit ? (
+                <button type="button" onClick={() => setEdit(null)} disabled={busy} className="text-[12px] font-bold rounded-full px-3 py-1.5 bg-white border border-gray-200">
+                  Annuler
+                </button>
+              ) : (
+                <button type="button" onClick={() => setEdit({ ...plan })} disabled={busy} className="text-[12px] font-bold rounded-full px-3 py-1.5 bg-white border border-gray-200">
+                  ✏️ Modifier
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => valider(edit ?? plan)}
+                disabled={busy}
+                className="flex-1 text-[12px] font-bold rounded-full px-3 py-1.5 bg-emerald-600 text-white disabled:opacity-60"
+              >
+                {busy ? "Enregistrement…" : "✅ Valider"}
+              </button>
+            </div>
+          )
+        )}
+        {error && <p className="text-[11px] text-red-600 mt-1">{error}</p>}
+      </div>
     </div>
   );
 }
