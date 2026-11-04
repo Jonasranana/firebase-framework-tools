@@ -3004,6 +3004,14 @@ exports.submitArtisanGrid = onRequest(
 //   }),
 // );
 
+// ── Assistant de relance (CRM) : compte-rendu d'appel → plan de relance ──
+// Activé : le secret ANTHROPIC_API_KEY existe dans Secret Manager (créé par
+// Jonas le 04/11/2026). Voir functions/relanceIA.js.
+Object.assign(
+  exports,
+  require("./relanceIA")({ db, onCall, HttpsError, defineSecret, FieldValue: require("firebase-admin/firestore").FieldValue, logger }),
+);
+
 // ── Boîte mail contact@ ↔ CRM ────────────────────────────────────────────
 // Range les mails reçus/envoyés (et leurs pièces jointes) dans la fiche du
 // lead ou de l'artisan correspondant. Voir functions/crmMail.js.
