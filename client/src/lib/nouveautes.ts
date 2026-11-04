@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-04-facebook",
+    date: "2026-11-04",
+    emoji: "📘",
+    titre: "Prospects du formulaire Facebook : colonnes remplies",
+    points: [
+      "Les prospects du formulaire Facebook remplissent maintenant les colonnes « 🔥 Chauffage (Site) » et « Date 1er contact », comme ceux du site.",
+      "Nouvelle étiquette « 📘 Formulaire Facebook » dans « 📥 Type de demande » : on voit tout de suite d'où vient le prospect.",
+    ],
+  },
+  {
     id: "2026-11-04-relance",
     date: "2026-11-04",
     emoji: "🤖",
