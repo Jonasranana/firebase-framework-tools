@@ -18,6 +18,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-04-rappel-mail",
+    date: "2026-11-04",
+    emoji: "⏰",
+    titre: "Un mail 10 minutes avant chaque rappel",
+    points: [
+      "Quand un rappel a un jour ET une heure, un mail part environ 10 minutes avant : nom du client, téléphone (cliquable), dernier message et surtout QUI doit rappeler.",
+      "La personne est celle de « 🎯 Attribué à », sinon celle de « 👤 Commercial ». Elle reçoit le mail sur sa boîte perso, et une copie arrive sur contact@.",
+      "Un rappel sans heure ne déclenche pas de mail : pensez à mettre l'heure.",
+    ],
+  },
+  {
     id: "2026-11-04-facebook",
     date: "2026-11-04",
     emoji: "📘",

@@ -3020,6 +3020,12 @@ Object.assign(
   }),
 );
 
+// ── Mail « ⏰ Rappel dans 10 min » à la personne qui doit rappeler ──
+Object.assign(
+  exports,
+  require("./rappelMails")({ db, logger, google, buildRawMessage, escapeHtmlText, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL }),
+);
+
 // ── Assistant de relance (CRM) : compte-rendu d'appel → plan de relance ──
 // Activé : le secret ANTHROPIC_API_KEY existe dans Secret Manager (créé par
 // Jonas le 04/11/2026). Voir functions/relanceIA.js.
