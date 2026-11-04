@@ -18,6 +18,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-04-actus-jours",
+    date: "2026-11-04",
+    emoji: "📰",
+    titre: "Actualités aides : choisissez le jour",
+    points: [
+      "En haut de la page Actualités, une pastille par jour (avec le nombre d'actus) : touchez un jour pour voir ses actus, ou « Tout voir ».",
+      "Les actus de la première veille (rattrapage des dernières semaines) sont de retour sur le 3 novembre.",
+    ],
+    pour: NEWS_VIEWERS,
+  },
+  {
     id: "2026-11-04-rappel-heure-obligatoire",
     date: "2026-11-04",
     emoji: "🔔",

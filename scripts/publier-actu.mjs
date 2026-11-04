@@ -47,5 +47,21 @@ if (String(process.env.DRY_RUN) === "true") {
   process.exit(0);
 }
 initializeApp();
-await getFirestore().doc(`crm_news/${date}`).set({ ...doc, createdAt: FieldValue.serverTimestamp() });
-console.log(`Publié : crm_news/${date} (${items.length} actualité(s))`);
+// Deux publications le même jour : on AJOUTE les nouvelles actualités à celles
+// déjà en ligne (plus d'écrasement), sans doublon (même lien ou même titre).
+const ref = getFirestore().doc(`crm_news/${date}`);
+const prev = (await ref.get()).data();
+if (prev && Array.isArray(prev.items) && prev.items.length) {
+  const key = (it) => (it.url || it.title || "").toLowerCase();
+  const known = new Set(prev.items.map(key));
+  const added = items.filter((it) => !known.has(key(it)));
+  doc.items = [...added, ...prev.items].slice(0, 30);
+  doc.nothingNew = doc.items.length === 0;
+  if (!added.length) {
+    doc.title = prev.title || doc.title;
+    doc.summary = prev.summary || doc.summary;
+  }
+  console.log(`Ce jour avait déjà ${prev.items.length} actualité(s) : ${added.length} ajoutée(s).`);
+}
+await ref.set({ ...doc, createdAt: prev?.createdAt ?? FieldValue.serverTimestamp(), updatedAt: FieldValue.serverTimestamp() });
+console.log(`Publié : crm_news/${date} (${doc.items.length} actualité(s))`);

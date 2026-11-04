@@ -61,6 +61,8 @@ export function useUnreadNews(enabled: boolean) {
 
 export default function ActusCRM() {
   const [days, setDays] = useState<NewsDay[] | null>(null);
+  // Jour affiché (par défaut le plus récent) ; « all » = tous les jours à la suite.
+  const [pick, setPick] = useState<string>("");
   const [error, setError] = useState("");
   const [seen] = useState(() => {
     try {
@@ -106,8 +108,44 @@ export default function ActusCRM() {
       {!error && days?.length === 0 && (
         <p className="text-sm text-gray-500 py-10 text-center">La première veille arrivera ce soir vers 20 h.</p>
       )}
+      {!!days?.length && (
+        <div className="mb-4 -mx-3 px-3 sm:mx-0 sm:px-0 overflow-x-auto">
+          <div className="flex gap-2 w-max pb-1">
+            {days.map((d, i) => {
+              const on = (pick || days[0].id) === d.id;
+              const n = d.items?.length ?? 0;
+              const iso = d.date ?? d.id;
+              const label =
+                i === 0 && iso === new Date().toLocaleDateString("fr-CA", { timeZone: "Europe/Paris" })
+                  ? "Aujourd'hui"
+                  : new Date(`${iso.slice(0, 10)}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+              return (
+                <button
+                  key={d.id}
+                  onClick={() => setPick(d.id)}
+                  className={`shrink-0 text-sm font-semibold rounded-full border px-3 py-1.5 capitalize ${
+                    on ? "bg-[#173a5e] border-[#173a5e] text-white" : "bg-white border-gray-200 text-gray-700 hover:border-[#173a5e]"
+                  }`}
+                >
+                  {label} <span className={on ? "text-blue-100" : "text-gray-400"}>· {n}</span>
+                </button>
+              );
+            })}
+            {days.length > 1 && (
+              <button
+                onClick={() => setPick("all")}
+                className={`shrink-0 text-sm font-semibold rounded-full border px-3 py-1.5 ${
+                  pick === "all" ? "bg-[#173a5e] border-[#173a5e] text-white" : "bg-white border-gray-200 text-gray-700 hover:border-[#173a5e]"
+                }`}
+              >
+                Tout voir
+              </button>
+            )}
+          </div>
+        </div>
+      )}
       <div className="space-y-5">
-        {days?.map((d) => {
+        {days?.filter((d) => pick === "all" || d.id === (pick || days[0].id)).map((d) => {
           const isNew = (d.date ?? "") > seen && !d.nothingNew;
           return (
             <section key={d.id} className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
