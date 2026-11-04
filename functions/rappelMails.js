@@ -3,6 +3,8 @@
 // 10 prochaines minutes et prévient la personne qui doit rappeler (« Attribué
 // à », sinon « Commercial ») + la boîte contact@. Un seul mail par rappel
 // (trace dans rappel_mails/<fiche>_<date>_<heure>). Rappels sans heure : rien.
+// Minuterie Cloud Scheduler : rôle « Administrateur Cloud Scheduler » donné au
+// compte de déploiement le 04/11/2026.
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 
 const EMAILS = {
