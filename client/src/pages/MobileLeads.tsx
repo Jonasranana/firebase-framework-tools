@@ -11,6 +11,7 @@ import { buildIcs, openIcs, type IcsEvent } from "@/lib/ics";
 import { trancheInfo } from "@/lib/tranche";
 import { useUnreadNews } from "./ActusCRM";
 const ActusCRM = lazy(() => import("./ActusCRM"));
+import RelanceIA from "@/components/RelanceIA";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Version simple du CRM pour le téléphone : une liste de cartes au lieu du tableau,
@@ -281,6 +282,8 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
             </button>
           </div>
         )}
+
+        <RelanceIA lead={lead} email={email} etapeCol={etapeCol} />
 
         <Section title="Où en est le dossier">
           <Row label="Statut d'appel">
