@@ -1,0 +1,33 @@
+name: Publier l'actualité du jour (CRM)
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: "Point du jour, JSON encodé en base64"
+        required: true
+      dry_run:
+        description: "Essai à blanc (n'écrit rien)"
+        type: boolean
+        default: false
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
+      - name: Publier
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
+          GCLOUD_PROJECT: kachoto-7554c
+          ACTU_B64: ${{ inputs.payload }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: node scripts/publier-actu.mjs

@@ -1,14 +1,16 @@
 import { MentionPicker, MentionText, TaggedLine } from "@/components/Mentions";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BellRing, ChevronRight, FileText, MessageCircle, MessagesSquare, Phone, Search, Send, X } from "lucide-react";
 import { etapeOptions, type DossierMove } from "./DossiersBoard";
 import { authorName, dayLabel, hhmm, isChat, isMailReceived, movementText } from "./LeadChat";
 import { RappelPicker } from "@/components/RappelCell";
-import { LEAD_STATUSES, formatPhone, isClosedStatus, statusInfo, telHref, whatsappHref, type Lead, type LeadStatus } from "@/lib/crm";
+import { NEWS_VIEWERS, LEAD_STATUSES, formatPhone, isClosedStatus, statusInfo, telHref, whatsappHref, type Lead, type LeadStatus } from "@/lib/crm";
 import { ATTRIBUE, ATTRIBUE_KEY, type LeadColumn } from "@/lib/crmColumns";
 import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelShort } from "@/lib/rappel";
 import { buildIcs, openIcs, type IcsEvent } from "@/lib/ics";
 import { trancheInfo } from "@/lib/tranche";
+import { useUnreadNews } from "./ActusCRM";
+const ActusCRM = lazy(() => import("./ActusCRM"));
 
 // ─────────────────────────────────────────────────────────────────────────
 // Version simple du CRM pour le téléphone : une liste de cartes au lieu du tableau,
@@ -617,7 +619,10 @@ export default function MobileLeads(props: Props) {
   const { leads, all, total, query, onQuery, rappelsOnly, onRappelsOnly, lateCount } = props;
   const [openId, setOpenId] = useState<string | null>(null);
   const [limit, setLimit] = useState(30);
-  const [tab, setTab] = useState<"liste" | "agenda">("liste");
+  const [tab, setTab] = useState<"liste" | "agenda" | "actus">("liste");
+  // Onglet « Actus » (veille aides) : seulement pour la famille et le compte contact.
+  const canNews = NEWS_VIEWERS.includes(props.email.toLowerCase());
+  const unreadNews = useUnreadNews(canNews);
   const [groupFilter, setGroupFilter] = useState("");
   const [callApp, setCallAppState] = useState<CallApp>(readCallApp);
   const [toast, setToast] = useState("");
@@ -678,20 +683,23 @@ export default function MobileLeads(props: Props) {
     <div ref={topRef} style={{ touchAction: "pan-x pan-y" }}>
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
-          {([["liste", "📋 Clients"], ["agenda", "🔔 À rappeler"]] as const).map(([k, label]) => (
+          {([["liste", "📋 Clients"], ["agenda", "🔔 À rappeler"], ...(canNews ? [["actus", "📰 Actus"]] : [])] as [typeof tab, string][]).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
               className={`flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-bold py-2 rounded-xl ${tab === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}
             >
               {label}
+              {k === "actus" && unreadNews > 0 && (
+                <span className="min-w-[20px] rounded-full bg-red-500 text-white text-[11px] font-black px-1.5 leading-5">{unreadNews}</span>
+              )}
               {k === "agenda" && lateCount > 0 && (
                 <span className="min-w-[20px] rounded-full bg-red-500 text-white text-[11px] font-black px-1.5 leading-5">{lateCount}</span>
               )}
             </button>
           ))}
         </div>
-        {tab !== "agenda" && (
+        {tab === "liste" && (
           <>
             <div className="relative">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -747,6 +755,13 @@ export default function MobileLeads(props: Props) {
         )}
       </div>
 
+      {tab === "actus" && (
+        <div className="-mx-4">
+          <Suspense fallback={<p className="text-sm text-gray-400 py-10 text-center">Chargement…</p>}>
+            <ActusCRM />
+          </Suspense>
+        </div>
+      )}
       {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} onStatus={props.onStatus} onPatch={props.onPatch} />}
 
       {tab === "liste" && (
