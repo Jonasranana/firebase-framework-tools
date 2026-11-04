@@ -18,6 +18,19 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-04-relance-v2",
+    date: "2026-11-04",
+    emoji: "✨",
+    titre: "Assistant de relance : réponse plus courte et mieux rangée",
+    pour: NEWS_VIEWERS,
+    points: [
+      "En haut de la bulle violette : quoi faire, quel jour et à quelle heure, avec l'étiquette et l'étape proposées.",
+      "Puis l'argument clé à utiliser au prochain appel, et la fiche du client, toujours dans le même ordre.",
+      "Le résumé et le détail de l'appel sont rangés derrière « ▼ Résumé et détail de l'appel ».",
+      "L'IA tient compte maintenant de toute la ligne du client dans le tableau.",
+    ],
+  },
+  {
     id: "2026-11-04-relance",
     date: "2026-11-04",
     emoji: "🤖",
