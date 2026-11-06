@@ -52,8 +52,9 @@ const errText = (e: unknown) => {
 
 const lists = (etapeCol?: LeadColumn) => {
   const etapes = (etapeCol?.options ?? []).filter((o) => o.label && !o.off).map((o) => ({ key: o.key, label: o.label }));
-  const statuts = LEAD_STATUSES.filter((s) => s.label).map((s) => ({ key: s.key, label: s.label }));
-  const labels: Record<string, string> = Object.fromEntries([...statuts, ...etapes].map((o) => [o.key, o.label]));
+  const tous = LEAD_STATUSES.filter((s) => s.label).map((s) => ({ key: s.key, label: s.label, off: (s as { off?: boolean }).off }));
+  const statuts = tous.filter((s) => !s.off).map(({ key, label }) => ({ key, label }));
+  const labels: Record<string, string> = Object.fromEntries([...tous, ...etapes].map((o) => [o.key, o.label]));
   return { etapes, statuts, labels };
 };
 

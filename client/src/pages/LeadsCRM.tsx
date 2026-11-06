@@ -663,7 +663,7 @@ const LeadSheet = ({
                   onChange={(e) => changeStatus(e.target.value as LeadStatus)}
                   className={inputCls}
                 >
-                  {LEAD_STATUSES.map((s) => (
+                  {LEAD_STATUSES.filter((s) => !(s as { off?: boolean }).off || s.key === lead.status).map((s) => (
                     <option key={s.key} value={s.key}>
                       {s.label || "(vide)"}
                     </option>
@@ -2050,7 +2050,7 @@ export default function LeadsCRM({
       {/* Vue colonnes : glisser-déposer pour changer de statut (ordinateur) */}
       {leads && total > 0 && view === "colonnes" && (
         <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 px-4 items-start snap-x">
-          {LEAD_STATUSES.map((s) => {
+          {LEAD_STATUSES.filter((s) => !(s as { off?: boolean }).off || baseFiltered.some((l) => l.status === s.key)).map((s) => {
             const col = baseFiltered.filter((l) => l.status === s.key);
             return (
               <div
