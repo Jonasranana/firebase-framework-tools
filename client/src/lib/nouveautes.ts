@@ -18,6 +18,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-06-etiquettes-visibles",
+    date: "2026-11-06",
+    emoji: "🏷️",
+    titre: "Les étiquettes ne s'affichent plus vides",
+    points: [
+      "Certaines étiquettes (« Lead pas bon », « Prospe pas bon »…) pouvaient apparaître vides alors qu'elles étaient bien enregistrées : c'est corrigé, rien n'avait été perdu.",
+      "Les fiches qui portent une ancienne étiquette retirée de la liste (ex. « manque les info ») affichent de nouveau son nom.",
+      "Si une étiquette vous paraît vide, rechargez la page avant de la retaper.",
+    ],
+  },
+  {
     id: "2026-11-04-actus-jours",
     date: "2026-11-04",
     emoji: "📰",

@@ -216,6 +216,12 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
   const st = (LEAD_STATUSES as unknown) as Opt[];
   st.length = 0;
   st.push(...(c.options?.status ?? BASE_STATUSES).map((x) => ({ ...x })));
+  // Étiquette d'origine retirée de la liste : les fiches qui la portent encore gardent son nom à l'écran
+  // (au lieu d'une case vide). Elle reste masquée dans la liste de choix (« off »).
+  const vide = st.findIndex((x) => x.key === "vide");
+  const missing = BASE_STATUSES.filter((b) => b.key !== "vide" && !st.some((x) => x.key === b.key)).map((b) => ({ ...b, off: true }));
+  if (missing.length) st.splice(vide >= 0 ? vide : st.length, 0, ...missing);
+  if (!st.some((x) => x.key === "vide")) st.push({ key: "vide", label: "", hex: "#c4c4c4" });
   const deleted = new Set(c.deleted ?? []);
   const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || (x.key === ATTRIBUE_KEY && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
   const byKey = new Map(all.map((x) => [x.key, x]));

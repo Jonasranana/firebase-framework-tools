@@ -832,7 +832,7 @@ const BulkBar = ({
         </PopoverTrigger>
         <PopoverContent side="top" align="center" sideOffset={12} className={`${pop} w-[min(640px,92vw)] max-h-80 overflow-y-auto p-3`}>
           <div className="grid gap-1.5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))" }}>
-            {LEAD_STATUSES.filter((x) => x.label !== "").map((x) => (
+            {LEAD_STATUSES.filter((x) => x.label !== "" && !(x as { off?: boolean }).off).map((x) => (
               <button
                 key={x.key}
                 onClick={() => {
