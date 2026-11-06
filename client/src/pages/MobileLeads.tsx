@@ -118,6 +118,8 @@ type Props = {
   onNote: (id: string, text: string) => Promise<void>;
   onChat: (id: string) => void;
   onFull: (id: string) => void;
+  // « ➕ Nouveau client » : ouvre la fiche de création (comme le bouton Ajouter de l'ordinateur).
+  onAddLead?: () => void;
 };
 
 const ago = (iso: string) => {
@@ -712,6 +714,15 @@ export default function MobileLeads(props: Props) {
         </div>
         {tab === "liste" && (
           <>
+            {props.onAddLead && (
+              <button
+                onClick={props.onAddLead}
+                className="w-full mb-2 inline-flex items-center justify-center gap-1.5 text-[15px] font-bold text-white rounded-2xl py-2.5 shadow-sm"
+                style={{ background: "linear-gradient(90deg,#ff8a00,#e0218a)" }}
+              >
+                ➕ Nouveau client
+              </button>
+            )}
             <div className="relative">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
