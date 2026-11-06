@@ -171,9 +171,10 @@ export function toIso(v: unknown): string {
 
 // Normalise un document Firestore en Lead (tolérant aux champs manquants).
 export function leadFromDoc(id: string, d: Record<string, any>): Lead {
-  const status: LeadStatus = LEAD_STATUSES.some((s) => s.key === d.status)
-    ? d.status
-    : LEGACY_STATUS[d.status] ?? "vide";
+  // Une étiquette ajoutée dans le CRM (clé « o_… ») n'est connue qu'une fois la liste des étiquettes chargée :
+  // on garde toujours la clé enregistrée, sinon la fiche s'afficherait vide pour toute la session.
+  const raw = typeof d.status === "string" ? d.status : "";
+  const status = (LEAD_STATUSES.some((s) => s.key === raw) ? raw : LEGACY_STATUS[raw] ?? (raw || "vide")) as LeadStatus;
   return {
     id,
     name: String(d.name ?? ""),
