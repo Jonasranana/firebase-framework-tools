@@ -287,7 +287,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
         <Section title="Où en est le dossier">
           <Row label="Statut d'appel">
             <select value={lead.status} onChange={(e) => onStatus(lead.id, e.target.value as LeadStatus)} className={inputCls}>
-              {LEAD_STATUSES.map((s) => (
+              {LEAD_STATUSES.filter((s) => !(s as { off?: boolean }).off || s.key === lead.status).map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label || "(vide)"}
                 </option>
