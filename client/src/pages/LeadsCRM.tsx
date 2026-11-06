@@ -412,6 +412,7 @@ const LeadSheet = ({
   creating,
   email,
   onClose,
+  onCreated,
   focusUpdates,
   boardId = LEADS_BOARD_ID,
 }: {
@@ -421,6 +422,7 @@ const LeadSheet = ({
   creating: boolean;
   email: string;
   onClose: () => void;
+  onCreated?: (id: string) => void;
 }) => {
   const open = creating || !!lead;
   const [draft, setDraft] = useState<Draft>(draftOf(lead ?? undefined));
@@ -515,7 +517,7 @@ const LeadSheet = ({
       };
       if (creating) {
         const { m, db } = await fs();
-        await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
+        const ref = await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
           ...clean,
           board: boardId,
           source: "saisie-manuelle",
@@ -528,7 +530,9 @@ const LeadSheet = ({
           updatedAt: m.serverTimestamp(),
           updatedBy: email,
         });
-        onClose();
+        // On ouvre tout de suite la fiche créée : on voit qu'elle existe, même si un filtre la cache du tableau.
+        if (onCreated) onCreated(ref.id);
+        else onClose();
       } else if (lead) {
         const { m } = await fs();
         const before = draftOf(lead);
@@ -1768,7 +1772,7 @@ export default function LeadsCRM({
         source: "saisie-manuelle",
         projet: "",
         status: "nouveau_lead",
-        group: groupId,
+        group: groupId || DEFAULT_LEAD_GROUPS[0].id,
         rappelLe: "",
         details: {},
         notes: [],
@@ -1999,6 +2003,7 @@ export default function LeadsCRM({
             await callFn("postUpdate", { kind: "lead", id, text });
           }}
           onChat={(id) => setChatId(id)}
+          onAddLead={() => setCreating(true)}
           onFull={(id) => {
             setOpenId(id);
             setFocusUpdates(false);
@@ -2178,6 +2183,10 @@ export default function LeadsCRM({
         onClose={() => {
           setOpenId(null);
           setCreating(false);
+        }}
+        onCreated={(id) => {
+          setCreating(false);
+          setOpenId(id);
         }}
       />
     </div>

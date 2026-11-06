@@ -1934,14 +1934,14 @@ export default function LeadsTable({
                     />
                   )}
 
-                  {!readOnlyGroups && (
-                    <AddRow
-                      color={st.color}
-                      focus={focusAdd === st.id}
-                      onAdd={(name) => onCreate(st.id, name)}
-                      nameWidth={isMobile && cols[0] ? mobileNameW(cols[0]) : (cols[0]?.width ?? 300)}
-                    />
-                  )}
+                  {/* Tableau groupé par une colonne : les « groupes » affichés ne sont pas de vrais
+                      groupes, le lead ajouté part dans le premier groupe (« Nouveaux leads »). */}
+                  <AddRow
+                    color={st.color}
+                    focus={focusAdd === st.id}
+                    onAdd={(name) => onCreate(readOnlyGroups ? "" : st.id, name)}
+                    nameWidth={isMobile && cols[0] ? mobileNameW(cols[0]) : (cols[0]?.width ?? 300)}
+                  />
                 </div>
                 <GroupSummary cols={cols} template={template} rows={rows} showTotals={!!showTotals} />
                 </div>

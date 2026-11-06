@@ -18,6 +18,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-06-ajout-client",
+    date: "2026-11-06",
+    emoji: "➕",
+    titre: "Ajouter un client, aussi sur téléphone",
+    points: [
+      "Version simple du téléphone : nouveau bouton « ➕ Nouveau client » en haut de la liste Clients.",
+      "Après « Créer le lead », la fiche du nouveau client s'ouvre directement : vous voyez qu'il est bien enregistré.",
+      "Sur ordinateur, la ligne « + Ajouter un lead » reste disponible même quand le tableau est groupé par une colonne (le client part dans « Nouveaux leads »).",
+      "Il faut au moins un nom ou un téléphone pour créer un client.",
+    ],
+  },
+  {
     id: "2026-11-06-etiquettes-visibles",
     date: "2026-11-06",
     emoji: "🏷️",
