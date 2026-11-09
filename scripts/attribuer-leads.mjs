@@ -10,10 +10,13 @@ const WHO = process.env.WHO || "Mebarek";
 const BY = process.env.BY || "contact@ip5energie.com";
 const STATUT = process.env.STATUT || "a_appeler";
 const GROUPE = process.env.GROUPE || "contacts";
+// Facultatif : ranger aussi les fiches attribuées dans ce groupe (ex. « nouveaux »).
+const TO_GROUP = process.env.TO_GROUP || "";
 const dry = process.env.DRY_RUN !== "false";
 initializeApp();
 const db = getFirestore();
 
+const GROUP_TITLES = Object.fromEntries(((await db.doc("crm_boards/leads").get()).get("groups") ?? []).map((g) => [g.id, g.title]));
 const snap = await db.collection("crm_leads").get();
 const ok = [];
 const f = { total: 0, autreTableau: 0, corbeille: 0, avecStatut: 0, dejaAttribuee: 0, sansTel: 0, avecHistorique: 0 };
@@ -42,13 +45,17 @@ for (const p of pick) console.log(`- ${p.name} | ${p.phone} | groupe ${p.group}$
 if (!dry) {
   const w = db.bulkWriter();
   for (const p of pick) {
+    const at = new Date().toISOString();
+    const traces = [{ id: Math.random().toString(36).slice(2, 12), text: `Attribué à : → ${WHO}`, by: BY, at, kind: "statut" }];
+    if (TO_GROUP && TO_GROUP !== p.group) traces.push({ id: Math.random().toString(36).slice(2, 12), text: `Groupe : ${GROUP_TITLES[p.group] ?? p.group} → ${GROUP_TITLES[TO_GROUP] ?? TO_GROUP}`, by: BY, at, kind: "statut" });
     w.update(db.doc(`crm_leads/${p.id}`), {
       "fields.attribue": WHO,
-      notes: FieldValue.arrayUnion({ id: Math.random().toString(36).slice(2, 12), text: `Attribué à : → ${WHO}`, by: BY, at: new Date().toISOString(), kind: "statut" }),
+      ...(TO_GROUP ? { group: TO_GROUP } : {}),
+      notes: FieldValue.arrayUnion(...traces),
       updatedAt: Timestamp.now(),
       updatedBy: BY,
     });
   }
   await w.close();
-  console.log(`${pick.length} fiches attribuées à ${WHO}.`);
+  console.log(`${pick.length} fiches attribuées à ${WHO}${TO_GROUP ? ` et rangées dans « ${GROUP_TITLES[TO_GROUP] ?? TO_GROUP} »` : ""}.`);
 }
