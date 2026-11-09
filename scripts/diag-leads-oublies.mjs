@@ -28,6 +28,18 @@ console.log("\n=== Fiches Facebook déjà dans le CRM ===");
 for (const d of crm.docs.filter((d) => d.data().source === "formulaire-facebook"))
   console.log(`  ${day(d.data().createdAt?.toDate?.())} | ${d.id} | ${d.data().name} | ${mask(d.data().phone)}`);
 
+// Recherche par nom dans TOUT le CRM (prospects vus dans le Centre de prospects Meta).
+{
+  const NOMS = ["clemence vallee", "gerard malen", "claire denieul", "gerard le boursicot", "gé rard", "ge rard", "martine dubreuil", "celine riffard", "christiane gratien", "michele dabrowski", "regis fumat", "marie armand", "claire claire", "nicole courault", "myriam serres", "thierry dame", "devaud", "yannic"];
+  const n = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const tout = await db.collection("crm_leads").select("name", "source", "createdAt", "deletedAt", "phone").get();
+  console.log(`\n=== Recherche par nom dans tout le CRM (${tout.size} fiches) ===`);
+  for (const nom of NOMS) {
+    const hits = tout.docs.filter((d) => n(d.data().name).includes(n(nom)));
+    console.log(`  ${hits.length ? "TROUVÉ" : "❌ ABSENT"} | ${nom} | ${hits.map((d) => `${d.id} (${d.data().source ?? "?"}, ${day(d.data().createdAt?.toDate?.())}${d.data().deletedAt ? ", supprimée" : ""})`).join(" ; ")}`);
+  }
+}
+
 const site = await db.collection("ip5_leads").where("createdAt", ">=", DEPUIS).get();
 console.log(`\n=== Demandes du site depuis ${day(DEPUIS)} : ${site.size} ===`);
 let manquants = 0;
