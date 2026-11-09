@@ -164,12 +164,15 @@ function buildLeadWelcomeEmailHtml({ nomComplet }) {
 
   <tr>
     <td style="padding:24px 24px 8px 24px; color:${NAVY_DARK}; font-size:16px; line-height:1.6;">
-      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet} 👋, IP5 Énergie.</p>
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet} 👋,</p>
+      <p style="margin:0 0 12px 0;">
+        Merci pour votre demande, et bravo : vous avez bien fait de nous contacter maintenant.
+      </p>
       <p style="margin:0;">
-        En attendant de vous avoir de vive voix, voici un résumé de la pompe à chaleur
-        <strong>Atlantic Isilia M</strong> à laquelle, selon les informations communiquées,
-        vous pourriez avoir droit à <strong style="color:${BLUE};">0&nbsp;€</strong>
-        (prise en charge à 100&nbsp;% via les aides à la rénovation énergétique)&nbsp;:
+        Selon les informations communiquées, vous pourriez faire installer la pompe à chaleur
+        <strong>Atlantic Isilia M</strong> pour <strong style="color:${BLUE};">0&nbsp;€</strong>
+        de reste à charge (prise en charge à 100&nbsp;% par les aides à la rénovation énergétique).
+        Voici ce qu'elle vous apporte&nbsp;:
       </p>
     </td>
   </tr>
@@ -204,8 +207,29 @@ function buildLeadWelcomeEmailHtml({ nomComplet }) {
   </tr>
 
   <tr>
+    <td style="padding:16px 24px 4px 24px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed; border:1px solid #fed7aa; border-radius:16px;">
+        <tr>
+          <td style="padding:16px 18px; color:${NAVY_DARK}; font-size:14px; line-height:1.6;">
+            <p style="margin:0 0 8px 0; font-size:15px; font-weight:bold; color:#c2410c;">⏳ Pourquoi il faut agir maintenant</p>
+            <p style="margin:0 0 8px 0;">
+              <strong>MaPrimeRénov'</strong> représente souvent près de la moitié de l'aide pour une pompe à chaleur.
+              Le projet de budget 2027 prévoit de la <strong>supprimer pour les pompes à chaleur à partir du 1<sup>er</sup>&nbsp;janvier 2027</strong>&nbsp;:
+              elle devrait donc s'arrêter fin décembre.
+            </p>
+            <p style="margin:0;">
+              Le traitement d'un dossier prend plusieurs semaines. Pour en profiter, la demande doit être lancée
+              <strong>dès maintenant</strong>&nbsp;: nous nous occupons de tout le dossier pour vous.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+
+  <tr>
     <td style="padding:16px 24px 4px 24px; color:${NAVY_DARK}; font-size:14px;">
-      Un conseiller vous appelle très bientôt pour valider votre dossier.
+      Un conseiller vous appelle très bientôt pour valider votre dossier et lancer la demande d'aides.
     </td>
   </tr>
 
