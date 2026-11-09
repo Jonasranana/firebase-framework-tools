@@ -24,6 +24,10 @@ for (const d of crm.docs) {
 console.log("=== Fiches CRM créées par jour et source ===");
 for (const k of Object.keys(parJour).sort()) console.log(`  ${k} : ${parJour[k]}`);
 
+console.log("\n=== Fiches Facebook déjà dans le CRM ===");
+for (const d of crm.docs.filter((d) => d.data().source === "formulaire-facebook"))
+  console.log(`  ${day(d.data().createdAt?.toDate?.())} | ${d.id} | ${d.data().name} | ${mask(d.data().phone)}`);
+
 const site = await db.collection("ip5_leads").where("createdAt", ">=", DEPUIS).get();
 console.log(`\n=== Demandes du site depuis ${day(DEPUIS)} : ${site.size} ===`);
 let manquants = 0;
