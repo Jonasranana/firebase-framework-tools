@@ -1,7 +1,7 @@
 name: Attribuer 50 fiches à Mebarek (ponctuel)
 
 # Lancement ponctuel depuis la branche de travail : 50 fiches « À appeler » de « 0/ Contacts », non attribuées,
-# attribuées à Mebarek et rangées dans « 1/Leads Mebarek ».
+# attribuées à Mebarek et rangées dans « 1/Leads Mebarek ». (relance du 09/11)
 on:
   push:
     branches: [claude/optimistic-lamport-tc88wi]
