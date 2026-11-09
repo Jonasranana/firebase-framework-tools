@@ -2,7 +2,7 @@
 // 1) Demandes du site (ip5_leads) depuis DEPUIS sans fiche CRM correspondante (crm_leads/<même id>).
 // 2) Prospects Meta (formulaires instantanés) depuis DEPUIS absents du CRM (crm_leads/fb_<id>).
 // 3) Fiches CRM créées par jour, par source (pour dater la panne).
-// N'écrit rien, n'envoie rien.
+// N'écrit rien, n'envoie rien. (période élargie)
 import { createRequire } from "node:module";
 const require = createRequire(new URL("../functions/package.json", import.meta.url));
 const { initializeApp } = require("firebase-admin/app");
