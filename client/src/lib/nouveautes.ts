@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-10-mail-bienvenue-urgence",
+    date: "2026-11-10",
+    emoji: "⏳",
+    titre: "Mail de bienvenue des prospects : nouveau texte",
+    points: [
+      "Le mail envoyé automatiquement aux prospects du site remercie le client et lui dit qu'il a bien fait de nous contacter maintenant.",
+      "Nouvel encadré « Pourquoi il faut agir maintenant » : MaPrimeRénov' (souvent près de la moitié de l'aide) devrait s'arrêter fin décembre pour les pompes à chaleur, et un dossier prend plusieurs semaines.",
+    ],
+  },
+  {
     id: "2026-11-09-article-demarchage",
     date: "2026-11-09",
     emoji: "📰",
