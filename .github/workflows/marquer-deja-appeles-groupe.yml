@@ -1,0 +1,32 @@
+name: Marquer « Déjà appelé » dans un groupe (ponctuel)
+
+on:
+  push:
+    branches: [claude/optimistic-lamport-tc88wi]
+    paths: [.github/workflows/marquer-deja-appeles-groupe.yml]
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      GOOGLE_APPLICATION_CREDENTIALS: ${{ github.workspace }}/../sa.json
+      GCLOUD_PROJECT: kachoto-7554c
+      GROUP: contacts
+      FROM: vide,a_appeler
+      HASH_FILE: appeles-onoff-2026-06-01_2026-11-10.hash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --prefix functions
+      - name: Prepare service account credentials
+        env:
+          FIREBASE_SA: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$GOOGLE_APPLICATION_CREDENTIALS"
+      - name: Écriture
+        env:
+          DRY_RUN: "false"
+        run: node scripts/marquer-deja-appeles-groupe.mjs
