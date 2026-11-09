@@ -14,6 +14,9 @@ const PHONES_RAW = (process.env.PHONES || "0684423377,0233555555,0756958150,0622
 const EXPECT = new Map(PHONES_RAW.map((p) => { const [n, x] = p.trim().split("x"); return [n, Number(x || 1)]; }));
 const PHONES = [...EXPECT.keys()];
 const FROM = (process.env.FROM || "a_appeler").split(",");
+// NAMES (facultatif, séparés par « | ») : seules ces fiches sont touchées, même si d'autres partagent le numéro.
+const key = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+const NAMES = process.env.NAMES ? new Set(process.env.NAMES.split("|").map(key)) : null;
 const norm = (p) => {
   let d = String(p ?? "").replace(/\D/g, "");
   if (d.startsWith("0033")) d = d.slice(4);
@@ -34,6 +37,7 @@ for (const d of snap.docs) {
   const x = d.data();
   if (x.deletedAt || (x.board ?? "leads") !== "leads") continue;
   if (!FROM.includes(x.status || "vide")) continue;
+  if (NAMES && !NAMES.has(key(x.name))) continue;
   const n = norm(x.phone);
   if (hits.has(n)) hits.get(n).push({ ref: d.ref, name: x.name, from: x.status || "vide" });
 }
