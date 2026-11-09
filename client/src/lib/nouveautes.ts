@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-09-article-demarchage",
+    date: "2026-11-09",
+    emoji: "📰",
+    titre: "Nouvel article sur le site : démarchage et bons réflexes",
+    points: [
+      "Dans « Conseils & actus » : ce que la loi interdit depuis juillet 2025 (appels, SMS, réseaux sociaux non demandés) et les droits du client (14 jours de rétractation).",
+      "Utile à envoyer à un client méfiant : il explique que nous ne rappelons que les personnes qui l'ont demandé.",
+    ],
+  },
+  {
     id: "2026-11-06-ajout-client",
     date: "2026-11-06",
     emoji: "➕",
