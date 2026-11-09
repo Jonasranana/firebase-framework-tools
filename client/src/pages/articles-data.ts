@@ -49,6 +49,53 @@ const img = (slug: string) => `/images/articles/${slug}.jpg`;
 
 export const ARTICLES: Article[] = [
   {
+    slug: "demarchage-renovation-energetique-ce-que-dit-la-loi",
+    title: "Démarchage pour une pompe à chaleur : ce que la loi interdit, et les bons réflexes",
+    excerpt:
+      "Appels, SMS, messages sur les réseaux sociaux : depuis juillet 2025, la prospection non sollicitée est interdite dans la rénovation énergétique. Voici ce que dit la loi, comment reconnaître une démarche douteuse et ce que vous pouvez faire si vous avez déjà signé.",
+    category: "Certification & confiance",
+    date: "2026-11-09",
+    readMinutes: 5,
+    image: img("demarchage-renovation-energetique-ce-que-dit-la-loi"),
+    imageAlt: "Unité extérieure d'une pompe à chaleur posée sur une dalle contre le mur d'une maison",
+    imageCredit: "Photo IP5 Énergie",
+    keyPoints: [
+      "Depuis le 1er juillet 2025, la prospection non demandée par téléphone, SMS, e-mail ou réseaux sociaux est interdite pour les travaux de rénovation énergétique.",
+      "Après une signature à domicile, vous disposez de 14 jours pour vous rétracter, et aucun paiement ne peut être exigé pendant les 7 premiers jours.",
+      "Ni l'Anah ni France Rénov' n'appellent pour vendre des travaux : en cas de doute, raccrochez et vérifiez par vous-même.",
+    ],
+    content: [
+      { type: "p", text: "« Bonjour, je vous appelle de la part du programme d'État pour les pompes à chaleur… » Beaucoup de propriétaires ont déjà reçu ce genre d'appel. Les aides à la rénovation énergétique ont attiré des entreprises sérieuses, mais aussi des pratiques abusives : devis gonflés, travaux bâclés, dossiers d'aides montés à l'insu des ménages. Le législateur a donc durci les règles à plusieurs reprises." },
+      { type: "h2", text: "Ce que dit la loi depuis juillet 2025" },
+      { type: "p", text: "Le démarchage téléphonique était déjà interdit dans la rénovation énergétique depuis la loi du 24 juillet 2020. La loi n° 2025-594 du 30 juin 2025 contre toutes les fraudes aux aides publiques va plus loin : depuis le 1er juillet 2025, toute sollicitation commerciale non demandée par téléphone, SMS, courriel ou réseaux sociaux est interdite pour les travaux de rénovation énergétique et d'adaptation du logement au vieillissement ou au handicap. Seule exception prévue : un contrat déjà en cours avec l'entreprise." },
+      { type: "p", text: "La même loi impose aux publicités pour des travaux de rénovation énergétique de mentionner France Rénov', le service public gratuit d'information, et aux sites internet concernés de proposer un lien vers lui. Elle renforce aussi les contrôles et les sanctions contre les fraudes aux aides." },
+      { type: "tip", title: "Un rappel que vous avez demandé n'est pas du démarchage", text: "Si vous avez vous-même rempli un formulaire, utilisé un simulateur en ligne ou laissé votre numéro pour être rappelé, l'entreprise qui vous recontacte répond à votre demande. Ce qui est interdit, c'est l'appel ou le message que vous n'avez pas sollicité." },
+      { type: "h2", text: "Les signaux qui doivent vous alerter" },
+      { type: "box", title: "Méfiance si l'on vous dit…", items: [
+        "« Nous travaillons pour l'État, l'Anah ou France Rénov' » : ces organismes ne vendent pas de travaux et ne démarchent pas.",
+        "« L'offre n'est valable qu'aujourd'hui » : une pression pour signer vite est un mauvais signe.",
+        "« Tout est gratuit, vous n'aurez rien à payer » : le reste à charge dépend de vos revenus et du projet, il ne se promet pas au téléphone.",
+        "« Donnez-moi vos codes de connexion, je m'occupe de tout » : ne confiez jamais vos identifiants personnels.",
+      ] },
+      { type: "p", text: "Autre vérification simple : l'entreprise doit être certifiée RGE pour les travaux proposés (QualiPAC pour une pompe à chaleur), sinon les aides de l'État ne sont pas accessibles. L'annuaire officiel est consultable gratuitement sur france-renov.gouv.fr." },
+      { type: "h2", text: "Vous avez signé trop vite ? Vos droits" },
+      { type: "p", text: "Un contrat signé à votre domicile, sur un salon ou à la suite d'un démarchage est un contrat « hors établissement ». Le Code de la consommation vous donne alors 14 jours pour changer d'avis, sans avoir à vous justifier (article L221-18). Pendant les 7 jours qui suivent la signature, le professionnel ne peut exiger aucun paiement ni acompte (article L221-10)." },
+      { type: "list", items: [
+        "Envoyez votre rétractation par lettre recommandée avec accusé de réception, en utilisant le formulaire joint au contrat s'il y en a un.",
+        "Gardez une copie du contrat, du devis et de tous les échanges.",
+        "Signalez les pratiques douteuses sur SignalConso (signal.conso.gouv.fr), le site de la répression des fraudes.",
+        "Pour un avis neutre sur votre projet, contactez un conseiller France Rénov' : c'est gratuit.",
+      ] },
+      { type: "faq", items: [
+        { q: "Une entreprise peut-elle m'appeler si je n'ai rien demandé ?", a: "Non, pas pour des travaux de rénovation énergétique, sauf si vous avez déjà un contrat en cours avec elle. Depuis le 1er juillet 2025, l'interdiction vise aussi les SMS, les e-mails et les réseaux sociaux." },
+        { q: "L'Anah peut-elle m'appeler pour me proposer une pompe à chaleur ?", a: "Non. L'Anah gère MaPrimeRénov' et France Rénov' informe gratuitement, mais aucun de ces organismes ne vend de travaux. Un appel qui s'en réclame pour vous vendre une installation doit vous alerter." },
+        { q: "J'ai signé chez moi hier, puis-je annuler ?", a: "Oui. Pour un contrat signé hors établissement, vous avez 14 jours pour vous rétracter, sans frais ni justification. Faites-le par écrit, de préférence en recommandé avec accusé de réception." },
+      ] },
+      { type: "p", text: "Chez IP5 Énergie, nous ne rappelons que les personnes qui nous l'ont demandé, et nous prenons le temps d'expliquer chaque aide avant toute signature. Pour une première estimation sans engagement, utilisez notre simulateur ou appelez le 07 49 52 52 67." },
+      { type: "p", text: "Sources : loi n° 2025-594 du 30 juin 2025 contre toutes les fraudes aux aides publiques (economie.gouv.fr, ANIL) ; Code de la consommation, articles L221-10 et L221-18 ; annuaire RGE de france-renov.gouv.fr." },
+    ],
+  },
+  {
     slug: "hausse-prix-gaz-chauffage-novembre-2026",
     title: "Gaz : +52 % en un an ! Quel impact sur la facture de chauffage de votre maison ?",
     excerpt:
