@@ -14,6 +14,7 @@ const mask = (p) => String(p ?? "").replace(/\s/g, "").replace(/^(.{4}).*(.{2})$
 const day = (d) => d?.toISOString?.().slice(0, 10) ?? "?";
 
 const crm = await db.collection("crm_leads").where("createdAt", ">=", DEPUIS).get();
+const ids = new Set(crm.docs.map((d) => d.id));
 const parJour = {};
 for (const d of crm.docs) {
   const x = d.data();
@@ -28,10 +29,10 @@ console.log(`\n=== Demandes du site depuis ${day(DEPUIS)} : ${site.size} ===`);
 let manquants = 0;
 for (const d of site.docs) {
   const x = d.data();
-  const fiche = await db.doc(`crm_leads/${d.id}`).get();
+  const ok = ids.has(d.id);
   const t = x.createdAt?.toDate?.()?.toISOString().slice(0, 16);
-  if (!fiche.exists) manquants++;
-  console.log(`  ${fiche.exists ? "OK " : "❌ MANQUE"} | ${t} | id ${d.id} | ${x.nomComplet || x.name || "?"} | ${mask(x.telephone || x.phone)} | mail ${x.email ? "oui" : "non"} | ${x.source || ""} | ${x.housingType || ""}`);
+  if (!ok) manquants++;
+  console.log(`  ${ok ? "OK " : "❌ MANQUE"} | ${t} | id ${d.id} | ${x.nomComplet || x.name || "?"} | ${mask(x.telephone || x.phone)} | mail ${x.email ? "oui" : "non"} | ${x.source || ""} | ${x.housingType || ""}`);
 }
 console.log(`→ ${manquants} demande(s) du site sans fiche CRM`);
 
@@ -59,12 +60,12 @@ if (!TOKEN) {
         const j = await g(url);
         for (const l of j.data ?? []) {
           total++;
-          const fiche = await db.doc(`crm_leads/fb_${l.id}`).get();
+          const ok = ids.has(`fb_${l.id}`);
           const fd = Object.fromEntries((l.field_data ?? []).map((x) => [x.name, (x.values ?? [])[0]]));
           const nom = fd.full_name || fd.nom_complet || fd["nom_complet"] || Object.entries(fd).find(([k]) => /nom|name/i.test(k))?.[1] || "?";
           const tel = Object.entries(fd).find(([k]) => /phone|t[ée]l[ée]phone|num/i.test(k))?.[1];
-          if (!fiche.exists) manqueFb++;
-          console.log(`  ${fiche.exists ? "OK " : "❌ MANQUE"} | ${l.created_time} | fb_${l.id} | ${nom} | ${mask(tel)} | form « ${f.name} » (${f.status})`);
+          if (!ok) manqueFb++;
+          console.log(`  ${ok ? "OK " : "❌ MANQUE"} | ${l.created_time} | fb_${l.id} | ${nom} | ${mask(tel)} | form « ${f.name} » (${f.status})`);
         }
         url = j.paging?.next ? j.paging.next.replace(`${G}/`, "").replace(/&?access_token=[^&]+/, "") : null;
       }
