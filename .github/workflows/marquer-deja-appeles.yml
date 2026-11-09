@@ -25,8 +25,8 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
           DRY_RUN: "true"
-          PHONES: "0686587604,0680837086x3,0658289823,0687911292,0617610970,0683585951,0670357651,0611550651,0786510611,0243291566,0687134662,0609750150,0673687215,0621965586"
-          NAMES: "Fabien Mascourou|Teulier Patrice|Ferme de Cyrina|Fournier Bernard|Gironis Benoit|Gabeon|W & B|Pascal Paramelle|Pierre-Alain Taisne|Hyacinthe Menuiseries|Klene Mylene|Malabry Didier|Le Diouron LOIC|SCEA de Belinval|Vincent balligand|Nr aménagement"
+          PHONES: "0621965586"
+          NAMES: "Nr aménagement|Nr amnagement"
           FROM: "vide,a_appeler"
         run: node scripts/marquer-deja-appeles.mjs
       - name: Écriture
@@ -34,7 +34,7 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
           DRY_RUN: "false"
-          PHONES: "0686587604,0680837086x3,0658289823,0687911292,0617610970,0683585951,0670357651,0611550651,0786510611,0243291566,0687134662,0609750150,0673687215,0621965586"
-          NAMES: "Fabien Mascourou|Teulier Patrice|Ferme de Cyrina|Fournier Bernard|Gironis Benoit|Gabeon|W & B|Pascal Paramelle|Pierre-Alain Taisne|Hyacinthe Menuiseries|Klene Mylene|Malabry Didier|Le Diouron LOIC|SCEA de Belinval|Vincent balligand|Nr aménagement"
+          PHONES: "0621965586"
+          NAMES: "Nr aménagement|Nr amnagement"
           FROM: "vide,a_appeler"
         run: node scripts/marquer-deja-appeles.mjs
