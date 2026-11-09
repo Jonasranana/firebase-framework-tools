@@ -25,10 +25,14 @@ jobs:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
           DRY_RUN: "true"
+          PHONES: "0686587604,0680837086x3,0658289823,0687911292,0617610970,0683585951,0670357651,0611550651,0786510611"
+          FROM: "vide"
         run: node scripts/marquer-deja-appeles.mjs
       - name: Écriture
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
           DRY_RUN: "false"
+          PHONES: "0686587604,0680837086x3,0658289823,0687911292,0617610970,0683585951,0670357651,0611550651,0786510611"
+          FROM: "vide"
         run: node scripts/marquer-deja-appeles.mjs
