@@ -32,11 +32,11 @@ for (const d of crm.docs.filter((d) => d.data().source === "formulaire-facebook"
 {
   const NOMS = ["clemence vallee", "gerard malen", "claire denieul", "gerard le boursicot", "gé rard", "ge rard", "martine dubreuil", "celine riffard", "christiane gratien", "michele dabrowski", "regis fumat", "marie armand", "claire claire", "nicole courault", "myriam serres", "thierry dame", "devaud", "yannic"];
   const n = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  const tout = await db.collection("crm_leads").select("name", "source", "createdAt", "deletedAt", "phone").get();
+  const tout = await db.collection("crm_leads").select("name", "source", "createdAt", "deletedAt", "deletedBy", "phone", "status").get();
   console.log(`\n=== Recherche par nom dans tout le CRM (${tout.size} fiches) ===`);
   for (const nom of NOMS) {
     const hits = tout.docs.filter((d) => n(d.data().name).includes(n(nom)));
-    console.log(`  ${hits.length ? "TROUVÉ" : "❌ ABSENT"} | ${nom} | ${hits.map((d) => `${d.id} (${d.data().source ?? "?"}, ${day(d.data().createdAt?.toDate?.())}${d.data().deletedAt ? ", supprimée" : ""})`).join(" ; ")}`);
+    console.log(`  ${hits.length ? "TROUVÉ" : "❌ ABSENT"} | ${nom} | ${hits.map((d) => `${d.id} (${d.data().source ?? "?"}, ${day(d.data().createdAt?.toDate?.())}${d.data().deletedAt ? `, supprimée le ${String(d.data().deletedAt?.toDate?.()?.toISOString?.() ?? d.data().deletedAt).slice(0, 16)} par ${d.data().deletedBy ?? "?"}, statut ${d.data().status ?? "?"}` : ""})`).join(" ; ")}`);
   }
 }
 
