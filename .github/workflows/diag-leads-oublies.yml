@@ -4,7 +4,7 @@ on:
     inputs:
       depuis:
         description: "Date de début (AAAA-MM-JJ)"
-        default: "2026-09-01"
+        default: "2026-11-01"
   push:
     branches: [claude/ip5-energie-landing-8fhstc]
     paths: [scripts/diag-leads-oublies.mjs]
@@ -27,7 +27,7 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
-          DEPUIS: ${{ inputs.depuis || '2026-09-01' }}
+          DEPUIS: ${{ inputs.depuis || '2026-11-01' }}
         run: |
           gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
           v=$(gcloud secrets versions access latest --secret=META_PAGE_TOKEN --project kachoto-7554c 2>/dev/null | tr -d '\r\n' || true)
