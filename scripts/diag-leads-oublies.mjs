@@ -40,6 +40,22 @@ for (const d of crm.docs.filter((d) => d.data().source === "formulaire-facebook"
   }
 }
 
+// Noms lisibles des étiquettes et étapes (codes o_… / e_…).
+{
+  const want = ["o_e4hsn", "o_ef1qw", "o_z95tk", "o_yt99h", "o_kwz13", "o_giqr7", "o_vjwbo", "e_propal", "e_propal_recue"];
+  const walk = (v, path = "") => {
+    if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`));
+    else if (v && typeof v === "object") {
+      const k = v.key ?? v.id;
+      if (want.includes(k)) console.log(`  ${k} = ${v.label ?? v.title ?? v.name ?? JSON.stringify(v).slice(0, 80)}`);
+      for (const [kk, vv] of Object.entries(v)) walk(vv, `${path}.${kk}`);
+    }
+  };
+  console.log("\n=== Noms des étiquettes ===");
+  for (const d of (await db.collection("crm_boards").get()).docs) walk(d.data());
+  for (const d of (await db.collection("crm_config").get().catch(() => ({ docs: [] }))).docs) walk(d.data());
+}
+
 const site = await db.collection("ip5_leads").where("createdAt", ">=", DEPUIS).get();
 console.log(`\n=== Demandes du site depuis ${day(DEPUIS)} : ${site.size} ===`);
 let manquants = 0;
