@@ -30,13 +30,13 @@ for (const d of crm.docs.filter((d) => d.data().source === "formulaire-facebook"
 
 // Recherche par nom dans TOUT le CRM (prospects vus dans le Centre de prospects Meta).
 {
-  const NOMS = ["clemence vallee", "gerard malen", "claire denieul", "gerard le boursicot", "gé rard", "ge rard", "martine dubreuil", "celine riffard", "christiane gratien", "michele dabrowski", "regis fumat", "marie armand", "claire claire", "nicole courault", "myriam serres", "thierry dame", "devaud", "yannic"];
+  const NOMS = ["edith bertouin", "bernuchon", "kandjee", "clemence vallee", "gerard malen", "devaud", "claire claire", "gerard le boursicot", "yannic", "myriam serres", "thierry dame", "nicole courault", "gury", "celine riffard", "christiane gratien", "michele dabrowski", "regis fumat", "marie armand", "martine dubreuil"];
   const n = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-  const tout = await db.collection("crm_leads").select("name", "source", "createdAt", "deletedAt", "deletedBy", "phone", "status").get();
+  const tout = await db.collection("crm_leads").select("name", "source", "createdAt", "deletedAt", "deletedBy", "phone", "status", "group", "fields", "notes").get();
   console.log(`\n=== Recherche par nom dans tout le CRM (${tout.size} fiches) ===`);
   for (const nom of NOMS) {
     const hits = tout.docs.filter((d) => n(d.data().name).includes(n(nom)));
-    console.log(`  ${hits.length ? "TROUVÉ" : "❌ ABSENT"} | ${nom} | ${hits.map((d) => `${d.id} (${d.data().source ?? "?"}, ${day(d.data().createdAt?.toDate?.())}${d.data().deletedAt ? `, supprimée le ${String(d.data().deletedAt?.toDate?.()?.toISOString?.() ?? d.data().deletedAt).slice(0, 16)} par ${d.data().deletedBy ?? "?"}, statut ${d.data().status ?? "?"}` : ""})`).join(" ; ")}`);
+    console.log(`  ${hits.length ? "TROUVÉ" : "❌ ABSENT"} | ${nom} | ${hits.map((d) => `${d.id} (${d.data().source ?? "?"}, ${day(d.data().createdAt?.toDate?.())}${(() => { const x = d.data(); const nn = (x.notes ?? []).filter((n) => n.kind !== "statut"); const last = nn.length ? String(nn[nn.length - 1].text).slice(0, 80).replace(/\s+/g, " ") : ""; return ` | statut ${x.status ?? "?"} | groupe ${x.group ?? "?"} | étape ${x.fields?.c_sxgefs ?? "-"} | attribué ${x.fields?.attribue ?? "-"} | rappel ${x.rappelLe ?? ""} | ${nn.length} note(s)${last ? ` « ${last} »` : ""}`; })()}${d.data().deletedAt ? `, supprimée le ${String(d.data().deletedAt?.toDate?.()?.toISOString?.() ?? d.data().deletedAt).slice(0, 16)} par ${d.data().deletedBy ?? "?"}, statut ${d.data().status ?? "?"}` : ""})`).join(" ; ")}`);
   }
 }
 
