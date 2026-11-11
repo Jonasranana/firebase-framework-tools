@@ -3373,8 +3373,10 @@ const motsDuNom = (v) =>
 // Fiche du CRM correspondant à un dossier Praimy : identifiant ou référence, sinon nom
 // (même texte, ou au moins 2 mots en commun quel que soit l'ordre, les accents et les majuscules).
 function findLeadForPraimy(leads, d) {
+  // Référence tapée à la main dans « 🔗 Réf Praimy » (ex. « #IC-2026-10-0039 ») : prioritaire.
+  const ref = (v) => String(v || "").replace(/[#\s]/g, "").toUpperCase();
   const byId = leads.find(
-    (l) => (d.client_id && l.praimyClientId === d.client_id) || (d.reference && l.fields?.refPraimy === d.reference),
+    (l) => (d.client_id && l.praimyClientId === d.client_id) || (d.reference && ref(l.fields?.refPraimy) === ref(d.reference)),
   );
   if (byId) return byId;
   const clientNom = (d.client_nom || "").toLowerCase().trim();
@@ -3384,12 +3386,18 @@ function findLeadForPraimy(leads, d) {
   });
   if (exact) return exact;
   const mots = new Set(motsDuNom(d.client_nom));
-  if (mots.size < 2) return undefined;
-  const candidats = leads.filter((l) => motsDuNom(l.name).filter((w) => mots.has(w)).length >= 2);
+  if (!mots.size) return undefined;
   // Plusieurs fiches possibles : on préfère une fiche signée, sinon on ne devine pas.
-  if (candidats.length === 1) return candidats[0];
-  const signes = candidats.filter((l) => /^o_yt99h$|sign/i.test(String(l.status || "")));
-  return signes.length === 1 ? signes[0] : undefined;
+  const unique = (list) => {
+    if (list.length === 1) return list[0];
+    const signes = list.filter((l) => /^o_yt99h$|sign/i.test(String(l.status || "")));
+    return signes.length === 1 ? signes[0] : undefined;
+  };
+  const deuxMots = leads.filter((l) => motsDuNom(l.name).filter((w) => mots.has(w)).length >= 2);
+  if (deuxMots.length) return unique(deuxMots);
+  // Sinon le nom de famille seul (mot d'au moins 4 lettres), s'il ne désigne qu'une fiche.
+  const longs = new Set([...mots].filter((w) => w.length >= 4));
+  return unique(leads.filter((l) => motsDuNom(l.name).some((w) => longs.has(w))));
 }
 
 // Champs repris de Praimy pour les calculs CEE / MaPrimeRénov' (zone + profil, montants).
@@ -3403,6 +3411,8 @@ async function praimyMoneyUpdates(d) {
   if (cee !== null) u["fields.primeCee"] = String(cee);
   const mpr = montant(d.mpr_octroi_eur ?? d.mpr_amount_eur);
   if (mpr !== null) u["fields.mprPraimy"] = String(mpr);
+  // Référence affichée dans « 🔗 Réf Praimy » : on voit à quel dossier la fiche est reliée.
+  if (d.reference) u["fields.refPraimy"] = String(d.reference);
   return u;
 }
 
