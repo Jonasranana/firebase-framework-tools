@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-11-ref-praimy",
+    date: "2026-11-11",
+    emoji: "🔗",
+    titre: "Nouvelle colonne « 🔗 Réf Praimy »",
+    points: [
+      "Elle montre à quel dossier Praimy la fiche est reliée (ex. #IC-2026-10-0039).",
+      "Si « Zone + Profil » reste vide alors que le client est chez Praimy (nom écrit différemment) : tapez sa référence Praimy dans cette colonne. Le lendemain matin, la zone, le profil et les montants se remplissent tout seuls.",
+    ],
+  },
+  {
     id: "2026-11-11-praimy-zone-profil",
     date: "2026-11-11",
     emoji: "🔗",
