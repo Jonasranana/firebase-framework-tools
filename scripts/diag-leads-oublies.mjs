@@ -15,6 +15,8 @@ const day = (d) => d?.toISOString?.().slice(0, 10) ?? "?";
 
 const crm = await db.collection("crm_leads").where("createdAt", ">=", DEPUIS).get();
 const ids = new Set(crm.docs.map((d) => d.id));
+const norm = (t) => { const d = String(t ?? "").replace(/\D/g, ""); return d.length >= 9 ? d.slice(-9) : ""; };
+const tels = new Set(crm.docs.map((d) => norm(d.data().phone)).filter(Boolean));
 const parJour = {};
 for (const d of crm.docs) {
   const x = d.data();
@@ -92,10 +94,10 @@ if (!TOKEN) {
         const j = await g(url);
         for (const l of j.data ?? []) {
           total++;
-          const ok = ids.has(`fb_${l.id}`);
           const fd = Object.fromEntries((l.field_data ?? []).map((x) => [x.name, (x.values ?? [])[0]]));
           const nom = fd.full_name || fd.nom_complet || fd["nom_complet"] || Object.entries(fd).find(([k]) => /nom|name/i.test(k))?.[1] || "?";
           const tel = Object.entries(fd).find(([k]) => /phone|t[ée]l[ée]phone|num/i.test(k))?.[1];
+          const ok = ids.has(`fb_${l.id}`) || (norm(tel) && tels.has(norm(tel)));
           if (!ok) manqueFb++;
           console.log(`  ${ok ? "OK " : "❌ MANQUE"} | ${l.created_time} | fb_${l.id} | ${nom} | ${mask(tel)} | form « ${f.name} » (${f.status})`);
         }
