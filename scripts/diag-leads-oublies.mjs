@@ -139,3 +139,22 @@ if (!TOKEN) {
   }
   console.log(`→ ${ok}/${signes.length} avec code postal + profil calculable`);
 }
+
+// Praimy (lecture seule) : état de la connexion et nombre de dossiers, sans aucune donnée client.
+{
+  const key = String(process.env.PRAIMY_API_KEY ?? "").trim();
+  if (!key) console.log("\n(Praimy : clé absente)");
+  else {
+    try {
+      const r = await fetch("https://portail.praimy.fr/api/v1/dossiers/", { headers: { "X-API-Key": key, Accept: "application/json" } });
+      let j = null; try { j = await r.json(); } catch {}
+      const items = Array.isArray(j) ? j : j?.items ?? [];
+      console.log(`\n=== Praimy : HTTP ${r.status} | ${items.length} dossier(s) | total annoncé ${j?.total ?? j?.count ?? "?"} ===`);
+      if (items[0]) console.log(`noms des champs : ${Object.keys(items[0]).join(", ")}`);
+      const n = (k) => items.filter((d) => d[k] !== null && d[k] !== undefined && d[k] !== "").length;
+      console.log(`remplis : prime_cee ${n("prime_cee")} | mpr_amount_eur ${n("mpr_amount_eur")}`);
+    } catch (e) {
+      console.log("Praimy : erreur " + e.message);
+    }
+  }
+}
