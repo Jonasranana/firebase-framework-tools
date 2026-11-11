@@ -140,7 +140,7 @@ if (!TOKEN) {
   console.log(`→ ${ok}/${signes.length} avec code postal + profil calculable`);
 }
 
-// Praimy (lecture seule) : état de la connexion et nombre de dossiers, sans aucune donnée client.
+// Praimy (lecture seule) : état de la connexion (relance) et nombre de dossiers, sans aucune donnée client.
 {
   const key = String(process.env.PRAIMY_API_KEY ?? "").trim();
   if (!key) console.log("\n(Praimy : clé absente)");
