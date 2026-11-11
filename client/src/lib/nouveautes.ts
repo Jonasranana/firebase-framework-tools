@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-11-zone-profil",
+    date: "2026-11-11",
+    emoji: "🧮",
+    titre: "Nouvelle colonne « Zone + Profil (CEE / MPR) »",
+    points: [
+      "Dans le tableau des leads, juste après « Rappel » : choisissez la zone (H1, H2, H3) et le profil du client (🔵 Grand précaire, 🟡 Précaire, 🟣 Classique) dans une seule case.",
+      "À remplir surtout pour les clients « Signé en octobre » et « Signé en novembre » : ça sert à calculer ce qu'on va toucher en CEE et en MaPrimeRénov'.",
+    ],
+  },
+  {
     id: "2026-11-10-mail-bienvenue-urgence",
     date: "2026-11-10",
     emoji: "⏳",

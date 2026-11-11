@@ -1,4 +1,3 @@
-import { trancheInfo } from "@/lib/tranche";
 import { LEAD_STATUSES, LEAD_TYPES, type Lead, type Opt } from "@/lib/crm";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -113,6 +112,13 @@ const TYPE_LEAD_OPTS: Opt[] = [
   o("Autre", "#757575"),
 ];
 
+// Zone climatique + profil de revenus, choisis à la main sur les signés (calculs CEE / MaPrimeRénov').
+const ZONE_PROFIL: Opt[] = (["H1", "H2", "H3"] as const).flatMap((z) => [
+  o(`${z} bleu`, "#2f7df6", `${z} · 🔵 Grand précaire`),
+  o(`${z} jaune`, "#e0b000", `${z} · 🟡 Précaire`),
+  o(`${z} classique`, "#8b4be0", `${z} · 🟣 Classique`),
+]);
+
 export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "name", title: "Noms sociétés", type: "name", width: 300, core: "name" },
   { key: "status", title: "📞 Statut Appel", type: "status", width: 170, core: "status", options: LEAD_STATUSES },
@@ -132,7 +138,7 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "revenuFiscal", title: "💰 Revenu fiscal (Calcul)", type: "number", width: 150, unit: "€" },
   { key: "profilAides", title: "🎨 Profil aides (Calcul)", type: "formula", width: 150 },
   // Zone (H1/H2/H3) + profil (grand précaire / précaire…) dans une seule case, pour les calculs CEE / MaPrimeRénov' des signés.
-  { key: "zoneProfil", title: "🧮 Zone + Profil (CEE / MPR)", type: "formula", width: 210 },
+  { key: "zoneProfil", title: "🧮 Zone + Profil (CEE / MPR)", type: "status", width: 210, options: ZONE_PROFIL },
   { key: "foyerCalc", title: "👨‍👩‍👧 Foyer (Calcul)", type: "number", width: 110 },
   { key: "foyerSite", title: "👨‍👩‍👧 Foyer (Site)", type: "text", width: 110 },
   { key: "chauffageSite", title: "🔥 Chauffage (Site)", type: "text", width: 140 },
@@ -346,22 +352,6 @@ const POS_RESSENTI = ["Positif", "Tres Positif", "Eligible", "Revenus élevés"]
 export const profilOf = (l: Lead) =>
   profilAides(l.postalCode, num(l.fields.revenuFiscal), num(l.fields.foyerCalc));
 
-// Profil : celui calculé (revenu fiscal + foyer), sinon la tranche donnée sur le site.
-const PROFIL_NOM: Record<string, string> = {
-  Bleu: "🔵 Grand précaire",
-  Jaune: "🟡 Précaire",
-  Violet: "🟣 Classique (violet)",
-  Rose: "🌸 Classique (rose)",
-};
-export function zoneProfil(l: Lead): string {
-  const zone = (zoneClimatique(l.postalCode).match(/H[123]/) ?? [""])[0];
-  const calc = profilOf(l).replace(/^\S+\s/, "");
-  const site = trancheInfo(String(l.fields.tranche ?? ""))?.name ?? "";
-  const profil = PROFIL_NOM[calc || site] ?? "";
-  if (!zone && !profil) return "";
-  return `${zone || "Zone ?"} · ${profil || "Profil ?"}`;
-}
-
 export function opportunite(l: Lead): string {
   const ressenti = l.fields.ressenti ?? "";
   const profil = profilOf(l);
@@ -398,8 +388,6 @@ export function formulaValue(l: Lead, c: LeadColumn): string {
       return opportunite(l);
     case "montantPondere":
       return montantPondere(l);
-    case "zoneProfil":
-      return zoneProfil(l);
     default:
       return "";
   }
