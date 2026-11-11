@@ -3141,19 +3141,12 @@ exports.listPraimyDossiers = onCall(
       throw new HttpsError("permission-denied", "Accès refusé.");
     }
     const key = String(PRAIMY_API_KEY.value()).trim();
-    const url = "https://portail.praimy.fr/api/v1/dossiers/";
-    const res = await fetch(url, {
-      headers: {
-        "X-API-Key": key,
-        "Accept": "application/json",
-      },
-    });
-    if (!res.ok) {
-      const errText = await res.text().catch(() => "");
-      logger.error("Erreur API Praimy listPraimyDossiers", { status: res.status, err: errText });
-      throw new HttpsError("internal", `Erreur Praimy: ${res.status}`);
+    try {
+      return { items: await fetchAllPraimyDossiers(key) };
+    } catch (e) {
+      logger.error("Erreur API Praimy listPraimyDossiers", { err: String(e?.message || e) });
+      throw e instanceof HttpsError ? e : new HttpsError("internal", "Erreur Praimy");
     }
-    return await res.json();
   }
 );
 
@@ -3303,6 +3296,144 @@ exports.exportLeadToPraimy = onCall(
   }
 );
 
+// Tous les dossiers Praimy (l'API renvoie 50 dossiers par page).
+async function fetchAllPraimyDossiers(key) {
+  const base = "https://portail.praimy.fr/api/v1/dossiers/";
+  const all = new Map();
+  let total = Infinity;
+  for (let page = 1; page <= 20 && all.size < total; page++) {
+    const res = await fetch(page === 1 ? base : `${base}?page=${page}`, {
+      headers: { "X-API-Key": key, "Accept": "application/json" },
+    });
+    if (!res.ok) {
+      if (page === 1) throw new HttpsError("internal", `Erreur API Praimy: ${res.status}`);
+      break;
+    }
+    const data = await res.json();
+    const items = Array.isArray(data) ? data : data.items || [];
+    total = Number(data.total ?? data.count ?? items.length) || items.length;
+    const before = all.size;
+    for (const d of items) all.set(d.id, d);
+    if (all.size === before) break;
+  }
+  return Array.from(all.values());
+}
+
+// Zone climatique + profil (colonne « 🧮 Zone + Profil » du CRM) à partir d'un dossier Praimy :
+// zone par le département de la ville du client, profil d'après le montant MaPrimeRénov'.
+const PRAIMY_H3 = ["06", "11", "13", "20", "30", "34", "66", "83"];
+const PRAIMY_H2 = [
+  "04", "07", "09", "12", "16", "17", "18", "22", "24", "26", "28", "29", "31", "32", "33", "35", "36", "37",
+  "40", "41", "44", "46", "47", "48", "49", "50", "53", "56", "61", "64", "65", "72", "79", "81", "82", "84", "85", "86",
+];
+// Département d'une commune (Praimy ne donne que le nom de la ville) : API publique geo.api.gouv.fr.
+const praimyDepCache = new Map();
+async function praimyDepartement(d) {
+  const cp = (JSON.stringify([d.adresse_localisee, d.ville, d.client_ville]).match(/\b\d{5}\b/) || [])[0];
+  if (cp) return cp.slice(0, 2);
+  const ville = String(d.client_ville || d.ville || "").trim();
+  if (!ville) return "";
+  if (praimyDepCache.has(ville)) return praimyDepCache.get(ville);
+  let dep = "";
+  try {
+    const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(ville)}&fields=codeDepartement&boost=population&limit=1`);
+    if (r.ok) dep = String((await r.json())?.[0]?.codeDepartement || "");
+  } catch (e) {
+    logger.warn("Département introuvable pour une ville Praimy", { err: String(e?.message || e) });
+  }
+  praimyDepCache.set(ville, dep);
+  return dep;
+}
+
+async function praimyZoneProfil(d) {
+  const dep = await praimyDepartement(d);
+  const zone = !dep ? "" : PRAIMY_H3.includes(dep) ? "H3" : PRAIMY_H2.includes(dep) ? "H2" : "H1";
+  const mprRaw = d.mpr_octroi_eur ?? d.mpr_amount_eur;
+  const mpr = Math.round(Number(mprRaw) || 0);
+  let profil = "";
+  if (mpr === PREMI_MPR_BRUT.Bleu) profil = "bleu";
+  else if (mpr === PREMI_MPR_BRUT.Jaune) profil = "jaune";
+  else if (mpr === PREMI_MPR_BRUT.Violet) profil = "classique";
+  // Pas de MaPrimeRénov' mais une prime CEE : ménage aux revenus supérieurs (rose) = classique.
+  else if (typeof mprRaw === "number" && mpr === 0 && Number(d.prime_cee) > 0) profil = "classique";
+  return zone && profil ? `${zone} ${profil}` : "";
+}
+
+// Fiche du CRM correspondant à un dossier Praimy (nom, référence ou identifiant client).
+function findLeadForPraimy(leads, d) {
+  const clientNom = (d.client_nom || "").toLowerCase().trim();
+  return leads.find((l) => {
+    const lName = String(l.name || "").toLowerCase().trim();
+    return (
+      (clientNom && lName.includes(clientNom)) ||
+      (clientNom && clientNom.includes(lName) && lName.length > 3) ||
+      (d.client_id && l.praimyClientId === d.client_id) ||
+      (d.reference && l.fields?.refPraimy === d.reference)
+    );
+  });
+}
+
+// Champs repris de Praimy pour les calculs CEE / MaPrimeRénov' (zone + profil, montants).
+async function praimyMoneyUpdates(d) {
+  const u = {};
+  const zp = await praimyZoneProfil(d);
+  if (zp) u["fields.zoneProfil"] = zp;
+  if (typeof d.prime_cee === "number") u["fields.primeCee"] = String(d.prime_cee);
+  const mpr = d.mpr_octroi_eur ?? d.mpr_amount_eur;
+  if (typeof mpr === "number") u["fields.mprPraimy"] = String(mpr);
+  return u;
+}
+
+// full = bouton « Synchroniser » (pipeline, poseur, référence, montant…) ; sinon seulement zone/profil et montants.
+async function runPraimySync(key, full) {
+  const dossiers = await fetchAllPraimyDossiers(key);
+  const leadsSnap = await db.collection("crm_leads").get();
+  const leads = [];
+  leadsSnap.forEach((doc) => !doc.data().deletedAt && leads.push({ id: doc.id, ...doc.data() }));
+
+  // Mapping du statut global Praimy vers l'étiquette Pipeline de Pac Pac
+  const mapToPipeline = (d) => {
+    const g = (d.global_status || "").toLowerCase();
+    const s = (d.statut || "").toLowerCase();
+    if (s === "abandonne" || g === "abandonne") return "Pas bon";
+    if (s === "pose" || s === "termine") return "Installé";
+    if (g === "mandat_mpr_a_signer") return "Mandat MPR à signer";
+    if (g === "en_signature_commerciale" || s === "signature") return "Devis en signature";
+    if (g === "en_audit_pre_installation" || s === "signe") return "Audit / Validé";
+    if (s === "visite") return "VT programmée";
+    return "PRAIMY";
+  };
+
+  let updatedCount = 0;
+  let zoneProfilCount = 0;
+  const batch = db.batch();
+  const done = new Set();
+  for (const d of dossiers) {
+    const match = findLeadForPraimy(leads, d);
+    if (!match || done.has(match.id)) continue;
+    done.add(match.id);
+    let updates = await praimyMoneyUpdates(d);
+    if (updates["fields.zoneProfil"]) zoneProfilCount++;
+    if (full) {
+      updates = {
+        ...updates,
+        "fields.pipeline": mapToPipeline(d),
+        "fields.poseur": "PRAIMY",
+        "fields.refPraimy": d.reference || "",
+        praimyStatut: d.statut || "",
+        praimyGlobalStatus: d.global_status || "",
+        praimyDossierId: d.id,
+      };
+      if (typeof d.reste_a_charge_ttc === "number") updates["fields.montant"] = d.reste_a_charge_ttc;
+    }
+    if (!Object.keys(updates).length) continue;
+    batch.update(db.doc(`crm_leads/${match.id}`), updates);
+    updatedCount++;
+  }
+  if (updatedCount > 0) await batch.commit();
+  return { success: true, updatedCount, zoneProfilCount, totalPraimy: dossiers.length };
+}
+
 exports.syncPraimyToPacPac = onCall(
   {
     secrets: [PRAIMY_API_KEY],
@@ -3312,86 +3443,18 @@ exports.syncPraimyToPacPac = onCall(
     if (!isCrmMember(request)) {
       throw new HttpsError("permission-denied", "Accès refusé.");
     }
-    const key = String(PRAIMY_API_KEY.value()).trim();
-    const url = "https://portail.praimy.fr/api/v1/dossiers/";
-    const res = await fetch(url, {
-      headers: {
-        "X-API-Key": key,
-        "Accept": "application/json",
-      },
-    });
-    if (!res.ok) {
-      throw new HttpsError("internal", `Erreur API Praimy: ${res.status}`);
-    }
-    const data = await res.json();
-    const dossiers = data.items || [];
-
-    // Lecture des leads existants dans Firestore
-    const leadsSnap = await db.collection("crm_leads").get();
-    const leads = [];
-    leadsSnap.forEach((doc) => leads.push({ id: doc.id, ...doc.data() }));
-
-    let updatedCount = 0;
-    const batch = db.batch();
-
-    // Mapping du statut global Praimy vers l'étiquette Pipeline de Pac Pac
-    const mapToPipeline = (d) => {
-      const g = (d.global_status || "").toLowerCase();
-      const s = (d.statut || "").toLowerCase();
-      if (s === "abandonne" || g === "abandonne") return "Pas bon";
-      if (s === "pose" || s === "termine") return "Installé";
-      if (g === "mandat_mpr_a_signer") return "Mandat MPR à signer";
-      if (g === "en_signature_commerciale" || s === "signature") return "Devis en signature";
-      if (g === "en_audit_pre_installation" || s === "signe") return "Audit / Validé";
-      if (s === "visite") return "VT programmée";
-      return "PRAIMY";
-    };
-
-    for (const d of dossiers) {
-      const clientNom = (d.client_nom || "").toLowerCase().trim();
-      const refDossier = (d.reference || "").toLowerCase().trim();
-
-      // Recherche par nom ou par référence
-      const match = leads.find((l) => {
-        const lName = String(l.name || "").toLowerCase().trim();
-        return (
-          (clientNom && lName.includes(clientNom)) ||
-          (clientNom && clientNom.includes(lName) && lName.length > 3) ||
-          l.praimyClientId === d.client_id ||
-          l.fields?.refPraimy === d.reference
-        );
-      });
-
-      if (match) {
-        const newPipeline = mapToPipeline(d);
-        const updates = {
-          "fields.pipeline": newPipeline,
-          "fields.poseur": "PRAIMY",
-          "fields.refPraimy": d.reference || "",
-          praimyStatut: d.statut || "",
-          praimyGlobalStatus: d.global_status || "",
-          praimyDossierId: d.id,
-        };
-        if (typeof d.reste_a_charge_ttc === "number") {
-          updates["fields.montant"] = d.reste_a_charge_ttc;
-        }
-        batch.update(db.doc(`crm_leads/${match.id}`), updates);
-        updatedCount++;
-      }
-    }
-
-    if (updatedCount > 0) {
-      await batch.commit();
-    }
-
-    return { success: true, updatedCount, totalPraimy: dossiers.length };
+    return runPraimySync(String(PRAIMY_API_KEY.value()).trim(), true);
   }
 );
 
-
-
-
-
+// Chaque matin : zone + profil et montants CEE / MaPrimeRénov' repris de Praimy dans le CRM (sans toucher au reste).
+exports.praimyZoneProfilQuotidien = require("firebase-functions/v2/scheduler").onSchedule(
+  { schedule: "every day 06:30", timeZone: "Europe/Paris", region: "europe-west9", secrets: [PRAIMY_API_KEY] },
+  async () => {
+    const r = await runPraimySync(String(PRAIMY_API_KEY.value()).trim(), false);
+    logger.info("Praimy → CRM (zone + profil)", r);
+  }
+);
 
 // ── Export et archivage direct vers Google Drive (Sauvegardes CRM IP5) ────────
 const DRIVE_ROOT_ID = "0AAbbtoyad7dUUk9PVA";

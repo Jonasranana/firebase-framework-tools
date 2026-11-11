@@ -18,6 +18,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-11-praimy-zone-profil",
+    date: "2026-11-11",
+    emoji: "🔗",
+    titre: "Zone + Profil et montants repris de Praimy",
+    points: [
+      "Chaque matin, le CRM remplit tout seul « 🧮 Zone + Profil » pour les clients qui ont un dossier Praimy (zone d'après la ville, profil d'après MaPrimeRénov').",
+      "Deux nouvelles colonnes à côté : « 💶 Prime CEE (Praimy) » et « 💶 MaPrimeRénov' (Praimy) », pour vos calculs.",
+      "La page « Dossiers PRAIMY » affiche maintenant tous les dossiers (avant, seulement les 50 premiers).",
+    ],
+  },
+  {
     id: "2026-11-11-zone-profil",
     date: "2026-11-11",
     emoji: "🧮",
