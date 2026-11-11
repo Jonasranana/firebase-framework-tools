@@ -37,3 +37,5 @@ jobs:
           if [ -n "$w" ]; then echo "::add-mask::$w"; fi
           export PRAIMY_API_KEY="$w"
           node scripts/diag-leads-oublies.mjs
+          echo "--- Journal praimyZoneProfilQuotidien ---"
+          gcloud logging read 'resource.labels.service_name="praimyzoneprofilquotidien" AND (severity>=WARNING OR textPayload:"Praimy" OR jsonPayload.message:"Praimy")' --project kachoto-7554c --freshness=1h --limit 15 --format='value(timestamp,severity,textPayload,jsonPayload.message,jsonPayload.updatedCount,jsonPayload.zoneProfilCount,jsonPayload.totalPraimy,jsonPayload.err)' || true
