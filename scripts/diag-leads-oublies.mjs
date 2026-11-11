@@ -76,14 +76,17 @@ if (!TOKEN) {
   console.log("\n(Meta : jeton absent, vérification Facebook sautée)");
 } else {
   const G = "https://graph.facebook.com/v21.0";
+  let TOK = TOKEN;
   const g = async (p) => {
-    const r = await fetch(`${G}/${p}${p.includes("?") ? "&" : "?"}access_token=${TOKEN}`);
+    const r = await fetch(`${G}/${p}${p.includes("?") ? "&" : "?"}access_token=${TOK}`);
     const j = await r.json();
     if (j.error) throw new Error(j.error.message);
     return j;
   };
   try {
     const PAGE = "1204167486109387";
+    const pg = ((await g(`me/accounts?fields=id,access_token`)).data ?? []).find((x) => x.id === PAGE);
+    if (pg?.access_token) TOK = pg.access_token;
     const forms = (await g(`${PAGE}/leadgen_forms?fields=id,name,status&limit=100`)).data ?? [];
     console.log(`\n=== Formulaires Facebook : ${forms.length} ===`);
     let manqueFb = 0, total = 0;
