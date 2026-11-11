@@ -140,7 +140,7 @@ if (!TOKEN) {
   console.log(`→ ${ok}/${signes.length} avec code postal + profil calculable`);
 }
 
-// Praimy (lecture seule) : état de la connexion et nombre de dossiers, sans aucune donnée client.
+// Praimy (lecture seule) : état de la connexion (relance) et nombre de dossiers, sans aucune donnée client.
 {
   const key = String(process.env.PRAIMY_API_KEY ?? "").trim();
   if (!key) console.log("\n(Praimy : clé absente)");
@@ -200,4 +200,12 @@ if (!TOKEN) {
     console.log(`signés de novembre reliés : ${ms.size}/${signes.size} | dont zone+profil rempli : ${oks.size}`);
     console.log(`montants MPR (valeur: nb) ${JSON.stringify(mprVals)}\nmontants CEE (valeur: nb) ${JSON.stringify(ceeVals)}`);
   }
+}
+
+// Vérification (2) : fiches où la zone + profil et les montants Praimy sont remplis (compteurs seulement).
+{
+  const t = (await db.collection("crm_leads").select("status", "fields").get()).docs.map((d) => d.data());
+  const has = (x, k) => String(x.fields?.[k] ?? "").trim() !== "";
+  const sg = t.filter((x) => x.status === "o_yt99h");
+  console.log(`\n=== Remplis dans le CRM ===\nzoneProfil ${t.filter((x) => has(x, "zoneProfil")).length} | primeCee ${t.filter((x) => has(x, "primeCee")).length} | mprPraimy ${t.filter((x) => has(x, "mprPraimy")).length} | signés de novembre avec zoneProfil ${sg.filter((x) => has(x, "zoneProfil")).length}/${sg.length}`);
 }

@@ -3326,28 +3326,30 @@ const PRAIMY_H2 = [
   "04", "07", "09", "12", "16", "17", "18", "22", "24", "26", "28", "29", "31", "32", "33", "35", "36", "37",
   "40", "41", "44", "46", "47", "48", "49", "50", "53", "56", "61", "64", "65", "72", "79", "81", "82", "84", "85", "86",
 ];
-// Département d'une commune (Praimy ne donne que le nom de la ville) : API publique geo.api.gouv.fr.
-const praimyDepCache = new Map();
-async function praimyDepartement(d) {
+// Département d'une commune (Praimy ne donne que le nom de la ville) : liste des communes embarquée
+// (functions/communes-departements.json, tirée de geo.api.gouv.fr). Nom porté par plusieurs communes
+// de zones différentes → zone inconnue (on ne devine pas).
+let praimyCommunes = null;
+const normCommune = (v) =>
+  String(v || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .replace(/\bsaint\b/g, "st").replace(/\bsainte\b/g, "ste")
+    .replace(/[^a-z0-9]/g, "");
+const zoneDuDep = (dep) => (!dep ? "" : PRAIMY_H3.includes(dep) ? "H3" : PRAIMY_H2.includes(dep) ? "H2" : "H1");
+function praimyZone(d) {
   const cp = (JSON.stringify([d.adresse_localisee, d.ville, d.client_ville]).match(/\b\d{5}\b/) || [])[0];
-  if (cp) return cp.slice(0, 2);
-  const ville = String(d.client_ville || d.ville || "").trim();
-  if (!ville) return "";
-  if (praimyDepCache.has(ville)) return praimyDepCache.get(ville);
-  let dep = "";
-  try {
-    const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(ville)}&fields=codeDepartement&boost=population&limit=1`);
-    if (r.ok) dep = String((await r.json())?.[0]?.codeDepartement || "");
-  } catch (e) {
-    logger.warn("Département introuvable pour une ville Praimy", { err: String(e?.message || e) });
+  if (cp) return zoneDuDep(cp.slice(0, 2));
+  if (!praimyCommunes) praimyCommunes = require("./communes-departements.json");
+  for (const v of [d.client_ville, d.ville]) {
+    const deps = String(praimyCommunes[normCommune(v)] || "").split(",").filter(Boolean);
+    const zones = new Set(deps.map(zoneDuDep));
+    if (zones.size === 1) return [...zones][0];
   }
-  praimyDepCache.set(ville, dep);
-  return dep;
+  return "";
 }
 
 async function praimyZoneProfil(d) {
-  const dep = await praimyDepartement(d);
-  const zone = !dep ? "" : PRAIMY_H3.includes(dep) ? "H3" : PRAIMY_H2.includes(dep) ? "H2" : "H1";
+  const zone = praimyZone(d);
   const mprRaw = d.mpr_octroi_eur ?? d.mpr_amount_eur;
   const mpr = Math.round(Number(mprRaw) || 0);
   let profil = "";
@@ -3449,7 +3451,7 @@ exports.syncPraimyToPacPac = onCall(
 
 // Chaque matin : zone + profil et montants CEE / MaPrimeRénov' repris de Praimy dans le CRM (sans toucher au reste).
 exports.praimyZoneProfilQuotidien = require("firebase-functions/v2/scheduler").onSchedule(
-  { schedule: "every day 06:30", timeZone: "Europe/Paris", region: "europe-west9", secrets: [PRAIMY_API_KEY] },
+  { schedule: "every day 06:30", timeZone: "Europe/Paris", region: "europe-west9", secrets: [PRAIMY_API_KEY], timeoutSeconds: 300 },
   async () => {
     const r = await runPraimySync(String(PRAIMY_API_KEY.value()).trim(), false);
     logger.info("Praimy → CRM (zone + profil)", r);
