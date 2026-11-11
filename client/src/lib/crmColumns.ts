@@ -139,6 +139,9 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "profilAides", title: "🎨 Profil aides (Calcul)", type: "formula", width: 150 },
   // Zone (H1/H2/H3) + profil (grand précaire / précaire…) dans une seule case, pour les calculs CEE / MaPrimeRénov' des signés.
   { key: "zoneProfil", title: "🧮 Zone + Profil (CEE / MPR)", type: "status", width: 210, options: ZONE_PROFIL },
+  // Montants repris chaque matin des dossiers Praimy.
+  { key: "primeCee", title: "💶 Prime CEE (Praimy)", type: "number", width: 150, unit: "€" },
+  { key: "mprPraimy", title: "💶 MaPrimeRénov' (Praimy)", type: "number", width: 170, unit: "€" },
   { key: "foyerCalc", title: "👨‍👩‍👧 Foyer (Calcul)", type: "number", width: 110 },
   { key: "foyerSite", title: "👨‍👩‍👧 Foyer (Site)", type: "text", width: 110 },
   { key: "chauffageSite", title: "🔥 Chauffage (Site)", type: "text", width: 140 },
@@ -215,7 +218,7 @@ export type ColumnsConfig = {
 const BASE_STATUSES: Opt[] = LEAD_STATUSES.map((x) => ({ ...x }));
 
 // Colonnes d'argent et de prévisions commerciales : réservées aux comptes administrateurs (TOTALS_VIEWERS).
-export const MONEY_COLUMN_KEYS = ["montantAttendu", "montantPondere", "pctReussite", "datePaiementPrevue", "montant"];
+export const MONEY_COLUMN_KEYS = ["montantAttendu", "montantPondere", "pctReussite", "datePaiementPrevue", "montant", "primeCee", "mprPraimy"];
 export const isMoneyColumn = (c: LeadColumn) => MONEY_COLUMN_KEYS.includes(c.key) || (!!c.custom && c.unit === "€");
 
 export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardId = "leads", canSeeMoney = true) {
@@ -232,7 +235,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
   if (missing.length) st.splice(vide >= 0 ? vide : st.length, 0, ...missing);
   if (!st.some((x) => x.key === "vide")) st.push({ key: "vide", label: "", hex: "#c4c4c4" });
   const deleted = new Set(c.deleted ?? []);
-  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || ((x.key === ATTRIBUE_KEY || x.key === "zoneProfil") && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
+  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || ((x.key === ATTRIBUE_KEY || ["zoneProfil", "primeCee", "mprPraimy"].includes(x.key)) && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
   const byKey = new Map(all.map((x) => [x.key, x]));
   const ordered: LeadColumn[] = [];
   for (const k of c.order ?? []) {
@@ -250,12 +253,16 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
     ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, rappelCol);
   }
   // Colonne « Zone + Profil » ajoutée après coup : placée juste après « Statut Appel » (ou « Rappel ») dans les ordres déjà enregistrés.
-  const zpCol = byKey.get("zoneProfil");
-  if (zpCol && (c.order ?? []).length) {
-    byKey.delete("zoneProfil");
-    let at = ordered.findIndex((x) => x.key === "rappelRdv");
+  // Montants Praimy : juste après « Zone + Profil ».
+  for (const k of ["zoneProfil", "primeCee", "mprPraimy"]) {
+    const col = byKey.get(k);
+    if (!col || !(c.order ?? []).length) continue;
+    byKey.delete(k);
+    const prev = k === "zoneProfil" ? "" : k === "primeCee" ? "zoneProfil" : "primeCee";
+    let at = prev ? ordered.findIndex((x) => x.key === prev) : -1;
+    if (at < 0) at = ordered.findIndex((x) => x.key === "rappelRdv");
     if (at < 0) at = ordered.findIndex((x) => x.key === "status");
-    ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, zpCol);
+    ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, col);
   }
   for (const col of Array.from(byKey.values())) ordered.push(col);
   // Le nom reste toujours la première colonne.

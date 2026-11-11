@@ -158,3 +158,41 @@ if (!TOKEN) {
     }
   }
 }
+
+// Essai à blanc Praimy → colonne « Zone + Profil » (compteurs seulement, aucune donnée client).
+{
+  const key = String(process.env.PRAIMY_API_KEY ?? "").trim();
+  if (key) {
+    const all = new Map(); let total = Infinity;
+    for (let p = 1; p <= 20 && all.size < total; p++) {
+      const r = await fetch(`https://portail.praimy.fr/api/v1/dossiers/${p > 1 ? `?page=${p}` : ""}`, { headers: { "X-API-Key": key, Accept: "application/json" } });
+      if (!r.ok) break;
+      const j = await r.json(); const it = Array.isArray(j) ? j : j.items ?? [];
+      total = Number(j.total ?? it.length); const b = all.size; it.forEach((d) => all.set(d.id, d)); if (all.size === b) break;
+    }
+    const ds = [...all.values()];
+    const H3 = ["06","11","13","20","30","34","66","83"], H2 = ["04","07","09","12","16","17","18","22","24","26","28","29","31","32","33","35","36","37","40","41","44","46","47","48","49","50","53","56","61","64","65","72","79","81","82","84","85","86"];
+    const zp = (d) => {
+      const cp = (JSON.stringify([d.adresse_localisee, d.ville, d.client_ville]).match(/\b\d{5}\b/) || [])[0];
+      let z = cp ? (H3.includes(cp.slice(0,2)) ? "H3" : H2.includes(cp.slice(0,2)) ? "H2" : "H1") : "";
+      const cee = Math.round(+d.prime_cee || 0), mpr = Math.round(+(d.mpr_octroi_eur || d.mpr_amount_eur) || 0);
+      if (!z) z = [8517,4580].includes(cee) ? "H1" : [7400,3200].includes(cee) ? "H2" : "";
+      const pr = mpr === 5000 ? "bleu" : mpr === 4000 ? "jaune" : mpr === 3000 ? "classique" : [8517,7400].includes(cee) ? "bleu" : "";
+      return { cp: !!cp, z, pr, ok: !!(z && pr) };
+    };
+    const leads = (await db.collection("crm_leads").select("name", "status", "deletedAt", "fields", "praimyClientId").get()).docs.filter((d) => !d.data().deletedAt).map((d) => ({ id: d.id, ...d.data() }));
+    const find = (d) => { const c = (d.client_nom || "").toLowerCase().trim(); return leads.find((l) => { const n = String(l.name || "").toLowerCase().trim(); return (c && n.includes(c)) || (c && c.includes(n) && n.length > 3) || (d.client_id && l.praimyClientId === d.client_id) || (d.reference && l.fields?.refPraimy === d.reference); }); };
+    const signes = new Set(leads.filter((l) => l.status === "o_yt99h").map((l) => l.id));
+    let m = 0, ok = 0, cp = 0, ms = new Set(), oks = new Set(); const mprVals = {}, ceeVals = {};
+    for (const d of ds) {
+      const r = zp(d); if (r.cp) cp++;
+      mprVals[Math.round(+(d.mpr_octroi_eur || d.mpr_amount_eur) || 0)] = (mprVals[Math.round(+(d.mpr_octroi_eur || d.mpr_amount_eur) || 0)] ?? 0) + 1;
+      ceeVals[Math.round(+d.prime_cee || 0)] = (ceeVals[Math.round(+d.prime_cee || 0)] ?? 0) + 1;
+      if (r.ok) ok++;
+      const l = find(d); if (l) { m++; if (signes.has(l.id)) { ms.add(l.id); if (r.ok) oks.add(l.id); } }
+    }
+    console.log(`\n=== Essai Praimy → Zone + Profil ===\n${ds.length} dossiers | code postal trouvé ${cp} | zone+profil calculables ${ds.filter((d) => zp(d).ok).length} | reliés à une fiche CRM ${m}`);
+    console.log(`signés de novembre reliés : ${ms.size}/${signes.size} | dont zone+profil rempli : ${oks.size}`);
+    console.log(`montants MPR (valeur: nb) ${JSON.stringify(mprVals)}\nmontants CEE (valeur: nb) ${JSON.stringify(ceeVals)}`);
+  }
+}
