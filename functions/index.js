@@ -3362,17 +3362,34 @@ async function praimyZoneProfil(d) {
 }
 
 // Fiche du CRM correspondant à un dossier Praimy (nom, référence ou identifiant client).
+// Mots d'un nom, sans accents ni civilité (« Mme Béatrice GURY » → beatrice, gury).
+const CIVILITES = new Set(["m", "mr", "mme", "mlle", "madame", "monsieur", "et", "de", "du", "la", "le"]);
+const motsDuNom = (v) =>
+  String(v || "")
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase()
+    .split(/[^a-z]+/)
+    .filter((w) => w.length > 1 && !CIVILITES.has(w));
+
+// Fiche du CRM correspondant à un dossier Praimy : identifiant ou référence, sinon nom
+// (même texte, ou au moins 2 mots en commun quel que soit l'ordre, les accents et les majuscules).
 function findLeadForPraimy(leads, d) {
+  const byId = leads.find(
+    (l) => (d.client_id && l.praimyClientId === d.client_id) || (d.reference && l.fields?.refPraimy === d.reference),
+  );
+  if (byId) return byId;
   const clientNom = (d.client_nom || "").toLowerCase().trim();
-  return leads.find((l) => {
+  const exact = leads.find((l) => {
     const lName = String(l.name || "").toLowerCase().trim();
-    return (
-      (clientNom && lName.includes(clientNom)) ||
-      (clientNom && clientNom.includes(lName) && lName.length > 3) ||
-      (d.client_id && l.praimyClientId === d.client_id) ||
-      (d.reference && l.fields?.refPraimy === d.reference)
-    );
+    return (clientNom && lName.includes(clientNom)) || (clientNom && clientNom.includes(lName) && lName.length > 3);
   });
+  if (exact) return exact;
+  const mots = new Set(motsDuNom(d.client_nom));
+  if (mots.size < 2) return undefined;
+  const candidats = leads.filter((l) => motsDuNom(l.name).filter((w) => mots.has(w)).length >= 2);
+  // Plusieurs fiches possibles : on préfère une fiche signée, sinon on ne devine pas.
+  if (candidats.length === 1) return candidats[0];
+  const signes = candidats.filter((l) => /^o_yt99h$|sign/i.test(String(l.status || "")));
+  return signes.length === 1 ? signes[0] : undefined;
 }
 
 // Champs repris de Praimy pour les calculs CEE / MaPrimeRénov' (zone + profil, montants).
