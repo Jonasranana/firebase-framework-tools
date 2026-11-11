@@ -202,7 +202,7 @@ if (!TOKEN) {
   }
 }
 
-// Vérification (2) : fiches où la zone + profil et les montants Praimy sont remplis (compteurs seulement).
+// Vérification (3) : fiches où la zone + profil et les montants Praimy sont remplis (compteurs seulement).
 {
   const t = (await db.collection("crm_leads").select("status", "fields").get()).docs.map((d) => d.data());
   const has = (x, k) => String(x.fields?.[k] ?? "").trim() !== "";
