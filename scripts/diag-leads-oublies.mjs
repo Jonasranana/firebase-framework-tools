@@ -201,3 +201,11 @@ if (!TOKEN) {
     console.log(`montants MPR (valeur: nb) ${JSON.stringify(mprVals)}\nmontants CEE (valeur: nb) ${JSON.stringify(ceeVals)}`);
   }
 }
+
+// Vérification : fiches où la zone + profil et les montants Praimy sont remplis (compteurs seulement).
+{
+  const t = (await db.collection("crm_leads").select("status", "fields").get()).docs.map((d) => d.data());
+  const has = (x, k) => String(x.fields?.[k] ?? "").trim() !== "";
+  const sg = t.filter((x) => x.status === "o_yt99h");
+  console.log(`\n=== Remplis dans le CRM ===\nzoneProfil ${t.filter((x) => has(x, "zoneProfil")).length} | primeCee ${t.filter((x) => has(x, "primeCee")).length} | mprPraimy ${t.filter((x) => has(x, "mprPraimy")).length} | signés de novembre avec zoneProfil ${sg.filter((x) => has(x, "zoneProfil")).length}/${sg.length}`);
+}
