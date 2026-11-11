@@ -1,3 +1,4 @@
+import { trancheInfo } from "@/lib/tranche";
 import { LEAD_STATUSES, LEAD_TYPES, type Lead, type Opt } from "@/lib/crm";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -130,6 +131,8 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "tranche", title: "Tranche (Site)", type: "text", width: 120 },
   { key: "revenuFiscal", title: "💰 Revenu fiscal (Calcul)", type: "number", width: 150, unit: "€" },
   { key: "profilAides", title: "🎨 Profil aides (Calcul)", type: "formula", width: 150 },
+  // Zone (H1/H2/H3) + profil (grand précaire / précaire…) dans une seule case, pour les calculs CEE / MaPrimeRénov' des signés.
+  { key: "zoneProfil", title: "🧮 Zone + Profil (CEE / MPR)", type: "formula", width: 210 },
   { key: "foyerCalc", title: "👨‍👩‍👧 Foyer (Calcul)", type: "number", width: 110 },
   { key: "foyerSite", title: "👨‍👩‍👧 Foyer (Site)", type: "text", width: 110 },
   { key: "chauffageSite", title: "🔥 Chauffage (Site)", type: "text", width: 140 },
@@ -223,7 +226,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
   if (missing.length) st.splice(vide >= 0 ? vide : st.length, 0, ...missing);
   if (!st.some((x) => x.key === "vide")) st.push({ key: "vide", label: "", hex: "#c4c4c4" });
   const deleted = new Set(c.deleted ?? []);
-  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || (x.key === ATTRIBUE_KEY && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
+  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || ((x.key === ATTRIBUE_KEY || x.key === "zoneProfil") && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
   const byKey = new Map(all.map((x) => [x.key, x]));
   const ordered: LeadColumn[] = [];
   for (const k of c.order ?? []) {
@@ -239,6 +242,14 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
     byKey.delete("rappelRdv");
     const at = ordered.findIndex((x) => x.key === "status");
     ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, rappelCol);
+  }
+  // Colonne « Zone + Profil » ajoutée après coup : placée juste après « Statut Appel » (ou « Rappel ») dans les ordres déjà enregistrés.
+  const zpCol = byKey.get("zoneProfil");
+  if (zpCol && (c.order ?? []).length) {
+    byKey.delete("zoneProfil");
+    let at = ordered.findIndex((x) => x.key === "rappelRdv");
+    if (at < 0) at = ordered.findIndex((x) => x.key === "status");
+    ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, zpCol);
   }
   for (const col of Array.from(byKey.values())) ordered.push(col);
   // Le nom reste toujours la première colonne.
@@ -335,6 +346,22 @@ const POS_RESSENTI = ["Positif", "Tres Positif", "Eligible", "Revenus élevés"]
 export const profilOf = (l: Lead) =>
   profilAides(l.postalCode, num(l.fields.revenuFiscal), num(l.fields.foyerCalc));
 
+// Profil : celui calculé (revenu fiscal + foyer), sinon la tranche donnée sur le site.
+const PROFIL_NOM: Record<string, string> = {
+  Bleu: "🔵 Grand précaire",
+  Jaune: "🟡 Précaire",
+  Violet: "🟣 Classique (violet)",
+  Rose: "🌸 Classique (rose)",
+};
+export function zoneProfil(l: Lead): string {
+  const zone = (zoneClimatique(l.postalCode).match(/H[123]/) ?? [""])[0];
+  const calc = profilOf(l).replace(/^\S+\s/, "");
+  const site = trancheInfo(String(l.fields.tranche ?? ""))?.name ?? "";
+  const profil = PROFIL_NOM[calc || site] ?? "";
+  if (!zone && !profil) return "";
+  return `${zone || "Zone ?"} · ${profil || "Profil ?"}`;
+}
+
 export function opportunite(l: Lead): string {
   const ressenti = l.fields.ressenti ?? "";
   const profil = profilOf(l);
@@ -371,6 +398,8 @@ export function formulaValue(l: Lead, c: LeadColumn): string {
       return opportunite(l);
     case "montantPondere":
       return montantPondere(l);
+    case "zoneProfil":
+      return zoneProfil(l);
     default:
       return "";
   }

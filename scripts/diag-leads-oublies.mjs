@@ -112,3 +112,30 @@ if (!TOKEN) {
     console.log("Meta : erreur " + e.message);
   }
 }
+
+// Clients signés (étiquette ou groupe contenant « sign ») : données dispo pour Zone + Profil.
+{
+  const labels = {};
+  const walk = (v) => {
+    if (Array.isArray(v)) v.forEach(walk);
+    else if (v && typeof v === "object") {
+      const k = v.key ?? v.id;
+      const t = v.label ?? v.title ?? v.name;
+      if (typeof k === "string" && typeof t === "string") labels[k] = t;
+      Object.values(v).forEach(walk);
+    }
+  };
+  for (const d of (await db.collection("crm_boards").get()).docs) walk(d.data());
+  const tout = await db.collection("crm_leads").select("name", "status", "group", "postalCode", "fields", "deletedAt").get();
+  const L = (k) => labels[k] ?? k ?? "";
+  const signes = tout.docs.filter((d) => !d.data().deletedAt && (/sign/i.test(L(d.data().status)) || /sign/i.test(L(d.data().group))));
+  console.log(`\n=== Clients signés : ${signes.length} ===`);
+  let ok = 0;
+  for (const d of signes) {
+    const x = d.data(), f = x.fields ?? {};
+    const rev = String(f.revenuFiscal ?? "").trim(), foy = String(f.foyerCalc ?? "").trim(), tr = String(f.tranche ?? "").trim();
+    if (x.postalCode && ((rev && foy) || tr)) ok++;
+    console.log(`  ${x.name} | statut « ${L(x.status)} » | groupe « ${L(x.group)} » | CP ${x.postalCode ? "oui" : "NON"} | revenu ${rev ? "oui" : "non"} | foyer ${foy ? "oui" : "non"} | tranche site « ${tr} »`);
+  }
+  console.log(`→ ${ok}/${signes.length} avec code postal + profil calculable`);
+}
