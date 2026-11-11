@@ -112,6 +112,13 @@ const TYPE_LEAD_OPTS: Opt[] = [
   o("Autre", "#757575"),
 ];
 
+// Zone climatique + profil de revenus, choisis à la main sur les signés (calculs CEE / MaPrimeRénov').
+const ZONE_PROFIL: Opt[] = (["H1", "H2", "H3"] as const).flatMap((z) => [
+  o(`${z} bleu`, "#2f7df6", `${z} · 🔵 Grand précaire`),
+  o(`${z} jaune`, "#e0b000", `${z} · 🟡 Précaire`),
+  o(`${z} classique`, "#8b4be0", `${z} · 🟣 Classique`),
+]);
+
 export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "name", title: "Noms sociétés", type: "name", width: 300, core: "name" },
   { key: "status", title: "📞 Statut Appel", type: "status", width: 170, core: "status", options: LEAD_STATUSES },
@@ -130,6 +137,8 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "tranche", title: "Tranche (Site)", type: "text", width: 120 },
   { key: "revenuFiscal", title: "💰 Revenu fiscal (Calcul)", type: "number", width: 150, unit: "€" },
   { key: "profilAides", title: "🎨 Profil aides (Calcul)", type: "formula", width: 150 },
+  // Zone (H1/H2/H3) + profil (grand précaire / précaire…) dans une seule case, pour les calculs CEE / MaPrimeRénov' des signés.
+  { key: "zoneProfil", title: "🧮 Zone + Profil (CEE / MPR)", type: "status", width: 210, options: ZONE_PROFIL },
   { key: "foyerCalc", title: "👨‍👩‍👧 Foyer (Calcul)", type: "number", width: 110 },
   { key: "foyerSite", title: "👨‍👩‍👧 Foyer (Site)", type: "text", width: 110 },
   { key: "chauffageSite", title: "🔥 Chauffage (Site)", type: "text", width: 140 },
@@ -223,7 +232,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
   if (missing.length) st.splice(vide >= 0 ? vide : st.length, 0, ...missing);
   if (!st.some((x) => x.key === "vide")) st.push({ key: "vide", label: "", hex: "#c4c4c4" });
   const deleted = new Set(c.deleted ?? []);
-  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || (x.key === ATTRIBUE_KEY && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
+  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || ((x.key === ATTRIBUE_KEY || x.key === "zoneProfil") && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
   const byKey = new Map(all.map((x) => [x.key, x]));
   const ordered: LeadColumn[] = [];
   for (const k of c.order ?? []) {
@@ -239,6 +248,14 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
     byKey.delete("rappelRdv");
     const at = ordered.findIndex((x) => x.key === "status");
     ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, rappelCol);
+  }
+  // Colonne « Zone + Profil » ajoutée après coup : placée juste après « Statut Appel » (ou « Rappel ») dans les ordres déjà enregistrés.
+  const zpCol = byKey.get("zoneProfil");
+  if (zpCol && (c.order ?? []).length) {
+    byKey.delete("zoneProfil");
+    let at = ordered.findIndex((x) => x.key === "rappelRdv");
+    if (at < 0) at = ordered.findIndex((x) => x.key === "status");
+    ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, zpCol);
   }
   for (const col of Array.from(byKey.values())) ordered.push(col);
   // Le nom reste toujours la première colonne.
