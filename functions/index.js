@@ -3357,7 +3357,7 @@ async function praimyZoneProfil(d) {
   else if (mpr === PREMI_MPR_BRUT.Jaune) profil = "jaune";
   else if (mpr === PREMI_MPR_BRUT.Violet) profil = "classique";
   // Pas de MaPrimeRénov' mais une prime CEE : ménage aux revenus supérieurs (rose) = classique.
-  else if (typeof mprRaw === "number" && mpr === 0 && Number(d.prime_cee) > 0) profil = "classique";
+  else if (mprRaw !== null && mprRaw !== undefined && mprRaw !== "" && mpr === 0 && Number(d.prime_cee) > 0) profil = "classique";
   return zone && profil ? `${zone} ${profil}` : "";
 }
 
@@ -3380,9 +3380,12 @@ async function praimyMoneyUpdates(d) {
   const u = {};
   const zp = await praimyZoneProfil(d);
   if (zp) u["fields.zoneProfil"] = zp;
-  if (typeof d.prime_cee === "number") u["fields.primeCee"] = String(d.prime_cee);
-  const mpr = d.mpr_octroi_eur ?? d.mpr_amount_eur;
-  if (typeof mpr === "number") u["fields.mprPraimy"] = String(mpr);
+  // Praimy envoie les montants en nombre ou en texte (« 5800.00 »).
+  const montant = (v) => (v === null || v === undefined || v === "" || !Number.isFinite(Number(v)) ? null : Math.round(Number(v)));
+  const cee = montant(d.prime_cee);
+  if (cee !== null) u["fields.primeCee"] = String(cee);
+  const mpr = montant(d.mpr_octroi_eur ?? d.mpr_amount_eur);
+  if (mpr !== null) u["fields.mprPraimy"] = String(mpr);
   return u;
 }
 
