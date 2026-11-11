@@ -172,13 +172,18 @@ if (!TOKEN) {
     }
     const ds = [...all.values()];
     const H3 = ["06","11","13","20","30","34","66","83"], H2 = ["04","07","09","12","16","17","18","22","24","26","28","29","31","32","33","35","36","37","40","41","44","46","47","48","49","50","53","56","61","64","65","72","79","81","82","84","85","86"];
+    const cache = new Map();
+    const depOf = async (d) => {
+      const v = String(d.client_ville || d.ville || "").trim(); if (!v) return "";
+      if (!cache.has(v)) { try { const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(v)}&fields=codeDepartement&boost=population&limit=1`); cache.set(v, String((await r.json())?.[0]?.codeDepartement || "")); } catch { cache.set(v, ""); } }
+      return cache.get(v);
+    };
+    for (const d of ds) d._dep = await depOf(d);
     const zp = (d) => {
-      const cp = (JSON.stringify([d.adresse_localisee, d.ville, d.client_ville]).match(/\b\d{5}\b/) || [])[0];
-      let z = cp ? (H3.includes(cp.slice(0,2)) ? "H3" : H2.includes(cp.slice(0,2)) ? "H2" : "H1") : "";
-      const cee = Math.round(+d.prime_cee || 0), mpr = Math.round(+(d.mpr_octroi_eur || d.mpr_amount_eur) || 0);
-      if (!z) z = [8517,4580].includes(cee) ? "H1" : [7400,3200].includes(cee) ? "H2" : "";
-      const pr = mpr === 5000 ? "bleu" : mpr === 4000 ? "jaune" : mpr === 3000 ? "classique" : [8517,7400].includes(cee) ? "bleu" : "";
-      return { cp: !!cp, z, pr, ok: !!(z && pr) };
+      const dep = d._dep; const z = !dep ? "" : H3.includes(dep) ? "H3" : H2.includes(dep) ? "H2" : "H1";
+      const raw = d.mpr_octroi_eur ?? d.mpr_amount_eur, mpr = Math.round(+raw || 0);
+      const pr = mpr === 5000 ? "bleu" : mpr === 4000 ? "jaune" : mpr === 3000 ? "classique" : (typeof raw === "number" && mpr === 0 && +d.prime_cee > 0) ? "classique" : "";
+      return { cp: !!dep, z, pr, ok: !!(z && pr) };
     };
     const leads = (await db.collection("crm_leads").select("name", "status", "deletedAt", "fields", "praimyClientId").get()).docs.filter((d) => !d.data().deletedAt).map((d) => ({ id: d.id, ...d.data() }));
     const find = (d) => { const c = (d.client_nom || "").toLowerCase().trim(); return leads.find((l) => { const n = String(l.name || "").toLowerCase().trim(); return (c && n.includes(c)) || (c && c.includes(n) && n.length > 3) || (d.client_id && l.praimyClientId === d.client_id) || (d.reference && l.fields?.refPraimy === d.reference); }); };
@@ -191,7 +196,7 @@ if (!TOKEN) {
       if (r.ok) ok++;
       const l = find(d); if (l) { m++; if (signes.has(l.id)) { ms.add(l.id); if (r.ok) oks.add(l.id); } }
     }
-    console.log(`\n=== Essai Praimy → Zone + Profil ===\n${ds.length} dossiers | code postal trouvé ${cp} | zone+profil calculables ${ds.filter((d) => zp(d).ok).length} | reliés à une fiche CRM ${m}`);
+    console.log(`\n=== Essai Praimy → Zone + Profil ===\n${ds.length} dossiers | département trouvé ${cp} | zone+profil calculables ${ds.filter((d) => zp(d).ok).length} | reliés à une fiche CRM ${m}`);
     console.log(`signés de novembre reliés : ${ms.size}/${signes.size} | dont zone+profil rempli : ${oks.size}`);
     console.log(`montants MPR (valeur: nb) ${JSON.stringify(mprVals)}\nmontants CEE (valeur: nb) ${JSON.stringify(ceeVals)}`);
   }

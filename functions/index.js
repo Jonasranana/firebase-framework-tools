@@ -3320,30 +3320,42 @@ async function fetchAllPraimyDossiers(key) {
 }
 
 // Zone climatique + profil (colonne « 🧮 Zone + Profil » du CRM) à partir d'un dossier Praimy :
-// zone par le code postal de l'adresse (sinon d'après la prime CEE du barème), profil d'après MaPrimeRénov'.
+// zone par le département de la ville du client, profil d'après le montant MaPrimeRénov'.
 const PRAIMY_H3 = ["06", "11", "13", "20", "30", "34", "66", "83"];
 const PRAIMY_H2 = [
   "04", "07", "09", "12", "16", "17", "18", "22", "24", "26", "28", "29", "31", "32", "33", "35", "36", "37",
   "40", "41", "44", "46", "47", "48", "49", "50", "53", "56", "61", "64", "65", "72", "79", "81", "82", "84", "85", "86",
 ];
-function praimyZoneProfil(d) {
+// Département d'une commune (Praimy ne donne que le nom de la ville) : API publique geo.api.gouv.fr.
+const praimyDepCache = new Map();
+async function praimyDepartement(d) {
   const cp = (JSON.stringify([d.adresse_localisee, d.ville, d.client_ville]).match(/\b\d{5}\b/) || [])[0];
-  let zone = "";
-  if (cp) {
-    const dep = cp.slice(0, 2);
-    zone = PRAIMY_H3.includes(dep) ? "H3" : PRAIMY_H2.includes(dep) ? "H2" : "H1";
+  if (cp) return cp.slice(0, 2);
+  const ville = String(d.client_ville || d.ville || "").trim();
+  if (!ville) return "";
+  if (praimyDepCache.has(ville)) return praimyDepCache.get(ville);
+  let dep = "";
+  try {
+    const r = await fetch(`https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(ville)}&fields=codeDepartement&boost=population&limit=1`);
+    if (r.ok) dep = String((await r.json())?.[0]?.codeDepartement || "");
+  } catch (e) {
+    logger.warn("Département introuvable pour une ville Praimy", { err: String(e?.message || e) });
   }
-  const cee = Math.round(Number(d.prime_cee) || 0);
-  const mpr = Math.round(Number(d.mpr_octroi_eur || d.mpr_amount_eur) || 0);
-  if (!zone) {
-    if ([PREMI_CEE.Bleu.H1, PREMI_CEE.Jaune.H1].includes(cee)) zone = "H1";
-    else if ([PREMI_CEE.Bleu.H2, PREMI_CEE.Jaune.H2].includes(cee)) zone = "H2";
-  }
+  praimyDepCache.set(ville, dep);
+  return dep;
+}
+
+async function praimyZoneProfil(d) {
+  const dep = await praimyDepartement(d);
+  const zone = !dep ? "" : PRAIMY_H3.includes(dep) ? "H3" : PRAIMY_H2.includes(dep) ? "H2" : "H1";
+  const mprRaw = d.mpr_octroi_eur ?? d.mpr_amount_eur;
+  const mpr = Math.round(Number(mprRaw) || 0);
   let profil = "";
   if (mpr === PREMI_MPR_BRUT.Bleu) profil = "bleu";
   else if (mpr === PREMI_MPR_BRUT.Jaune) profil = "jaune";
   else if (mpr === PREMI_MPR_BRUT.Violet) profil = "classique";
-  else if ([PREMI_CEE.Bleu.H1, PREMI_CEE.Bleu.H2].includes(cee)) profil = "bleu";
+  // Pas de MaPrimeRénov' mais une prime CEE : ménage aux revenus supérieurs (rose) = classique.
+  else if (typeof mprRaw === "number" && mpr === 0 && Number(d.prime_cee) > 0) profil = "classique";
   return zone && profil ? `${zone} ${profil}` : "";
 }
 
@@ -3362,9 +3374,9 @@ function findLeadForPraimy(leads, d) {
 }
 
 // Champs repris de Praimy pour les calculs CEE / MaPrimeRénov' (zone + profil, montants).
-function praimyMoneyUpdates(d) {
+async function praimyMoneyUpdates(d) {
   const u = {};
-  const zp = praimyZoneProfil(d);
+  const zp = await praimyZoneProfil(d);
   if (zp) u["fields.zoneProfil"] = zp;
   if (typeof d.prime_cee === "number") u["fields.primeCee"] = String(d.prime_cee);
   const mpr = d.mpr_octroi_eur ?? d.mpr_amount_eur;
@@ -3400,7 +3412,7 @@ async function runPraimySync(key, full) {
     const match = findLeadForPraimy(leads, d);
     if (!match || done.has(match.id)) continue;
     done.add(match.id);
-    let updates = praimyMoneyUpdates(d);
+    let updates = await praimyMoneyUpdates(d);
     if (updates["fields.zoneProfil"]) zoneProfilCount++;
     if (full) {
       updates = {
