@@ -226,17 +226,17 @@ export default function RentaMeta({ email }: { email: string }) {
   return (
     <div className="w-full space-y-4 pb-10">
       {/* Période */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3">
-        <span className="text-sm font-bold text-gray-700 mr-1">📆 Période</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-gray-900 px-4 py-3.5 shadow-md">
+        <span className="text-base font-black text-white mr-2">📆 Période</span>
         {PERIODES.map(([label, f]) => {
           const [a, b] = f();
           return (
-            <button key={label} onClick={() => setPeriode([a, b])} className={`rounded-full border px-3 py-1 text-xs font-semibold ${a === du && b === au ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>
+            <button key={label} onClick={() => setPeriode([a, b])} className={`rounded-full border px-3.5 py-1.5 text-sm font-bold transition ${a === du && b === au ? "bg-orange-500 text-white border-orange-500 shadow" : "bg-white/10 text-white border-white/25 hover:bg-white/20"}`}>
               {label}
             </button>
           );
         })}
-        <span className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+        <span className="ml-auto flex items-center gap-2 text-sm font-semibold text-gray-300">
           du <input type="date" value={du} onChange={(e) => e.target.value && setPeriode([e.target.value, au])} className={champ} />
           au <input type="date" value={au} onChange={(e) => e.target.value && setPeriode([du, e.target.value])} className={champ} />
         </span>
