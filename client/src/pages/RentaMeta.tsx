@@ -20,23 +20,38 @@ type Canal = keyof typeof CANAUX;
 const canalOf = (l: Lead): Canal | null =>
   /^site \(incomplet\)/i.test(l.source ?? "") ? "site" : (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
 
-// Marge d'un signé (barème Prémi, comme « Marges PRAIMY ») : CEE + MaPrimeRénov' nette de la commission
-// (12 % HT + TVA) − fourniture-pose ; le reste à charge client remonte la marge à 2 500 € minimum.
+// Marge d'un signé — barème donné par Alexis (12/11/2026) :
+//   CEE touchée : H1 bleu 8 517 €, H1 jaune/violet 4 580 € ; H2 bleu 7 080 €, H2 jaune/violet 3 822 €.
+//   MaPrimeRénov' : bleu 5 000 €, jaune 4 000 €, violet (classique) 3 000 €.
+//   Frais Praimy : bleu 600 €, jaune 500 €, violet 400 €.
+//   Fourni-posé : Praimy 5 800 €, Georges 5 300 € (colonne « Poseur »).
+// Marge = CEE + MaPrimeRénov' − frais Praimy − fourni-posé, au moins 2 500 € (reste à charge client).
 // « 💵 Marge nette » saisie sur la fiche prend le pas sur ce calcul.
-const COUT_POSE = 5700;
 const MARGE_MIN = 2500;
-const TAUX_NET_MPR = 1 - 0.12 * 1.2;
 const num = (v: unknown) => {
   const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".").replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : null;
 };
+const CEE_IP5: Record<string, number> = {
+  "H1 bleu": 8517, "H1 jaune": 4580, "H1 classique": 4580,
+  "H2 bleu": 7080, "H2 jaune": 3822, "H2 classique": 3822,
+};
+const MPR_PROFIL: Record<string, number> = { bleu: 5000, jaune: 4000, classique: 3000 };
+const FRAIS_PRAIMY: Record<string, number> = { bleu: 600, jaune: 500, classique: 400 };
+const POSE = { praimy: 5800, georges: 5300 };
+const profilOf = (l: Lead) => String(l.fields.zoneProfil ?? "").split(" ")[1] ?? "";
+const estGeorges = (l: Lead) => /georges/i.test(String(l.fields.poseur ?? ""));
+const ceeIp5 = (l: Lead): number | null => CEE_IP5[String(l.fields.zoneProfil ?? "")] ?? num(l.fields.primeCee);
+const mprOf = (l: Lead): number | null => MPR_PROFIL[profilOf(l)] ?? num(l.fields.mprPraimy);
+const fraisOf = (l: Lead): number => (estGeorges(l) ? 0 : FRAIS_PRAIMY[profilOf(l)] ?? 0);
+const poseOf = (l: Lead): number => (estGeorges(l) ? POSE.georges : POSE.praimy);
 function margeOf(l: Lead): { marge: number | null; calc: boolean } {
   const saisie = num(l.fields.margeNette);
   if (saisie !== null) return { marge: saisie, calc: false };
-  const cee = num(l.fields.primeCee);
-  const mpr = num(l.fields.mprPraimy);
+  const cee = ceeIp5(l);
+  const mpr = mprOf(l);
   if (cee === null && mpr === null) return { marge: null, calc: true };
-  return { marge: Math.max(MARGE_MIN, (cee ?? 0) + (mpr ?? 0) * TAUX_NET_MPR - COUT_POSE), calc: true };
+  return { marge: Math.max(MARGE_MIN, (cee ?? 0) + (mpr ?? 0) - fraisOf(l) - poseOf(l)), calc: true };
 }
 // « Signé en octobre / novembre… » sont des étiquettes ajoutées dans le CRM (clés o_…) : leurs noms
 // ne sont connus qu'une fois la configuration du tableau chargée (useColumnsConfig ci-dessous).
@@ -135,8 +150,8 @@ export default function RentaMeta({ email }: { email: string }) {
     depense: site.depense + fb.depense,
     marge: margesTous.reduce((x, m) => x + (m.marge ?? 0), 0),
     aCompleter: margesTous.filter((m) => m.marge === null).length,
-    cee: signesMeta.reduce((x, l) => x + (num(l.fields.primeCee) ?? 0), 0),
-    mpr: signesMeta.reduce((x, l) => x + (num(l.fields.mprPraimy) ?? 0), 0),
+    cee: signesMeta.reduce((x, l) => x + (ceeIp5(l) ?? 0), 0),
+    mpr: signesMeta.reduce((x, l) => x + (mprOf(l) ?? 0), 0),
   };
   const benef = tot.marge - tot.depense;
 
@@ -196,7 +211,6 @@ export default function RentaMeta({ email }: { email: string }) {
   }, [allLeads, depenses, from, to, colsVersion]);
 
   const [voirDepenses, setVoirDepenses] = useState(false);
-  const [voirPasComptes, setVoirPasComptes] = useState(false);
   const champ = "rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5 text-sm";
   const carte = "rounded-2xl border border-gray-200 bg-white p-4 md:p-5";
   const titre = (t: string, sous?: string) => (
@@ -210,18 +224,25 @@ export default function RentaMeta({ email }: { email: string }) {
     const m = margeOf(l);
     const compte = vientDeMeta(l);
     return (
-      <tr key={l.id} className={`border-b border-gray-100 hover:bg-gray-50 ${compte ? "" : "text-gray-400"}`}>
-        <td className="py-2.5 px-2 text-center">
-          <input type="checkbox" checked={compte} onChange={() => basculerMeta(l, !compte)} title={compte ? "Compté dans les stats" : "Pas compté"} className="h-4 w-4 accent-emerald-600 cursor-pointer" />
-        </td>
-        <td className="px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-500"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
+      <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50">
+        <td className="py-2.5 px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-600"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
         <td className="px-2 text-xs whitespace-nowrap">{origine(l)}</td>
-        <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.primeCee))}</td>
-        <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.mprPraimy))}</td>
-        <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-400"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
+        <td className="px-2 text-right whitespace-nowrap" title={`Prime affichée par Praimy : ${eur(num(l.fields.primeCee))}`}>{eur(ceeIp5(l))}<p className="text-[10px] text-gray-400">{String(l.fields.zoneProfil ?? "").replace("bleu", "grand préc.").replace("jaune", "précaire") || "Praimy"}</p></td>
+        <td className="px-2 text-right whitespace-nowrap">{eur(mprOf(l))}</td>
+        <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-600"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}{m.calc && m.marge !== null && <p className="text-[10px] font-normal text-gray-400">− frais {eur(fraisOf(l))} − pose {eur(poseOf(l))}{estGeorges(l) ? " (Georges)" : ""}</p>}</td>
+        <td className="px-2 text-right">
+          <button onClick={() => basculerMeta(l, !compte)} className={`whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-bold ${compte ? "border-gray-300 text-gray-600 hover:bg-gray-100" : "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
+            {compte ? "Ne pas compter" : "➕ Vient de la pub"}
+          </button>
+        </td>
       </tr>
     );
   };
+  const enTete = (
+    <thead className="text-gray-500 text-xs border-b">
+      <tr><th className="text-left py-2 px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE (IP5)</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">On touche</th><th /></tr>
+    </thead>
+  );
 
   return (
     <div className="w-full space-y-4 pb-10">
@@ -261,41 +282,50 @@ export default function RentaMeta({ email }: { email: string }) {
       )}
 
       <div className="grid lg:grid-cols-3 gap-4 items-start">
-        {/* Gauche : les clients signés */}
-        <div className={`${carte} lg:col-span-2`}>
-          {titre("✅ Clients signés", "☑️ = compté dans le bénéfice · décoche un client pour ne pas le compter")}
-          {tousSignes.length === 0 ? (
-            <p className="text-sm text-gray-500">Aucun client signé sur cette période.</p>
-          ) : (
-            <div className="overflow-x-auto -mx-2">
-              <table className="w-full text-sm">
-                <thead className="text-gray-500 text-xs border-b">
-                  <tr><th className="py-2 px-2 w-10">☑️</th><th className="text-left px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">On touche</th></tr>
-                </thead>
-                <tbody>
-                  {signesMeta.map(ligneSigne)}
-                  <tr className="font-black bg-emerald-50">
-                    <td />
-                    <td className="py-2.5 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
-                    <td className="px-2 text-right whitespace-nowrap">{eur(tot.cee)}</td>
-                    <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}</td>
-                    <td className="px-2 text-right text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
-                  </tr>
-                  {autresSignes.length > 0 && (
-                    <tr>
-                      <td colSpan={6} className="pt-3 px-2">
-                        <button onClick={() => setVoirPasComptes((v) => !v)} className="text-xs font-semibold text-gray-500 hover:text-gray-800">
-                          {voirPasComptes ? "▲" : "▼"} {autresSignes.length} autre{autresSignes.length > 1 ? "s" : ""} signé{autresSignes.length > 1 ? "s" : ""} pas compté{autresSignes.length > 1 ? "s" : ""} (recommandation, ancien fichier…)
-                        </button>
-                      </td>
+        {/* Gauche : 1) clients venus de la pub (comptés), 2) les autres signés (pas comptés) */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="rounded-2xl border-2 border-emerald-300 bg-white p-4 md:p-5">
+            <h2 className="text-lg font-black text-emerald-800">📣 Clients venus des pubs Meta</h2>
+            <p className="text-sm text-gray-600 mb-3">Ces clients sont arrivés grâce à la pub : <b>ils comptent dans le bénéfice</b>.</p>
+            {signesMeta.length === 0 ? (
+              <p className="text-sm text-gray-500">Aucun client venu de la pub sur cette période.</p>
+            ) : (
+              <div className="overflow-x-auto -mx-2">
+                <table className="w-full text-sm">
+                  {enTete}
+                  <tbody>
+                    {signesMeta.map(ligneSigne)}
+                    <tr className="font-black bg-emerald-50">
+                      <td className="py-2.5 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
+                      <td className="px-2 text-right whitespace-nowrap">{eur(tot.cee)}</td>
+                      <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}</td>
+                      <td className="px-2 text-right text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
+                      <td />
                     </tr>
-                  )}
-                  {voirPasComptes && autresSignes.map(ligneSigne)}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <p className="text-[11px] text-gray-400 mt-3">On touche = CEE + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-4 md:p-5">
+            <h2 className="text-lg font-black text-gray-700">👥 Autres clients signés</h2>
+            <p className="text-sm text-gray-600 mb-3">
+              Pas venus de la pub (bouche-à-oreille, ancien fichier, saisis à la main…) : <b>ils ne comptent pas</b> dans le bénéfice.
+              Si l'un d'eux vient en fait de la pub, clique sur « ➕ Vient de la pub ».
+            </p>
+            {autresSignes.length === 0 ? (
+              <p className="text-sm text-gray-500">Aucun.</p>
+            ) : (
+              <div className="overflow-x-auto -mx-2">
+                <table className="w-full text-sm">
+                  {enTete}
+                  <tbody>{autresSignes.map(ligneSigne)}</tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          <p className="text-[11px] text-gray-400 px-1">On touche = CEE (H1 : bleu 8 517 €, jaune/violet 4 580 € · H2 : bleu 7 080 €, jaune/violet 3 822 €) + MaPrimeRénov' (bleu 5 000 €, jaune 4 000 €, violet 3 000 €) − frais Praimy (600 / 500 / 400 €) − fourni-posé (Praimy 5 800 €, Georges 5 300 €), au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
         </div>
 
         {/* Droite : mois par mois, site / formulaire, dépenses */}
