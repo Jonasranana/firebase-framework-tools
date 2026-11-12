@@ -196,7 +196,6 @@ export default function RentaMeta({ email }: { email: string }) {
   }, [allLeads, depenses, from, to, colsVersion]);
 
   const [voirDepenses, setVoirDepenses] = useState(false);
-  const [voirPasComptes, setVoirPasComptes] = useState(false);
   const champ = "rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5 text-sm";
   const carte = "rounded-2xl border border-gray-200 bg-white p-4 md:p-5";
   const titre = (t: string, sous?: string) => (
@@ -210,18 +209,25 @@ export default function RentaMeta({ email }: { email: string }) {
     const m = margeOf(l);
     const compte = vientDeMeta(l);
     return (
-      <tr key={l.id} className={`border-b border-gray-100 hover:bg-gray-50 ${compte ? "" : "text-gray-400"}`}>
-        <td className="py-2.5 px-2 text-center">
-          <input type="checkbox" checked={compte} onChange={() => basculerMeta(l, !compte)} title={compte ? "Compté dans les stats" : "Pas compté"} className="h-4 w-4 accent-emerald-600 cursor-pointer" />
-        </td>
-        <td className="px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-500"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
+      <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50">
+        <td className="py-2.5 px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-600"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
         <td className="px-2 text-xs whitespace-nowrap">{origine(l)}</td>
         <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.primeCee))}</td>
         <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.mprPraimy))}</td>
-        <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-400"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
+        <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-600"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
+        <td className="px-2 text-right">
+          <button onClick={() => basculerMeta(l, !compte)} className={`whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-bold ${compte ? "border-gray-300 text-gray-600 hover:bg-gray-100" : "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
+            {compte ? "Ne pas compter" : "➕ Vient de la pub"}
+          </button>
+        </td>
       </tr>
     );
   };
+  const enTete = (
+    <thead className="text-gray-500 text-xs border-b">
+      <tr><th className="text-left py-2 px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">On touche</th><th /></tr>
+    </thead>
+  );
 
   return (
     <div className="w-full space-y-4 pb-10">
@@ -261,41 +267,50 @@ export default function RentaMeta({ email }: { email: string }) {
       )}
 
       <div className="grid lg:grid-cols-3 gap-4 items-start">
-        {/* Gauche : les clients signés */}
-        <div className={`${carte} lg:col-span-2`}>
-          {titre("✅ Clients signés", "☑️ = compté dans le bénéfice · décoche un client pour ne pas le compter")}
-          {tousSignes.length === 0 ? (
-            <p className="text-sm text-gray-500">Aucun client signé sur cette période.</p>
-          ) : (
-            <div className="overflow-x-auto -mx-2">
-              <table className="w-full text-sm">
-                <thead className="text-gray-500 text-xs border-b">
-                  <tr><th className="py-2 px-2 w-10">☑️</th><th className="text-left px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">On touche</th></tr>
-                </thead>
-                <tbody>
-                  {signesMeta.map(ligneSigne)}
-                  <tr className="font-black bg-emerald-50">
-                    <td />
-                    <td className="py-2.5 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
-                    <td className="px-2 text-right whitespace-nowrap">{eur(tot.cee)}</td>
-                    <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}</td>
-                    <td className="px-2 text-right text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
-                  </tr>
-                  {autresSignes.length > 0 && (
-                    <tr>
-                      <td colSpan={6} className="pt-3 px-2">
-                        <button onClick={() => setVoirPasComptes((v) => !v)} className="text-xs font-semibold text-gray-500 hover:text-gray-800">
-                          {voirPasComptes ? "▲" : "▼"} {autresSignes.length} autre{autresSignes.length > 1 ? "s" : ""} signé{autresSignes.length > 1 ? "s" : ""} pas compté{autresSignes.length > 1 ? "s" : ""} (recommandation, ancien fichier…)
-                        </button>
-                      </td>
+        {/* Gauche : 1) clients venus de la pub (comptés), 2) les autres signés (pas comptés) */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="rounded-2xl border-2 border-emerald-300 bg-white p-4 md:p-5">
+            <h2 className="text-lg font-black text-emerald-800">📣 Clients venus des pubs Meta</h2>
+            <p className="text-sm text-gray-600 mb-3">Ces clients sont arrivés grâce à la pub : <b>ils comptent dans le bénéfice</b>.</p>
+            {signesMeta.length === 0 ? (
+              <p className="text-sm text-gray-500">Aucun client venu de la pub sur cette période.</p>
+            ) : (
+              <div className="overflow-x-auto -mx-2">
+                <table className="w-full text-sm">
+                  {enTete}
+                  <tbody>
+                    {signesMeta.map(ligneSigne)}
+                    <tr className="font-black bg-emerald-50">
+                      <td className="py-2.5 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
+                      <td className="px-2 text-right whitespace-nowrap">{eur(tot.cee)}</td>
+                      <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}</td>
+                      <td className="px-2 text-right text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
+                      <td />
                     </tr>
-                  )}
-                  {voirPasComptes && autresSignes.map(ligneSigne)}
-                </tbody>
-              </table>
-            </div>
-          )}
-          <p className="text-[11px] text-gray-400 mt-3">On touche = CEE + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-4 md:p-5">
+            <h2 className="text-lg font-black text-gray-700">👥 Autres clients signés</h2>
+            <p className="text-sm text-gray-600 mb-3">
+              Pas venus de la pub (bouche-à-oreille, ancien fichier, saisis à la main…) : <b>ils ne comptent pas</b> dans le bénéfice.
+              Si l'un d'eux vient en fait de la pub, clique sur « ➕ Vient de la pub ».
+            </p>
+            {autresSignes.length === 0 ? (
+              <p className="text-sm text-gray-500">Aucun.</p>
+            ) : (
+              <div className="overflow-x-auto -mx-2">
+                <table className="w-full text-sm">
+                  {enTete}
+                  <tbody>{autresSignes.map(ligneSigne)}</tbody>
+                </table>
+              </div>
+            )}
+          </div>
+          <p className="text-[11px] text-gray-400 px-1">On touche = CEE + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
         </div>
 
         {/* Droite : mois par mois, site / formulaire, dépenses */}
