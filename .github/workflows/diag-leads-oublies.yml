@@ -37,9 +37,5 @@ jobs:
           if [ -n "$w" ]; then echo "::add-mask::$w"; fi
           export PRAIMY_API_KEY="$w"
           node scripts/diag-leads-oublies.mjs
-          j=$(gcloud scheduler jobs list --location europe-west9 --project kachoto-7554c --format="value(name)" | grep -i praimyZoneProfil | head -1)
-          if [ -n "$j" ]; then gcloud scheduler jobs run "$j" --location europe-west9 --project kachoto-7554c && echo "lancé"; fi
-          sleep 90
-          node scripts/diag-leads-oublies.mjs 2>/dev/null | sed -n '/=== Remplis dans le CRM ===/,+1p'
           echo "--- Journal praimyZoneProfilQuotidien ---"
           gcloud logging read 'resource.labels.service_name="praimyzoneprofilquotidien" AND (severity>=WARNING OR textPayload:"Praimy" OR jsonPayload.message:"Praimy")' --project kachoto-7554c --freshness=1h --limit 15 --format='value(timestamp,severity,textPayload,jsonPayload.message,jsonPayload.updatedCount,jsonPayload.zoneProfilCount,jsonPayload.totalPraimy,jsonPayload.err)' || true
