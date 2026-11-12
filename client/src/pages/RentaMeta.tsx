@@ -16,8 +16,9 @@ const CANAUX = {
   formulaire: { label: "📱 Formulaire Facebook", sources: ["formulaire-facebook"] },
 } as const;
 type Canal = keyof typeof CANAUX;
+// « Site (incomplet) : … » = demande commencée sur la landing des pubs Meta.
 const canalOf = (l: Lead): Canal | null =>
-  (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
+  /^site \(incomplet\)/i.test(l.source ?? "") ? "site" : (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
 
 // Marge d'un signé (barème Prémi, comme « Marges PRAIMY ») : CEE + MaPrimeRénov' nette de la commission
 // (12 % HT + TVA) − fourniture-pose ; le reste à charge client remonte la marge à 2 500 € minimum.
@@ -156,7 +157,7 @@ export default function RentaMeta({ email }: { email: string }) {
     await m.deleteDoc(m.doc(db, "crm_meta_depenses", id));
   };
 
-  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire FB", "saisie-manuelle": "✍️ Saisi à la main", monday: "📋 Ancien tableau" };
+  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire FB", "saisie-manuelle": "✍️ Saisi à la main", monday: "📋 Ancien tableau (Monday)", "reactivation-pac": "✉️ Réactivation" };
   const origine = (l: Lead) => (canalOf(l) === "site" ? "🌐 Site" : ORIGINE[l.source] ?? (l.source || "—"));
 
   // Résumé mois par mois sur la période : pub, leads Meta, signés, ce qu'on touche, bénéfice.
@@ -265,6 +266,16 @@ export default function RentaMeta({ email }: { email: string }) {
                     </tr>
                   );
                 })}
+                {(() => {
+                  const meta = tousSignes.filter((l) => canalOf(l));
+                  const mm = meta.reduce((x, l) => x + (margeOf(l).marge ?? 0), 0);
+                  return (
+                    <tr className="text-xs text-gray-600 bg-blue-50/50">
+                      <td className="py-1.5 px-1" colSpan={5}>dont venus des pubs Meta (source site ou formulaire) : {meta.length} signé{meta.length > 1 ? "s" : ""}</td>
+                      <td className="px-1 text-right font-bold">{eur(mm)}</td>
+                    </tr>
+                  );
+                })()}
                 <tr className="font-black bg-gray-50">
                   <td className="py-2 px-1" colSpan={3}>Total · {tousSignes.length} signé{tousSignes.length > 1 ? "s" : ""}</td>
                   <td className="px-1 text-right">{eur(tot.cee)}</td>
