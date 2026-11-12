@@ -30,11 +30,10 @@ const num = (v: unknown) => {
   const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".").replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : null;
 };
-// CEE que touche IP5 selon la zone et le profil (barème d'Alexis) : grand précaire H1 8 500 €, H2 7 100 €.
-// Les autres cases reprennent le barème « Marges PRAIMY » (à confirmer). Sans « Zone + Profil », on garde
+// CEE que touche IP5 selon la zone et le profil : même barème que la page « Marges PRAIMY » (méthode Prémi actuelle). Sans « Zone + Profil », on garde
 // la prime CEE affichée par Praimy (montant côté client, plus bas que ce que touche IP5).
 const CEE_IP5: Record<string, number> = {
-  "H1 bleu": 8500, "H2 bleu": 7100,
+  "H1 bleu": 8517, "H2 bleu": 7400,
   "H1 jaune": 4580, "H2 jaune": 3200,
   "H1 classique": 4580, "H2 classique": 3200,
 };
@@ -319,7 +318,7 @@ export default function RentaMeta({ email }: { email: string }) {
               </div>
             )}
           </div>
-          <p className="text-[11px] text-gray-400 px-1">On touche = CEE touchée par IP5 (grand précaire : 8 500 € en H1, 7 100 € en H2) + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
+          <p className="text-[11px] text-gray-400 px-1">On touche = CEE touchée par IP5 (barème « Marges PRAIMY » : grand précaire 8 517 € en H1, 7 400 € en H2) + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
         </div>
 
         {/* Droite : mois par mois, site / formulaire, dépenses */}
