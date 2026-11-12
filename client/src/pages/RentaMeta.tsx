@@ -40,7 +40,10 @@ function margeOf(l: Lead): { marge: number | null; calc: boolean } {
 }
 // « Signé en octobre / novembre… » sont des étiquettes ajoutées dans le CRM (clés o_…) : leurs noms
 // ne sont connus qu'une fois la configuration du tableau chargée (useColumnsConfig ci-dessous).
-const isSigne = (l: Lead) => (l.status as string) === "o_yt99h" || /^sign/i.test(statusInfo(l.status).label ?? "");
+// Le client vient-il des pubs Meta (lancées début septembre) ? Choix fait sur la page (fields.vientDeMeta
+// « oui » / « non »), sinon d'après la source : landing du site ou formulaire Facebook.
+const vientDeMeta = (l: Lead) => (l.fields.vientDeMeta === "oui" ? true : l.fields.vientDeMeta === "non" ? false : canalOf(l) !== null);
+const isSigne = (l: Lead) => (l.status as string) === "o_yt99h" || /^sign/i.test(String(statusInfo(l.status).label ?? "").trim());
 
 type Depense = { id: string; du: string; au: string; canal: Canal; campagne: string; montant: number; leadsMeta?: number };
 const DAY = 86400000;
@@ -64,7 +67,7 @@ const PERIODES: [string, () => [string, string]][] = [
     const d = new Date(); const a = new Date(d.getFullYear(), d.getMonth() - 1, 1); const b = new Date(d.getFullYear(), d.getMonth(), 0);
     return [`${a.getFullYear()}-${String(a.getMonth() + 1).padStart(2, "0")}-01`, `${b.getFullYear()}-${String(b.getMonth() + 1).padStart(2, "0")}-${String(b.getDate()).padStart(2, "0")}`];
   }],
-  ["Depuis le début", () => ["2026-01-01", today()]],
+  ["Depuis le lancement (1er sept.)", () => ["2026-09-01", today()]],
 ];
 
 function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "good" | "bad" }) {
@@ -123,15 +126,17 @@ export default function RentaMeta({ email }: { email: string }) {
     () => (allLeads ?? []).filter((l) => isSigne(l) && Date.parse(l.createdAt) >= from && Date.parse(l.createdAt) < to).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     [allLeads, from, to, colsVersion],
   );
-  const margesTous = tousSignes.map(margeOf);
+  const signesMeta = tousSignes.filter(vientDeMeta);
+  const autresSignes = tousSignes.filter((l) => !vientDeMeta(l));
+  const margesTous = signesMeta.map(margeOf);
   const tot = {
     leads: site.ls.length + fb.ls.length,
-    signes: tousSignes.length,
+    signes: signesMeta.length,
     depense: site.depense + fb.depense,
     marge: margesTous.reduce((x, m) => x + (m.marge ?? 0), 0),
     aCompleter: margesTous.filter((m) => m.marge === null).length,
-    cee: tousSignes.reduce((x, l) => x + (num(l.fields.primeCee) ?? 0), 0),
-    mpr: tousSignes.reduce((x, l) => x + (num(l.fields.mprPraimy) ?? 0), 0),
+    cee: signesMeta.reduce((x, l) => x + (num(l.fields.primeCee) ?? 0), 0),
+    mpr: signesMeta.reduce((x, l) => x + (num(l.fields.mprPraimy) ?? 0), 0),
   };
   const benef = tot.marge - tot.depense;
 
@@ -151,6 +156,15 @@ export default function RentaMeta({ email }: { email: string }) {
       setErreur("Enregistrement refusé.");
     }
   };
+  // Classe un signé « venu de Meta » ou non (enregistré dans la fiche : fields.vientDeMeta).
+  const basculerMeta = async (l: Lead, oui: boolean) => {
+    try {
+      const { m, db } = await crmFirestore();
+      await m.updateDoc(m.doc(db, "crm_leads", l.id), { "fields.vientDeMeta": oui ? "oui" : "non", updatedAt: m.serverTimestamp(), updatedBy: email });
+    } catch {
+      setErreur("Modification refusée.");
+    }
+  };
   const retirer = async (id: string) => {
     if (!window.confirm("Retirer cette dépense ?")) return;
     const { m, db } = await crmFirestore();
@@ -167,7 +181,7 @@ export default function RentaMeta({ email }: { email: string }) {
     for (let y = d0.getFullYear(), m = d0.getMonth(); y < d1.getFullYear() || (y === d1.getFullYear() && m <= d1.getMonth()); m === 11 ? (y++, (m = 0)) : m++) {
       const a = Math.max(from, new Date(y, m, 1).getTime()), b = Math.min(to, new Date(y, m + 1, 1).getTime());
       const inM = (t: number) => t >= a && t < b;
-      const sg = (allLeads ?? []).filter((l) => isSigne(l) && inM(Date.parse(l.createdAt)));
+      const sg = (allLeads ?? []).filter((l) => isSigne(l) && vientDeMeta(l) && inM(Date.parse(l.createdAt)));
       out.push({
         key: `${y}-${m}`,
         label: new Date(y, m, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }),
@@ -241,50 +255,54 @@ export default function RentaMeta({ email }: { email: string }) {
         </p>
       )}
 
-      {/* 4. Les clients signés */}
+      {/* 4. Les clients signés venus de Meta, puis les autres (à classer d'un clic) */}
       <div className={carte}>
-        {titre("✅ Clients signés et ce qu'on touche", "leads arrivés sur la période, toutes origines")}
-        {tousSignes.length === 0 ? (
-          <p className="text-sm text-gray-500">Aucun client signé sur cette période. Essaie « Depuis le début ».</p>
-        ) : (
-          <div className="overflow-x-auto -mx-1">
-            <table className="w-full text-sm min-w-[640px]">
-              <thead className="text-gray-500 text-xs border-b">
-                <tr><th className="text-left py-2 px-1">Client</th><th className="text-left px-1">Arrivé le</th><th className="text-left px-1">Origine</th><th className="text-right px-1">CEE</th><th className="text-right px-1">MaPrimeRénov'</th><th className="text-right px-1">On touche</th></tr>
-              </thead>
-              <tbody>
-                {tousSignes.map((l) => {
-                  const m = margeOf(l);
-                  return (
-                    <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-2 px-1"><p className="font-semibold text-gray-900">{l.name}</p><p className="text-xs text-gray-400">{statusInfo(l.status).label}</p></td>
-                      <td className="px-1 text-gray-600">{new Date(l.createdAt).toLocaleDateString("fr-FR")}</td>
-                      <td className="px-1 text-xs">{origine(l)}</td>
-                      <td className="px-1 text-right text-gray-600">{eur(num(l.fields.primeCee))}</td>
-                      <td className="px-1 text-right text-gray-600">{eur(num(l.fields.mprPraimy))}</td>
-                      <td className="px-1 text-right font-bold">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className="text-emerald-700">{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
-                    </tr>
-                  );
-                })}
-                {(() => {
-                  const meta = tousSignes.filter((l) => canalOf(l));
-                  const mm = meta.reduce((x, l) => x + (margeOf(l).marge ?? 0), 0);
-                  return (
-                    <tr className="text-xs text-gray-600 bg-blue-50/50">
-                      <td className="py-1.5 px-1" colSpan={5}>dont venus des pubs Meta (source site ou formulaire) : {meta.length} signé{meta.length > 1 ? "s" : ""}</td>
-                      <td className="px-1 text-right font-bold">{eur(mm)}</td>
-                    </tr>
-                  );
-                })()}
-                <tr className="font-black bg-gray-50">
-                  <td className="py-2 px-1" colSpan={3}>Total · {tousSignes.length} signé{tousSignes.length > 1 ? "s" : ""}</td>
-                  <td className="px-1 text-right">{eur(tot.cee)}</td>
-                  <td className="px-1 text-right">{eur(tot.mpr)}</td>
-                  <td className="px-1 text-right text-emerald-700">{eur(tot.marge)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+        {titre("✅ Clients signés venus des pubs Meta", "leads arrivés sur la période · un clic sur « 📣 Meta » / « Autre » pour corriger l'origine")}
+        {[{ liste: signesMeta, meta: true }, { liste: autresSignes, meta: false }].map(({ liste, meta }) =>
+          !meta && liste.length === 0 ? null : (
+            <div key={String(meta)} className={meta ? "" : "mt-5"}>
+              {!meta && <p className="text-sm font-bold text-gray-500 mb-1">Autres signés (pas comptés : recommandation, ancien fichier…) · {liste.length}</p>}
+              {meta && liste.length === 0 ? (
+                <p className="text-sm text-gray-500">Aucun signé venu de Meta sur cette période.</p>
+              ) : (
+                <div className="overflow-x-auto -mx-1">
+                  <table className={`w-full text-sm min-w-[680px] ${meta ? "" : "opacity-70"}`}>
+                    <thead className="text-gray-500 text-xs border-b">
+                      <tr><th className="text-left py-2 px-1">Client</th><th className="text-left px-1">Arrivé le</th><th className="text-left px-1">Source</th><th className="text-left px-1">Meta ?</th><th className="text-right px-1">CEE</th><th className="text-right px-1">MaPrimeRénov'</th><th className="text-right px-1">On touche</th></tr>
+                    </thead>
+                    <tbody>
+                      {liste.map((l) => {
+                        const m = margeOf(l);
+                        return (
+                          <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-2 px-1"><p className="font-semibold text-gray-900">{l.name}</p><p className="text-xs text-gray-400">{statusInfo(l.status).label}</p></td>
+                            <td className="px-1 text-gray-600">{new Date(l.createdAt).toLocaleDateString("fr-FR")}</td>
+                            <td className="px-1 text-xs">{origine(l)}</td>
+                            <td className="px-1">
+                              <button onClick={() => basculerMeta(l, !meta)} title="Changer l'origine" className={`rounded-full px-2 py-0.5 text-xs font-bold border ${meta ? "bg-blue-50 text-blue-700 border-blue-200" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
+                                {meta ? "📣 Meta" : "Autre"}
+                              </button>
+                            </td>
+                            <td className="px-1 text-right text-gray-600">{eur(num(l.fields.primeCee))}</td>
+                            <td className="px-1 text-right text-gray-600">{eur(num(l.fields.mprPraimy))}</td>
+                            <td className="px-1 text-right font-bold">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={meta ? "text-emerald-700" : "text-gray-500"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
+                          </tr>
+                        );
+                      })}
+                      {meta && (
+                        <tr className="font-black bg-gray-50">
+                          <td className="py-2 px-1" colSpan={4}>Total · {liste.length} signé{liste.length > 1 ? "s" : ""} venu{liste.length > 1 ? "s" : ""} de Meta</td>
+                          <td className="px-1 text-right">{eur(tot.cee)}</td>
+                          <td className="px-1 text-right">{eur(tot.mpr)}</td>
+                          <td className="px-1 text-right text-emerald-700">{eur(tot.marge)}</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          ),
         )}
         <p className="text-[11px] text-gray-400 mt-2">On touche = CEE + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
       </div>
