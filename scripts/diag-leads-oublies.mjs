@@ -16,7 +16,8 @@ const db = getFirestore();
   const labels = {};
   const where = {};
   const walk = (v, path, docId) => { if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${path}[${i}]`, docId)); else if (v && typeof v === "object") { const k = v.key ?? v.id; const t = v.label ?? v.title ?? v.name; if (typeof k === "string" && typeof t === "string") { labels[k] = t; where[k] = `${docId}${path}`.slice(0, 80); } for (const [kk, vv] of Object.entries(v)) walk(vv, `${path}.${kk}`, docId); } };
-  for (const d of docs) walk(d.data(), "", d.id);
+  // Le tableau en service (leads_columns) en dernier : ses noms d'étiquettes passent devant ceux des sauvegardes.
+  for (const d of [...docs].sort((a, b) => (a.id === "leads_columns") - (b.id === "leads_columns"))) walk(d.data(), "", d.id);
   const t = (await db.collection("crm_leads").select("status", "deletedAt").get()).docs.map((d) => d.data()).filter((x) => !x.deletedAt);
   const c = {};
   for (const x of t) c[x.status ?? "(vide)"] = (c[x.status ?? "(vide)"] ?? 0) + 1;
