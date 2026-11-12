@@ -31,6 +31,7 @@ import {
   Check,
   Home,
   Newspaper,
+  PiggyBank,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -60,6 +61,7 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
   praimy: FileCheck2,
   archives: Archive,
   actus: Newspaper,
+  renta: PiggyBank,
 };
 
 const POP = "bg-white text-gray-900 border border-gray-200 shadow-xl";

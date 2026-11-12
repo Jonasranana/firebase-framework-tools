@@ -22,7 +22,8 @@ export type AdminPageKey =
   | "clients"
   | "praimy"
   | "archives"
-  | "actus";
+  | "actus"
+  | "renta";
 
 // Définition d'un tableau « vue » : un tableau de leads avec ses propres
 // filtres, tri, groupement et colonnes (enregistrés dans le tableau).
@@ -80,7 +81,7 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       id: "f_crm",
       title: "CRM IP5",
       color: "#fb275d",
-      items: [item("actus", "Actualités aides"), item("documents", "Documents"), item("stats", "Statistiques"), item("bareme", "Barème"), item("corbeille", "Corbeille et doublons")],
+      items: [item("renta", "Rentabilité Meta"), item("actus", "Actualités aides"), item("documents", "Documents"), item("stats", "Statistiques"), item("bareme", "Barème"), item("corbeille", "Corbeille et doublons")],
     },
     { id: "f_pac", title: "PRAIMY", color: "#fdab3d", items: [item("marges", "Marges PRAIMY"), item("praimy", "Dossiers PRAIMY")] },
     { id: "f_autres", title: "Autres métiers", color: "#9d50dd", items: [item("gonflage", "Station de gonflage")] },

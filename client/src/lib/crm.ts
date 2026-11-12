@@ -413,4 +413,8 @@ export const TOTALS_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.co
 // Comptes qui voient la page « Actualités aides » (veille quotidienne
 // MaPrimeRénov' / CEE / pompe à chaleur) : la famille + l'adresse contact.
 // À garder identique à la règle Firestore crm_news (scripts/regles-actus.mjs).
+// Comptes qui voient la page « Rentabilité Meta » (bénéfice net après pub) : Jonas et Alexis.
+// À garder identique à la règle Firestore crm_meta_depenses (scripts/regles-renta.mjs).
+export const RENTA_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com"];
+
 export const NEWS_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"];

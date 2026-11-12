@@ -5,7 +5,7 @@
 // HAUT de la liste (id unique, date, titre, points en français simple).
 // `pour` = liste d'e-mails qui la voient (absent = toute l'équipe).
 // ─────────────────────────────────────────────────────────────────────────
-import { NEWS_VIEWERS } from "@/lib/crm";
+import { NEWS_VIEWERS, RENTA_VIEWERS } from "@/lib/crm";
 
 export type Nouveaute = {
   id: string;
@@ -17,6 +17,18 @@ export type Nouveaute = {
 };
 
 export const NOUVEAUTES: Nouveaute[] = [
+  {
+    id: "2026-11-12-rentabilite-meta",
+    date: "2026-11-12",
+    emoji: "💰",
+    titre: "Nouvelle page « Rentabilité Meta »",
+    points: [
+      "Menu CRM IP5 → « Rentabilité Meta » (visible seulement par Jonas et Alexis).",
+      "Pour la période choisie : dépense pub Meta, leads du site et du formulaire Facebook, coût par lead, clients signés et bénéfice net après pub.",
+      "La marge d'un signé se calcule avec les montants Praimy (CEE + MaPrimeRénov') ; la nouvelle colonne « 💵 Marge nette » permet de la corriger à la main.",
+    ],
+    pour: RENTA_VIEWERS,
+  },
   {
     id: "2026-11-11-ref-praimy",
     date: "2026-11-11",
