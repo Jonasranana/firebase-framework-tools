@@ -20,31 +20,38 @@ type Canal = keyof typeof CANAUX;
 const canalOf = (l: Lead): Canal | null =>
   /^site \(incomplet\)/i.test(l.source ?? "") ? "site" : (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
 
-// Marge d'un signé (barème Prémi, comme « Marges PRAIMY ») : CEE + MaPrimeRénov' nette de la commission
-// (12 % HT + TVA) − fourniture-pose ; le reste à charge client remonte la marge à 2 500 € minimum.
+// Marge d'un signé — barème donné par Alexis (12/11/2026) :
+//   CEE touchée : H1 bleu 8 517 €, H1 jaune/violet 4 580 € ; H2 bleu 7 080 €, H2 jaune/violet 3 822 €.
+//   MaPrimeRénov' : bleu 5 000 €, jaune 4 000 €, violet (classique) 3 000 €.
+//   Frais Praimy : bleu 600 €, jaune 500 €, violet 400 €.
+//   Fourni-posé : Praimy 5 800 €, Georges 5 300 € (colonne « Poseur »).
+// Marge = CEE + MaPrimeRénov' − frais Praimy − fourni-posé, au moins 2 500 € (reste à charge client).
 // « 💵 Marge nette » saisie sur la fiche prend le pas sur ce calcul.
-const COUT_POSE = 5700;
 const MARGE_MIN = 2500;
-const TAUX_NET_MPR = 1 - 0.12 * 1.2;
 const num = (v: unknown) => {
   const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".").replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : null;
 };
-// CEE que touche IP5 selon la zone et le profil : même barème que la page « Marges PRAIMY » (méthode Prémi actuelle). Sans « Zone + Profil », on garde
-// la prime CEE affichée par Praimy (montant côté client, plus bas que ce que touche IP5).
 const CEE_IP5: Record<string, number> = {
-  "H1 bleu": 8517, "H2 bleu": 7400,
-  "H1 jaune": 4580, "H2 jaune": 3200,
-  "H1 classique": 4580, "H2 classique": 3200,
+  "H1 bleu": 8517, "H1 jaune": 4580, "H1 classique": 4580,
+  "H2 bleu": 7080, "H2 jaune": 3822, "H2 classique": 3822,
 };
+const MPR_PROFIL: Record<string, number> = { bleu: 5000, jaune: 4000, classique: 3000 };
+const FRAIS_PRAIMY: Record<string, number> = { bleu: 600, jaune: 500, classique: 400 };
+const POSE = { praimy: 5800, georges: 5300 };
+const profilOf = (l: Lead) => String(l.fields.zoneProfil ?? "").split(" ")[1] ?? "";
+const estGeorges = (l: Lead) => /georges/i.test(String(l.fields.poseur ?? ""));
 const ceeIp5 = (l: Lead): number | null => CEE_IP5[String(l.fields.zoneProfil ?? "")] ?? num(l.fields.primeCee);
+const mprOf = (l: Lead): number | null => MPR_PROFIL[profilOf(l)] ?? num(l.fields.mprPraimy);
+const fraisOf = (l: Lead): number => (estGeorges(l) ? 0 : FRAIS_PRAIMY[profilOf(l)] ?? 0);
+const poseOf = (l: Lead): number => (estGeorges(l) ? POSE.georges : POSE.praimy);
 function margeOf(l: Lead): { marge: number | null; calc: boolean } {
   const saisie = num(l.fields.margeNette);
   if (saisie !== null) return { marge: saisie, calc: false };
   const cee = ceeIp5(l);
-  const mpr = num(l.fields.mprPraimy);
+  const mpr = mprOf(l);
   if (cee === null && mpr === null) return { marge: null, calc: true };
-  return { marge: Math.max(MARGE_MIN, (cee ?? 0) + (mpr ?? 0) * TAUX_NET_MPR - COUT_POSE), calc: true };
+  return { marge: Math.max(MARGE_MIN, (cee ?? 0) + (mpr ?? 0) - fraisOf(l) - poseOf(l)), calc: true };
 }
 // « Signé en octobre / novembre… » sont des étiquettes ajoutées dans le CRM (clés o_…) : leurs noms
 // ne sont connus qu'une fois la configuration du tableau chargée (useColumnsConfig ci-dessous).
@@ -144,7 +151,7 @@ export default function RentaMeta({ email }: { email: string }) {
     marge: margesTous.reduce((x, m) => x + (m.marge ?? 0), 0),
     aCompleter: margesTous.filter((m) => m.marge === null).length,
     cee: signesMeta.reduce((x, l) => x + (ceeIp5(l) ?? 0), 0),
-    mpr: signesMeta.reduce((x, l) => x + (num(l.fields.mprPraimy) ?? 0), 0),
+    mpr: signesMeta.reduce((x, l) => x + (mprOf(l) ?? 0), 0),
   };
   const benef = tot.marge - tot.depense;
 
@@ -221,8 +228,8 @@ export default function RentaMeta({ email }: { email: string }) {
         <td className="py-2.5 px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-600"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
         <td className="px-2 text-xs whitespace-nowrap">{origine(l)}</td>
         <td className="px-2 text-right whitespace-nowrap" title={`Prime affichée par Praimy : ${eur(num(l.fields.primeCee))}`}>{eur(ceeIp5(l))}<p className="text-[10px] text-gray-400">{String(l.fields.zoneProfil ?? "").replace("bleu", "grand préc.").replace("jaune", "précaire") || "Praimy"}</p></td>
-        <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.mprPraimy))}</td>
-        <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-600"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
+        <td className="px-2 text-right whitespace-nowrap">{eur(mprOf(l))}</td>
+        <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-600"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}{m.calc && m.marge !== null && <p className="text-[10px] font-normal text-gray-400">− frais {eur(fraisOf(l))} − pose {eur(poseOf(l))}{estGeorges(l) ? " (Georges)" : ""}</p>}</td>
         <td className="px-2 text-right">
           <button onClick={() => basculerMeta(l, !compte)} className={`whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-bold ${compte ? "border-gray-300 text-gray-600 hover:bg-gray-100" : "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
             {compte ? "Ne pas compter" : "➕ Vient de la pub"}
@@ -318,7 +325,7 @@ export default function RentaMeta({ email }: { email: string }) {
               </div>
             )}
           </div>
-          <p className="text-[11px] text-gray-400 px-1">On touche = CEE touchée par IP5 (barème « Marges PRAIMY » : grand précaire 8 517 € en H1, 7 400 € en H2) + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
+          <p className="text-[11px] text-gray-400 px-1">On touche = CEE (H1 : bleu 8 517 €, jaune/violet 4 580 € · H2 : bleu 7 080 €, jaune/violet 3 822 €) + MaPrimeRénov' (bleu 5 000 €, jaune 4 000 €, violet 3 000 €) − frais Praimy (600 / 500 / 400 €) − fourni-posé (Praimy 5 800 €, Georges 5 300 €), au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
         </div>
 
         {/* Droite : mois par mois, site / formulaire, dépenses */}
