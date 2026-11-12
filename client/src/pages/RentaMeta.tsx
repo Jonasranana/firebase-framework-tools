@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLeads } from "@/lib/crmStore";
 import { crmFirestore } from "@/lib/crmDb";
 import { statusInfo, type Lead } from "@/lib/crm";
+import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 
 // ─────────────────────────────────────────────────────────────────────────
 // « Rentabilité Meta » : réservée à Jonas et Alexis (RENTA_VIEWERS + règle
@@ -15,8 +16,9 @@ const CANAUX = {
   formulaire: { label: "📱 Formulaire Facebook", sources: ["formulaire-facebook"] },
 } as const;
 type Canal = keyof typeof CANAUX;
+// « Site (incomplet) : … » = demande commencée sur la landing des pubs Meta.
 const canalOf = (l: Lead): Canal | null =>
-  (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
+  /^site \(incomplet\)/i.test(l.source ?? "") ? "site" : (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
 
 // Marge d'un signé (barème Prémi, comme « Marges PRAIMY ») : CEE + MaPrimeRénov' nette de la commission
 // (12 % HT + TVA) − fourniture-pose ; le reste à charge client remonte la marge à 2 500 € minimum.
@@ -36,7 +38,9 @@ function margeOf(l: Lead): { marge: number | null; calc: boolean } {
   if (cee === null && mpr === null) return { marge: null, calc: true };
   return { marge: Math.max(MARGE_MIN, (cee ?? 0) + (mpr ?? 0) * TAUX_NET_MPR - COUT_POSE), calc: true };
 }
-const isSigne = (l: Lead) => /sign/i.test(statusInfo(l.status).label ?? "");
+// « Signé en octobre / novembre… » sont des étiquettes ajoutées dans le CRM (clés o_…) : leurs noms
+// ne sont connus qu'une fois la configuration du tableau chargée (useColumnsConfig ci-dessous).
+const isSigne = (l: Lead) => (l.status as string) === "o_yt99h" || /^sign/i.test(statusInfo(l.status).label ?? "");
 
 type Depense = { id: string; du: string; au: string; canal: Canal; campagne: string; montant: number; leadsMeta?: number };
 const DAY = 86400000;
@@ -75,6 +79,8 @@ function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?
 
 export default function RentaMeta({ email }: { email: string }) {
   const { data: allLeads } = useLeads();
+  // Charge les étiquettes du tableau Pac Pac (noms des statuts ajoutés, ex. « Signé en novembre »).
+  const { version: colsVersion } = useColumnsConfig(email, "leads");
   const [[du, au], setPeriode] = useState<[string, string]>(PERIODES[4][1]());
   const [depenses, setDepenses] = useState<Depense[]>([]);
   const [erreur, setErreur] = useState("");
@@ -100,7 +106,7 @@ export default function RentaMeta({ email }: { email: string }) {
   const from = dayMs(du), to = dayMs(au) + DAY;
   const leads = useMemo(
     () => (allLeads ?? []).filter((l) => (l.board || "leads") === "leads" && canalOf(l) && Date.parse(l.createdAt) >= from && Date.parse(l.createdAt) < to),
-    [allLeads, from, to],
+    [allLeads, from, to, colsVersion],
   );
   const parCanal = (c: Canal) => {
     const ls = leads.filter((l) => canalOf(l) === c);
@@ -115,7 +121,7 @@ export default function RentaMeta({ email }: { email: string }) {
   // ont été ressaisis à la main ou viennent de l'ancien tableau).
   const tousSignes = useMemo(
     () => (allLeads ?? []).filter((l) => isSigne(l) && Date.parse(l.createdAt) >= from && Date.parse(l.createdAt) < to).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [allLeads, from, to],
+    [allLeads, from, to, colsVersion],
   );
   const margesTous = tousSignes.map(margeOf);
   const tot = {
@@ -151,7 +157,7 @@ export default function RentaMeta({ email }: { email: string }) {
     await m.deleteDoc(m.doc(db, "crm_meta_depenses", id));
   };
 
-  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire FB", "saisie-manuelle": "✍️ Saisi à la main", monday: "📋 Ancien tableau" };
+  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire FB", "saisie-manuelle": "✍️ Saisi à la main", monday: "📋 Ancien tableau (Monday)", "reactivation-pac": "✉️ Réactivation" };
   const origine = (l: Lead) => (canalOf(l) === "site" ? "🌐 Site" : ORIGINE[l.source] ?? (l.source || "—"));
 
   // Résumé mois par mois sur la période : pub, leads Meta, signés, ce qu'on touche, bénéfice.
@@ -173,7 +179,7 @@ export default function RentaMeta({ email }: { email: string }) {
       });
     }
     return out.reverse();
-  }, [allLeads, depenses, from, to]);
+  }, [allLeads, depenses, from, to, colsVersion]);
 
   const [voirDepenses, setVoirDepenses] = useState(false);
   const champ = "rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5 text-sm";
@@ -260,6 +266,16 @@ export default function RentaMeta({ email }: { email: string }) {
                     </tr>
                   );
                 })}
+                {(() => {
+                  const meta = tousSignes.filter((l) => canalOf(l));
+                  const mm = meta.reduce((x, l) => x + (margeOf(l).marge ?? 0), 0);
+                  return (
+                    <tr className="text-xs text-gray-600 bg-blue-50/50">
+                      <td className="py-1.5 px-1" colSpan={5}>dont venus des pubs Meta (source site ou formulaire) : {meta.length} signé{meta.length > 1 ? "s" : ""}</td>
+                      <td className="px-1 text-right font-bold">{eur(mm)}</td>
+                    </tr>
+                  );
+                })()}
                 <tr className="font-black bg-gray-50">
                   <td className="py-2 px-1" colSpan={3}>Total · {tousSignes.length} signé{tousSignes.length > 1 ? "s" : ""}</td>
                   <td className="px-1 text-right">{eur(tot.cee)}</td>

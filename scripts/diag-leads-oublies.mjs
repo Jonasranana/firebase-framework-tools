@@ -225,3 +225,29 @@ if (!TOKEN) {
   console.log(`signés : ${sg.length}`);
   for (const [k, n] of Object.entries(c).sort()) console.log(`  ${n} × ${k}`);
 }
+
+// Colonnes du tableau Pac Pac : colonnes à choix et leurs étiquettes, puis, pour les fiches dont une colonne
+// contient une étiquette « Signé … », les valeurs des autres colonnes à choix (compteurs, sans nom).
+{
+  const cfg = (await db.doc("crm_boards/leads_columns").get()).data()?.config ?? {};
+  const cols = [...(cfg.custom ?? [])];
+  const optLabel = {};
+  for (const [k, opts] of Object.entries(cfg.options ?? {})) for (const o of opts ?? []) optLabel[`${k}:${o.key}`] = o.label;
+  for (const c of cols) for (const o of c.options ?? []) optLabel[`${c.key}:${o.key}`] = o.label;
+  console.log(`\n=== Colonnes ajoutées (${cols.length}) ===`);
+  for (const c of cols) console.log(`  ${c.key} « ${cfg.titles?.[c.key] ?? c.title} » (${c.type}) ${(c.options ?? []).map((o) => o.label).join(" / ").slice(0, 200)}`);
+  const groups = (await db.doc("crm_boards/leads").get()).data();
+  const t = (await db.collection("crm_leads").select("status", "group", "fields", "deletedAt", "source").get()).docs.map((d) => d.data()).filter((x) => !x.deletedAt);
+  const lab = (k, v) => optLabel[`${k}:${v}`] ?? v;
+  const signe = (x) => Object.entries({ status: x.status, ...(x.fields ?? {}) }).find(([k, v]) => /^sign/i.test(String(lab(k, v) ?? "")) && /octobre|novembre|décembre|septembre/i.test(String(lab(k, v))));
+  const sg = t.filter(signe);
+  console.log(`fiches « Signé en <mois> » (toutes colonnes) : ${sg.length}`);
+  const c2 = {};
+  for (const x of sg) { const [k, v] = signe(x); const key = `${k} = ${lab(k, v)} | groupe ${x.group} | source ${x.source || "(vide)"}`; c2[key] = (c2[key] ?? 0) + 1; }
+  for (const [k, n] of Object.entries(c2).sort()) console.log(`  ${n} × ${k}`);
+  const cnt = {};
+  for (const x of sg) for (const [k, v] of Object.entries(x.fields ?? {})) if (cols.some((c) => c.key === k && c.type === "status") || ["typeDemande", "pipeline", "commercial", "type"].includes(k)) { const key = `${k}=${lab(k, v)}`; cnt[key] = (cnt[key] ?? 0) + 1; }
+  console.log("valeurs des colonnes à choix chez ces signés :");
+  for (const [k, n] of Object.entries(cnt).sort()) console.log(`  ${n} × ${k}`);
+  console.log(`groupes (doc crm_boards/leads) : ${JSON.stringify(groups ?? {}).slice(0, 300)}`);
+}
