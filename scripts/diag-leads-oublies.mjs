@@ -209,3 +209,19 @@ if (!TOKEN) {
   const sg = t.filter((x) => x.status === "o_yt99h");
   console.log(`\n=== Remplis dans le CRM ===\nzoneProfil ${t.filter((x) => has(x, "zoneProfil")).length} | primeCee ${t.filter((x) => has(x, "primeCee")).length} | mprPraimy ${t.filter((x) => has(x, "mprPraimy")).length} | signés de novembre avec zoneProfil ${sg.filter((x) => has(x, "zoneProfil")).length}/${sg.length}`);
 }
+
+// Signés : source, tableau et mois d'arrivée (compteurs seulement, sans nom).
+{
+  const cfg = (await db.collection("crm_boards").get()).docs.map((d) => d.data());
+  const labels = {};
+  const walk = (v) => { if (Array.isArray(v)) v.forEach(walk); else if (v && typeof v === "object") { const k = v.key ?? v.id; const t = v.label ?? v.title ?? v.name; if (typeof k === "string" && typeof t === "string") labels[k] = t; Object.values(v).forEach(walk); } };
+  cfg.forEach(walk);
+  const t = (await db.collection("crm_leads").select("status", "source", "board", "createdAt", "deletedAt", "fields").get()).docs.map((d) => d.data()).filter((x) => !x.deletedAt);
+  const sKeys = Object.entries(labels).filter(([, v]) => /sign/i.test(v)).map(([k, v]) => `${k}=${v}`);
+  console.log(`\n=== Étiquettes « sign » : ${sKeys.join(" | ")}`);
+  const sg = t.filter((x) => /sign/i.test(labels[x.status] ?? x.status ?? ""));
+  const c = {};
+  for (const x of sg) { const k = `${labels[x.status] ?? x.status} | source ${x.source || "(vide)"} | tableau ${x.board || "leads"} | arrivé ${String(x.createdAt?.toDate?.()?.toISOString?.() ?? x.createdAt ?? "").slice(0, 7)} | montants ${x.fields?.primeCee ? "oui" : "non"}`; c[k] = (c[k] ?? 0) + 1; }
+  console.log(`signés : ${sg.length}`);
+  for (const [k, n] of Object.entries(c).sort()) console.log(`  ${n} × ${k}`);
+}
