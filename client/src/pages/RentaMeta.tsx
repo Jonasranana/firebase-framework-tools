@@ -75,7 +75,7 @@ function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?
 
 export default function RentaMeta({ email }: { email: string }) {
   const { data: allLeads } = useLeads();
-  const [[du, au], setPeriode] = useState<[string, string]>(PERIODES[1][1]());
+  const [[du, au], setPeriode] = useState<[string, string]>(PERIODES[4][1]());
   const [depenses, setDepenses] = useState<Depense[]>([]);
   const [erreur, setErreur] = useState("");
   const [form, setForm] = useState({ du: "", au: "", canal: "site" as Canal, campagne: "", montant: "", leadsMeta: "" });
@@ -111,12 +111,21 @@ export default function RentaMeta({ email }: { email: string }) {
     return { ls, signes, depense, marge, aCompleter: marges.filter((x) => x.marge === null).length };
   };
   const site = parCanal("site"), fb = parCanal("formulaire");
+  // Tous les signés arrivés sur la période, quelle que soit leur source (beaucoup de leads Meta
+  // ont été ressaisis à la main ou viennent de l'ancien tableau).
+  const tousSignes = useMemo(
+    () => (allLeads ?? []).filter((l) => isSigne(l) && Date.parse(l.createdAt) >= from && Date.parse(l.createdAt) < to).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+    [allLeads, from, to],
+  );
+  const margesTous = tousSignes.map(margeOf);
   const tot = {
     leads: site.ls.length + fb.ls.length,
-    signes: site.signes.length + fb.signes.length,
+    signes: tousSignes.length,
     depense: site.depense + fb.depense,
-    marge: site.marge + fb.marge,
-    aCompleter: site.aCompleter + fb.aCompleter,
+    marge: margesTous.reduce((x, m) => x + (m.marge ?? 0), 0),
+    aCompleter: margesTous.filter((m) => m.marge === null).length,
+    cee: tousSignes.reduce((x, l) => x + (num(l.fields.primeCee) ?? 0), 0),
+    mpr: tousSignes.reduce((x, l) => x + (num(l.fields.mprPraimy) ?? 0), 0),
   };
   const benef = tot.marge - tot.depense;
 
@@ -142,7 +151,8 @@ export default function RentaMeta({ email }: { email: string }) {
     await m.deleteDoc(m.doc(db, "crm_meta_depenses", id));
   };
 
-  const signesListe = [...site.signes, ...fb.signes].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire FB", "saisie-manuelle": "✍️ Saisi à la main", monday: "📋 Ancien tableau" };
+  const origine = (l: Lead) => (canalOf(l) === "site" ? "🌐 Site" : ORIGINE[l.source] ?? (l.source || "—"));
 
   return (
     <div className="max-w-5xl mx-auto space-y-5 pb-10">
@@ -169,7 +179,7 @@ export default function RentaMeta({ email }: { email: string }) {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Kpi label="Dépense pub Meta" value={eur(tot.depense)} hint="d'après les captures saisies" />
         <Kpi label="Leads Meta" value={String(tot.leads)} hint={tot.leads ? `${eur(tot.depense / tot.leads)} par lead` : undefined} />
-        <Kpi label="Clients signés" value={String(tot.signes)} hint={tot.signes ? `${eur(tot.depense / tot.signes)} de pub par signé` : undefined} />
+        <Kpi label="Clients signés" value={String(tot.signes)} hint={tot.signes ? `on touche ${eur(tot.marge)} · ${eur(tot.depense / tot.signes)} de pub par signé` : undefined} />
         <Kpi label="Bénéfice net après pub" value={eur(benef)} hint={`marge ${eur(tot.marge)} − pub ${eur(tot.depense)}`} tone={benef >= 0 ? "good" : "bad"} />
       </div>
       {tot.aCompleter > 0 && (
@@ -204,26 +214,33 @@ export default function RentaMeta({ email }: { email: string }) {
       </div>
 
       <div className="rounded-xl border border-gray-200 bg-white p-4">
-        <h2 className="font-bold text-gray-900">✅ Signés venus de Meta sur la période</h2>
-        {signesListe.length === 0 ? (
-          <p className="text-sm text-gray-500 mt-2">Aucun signé parmi les leads Meta arrivés sur cette période.</p>
+        <h2 className="font-bold text-gray-900">✅ Clients signés (arrivés sur la période) : ce qu'on touche</h2>
+        {tousSignes.length === 0 ? (
+          <p className="text-sm text-gray-500 mt-2">Aucun client signé parmi les leads arrivés sur cette période. Essaie « Depuis le début ».</p>
         ) : (
           <table className="w-full text-sm mt-2">
-            <thead className="text-gray-500 text-xs"><tr><th className="text-left py-1">Client</th><th className="text-left">Arrivé le</th><th className="text-left">Canal</th><th className="text-right">CEE</th><th className="text-right">MPR</th><th className="text-right">Marge</th></tr></thead>
+            <thead className="text-gray-500 text-xs"><tr><th className="text-left py-1">Client</th><th className="text-left">Statut</th><th className="text-left">Arrivé le</th><th className="text-left">Origine</th><th className="text-right">CEE</th><th className="text-right">MPR</th><th className="text-right">On touche (marge)</th></tr></thead>
             <tbody>
-              {signesListe.map((l) => {
+              {tousSignes.map((l) => {
                 const m = margeOf(l);
                 return (
                   <tr key={l.id} className="border-t">
                     <td className="py-1.5">{l.name}</td>
+                    <td className="text-xs">{statusInfo(l.status).label}</td>
                     <td>{new Date(l.createdAt).toLocaleDateString("fr-FR")}</td>
-                    <td>{canalOf(l) === "site" ? "Site" : "Formulaire FB"}</td>
+                    <td className="text-xs">{origine(l)}</td>
                     <td className="text-right">{eur(num(l.fields.primeCee))}</td>
                     <td className="text-right">{eur(num(l.fields.mprPraimy))}</td>
                     <td className="text-right font-semibold">{m.marge === null ? <span className="text-amber-600">à compléter</span> : `${eur(m.marge)}${m.calc ? "" : " ✍️"}`}</td>
                   </tr>
                 );
               })}
+              <tr className="border-t font-bold">
+                <td className="py-1.5" colSpan={4}>Total ({tousSignes.length} signés)</td>
+                <td className="text-right">{eur(tot.cee)}</td>
+                <td className="text-right">{eur(tot.mpr)}</td>
+                <td className="text-right text-emerald-700">{eur(tot.marge)}</td>
+              </tr>
             </tbody>
           </table>
         )}
