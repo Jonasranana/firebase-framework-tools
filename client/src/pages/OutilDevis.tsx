@@ -74,30 +74,30 @@ const PLAFOND_DEPENSE_MPR = 12000; // dépense éligible plafonnée (mention lé
 // ── Barème partenaire Econergos / plateforme Prémi ─────────────────────────
 // Prémi gère marchandise + installateur + administratif, paie tous les 15
 // jours (100 % du CEE, 80 % de MaPrimeRénov ; solde des 20 % restants plus
-// tard), et prend une commission de 12 % HT sur le montant MaPrimeRénov.
+// tard), et prend des frais par dossier (600 / 500 / 400 € selon la couleur).
 // Chiffres à jour au 16/09/2026 — certains montants CEE restent "à vérifier"
 // auprès d'Econergos (voir feuille Parametres du classeur de suivi).
-const PREMI_COMMISSION = 0.12; // % HT sur MaPrimeRénov
-const PREMI_TVA_COMMISSION = 0.2;
-const PREMI_TAUX_NET_MPR = 1 - PREMI_COMMISSION * (1 + PREMI_TVA_COMMISSION); // 85,6 %
 
+// Barème donné par Alexis le 12/11/2026 (CEE, MaPrimeRénov', frais Praimy, fourni-posé).
 const PREMI_CEE: Record<string, Record<"H1" | "H2", number>> = {
-  Bleu: { H1: 8517, H2: 7400 },
-  Jaune: { H1: 4580, H2: 3200 },
-  Violet: { H1: 4580, H2: 3200 },
+  Bleu: { H1: 8517, H2: 7080 },
+  Jaune: { H1: 4580, H2: 3822 },
+  Violet: { H1: 4580, H2: 3822 },
 };
+// Frais Praimy par dossier (remplacent la commission de 12 % HT) ; pas de frais quand c'est Georges qui pose.
+const PREMI_FRAIS: Record<string, number> = { Bleu: 600, Jaune: 500, Violet: 400 };
 const PREMI_MPR_BRUT: Record<string, number> = {
   Bleu: 5000,
   Jaune: 4000,
   Violet: 3000,
 };
 const PREMI_FOURNI_POSE: Record<string, number> = {
-  Atlantis: 5700,
-  Chappée: 5900,
+  Praimy: 5800,
+  Georges: 5300,
 };
 const PREMI_PRECARITES = ["Bleu", "Jaune", "Violet"] as const;
 const PREMI_ZONES = ["H1", "H2"] as const;
-const PREMI_MARQUES = ["Atlantis", "Chappée"] as const;
+const PREMI_MARQUES = ["Praimy", "Georges"] as const;
 // Marge minimum acceptée sur un dossier Prémi. En dessous, on complète en
 // facturant un reste à charge au client plutôt que de vendre à perte.
 const PREMI_MARGE_MIN = 2500;
@@ -211,14 +211,14 @@ export const MargesPremi = () => {
     useState<(typeof PREMI_PRECARITES)[number]>("Bleu");
   const [zone, setZone] = useState<(typeof PREMI_ZONES)[number]>("H1");
   const [marque, setMarque] =
-    useState<(typeof PREMI_MARQUES)[number]>("Atlantis");
+    useState<(typeof PREMI_MARQUES)[number]>("Praimy");
   const [methode, setMethode] =
     useState<(typeof CALCUL_METHODES)[number]["key"]>("premi");
 
   const r = useMemo(() => {
     const cee = PREMI_CEE[precarite]?.[zone] ?? 0;
     const mprBrut = PREMI_MPR_BRUT[precarite] ?? 0;
-    const mprNet = mprBrut * PREMI_TAUX_NET_MPR;
+    const mprNet = mprBrut - (marque === "Georges" ? 0 : PREMI_FRAIS[precarite] ?? 0);
     const totalPercuExact = cee + mprNet;
     const totalPercu =
       methode === "premi_arrondi"
@@ -325,7 +325,7 @@ export const MargesPremi = () => {
           </div>
           <div>
             <span className="block text-sm font-semibold text-gray-700 mb-1.5">
-              Marque PAC (fourni-posé)
+              Poseur (fourni-posé)
             </span>
             <div className="grid grid-cols-2 gap-2">
               {PREMI_MARQUES.map((m) => (
@@ -424,7 +424,7 @@ export const MargesPremi = () => {
                 v={euros(r.mprBrut)}
               />
               <Row
-                k={`Commission Prémi (${Math.round(PREMI_COMMISSION * 100)}% HT)`}
+                k={marque === "Georges" ? "Frais Praimy (pas de frais avec Georges)" : `Frais Praimy (${precarite})`}
                 v={`− ${euros(r.mprBrut - r.mprNet)}`}
               />
               <div className="border-t border-gray-100 pt-2">
