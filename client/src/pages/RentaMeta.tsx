@@ -30,10 +30,19 @@ const num = (v: unknown) => {
   const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".").replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : null;
 };
+// CEE que touche IP5 selon la zone et le profil (barème d'Alexis) : grand précaire H1 8 500 €, H2 7 100 €.
+// Les autres cases reprennent le barème « Marges PRAIMY » (à confirmer). Sans « Zone + Profil », on garde
+// la prime CEE affichée par Praimy (montant côté client, plus bas que ce que touche IP5).
+const CEE_IP5: Record<string, number> = {
+  "H1 bleu": 8500, "H2 bleu": 7100,
+  "H1 jaune": 4580, "H2 jaune": 3200,
+  "H1 classique": 4580, "H2 classique": 3200,
+};
+const ceeIp5 = (l: Lead): number | null => CEE_IP5[String(l.fields.zoneProfil ?? "")] ?? num(l.fields.primeCee);
 function margeOf(l: Lead): { marge: number | null; calc: boolean } {
   const saisie = num(l.fields.margeNette);
   if (saisie !== null) return { marge: saisie, calc: false };
-  const cee = num(l.fields.primeCee);
+  const cee = ceeIp5(l);
   const mpr = num(l.fields.mprPraimy);
   if (cee === null && mpr === null) return { marge: null, calc: true };
   return { marge: Math.max(MARGE_MIN, (cee ?? 0) + (mpr ?? 0) * TAUX_NET_MPR - COUT_POSE), calc: true };
@@ -135,7 +144,7 @@ export default function RentaMeta({ email }: { email: string }) {
     depense: site.depense + fb.depense,
     marge: margesTous.reduce((x, m) => x + (m.marge ?? 0), 0),
     aCompleter: margesTous.filter((m) => m.marge === null).length,
-    cee: signesMeta.reduce((x, l) => x + (num(l.fields.primeCee) ?? 0), 0),
+    cee: signesMeta.reduce((x, l) => x + (ceeIp5(l) ?? 0), 0),
     mpr: signesMeta.reduce((x, l) => x + (num(l.fields.mprPraimy) ?? 0), 0),
   };
   const benef = tot.marge - tot.depense;
@@ -212,7 +221,7 @@ export default function RentaMeta({ email }: { email: string }) {
       <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50">
         <td className="py-2.5 px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-600"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
         <td className="px-2 text-xs whitespace-nowrap">{origine(l)}</td>
-        <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.primeCee))}</td>
+        <td className="px-2 text-right whitespace-nowrap" title={`Prime affichée par Praimy : ${eur(num(l.fields.primeCee))}`}>{eur(ceeIp5(l))}<p className="text-[10px] text-gray-400">{String(l.fields.zoneProfil ?? "").replace("bleu", "grand préc.").replace("jaune", "précaire") || "Praimy"}</p></td>
         <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.mprPraimy))}</td>
         <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-600"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
         <td className="px-2 text-right">
@@ -225,7 +234,7 @@ export default function RentaMeta({ email }: { email: string }) {
   };
   const enTete = (
     <thead className="text-gray-500 text-xs border-b">
-      <tr><th className="text-left py-2 px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">On touche</th><th /></tr>
+      <tr><th className="text-left py-2 px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE (IP5)</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">On touche</th><th /></tr>
     </thead>
   );
 
@@ -310,7 +319,7 @@ export default function RentaMeta({ email }: { email: string }) {
               </div>
             )}
           </div>
-          <p className="text-[11px] text-gray-400 px-1">On touche = CEE + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
+          <p className="text-[11px] text-gray-400 px-1">On touche = CEE touchée par IP5 (grand précaire : 8 500 € en H1, 7 100 € en H2) + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
         </div>
 
         {/* Droite : mois par mois, site / formulaire, dépenses */}
