@@ -18,6 +18,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-12-bareme-praimy",
+    date: "2026-11-12",
+    emoji: "🧮",
+    titre: "Nouveau barème dans « Marges PRAIMY » et « Rentabilité Meta »",
+    points: [
+      "CEE : H1 bleu 8 517 €, jaune/violet 4 580 € · H2 bleu 7 080 €, jaune/violet 3 822 €.",
+      "MaPrimeRénov' : bleu 5 000 €, jaune 4 000 €, violet 3 000 € ; frais Praimy 600 / 500 / 400 €.",
+      "Fourni-posé : Praimy 5 800 €, Georges 5 300 € (sans frais Praimy).",
+    ],
+    pour: RENTA_VIEWERS,
+  },
+  {
     id: "2026-11-12-rentabilite-meta",
     date: "2026-11-12",
     emoji: "💰",
