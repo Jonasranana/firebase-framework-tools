@@ -171,9 +171,9 @@ export default function RentaMeta({ email }: { email: string }) {
           );
         })}
         <span className="text-sm text-gray-500 ml-1">du</span>
-        <input type="date" value={du} onChange={(e) => e.target.value && setPeriode([e.target.value, au])} className="rounded-lg border border-gray-300 px-2 py-1 text-sm" />
+        <input type="date" value={du} onChange={(e) => e.target.value && setPeriode([e.target.value, au])} className="rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1 text-sm" />
         <span className="text-sm text-gray-500">au</span>
-        <input type="date" value={au} onChange={(e) => e.target.value && setPeriode([du, e.target.value])} className="rounded-lg border border-gray-300 px-2 py-1 text-sm" />
+        <input type="date" value={au} onChange={(e) => e.target.value && setPeriode([du, e.target.value])} className="rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1 text-sm" />
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -252,13 +252,13 @@ export default function RentaMeta({ email }: { email: string }) {
       <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
         <h2 className="font-bold text-gray-900">📊 Dépenses pub (captures Ads Manager)</h2>
         <div className="grid grid-cols-2 md:grid-cols-6 gap-2 text-sm">
-          <input type="date" value={form.du} onChange={(e) => setForm({ ...form, du: e.target.value })} className="rounded-lg border border-gray-300 px-2 py-1.5" title="Du" />
-          <input type="date" value={form.au} onChange={(e) => setForm({ ...form, au: e.target.value })} className="rounded-lg border border-gray-300 px-2 py-1.5" title="Au" />
-          <select value={form.canal} onChange={(e) => setForm({ ...form, canal: e.target.value as Canal })} className="rounded-lg border border-gray-300 px-2 py-1.5">
+          <input type="date" value={form.du} onChange={(e) => setForm({ ...form, du: e.target.value })} className="rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5" title="Du" />
+          <input type="date" value={form.au} onChange={(e) => setForm({ ...form, au: e.target.value })} className="rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5" title="Au" />
+          <select value={form.canal} onChange={(e) => setForm({ ...form, canal: e.target.value as Canal })} className="rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5">
             <option value="site">Site</option><option value="formulaire">Formulaire FB</option>
           </select>
-          <input placeholder="Nom de la pub" value={form.campagne} onChange={(e) => setForm({ ...form, campagne: e.target.value })} className="rounded-lg border border-gray-300 px-2 py-1.5" />
-          <input placeholder="Montant €" inputMode="decimal" value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} className="rounded-lg border border-gray-300 px-2 py-1.5" />
+          <input placeholder="Nom de la pub" value={form.campagne} onChange={(e) => setForm({ ...form, campagne: e.target.value })} className="rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5" />
+          <input placeholder="Montant €" inputMode="decimal" value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} className="rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5" />
           <button onClick={ajouter} className="rounded-lg bg-gray-900 text-white font-semibold px-3 py-1.5">Ajouter</button>
         </div>
         {erreur && <p className="text-sm text-red-600">{erreur}</p>}
