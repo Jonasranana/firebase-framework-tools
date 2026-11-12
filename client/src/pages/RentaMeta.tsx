@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLeads } from "@/lib/crmStore";
 import { crmFirestore } from "@/lib/crmDb";
 import { statusInfo, type Lead } from "@/lib/crm";
+import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 
 // ─────────────────────────────────────────────────────────────────────────
 // « Rentabilité Meta » : réservée à Jonas et Alexis (RENTA_VIEWERS + règle
@@ -36,7 +37,9 @@ function margeOf(l: Lead): { marge: number | null; calc: boolean } {
   if (cee === null && mpr === null) return { marge: null, calc: true };
   return { marge: Math.max(MARGE_MIN, (cee ?? 0) + (mpr ?? 0) * TAUX_NET_MPR - COUT_POSE), calc: true };
 }
-const isSigne = (l: Lead) => /sign/i.test(statusInfo(l.status).label ?? "");
+// « Signé en octobre / novembre… » sont des étiquettes ajoutées dans le CRM (clés o_…) : leurs noms
+// ne sont connus qu'une fois la configuration du tableau chargée (useColumnsConfig ci-dessous).
+const isSigne = (l: Lead) => (l.status as string) === "o_yt99h" || /^sign/i.test(statusInfo(l.status).label ?? "");
 
 type Depense = { id: string; du: string; au: string; canal: Canal; campagne: string; montant: number; leadsMeta?: number };
 const DAY = 86400000;
@@ -75,6 +78,8 @@ function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?
 
 export default function RentaMeta({ email }: { email: string }) {
   const { data: allLeads } = useLeads();
+  // Charge les étiquettes du tableau Pac Pac (noms des statuts ajoutés, ex. « Signé en novembre »).
+  const { version: colsVersion } = useColumnsConfig(email, "leads");
   const [[du, au], setPeriode] = useState<[string, string]>(PERIODES[4][1]());
   const [depenses, setDepenses] = useState<Depense[]>([]);
   const [erreur, setErreur] = useState("");
@@ -100,7 +105,7 @@ export default function RentaMeta({ email }: { email: string }) {
   const from = dayMs(du), to = dayMs(au) + DAY;
   const leads = useMemo(
     () => (allLeads ?? []).filter((l) => (l.board || "leads") === "leads" && canalOf(l) && Date.parse(l.createdAt) >= from && Date.parse(l.createdAt) < to),
-    [allLeads, from, to],
+    [allLeads, from, to, colsVersion],
   );
   const parCanal = (c: Canal) => {
     const ls = leads.filter((l) => canalOf(l) === c);
@@ -115,7 +120,7 @@ export default function RentaMeta({ email }: { email: string }) {
   // ont été ressaisis à la main ou viennent de l'ancien tableau).
   const tousSignes = useMemo(
     () => (allLeads ?? []).filter((l) => isSigne(l) && Date.parse(l.createdAt) >= from && Date.parse(l.createdAt) < to).sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
-    [allLeads, from, to],
+    [allLeads, from, to, colsVersion],
   );
   const margesTous = tousSignes.map(margeOf);
   const tot = {
@@ -173,7 +178,7 @@ export default function RentaMeta({ email }: { email: string }) {
       });
     }
     return out.reverse();
-  }, [allLeads, depenses, from, to]);
+  }, [allLeads, depenses, from, to, colsVersion]);
 
   const [voirDepenses, setVoirDepenses] = useState(false);
   const champ = "rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5 text-sm";
