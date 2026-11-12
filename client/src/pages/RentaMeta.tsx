@@ -171,8 +171,8 @@ export default function RentaMeta({ email }: { email: string }) {
     await m.deleteDoc(m.doc(db, "crm_meta_depenses", id));
   };
 
-  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire Facebook (pub Meta)", "saisie-manuelle": "✍️ Saisi à la main dans le CRM", monday: "📋 Ancien tableau Monday", "reactivation-pac": "✉️ Campagne de réactivation" };
-  const origine = (l: Lead) => (canalOf(l) === "site" ? (/incomplet/i.test(l.source) ? "🌐 Site, demande incomplète (pub Meta)" : "🌐 Site (pub Meta)") : ORIGINE[l.source] ?? (l.source || "—"));
+  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire Facebook", "saisie-manuelle": "✍️ Saisi à la main", monday: "📋 Ancien tableau Monday", "reactivation-pac": "✉️ Réactivation" };
+  const origine = (l: Lead) => (canalOf(l) === "site" ? (/incomplet/i.test(l.source) ? "🌐 Site (incomplet)" : "🌐 Site") : ORIGINE[l.source] ?? (l.source || "—"));
 
   // Résumé mois par mois sur la période : pub, leads Meta, signés, ce qu'on touche, bénéfice.
   const moisListe = useMemo(() => {
@@ -196,6 +196,7 @@ export default function RentaMeta({ email }: { email: string }) {
   }, [allLeads, depenses, from, to, colsVersion]);
 
   const [voirDepenses, setVoirDepenses] = useState(false);
+  const [voirPasComptes, setVoirPasComptes] = useState(false);
   const champ = "rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5 text-sm";
   const carte = "rounded-2xl border border-gray-200 bg-white p-4 md:p-5";
   const titre = (t: string, sous?: string) => (
@@ -205,45 +206,49 @@ export default function RentaMeta({ email }: { email: string }) {
     </div>
   );
 
+  const ligneSigne = (l: Lead) => {
+    const m = margeOf(l);
+    const compte = vientDeMeta(l);
+    return (
+      <tr key={l.id} className={`border-b border-gray-100 hover:bg-gray-50 ${compte ? "" : "text-gray-400"}`}>
+        <td className="py-2.5 px-2 text-center">
+          <input type="checkbox" checked={compte} onChange={() => basculerMeta(l, !compte)} title={compte ? "Compté dans les stats" : "Pas compté"} className="h-4 w-4 accent-emerald-600 cursor-pointer" />
+        </td>
+        <td className="px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-500"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
+        <td className="px-2 text-xs whitespace-nowrap">{origine(l)}</td>
+        <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.primeCee))}</td>
+        <td className="px-2 text-right whitespace-nowrap">{eur(num(l.fields.mprPraimy))}</td>
+        <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-400"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
+      </tr>
+    );
+  };
+
   return (
-    <div className="max-w-5xl mx-auto space-y-4 pb-10">
-      {/* 1. En-tête + période */}
-      <div className={carte}>
-        <div className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="text-xl font-black text-gray-900">💰 Rentabilité Meta</h1>
-            <p className="text-xs text-gray-500">Ce que rapportent les pubs Facebook / Instagram · visible seulement par Jonas et Alexis</p>
-          </div>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {PERIODES.map(([label, f]) => {
-              const [a, b] = f();
-              return (
-                <button key={label} onClick={() => setPeriode([a, b])} className={`rounded-full border px-3 py-1 text-xs font-semibold ${a === du && b === au ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
-          <span>Période du</span>
-          <input type="date" value={du} onChange={(e) => e.target.value && setPeriode([e.target.value, au])} className={champ} />
-          <span>au</span>
-          <input type="date" value={au} onChange={(e) => e.target.value && setPeriode([du, e.target.value])} className={champ} />
-        </div>
+    <div className="w-full space-y-4 pb-10">
+      {/* Période */}
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-gray-200 bg-white px-4 py-3">
+        <span className="text-sm font-bold text-gray-700 mr-1">📆 Période</span>
+        {PERIODES.map(([label, f]) => {
+          const [a, b] = f();
+          return (
+            <button key={label} onClick={() => setPeriode([a, b])} className={`rounded-full border px-3 py-1 text-xs font-semibold ${a === du && b === au ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"}`}>
+              {label}
+            </button>
+          );
+        })}
+        <span className="ml-auto flex items-center gap-2 text-xs text-gray-500">
+          du <input type="date" value={du} onChange={(e) => e.target.value && setPeriode([e.target.value, au])} className={champ} />
+          au <input type="date" value={au} onChange={(e) => e.target.value && setPeriode([du, e.target.value])} className={champ} />
+        </span>
       </div>
 
-      {/* 2. Le résultat en grand */}
-      <div className={`rounded-2xl p-5 md:p-6 text-white ${benef >= 0 ? "bg-gradient-to-br from-emerald-600 to-emerald-700" : "bg-gradient-to-br from-red-600 to-red-700"}`}>
-        <p className="text-sm font-semibold opacity-90">Bénéfice net après pub</p>
-        <p className="text-4xl md:text-5xl font-black mt-1">{eur(benef)}</p>
-        <p className="text-sm mt-2 opacity-90">
-          On touche <b>{eur(tot.marge)}</b> sur {tot.signes} client{tot.signes > 1 ? "s" : ""} signé{tot.signes > 1 ? "s" : ""} − <b>{eur(tot.depense)}</b> de pub
-        </p>
-      </div>
-
-      {/* 3. Chiffres clés */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* Résultat + chiffres clés sur une ligne */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+        <div className={`col-span-2 rounded-2xl p-5 text-white ${benef >= 0 ? "bg-gradient-to-br from-emerald-600 to-emerald-700" : "bg-gradient-to-br from-red-600 to-red-700"}`}>
+          <p className="text-sm font-semibold opacity-90">Bénéfice net après pub</p>
+          <p className="text-4xl font-black mt-1">{eur(benef)}</p>
+          <p className="text-xs mt-2 opacity-90">{eur(tot.marge)} touchés − {eur(tot.depense)} de pub</p>
+        </div>
         <Kpi label="💸 Pub dépensée" value={eur(tot.depense)} />
         <Kpi label="📥 Leads Meta" value={String(tot.leads)} hint={tot.leads ? `${eur(tot.depense / tot.leads)} par lead` : undefined} />
         <Kpi label="✅ Clients signés" value={String(tot.signes)} hint={tot.leads ? `${Math.round((tot.signes / tot.leads) * 100)} % des leads` : undefined} />
@@ -255,94 +260,86 @@ export default function RentaMeta({ email }: { email: string }) {
         </p>
       )}
 
-      {/* 4. Tous les signés : d'où ils viennent, et s'ils comptent dans les stats (case à cocher) */}
-      <div className={carte}>
-        {titre("✅ Clients signés et ce qu'on touche", "coche « Compté » pour inclure un client dans les stats (bénéfice, mois par mois)")}
-        {tousSignes.length === 0 ? (
-          <p className="text-sm text-gray-500">Aucun client signé sur cette période.</p>
-        ) : (
-          <div className="overflow-x-auto -mx-1">
-            <table className="w-full text-sm min-w-[720px]">
+      <div className="grid lg:grid-cols-3 gap-4 items-start">
+        {/* Gauche : les clients signés */}
+        <div className={`${carte} lg:col-span-2`}>
+          {titre("✅ Clients signés", "☑️ = compté dans le bénéfice · décoche un client pour ne pas le compter")}
+          {tousSignes.length === 0 ? (
+            <p className="text-sm text-gray-500">Aucun client signé sur cette période.</p>
+          ) : (
+            <div className="overflow-x-auto -mx-2">
+              <table className="w-full text-sm">
+                <thead className="text-gray-500 text-xs border-b">
+                  <tr><th className="py-2 px-2 w-10">☑️</th><th className="text-left px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">On touche</th></tr>
+                </thead>
+                <tbody>
+                  {signesMeta.map(ligneSigne)}
+                  <tr className="font-black bg-emerald-50">
+                    <td />
+                    <td className="py-2.5 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
+                    <td className="px-2 text-right whitespace-nowrap">{eur(tot.cee)}</td>
+                    <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}</td>
+                    <td className="px-2 text-right text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
+                  </tr>
+                  {autresSignes.length > 0 && (
+                    <tr>
+                      <td colSpan={6} className="pt-3 px-2">
+                        <button onClick={() => setVoirPasComptes((v) => !v)} className="text-xs font-semibold text-gray-500 hover:text-gray-800">
+                          {voirPasComptes ? "▲" : "▼"} {autresSignes.length} autre{autresSignes.length > 1 ? "s" : ""} signé{autresSignes.length > 1 ? "s" : ""} pas compté{autresSignes.length > 1 ? "s" : ""} (recommandation, ancien fichier…)
+                        </button>
+                      </td>
+                    </tr>
+                  )}
+                  {voirPasComptes && autresSignes.map(ligneSigne)}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <p className="text-[11px] text-gray-400 mt-3">On touche = CEE + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
+        </div>
+
+        {/* Droite : mois par mois, site / formulaire, dépenses */}
+        <div className="space-y-4">
+          <div className={carte}>
+            {titre("📅 Mois par mois")}
+            <table className="w-full text-sm">
               <thead className="text-gray-500 text-xs border-b">
-                <tr><th className="text-left py-2 px-1">Compté</th><th className="text-left px-1">Client</th><th className="text-left px-1">Arrivé le</th><th className="text-left px-1">D'où il vient</th><th className="text-right px-1">CEE</th><th className="text-right px-1">MaPrimeRénov'</th><th className="text-right px-1">On touche</th></tr>
+                <tr><th className="text-left py-2">Mois</th><th className="text-right">Pub</th><th className="text-right">Leads</th><th className="text-right">Signés</th><th className="text-right">Bénéfice</th></tr>
               </thead>
               <tbody>
-                {[...signesMeta, ...autresSignes].map((l) => {
-                  const m = margeOf(l);
-                  const compte = vientDeMeta(l);
-                  return (
-                    <tr key={l.id} className={`border-b border-gray-100 hover:bg-gray-50 ${compte ? "" : "text-gray-400"}`}>
-                      <td className="py-2 px-1">
-                        <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
-                          <input type="checkbox" checked={compte} onChange={() => basculerMeta(l, !compte)} className="h-4 w-4 accent-emerald-600" />
-                          <span className={`text-xs font-semibold ${compte ? "text-emerald-700" : "text-gray-400"}`}>{compte ? "Compté" : "Pas compté"}</span>
-                        </label>
-                      </td>
-                      <td className="px-1"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-500"}`}>{l.name}</p><p className="text-xs text-gray-400">{statusInfo(l.status).label}</p></td>
-                      <td className="px-1">{new Date(l.createdAt).toLocaleDateString("fr-FR")}</td>
-                      <td className="px-1 text-xs">{origine(l)}</td>
-                      <td className="px-1 text-right">{eur(num(l.fields.primeCee))}</td>
-                      <td className="px-1 text-right">{eur(num(l.fields.mprPraimy))}</td>
-                      <td className="px-1 text-right font-bold">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-400"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}</td>
-                    </tr>
-                  );
-                })}
-                <tr className="font-black bg-gray-50">
-                  <td className="py-2 px-1" colSpan={4}>Total compté · {signesMeta.length} signé{signesMeta.length > 1 ? "s" : ""}{autresSignes.length ? ` (${autresSignes.length} pas compté${autresSignes.length > 1 ? "s" : ""})` : ""}</td>
-                  <td className="px-1 text-right">{eur(tot.cee)}</td>
-                  <td className="px-1 text-right">{eur(tot.mpr)}</td>
-                  <td className="px-1 text-right text-emerald-700">{eur(tot.marge)}</td>
-                </tr>
+                {moisListe.map((m) => (
+                  <tr key={m.key} className="border-b border-gray-100">
+                    <td className="py-2 font-semibold capitalize">{m.label.replace(/ \d{4}$/, "")}</td>
+                    <td className="text-right">{eur(m.pub)}</td>
+                    <td className="text-right" title={`${m.leadsCrm} arrivés dans le CRM`}>{m.leadsMeta || m.leadsCrm}</td>
+                    <td className="text-right">{m.signes}</td>
+                    <td className={`text-right font-bold ${m.marge - m.pub >= 0 ? "text-emerald-600" : "text-red-600"}`}>{eur(m.marge - m.pub)}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        )}
-        <p className="text-[11px] text-gray-400 mt-2">On touche = CEE + MaPrimeRénov' nette (− 12 % HT de commission) − {eur(COUT_POSE)} de pose, au moins {eur(MARGE_MIN)} (reste à charge client). ✍️ = saisi à la main.</p>
-      </div>
 
-      {/* 5. Mois par mois */}
-      <div className={carte}>
-        {titre("📅 Mois par mois")}
-        <div className="overflow-x-auto -mx-1">
-          <table className="w-full text-sm min-w-[600px]">
-            <thead className="text-gray-500 text-xs border-b">
-              <tr><th className="text-left py-2 px-1">Mois</th><th className="text-right px-1">Pub</th><th className="text-right px-1">Leads</th><th className="text-right px-1">Coût / lead</th><th className="text-right px-1">Signés</th><th className="text-right px-1">On touche</th><th className="text-right px-1">Bénéfice</th></tr>
-            </thead>
-            <tbody>
-              {moisListe.map((m) => (
-                <tr key={m.key} className="border-b border-gray-100">
-                  <td className="py-2 px-1 font-semibold capitalize">{m.label}</td>
-                  <td className="px-1 text-right">{eur(m.pub)}</td>
-                  <td className="px-1 text-right" title="leads comptés par Meta (leads arrivés dans le CRM)">{m.leadsMeta || m.leadsCrm} <span className="text-gray-400 text-xs">({m.leadsCrm} CRM)</span></td>
-                  <td className="px-1 text-right">{m.leadsMeta ? eur(m.pub / m.leadsMeta) : "—"}</td>
-                  <td className="px-1 text-right">{m.signes}</td>
-                  <td className="px-1 text-right text-emerald-700">{eur(m.marge)}</td>
-                  <td className={`px-1 text-right font-bold ${m.marge - m.pub >= 0 ? "text-emerald-600" : "text-red-600"}`}>{eur(m.marge - m.pub)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          <div className={carte}>
+            {titre("🆚 Site ou formulaire Facebook ?")}
+            <table className="w-full text-sm">
+              <thead className="text-gray-500 text-xs border-b">
+                <tr><th className="text-left py-2"></th><th className="text-right">Pub</th><th className="text-right">Leads</th><th className="text-right">Coût / lead</th></tr>
+              </thead>
+              <tbody>
+                {([["site", site], ["formulaire", fb]] as const).map(([c, r]) => (
+                  <tr key={c} className="border-b border-gray-100">
+                    <td className="py-2 font-semibold">{CANAUX[c].label}</td>
+                    <td className="text-right">{eur(r.depense)}</td>
+                    <td className="text-right">{r.ls.length}</td>
+                    <td className="text-right font-bold">{r.ls.length ? eur(r.depense / r.ls.length) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
 
-      {/* 6. Site ou formulaire ? */}
-      <div className={carte}>
-        {titre("🆚 Site ou formulaire Facebook ?", "leads venus directement des pubs, d'après leur source dans le CRM")}
-        <div className="grid md:grid-cols-2 gap-3">
-          {([["site", site], ["formulaire", fb]] as const).map(([c, r]) => (
-            <div key={c} className="rounded-xl border border-gray-200 p-3">
-              <p className="font-bold text-gray-900">{CANAUX[c].label}</p>
-              <div className="grid grid-cols-3 gap-2 mt-2 text-center">
-                <div><p className="text-[11px] text-gray-500">Pub</p><p className="font-black">{eur(r.depense)}</p></div>
-                <div><p className="text-[11px] text-gray-500">Leads</p><p className="font-black">{r.ls.length}</p></div>
-                <div><p className="text-[11px] text-gray-500">Coût / lead</p><p className="font-black">{r.ls.length ? eur(r.depense / r.ls.length) : "—"}</p></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* 7. Dépenses (repliées) */}
+          {/* Dépenses (repliées) */}
       <div className={carte}>
         <button onClick={() => setVoirDepenses((v) => !v)} className="w-full flex items-center justify-between text-left">
           <span>
@@ -353,7 +350,7 @@ export default function RentaMeta({ email }: { email: string }) {
         </button>
         {voirDepenses && (
           <div className="mt-4 space-y-3">
-            <div className="grid grid-cols-2 md:grid-cols-6 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <input type="date" value={form.du} onChange={(e) => setForm({ ...form, du: e.target.value })} className={champ} title="Du" />
               <input type="date" value={form.au} onChange={(e) => setForm({ ...form, au: e.target.value })} className={champ} title="Au" />
               <select value={form.canal} onChange={(e) => setForm({ ...form, canal: e.target.value as Canal })} className={champ}>
@@ -361,7 +358,7 @@ export default function RentaMeta({ email }: { email: string }) {
               </select>
               <input placeholder="Nom de la pub" value={form.campagne} onChange={(e) => setForm({ ...form, campagne: e.target.value })} className={champ} />
               <input placeholder="Montant €" inputMode="decimal" value={form.montant} onChange={(e) => setForm({ ...form, montant: e.target.value })} className={champ} />
-              <button onClick={ajouter} className="rounded-lg bg-gray-900 text-white font-semibold px-3 py-1.5 text-sm">Ajouter</button>
+              <button onClick={ajouter} className="col-span-2 rounded-lg bg-gray-900 text-white font-semibold px-3 py-1.5 text-sm">Ajouter</button>
             </div>
             {erreur && <p className="text-sm text-red-600">{erreur}</p>}
             <div className="max-h-80 overflow-y-auto">
@@ -383,6 +380,8 @@ export default function RentaMeta({ email }: { email: string }) {
             </div>
           </div>
         )}
+      </div>
+        </div>
       </div>
     </div>
   );
