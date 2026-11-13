@@ -28,6 +28,8 @@ const canalOf = (l: Lead): Canal | null =>
 // Marge = CEE + MaPrimeRénov' − frais Praimy − fourni-posé, au moins 2 500 € (reste à charge client).
 // « 💵 Marge nette » saisie sur la fiche prend le pas sur ce calcul.
 const MARGE_MIN = 2500;
+// Fines lignes verticales entre les colonnes des tableaux (pas avant la 1re colonne).
+const lignesCol = "[&_th]:border-l [&_td]:border-l [&_th:first-child]:border-l-0 [&_td:first-child]:border-l-0 [&_th]:border-gray-200 [&_td]:border-gray-200";
 const num = (v: unknown) => {
   const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".").replace(/[^0-9.\-]/g, ""));
   return Number.isFinite(n) ? n : null;
@@ -342,7 +344,7 @@ export default function RentaMeta({ email }: { email: string }) {
               <p className="text-sm text-gray-500">Aucun client venu de la pub sur cette période.</p>
             ) : (
               <div className="overflow-x-auto -mx-2">
-                <table className="w-full text-sm">
+                <table className={`w-full text-sm ${lignesCol}`}>
                   {enTete}
                   <tbody>
                     {signesMeta.map(ligneSigne)}
@@ -369,7 +371,7 @@ export default function RentaMeta({ email }: { email: string }) {
               <p className="text-sm text-gray-500">Aucun.</p>
             ) : (
               <div className="overflow-x-auto -mx-2">
-                <table className="w-full text-sm">
+                <table className={`w-full text-sm ${lignesCol}`}>
                   {enTete}
                   <tbody>{autresSignes.map(ligneSigne)}</tbody>
                 </table>
@@ -383,7 +385,7 @@ export default function RentaMeta({ email }: { email: string }) {
         <div className="space-y-4">
           <div className={carte}>
             {titre("📅 Mois par mois")}
-            <table className="w-full text-sm">
+            <table className={`w-full text-sm ${lignesCol}`}>
               <thead className="text-gray-500 text-xs border-b">
                 <tr><th className="text-left py-2">Mois</th><th className="text-right">Pub</th><th className="text-right">Leads</th><th className="text-right">Signés</th><th className="text-right">Bénéfice</th></tr>
               </thead>
@@ -403,7 +405,7 @@ export default function RentaMeta({ email }: { email: string }) {
 
           <div className={carte}>
             {titre("🆚 Site ou formulaire Facebook ?")}
-            <table className="w-full text-sm">
+            <table className={`w-full text-sm ${lignesCol}`}>
               <thead className="text-gray-500 text-xs border-b">
                 <tr><th className="text-left py-2"></th><th className="text-right">Pub</th><th className="text-right">Leads</th><th className="text-right">Coût / lead</th></tr>
               </thead>
