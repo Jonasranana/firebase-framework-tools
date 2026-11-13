@@ -284,15 +284,16 @@ export default function RentaMeta({ email }: { email: string }) {
       </tr>
     );
   };
+  const sousTitre = (t: string) => <span className="block mt-0.5 text-[11px] font-medium normal-case text-gray-500">{t}</span>;
   const enTete = (
-    <thead className="text-gray-600 text-xs border-b-2">
+    <thead className="bg-gray-50 text-[13px] font-bold text-gray-800 border-b-2 border-gray-200">
       <tr>
-        <th className="text-left py-2 px-2">Client</th>
-        <th className="text-left px-2">Signé en</th>
-        <th className="text-right px-2">💶 Tout de suite<span className="block font-normal text-[10px] text-gray-400">CEE − pose · 1 semaine après la pose</span></th>
-        <th className="text-right px-2">⏳ Plus tard<span className="block font-normal text-[10px] text-gray-400">MaPrimeRénov' − frais</span></th>
-        <th className="text-right px-2">= On touche</th>
-        <th className="text-center px-2">Pose</th>
+        <th className="text-left py-3 px-3">Client</th>
+        <th className="text-left px-3">Signé en</th>
+        <th className="text-right px-3">💶 Encaissé vite{sousTitre("CEE moins la pose · 1 semaine après l'installation")}</th>
+        <th className="text-right px-3">⏳ Encaissé plus tard{sousTitre("MaPrimeRénov' moins les frais Praimy")}</th>
+        <th className="text-right px-3">💰 Total pour IP5{sousTitre("ce qu'on gagne sur le client")}</th>
+        <th className="text-center px-3">🔧 Peut-on poser ?</th>
       </tr>
     </thead>
   );
