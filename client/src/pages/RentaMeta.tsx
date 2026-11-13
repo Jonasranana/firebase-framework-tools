@@ -241,6 +241,8 @@ export default function RentaMeta({ email }: { email: string }) {
 
   // Une ligne = un client : ce qu'on touche tout de suite (CEE − pose), plus tard (MaPrimeRénov' − frais), le total,
   // et si on peut poser (la CEE couvre la pose, ou la MaPrimeRénov' est reçue).
+  // Mois de signature, lu dans l'étiquette (« Signé en novembre » → novembre).
+  const moisSigne = (l: Lead) => (String(statusInfo(l.status).label ?? "").match(/sign[ée]\s+en\s+(\S+)/i)?.[1] ?? "—");
   const ligneSigne = (l: Lead) => {
     const m = margeOf(l);
     const compte = vientDeMeta(l);
@@ -253,10 +255,13 @@ export default function RentaMeta({ email }: { email: string }) {
       <tr key={l.id} className="border-b border-gray-100 align-middle">
         <td className="py-3 px-2">
           <p className={`font-bold ${fort}`}>{l.name}</p>
-          <p className="text-xs text-gray-500">{String(statusInfo(l.status).label ?? "").trim()} · {origine(l)}</p>
+          <p className="text-xs text-gray-500">{origine(l)}</p>
           <button onClick={() => basculerMeta(l, !compte)} className="text-[11px] text-gray-400 underline hover:text-gray-700">
             {compte ? "ne pas compter ce client" : "➕ il vient de la pub, le compter"}
           </button>
+        </td>
+        <td className="px-2 whitespace-nowrap">
+          <span className="inline-block rounded-lg bg-gray-100 px-2.5 py-1 text-sm font-bold text-gray-800 capitalize">{moisSigne(l)}</span>
         </td>
         <td className={`px-2 text-right text-base font-bold whitespace-nowrap ${vite !== null && vite < 0 ? "text-red-600" : "text-blue-700"}`}>{eur(vite)}</td>
         <td className="px-2 text-right text-base font-bold whitespace-nowrap text-gray-700">{eur(tard)}</td>
@@ -281,6 +286,7 @@ export default function RentaMeta({ email }: { email: string }) {
     <thead className="text-gray-600 text-xs border-b-2">
       <tr>
         <th className="text-left py-2 px-2">Client</th>
+        <th className="text-left px-2">Signé en</th>
         <th className="text-right px-2">💶 Tout de suite<span className="block font-normal text-[10px] text-gray-400">CEE − pose · 1 semaine après la pose</span></th>
         <th className="text-right px-2">⏳ Plus tard<span className="block font-normal text-[10px] text-gray-400">MaPrimeRénov' − frais</span></th>
         <th className="text-right px-2">= On touche</th>
@@ -341,7 +347,7 @@ export default function RentaMeta({ email }: { email: string }) {
                   <tbody>
                     {signesMeta.map(ligneSigne)}
                     <tr className="font-black bg-emerald-50">
-                      <td className="py-3 px-2">Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
+                      <td className="py-3 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
                       <td className="px-2 text-right text-blue-700 whitespace-nowrap">{eur(signesMeta.reduce((x, l) => x + (ceeSeule(l) ?? 0), 0))}</td>
                       <td className="px-2 text-right text-gray-700 whitespace-nowrap">{eur(signesMeta.reduce((x, l) => x + ((mprOf(l) ?? 0) - fraisOf(l)), 0))}</td>
                       <td className="px-2 text-right text-lg text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
