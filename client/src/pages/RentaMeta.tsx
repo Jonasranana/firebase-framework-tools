@@ -290,8 +290,8 @@ export default function RentaMeta({ email }: { email: string }) {
       <tr>
         <th className="text-left py-3 px-3">Client</th>
         <th className="text-left px-3">Signé en</th>
-        <th className="text-right px-3">💶 Encaissé vite{sousTitre("CEE moins la pose · 1 semaine après l'installation")}</th>
-        <th className="text-right px-3">⏳ Encaissé plus tard{sousTitre("MaPrimeRénov' moins les frais Praimy")}</th>
+        <th className="text-right px-3">💶 Encaissé vite (CEE){sousTitre("CEE moins la pose · 1 semaine après l'installation")}</th>
+        <th className="text-right px-3">⏳ Encaissé plus tard (MPR){sousTitre("MaPrimeRénov' moins les frais Praimy")}</th>
         <th className="text-right px-3">💰 Total pour IP5{sousTitre("ce qu'on gagne sur le client")}</th>
         <th className="text-center px-3">🔧 Peut-on poser ?</th>
       </tr>
