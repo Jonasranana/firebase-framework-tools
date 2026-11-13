@@ -45,6 +45,12 @@ const ceeIp5 = (l: Lead): number | null => CEE_IP5[String(l.fields.zoneProfil ??
 const mprOf = (l: Lead): number | null => MPR_PROFIL[profilOf(l)] ?? num(l.fields.mprPraimy);
 const fraisOf = (l: Lead): number => (estGeorges(l) ? 0 : FRAIS_PRAIMY[profilOf(l)] ?? 0);
 const poseOf = (l: Lead): number => (estGeorges(l) ? POSE.georges : POSE.praimy);
+// Ce qu'on touche avec la CEE seule (versée ~1 semaine après la pose) : CEE − fourni-posé.
+// Négatif = la CEE ne couvre pas la pose : on attend l'octroi MaPrimeRénov' avant d'installer (on n'avance rien).
+const ceeSeule = (l: Lead): number | null => {
+  const cee = ceeIp5(l);
+  return cee === null ? null : cee - poseOf(l);
+};
 function margeOf(l: Lead): { marge: number | null; calc: boolean } {
   const saisie = num(l.fields.margeNette);
   if (saisie !== null) return { marge: saisie, calc: false };
@@ -149,6 +155,8 @@ export default function RentaMeta({ email }: { email: string }) {
     signes: signesMeta.length,
     depense: site.depense + fb.depense,
     marge: margesTous.reduce((x, m) => x + (m.marge ?? 0), 0),
+    ceeSeule: signesMeta.reduce((x, l) => x + Math.max(0, ceeSeule(l) ?? 0), 0),
+    attenteMpr: signesMeta.filter((l) => (ceeSeule(l) ?? 0) < 0).length,
     aCompleter: margesTous.filter((m) => m.marge === null).length,
     cee: signesMeta.reduce((x, l) => x + (ceeIp5(l) ?? 0), 0),
     mpr: signesMeta.reduce((x, l) => x + (mprOf(l) ?? 0), 0),
@@ -229,6 +237,17 @@ export default function RentaMeta({ email }: { email: string }) {
         <td className="px-2 text-xs whitespace-nowrap">{origine(l)}</td>
         <td className="px-2 text-right whitespace-nowrap" title={`Prime affichée par Praimy : ${eur(num(l.fields.primeCee))}`}>{eur(ceeIp5(l))}<p className="text-[10px] text-gray-400">{String(l.fields.zoneProfil ?? "").replace("bleu", "grand préc.").replace("jaune", "précaire") || "Praimy"}</p></td>
         <td className="px-2 text-right whitespace-nowrap">{eur(mprOf(l))}</td>
+        <td className="px-2 text-right whitespace-nowrap">
+          {(() => {
+            const c = ceeSeule(l);
+            if (c === null) return "—";
+            return c >= 0 ? (
+              <span className="font-bold text-blue-700">{eur(c)}</span>
+            ) : (
+              <span title="La CEE ne couvre pas la pose : on attend l'octroi MaPrimeRénov' avant d'installer." className="inline-block rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[11px] font-bold">⏳ attend MPR ({eur(c)})</span>
+            );
+          })()}
+        </td>
         <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-600"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}{m.calc && m.marge !== null && <p className="text-[10px] font-normal text-gray-400">− frais {eur(fraisOf(l))} − pose {eur(poseOf(l))}{estGeorges(l) ? " (Georges)" : ""}</p>}</td>
         <td className="px-2 text-right">
           <button onClick={() => basculerMeta(l, !compte)} className={`whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-bold ${compte ? "border-gray-300 text-gray-600 hover:bg-gray-100" : "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
@@ -240,7 +259,7 @@ export default function RentaMeta({ email }: { email: string }) {
   };
   const enTete = (
     <thead className="text-gray-500 text-xs border-b">
-      <tr><th className="text-left py-2 px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE (IP5)</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">On touche</th><th /></tr>
+      <tr><th className="text-left py-2 px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE (IP5)</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">Avec la CEE seule<span className="block text-[10px] font-normal">1 sem. après la pose</span></th><th className="text-right px-2">On touche (total)</th><th /></tr>
     </thead>
   );
 
@@ -273,7 +292,7 @@ export default function RentaMeta({ email }: { email: string }) {
         <Kpi label="💸 Pub dépensée" value={eur(tot.depense)} />
         <Kpi label="📥 Leads Meta" value={String(tot.leads)} hint={tot.leads ? `${eur(tot.depense / tot.leads)} par lead` : undefined} />
         <Kpi label="✅ Clients signés" value={String(tot.signes)} hint={tot.leads ? `${Math.round((tot.signes / tot.leads) * 100)} % des leads` : undefined} />
-        <Kpi label="💶 On touche" value={eur(tot.marge)} hint={tot.signes ? `${eur(tot.marge / tot.signes)} par client` : undefined} tone="good" />
+        <Kpi label="💶 On touche" value={eur(tot.marge)} hint={`dont ${eur(tot.ceeSeule)} vite (CEE seule)`} tone="good" />
       </div>
       {tot.aCompleter > 0 && (
         <p className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
@@ -299,6 +318,7 @@ export default function RentaMeta({ email }: { email: string }) {
                       <td className="py-2.5 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
                       <td className="px-2 text-right whitespace-nowrap">{eur(tot.cee)}</td>
                       <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}</td>
+                      <td className="px-2 text-right text-blue-700 whitespace-nowrap">{eur(tot.ceeSeule)}{tot.attenteMpr > 0 && <span className="block text-[10px] font-semibold text-amber-700">+ {tot.attenteMpr} en attente MPR</span>}</td>
                       <td className="px-2 text-right text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
                       <td />
                     </tr>
