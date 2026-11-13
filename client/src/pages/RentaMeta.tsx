@@ -239,44 +239,53 @@ export default function RentaMeta({ email }: { email: string }) {
     </div>
   );
 
+  // Une ligne = un client : ce qu'on touche tout de suite (CEE − pose), plus tard (MaPrimeRénov' − frais), le total,
+  // et si on peut poser (la CEE couvre la pose, ou la MaPrimeRénov' est reçue).
   const ligneSigne = (l: Lead) => {
     const m = margeOf(l);
     const compte = vientDeMeta(l);
+    const vite = ceeSeule(l);
+    const mpr = mprOf(l);
+    const tard = mpr === null ? null : mpr - fraisOf(l);
+    const peutPoser = (vite ?? 0) >= 0 || mprRecue(l);
+    const fort = compte ? "text-gray-900" : "text-gray-500";
     return (
-      <tr key={l.id} className="border-b border-gray-100 hover:bg-gray-50">
-        <td className="py-2.5 px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-600"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
-        <td className="px-2 text-xs whitespace-nowrap">{origine(l)}</td>
-        <td className="px-2 text-right whitespace-nowrap" title={`Prime affichée par Praimy : ${eur(num(l.fields.primeCee))}`}>{eur(ceeIp5(l))}<p className="text-[10px] text-gray-400">{String(l.fields.zoneProfil ?? "").replace("bleu", "grand préc.").replace("jaune", "précaire") || "Praimy"}</p></td>
-        <td className="px-2 text-right whitespace-nowrap">
-          {eur(mprOf(l))}
-          <button onClick={() => basculerMpr(l, !mprRecue(l))} title="Cliquer quand l'octroi MaPrimeRénov' est reçu (ou pour annuler)" className={`mt-0.5 block ml-auto rounded-full border px-2 py-0.5 text-[10px] font-bold ${mprRecue(l) ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-white text-gray-500 border-gray-300 hover:bg-gray-100"}`}>
-            {mprRecue(l) ? "✅ reçue" : "⏳ pas reçue"}
+      <tr key={l.id} className="border-b border-gray-100 align-middle">
+        <td className="py-3 px-2">
+          <p className={`font-bold ${fort}`}>{l.name}</p>
+          <p className="text-xs text-gray-500">{String(statusInfo(l.status).label ?? "").trim()} · {origine(l)}</p>
+          <button onClick={() => basculerMeta(l, !compte)} className="text-[11px] text-gray-400 underline hover:text-gray-700">
+            {compte ? "ne pas compter ce client" : "➕ il vient de la pub, le compter"}
           </button>
         </td>
-        <td className="px-2 text-right whitespace-nowrap">
-          {(() => {
-            const c = ceeSeule(l);
-            if (c === null) return "—";
-            if (c >= 0) return <span className="font-bold text-blue-700">{eur(c)}</span>;
-            return mprRecue(l) ? (
-              <span title="MaPrimeRénov' reçue : le dossier peut être posé." className="inline-block rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-bold">✅ MPR reçue · on peut poser</span>
-            ) : (
-              <span title="La CEE ne couvre pas la pose : on attend l'octroi MaPrimeRénov' avant d'installer." className="inline-block rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[11px] font-bold">⏳ attend MPR ({eur(c)})</span>
-            );
-          })()}
+        <td className={`px-2 text-right text-base font-bold whitespace-nowrap ${vite !== null && vite < 0 ? "text-red-600" : "text-blue-700"}`}>{eur(vite)}</td>
+        <td className="px-2 text-right text-base font-bold whitespace-nowrap text-gray-700">{eur(tard)}</td>
+        <td className={`px-2 text-right text-lg font-black whitespace-nowrap ${compte ? "text-emerald-700" : "text-gray-500"}`}>
+          {m.marge === null ? <span className="text-sm text-amber-600">à compléter</span> : eur(m.marge)}
+          {m.calc && m.marge !== null && vite !== null && tard !== null && Math.round(vite + tard) < m.marge && <span className="block text-[10px] font-semibold text-gray-400">minimum 2 500 €</span>}
+          {!m.calc && <span className="block text-[10px] font-semibold text-gray-400">saisi à la main</span>}
         </td>
-        <td className="px-2 text-right font-bold whitespace-nowrap">{m.marge === null ? <span className="text-amber-600 font-semibold">à compléter</span> : <span className={compte ? "text-emerald-700" : "text-gray-600"}>{eur(m.marge)}{m.calc ? "" : " ✍️"}</span>}{m.calc && m.marge !== null && <p className="text-[10px] font-normal text-gray-400">− frais {eur(fraisOf(l))} − pose {eur(poseOf(l))}{estGeorges(l) ? " (Georges)" : ""}</p>}</td>
-        <td className="px-2 text-right">
-          <button onClick={() => basculerMeta(l, !compte)} className={`whitespace-nowrap rounded-lg border px-2.5 py-1 text-xs font-bold ${compte ? "border-gray-300 text-gray-600 hover:bg-gray-100" : "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100"}`}>
-            {compte ? "Ne pas compter" : "➕ Vient de la pub"}
-          </button>
+        <td className="px-2 text-center">
+          {(vite ?? 0) >= 0 ? (
+            <span className="inline-block rounded-lg bg-emerald-100 text-emerald-800 px-2.5 py-1 text-xs font-bold">✅ On peut poser</span>
+          ) : (
+            <button onClick={() => basculerMpr(l, !mprRecue(l))} className={`rounded-lg border px-2.5 py-1 text-xs font-bold ${peutPoser ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"}`}>
+              {peutPoser ? "✅ MPR reçue · on peut poser" : "⏳ Attend la MPR · cliquer si reçue"}
+            </button>
+          )}
         </td>
       </tr>
     );
   };
   const enTete = (
-    <thead className="text-gray-500 text-xs border-b">
-      <tr><th className="text-left py-2 px-2">Client</th><th className="text-left px-2">D'où il vient</th><th className="text-right px-2">CEE (IP5)</th><th className="text-right px-2">MaPrimeRénov'</th><th className="text-right px-2">Avec la CEE seule<span className="block text-[10px] font-normal">1 sem. après la pose</span></th><th className="text-right px-2">On touche (total)</th><th /></tr>
+    <thead className="text-gray-600 text-xs border-b-2">
+      <tr>
+        <th className="text-left py-2 px-2">Client</th>
+        <th className="text-right px-2">💶 Tout de suite<span className="block font-normal text-[10px] text-gray-400">CEE − pose · 1 semaine après la pose</span></th>
+        <th className="text-right px-2">⏳ Plus tard<span className="block font-normal text-[10px] text-gray-400">MaPrimeRénov' − frais</span></th>
+        <th className="text-right px-2">= On touche</th>
+        <th className="text-center px-2">Pose</th>
+      </tr>
     </thead>
   );
 
@@ -332,12 +341,11 @@ export default function RentaMeta({ email }: { email: string }) {
                   <tbody>
                     {signesMeta.map(ligneSigne)}
                     <tr className="font-black bg-emerald-50">
-                      <td className="py-2.5 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
-                      <td className="px-2 text-right whitespace-nowrap">{eur(tot.cee)}</td>
-                      <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}<span className="block text-[10px] font-semibold text-gray-500">{tot.mprRecues}/{signesMeta.length} reçue{tot.mprRecues > 1 ? "s" : ""}</span></td>
-                      <td className="px-2 text-right text-blue-700 whitespace-nowrap">{eur(tot.ceeSeule)}{tot.attenteMpr > 0 && <span className="block text-[10px] font-semibold text-amber-700">+ {tot.attenteMpr} en attente MPR</span>}</td>
-                      <td className="px-2 text-right text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
-                      <td />
+                      <td className="py-3 px-2">Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
+                      <td className="px-2 text-right text-blue-700 whitespace-nowrap">{eur(signesMeta.reduce((x, l) => x + (ceeSeule(l) ?? 0), 0))}</td>
+                      <td className="px-2 text-right text-gray-700 whitespace-nowrap">{eur(signesMeta.reduce((x, l) => x + ((mprOf(l) ?? 0) - fraisOf(l)), 0))}</td>
+                      <td className="px-2 text-right text-lg text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
+                      <td className="px-2 text-center text-xs font-semibold text-gray-600">{signesMeta.length - tot.attenteMpr} à poser · {tot.attenteMpr} attend{tot.attenteMpr > 1 ? "ent" : ""} la MPR</td>
                     </tr>
                   </tbody>
                 </table>
