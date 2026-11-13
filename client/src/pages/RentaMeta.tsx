@@ -47,6 +47,7 @@ const fraisOf = (l: Lead): number => (estGeorges(l) ? 0 : FRAIS_PRAIMY[profilOf(
 const poseOf = (l: Lead): number => (estGeorges(l) ? POSE.georges : POSE.praimy);
 // Ce qu'on touche avec la CEE seule (versée ~1 semaine après la pose) : CEE − fourni-posé.
 // Négatif = la CEE ne couvre pas la pose : on attend l'octroi MaPrimeRénov' avant d'installer (on n'avance rien).
+const mprRecue = (l: Lead) => l.fields.mprRecue === "oui";
 const ceeSeule = (l: Lead): number | null => {
   const cee = ceeIp5(l);
   return cee === null ? null : cee - poseOf(l);
@@ -156,7 +157,8 @@ export default function RentaMeta({ email }: { email: string }) {
     depense: site.depense + fb.depense,
     marge: margesTous.reduce((x, m) => x + (m.marge ?? 0), 0),
     ceeSeule: signesMeta.reduce((x, l) => x + Math.max(0, ceeSeule(l) ?? 0), 0),
-    attenteMpr: signesMeta.filter((l) => (ceeSeule(l) ?? 0) < 0).length,
+    attenteMpr: signesMeta.filter((l) => (ceeSeule(l) ?? 0) < 0 && !mprRecue(l)).length,
+    mprRecues: signesMeta.filter(mprRecue).length,
     aCompleter: margesTous.filter((m) => m.marge === null).length,
     cee: signesMeta.reduce((x, l) => x + (ceeIp5(l) ?? 0), 0),
     mpr: signesMeta.reduce((x, l) => x + (mprOf(l) ?? 0), 0),
@@ -180,6 +182,15 @@ export default function RentaMeta({ email }: { email: string }) {
     }
   };
   // Classe un signé « venu de Meta » ou non (enregistré dans la fiche : fields.vientDeMeta).
+  // « MPR reçue » : coché à la main quand l'octroi MaPrimeRénov' arrive (par défaut : pas reçue).
+  const basculerMpr = async (l: Lead, oui: boolean) => {
+    try {
+      const { m, db } = await crmFirestore();
+      await m.updateDoc(m.doc(db, "crm_leads", l.id), { "fields.mprRecue": oui ? "oui" : "", updatedAt: m.serverTimestamp(), updatedBy: email });
+    } catch {
+      setErreur("Modification refusée.");
+    }
+  };
   const basculerMeta = async (l: Lead, oui: boolean) => {
     try {
       const { m, db } = await crmFirestore();
@@ -236,13 +247,19 @@ export default function RentaMeta({ email }: { email: string }) {
         <td className="py-2.5 px-2"><p className={`font-semibold ${compte ? "text-gray-900" : "text-gray-600"}`}>{l.name}</p><p className="text-xs text-gray-400">{String(statusInfo(l.status).label ?? "").trim()} · arrivé le {new Date(l.createdAt).toLocaleDateString("fr-FR")}</p></td>
         <td className="px-2 text-xs whitespace-nowrap">{origine(l)}</td>
         <td className="px-2 text-right whitespace-nowrap" title={`Prime affichée par Praimy : ${eur(num(l.fields.primeCee))}`}>{eur(ceeIp5(l))}<p className="text-[10px] text-gray-400">{String(l.fields.zoneProfil ?? "").replace("bleu", "grand préc.").replace("jaune", "précaire") || "Praimy"}</p></td>
-        <td className="px-2 text-right whitespace-nowrap">{eur(mprOf(l))}</td>
+        <td className="px-2 text-right whitespace-nowrap">
+          {eur(mprOf(l))}
+          <button onClick={() => basculerMpr(l, !mprRecue(l))} title="Cliquer quand l'octroi MaPrimeRénov' est reçu (ou pour annuler)" className={`mt-0.5 block ml-auto rounded-full border px-2 py-0.5 text-[10px] font-bold ${mprRecue(l) ? "bg-emerald-50 text-emerald-700 border-emerald-300" : "bg-white text-gray-500 border-gray-300 hover:bg-gray-100"}`}>
+            {mprRecue(l) ? "✅ reçue" : "⏳ pas reçue"}
+          </button>
+        </td>
         <td className="px-2 text-right whitespace-nowrap">
           {(() => {
             const c = ceeSeule(l);
             if (c === null) return "—";
-            return c >= 0 ? (
-              <span className="font-bold text-blue-700">{eur(c)}</span>
+            if (c >= 0) return <span className="font-bold text-blue-700">{eur(c)}</span>;
+            return mprRecue(l) ? (
+              <span title="MaPrimeRénov' reçue : le dossier peut être posé." className="inline-block rounded-full bg-emerald-100 text-emerald-800 px-2 py-0.5 text-[11px] font-bold">✅ MPR reçue · on peut poser</span>
             ) : (
               <span title="La CEE ne couvre pas la pose : on attend l'octroi MaPrimeRénov' avant d'installer." className="inline-block rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-[11px] font-bold">⏳ attend MPR ({eur(c)})</span>
             );
@@ -317,7 +334,7 @@ export default function RentaMeta({ email }: { email: string }) {
                     <tr className="font-black bg-emerald-50">
                       <td className="py-2.5 px-2" colSpan={2}>Total · {signesMeta.length} client{signesMeta.length > 1 ? "s" : ""}</td>
                       <td className="px-2 text-right whitespace-nowrap">{eur(tot.cee)}</td>
-                      <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}</td>
+                      <td className="px-2 text-right whitespace-nowrap">{eur(tot.mpr)}<span className="block text-[10px] font-semibold text-gray-500">{tot.mprRecues}/{signesMeta.length} reçue{tot.mprRecues > 1 ? "s" : ""}</span></td>
                       <td className="px-2 text-right text-blue-700 whitespace-nowrap">{eur(tot.ceeSeule)}{tot.attenteMpr > 0 && <span className="block text-[10px] font-semibold text-amber-700">+ {tot.attenteMpr} en attente MPR</span>}</td>
                       <td className="px-2 text-right text-emerald-700 whitespace-nowrap">{eur(tot.marge)}</td>
                       <td />
