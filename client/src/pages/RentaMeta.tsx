@@ -205,7 +205,7 @@ export default function RentaMeta({ email }: { email: string }) {
     await m.deleteDoc(m.doc(db, "crm_meta_depenses", id));
   };
 
-  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire Facebook", "saisie-manuelle": "✍️ Saisi à la main", monday: "📋 Ancien tableau Monday", "reactivation-pac": "✉️ Réactivation" };
+  const ORIGINE: Record<string, string> = { "formulaire-facebook": "📱 Formulaire Facebook", "saisie-manuelle": "💡 Ancien client LED", monday: "📋 Ancien tableau Monday", "reactivation-pac": "✉️ Réactivation" };
   const origine = (l: Lead) => (canalOf(l) === "site" ? (/incomplet/i.test(l.source) ? "🌐 Site (incomplet)" : "🌐 Site") : ORIGINE[l.source] ?? (l.source || "—"));
 
   // Résumé mois par mois sur la période : pub, leads Meta, signés, ce qu'on touche, bénéfice.
@@ -356,7 +356,7 @@ export default function RentaMeta({ email }: { email: string }) {
           <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-4 md:p-5">
             <h2 className="text-lg font-black text-gray-700">👥 Autres clients signés</h2>
             <p className="text-sm text-gray-600 mb-3">
-              Pas venus de la pub (bouche-à-oreille, ancien fichier, saisis à la main…) : <b>ils ne comptent pas</b> dans le bénéfice.
+              Pas venus de la pub (anciens clients LED, bouche-à-oreille, ancien fichier…) : <b>ils ne comptent pas</b> dans le bénéfice.
               Si l'un d'eux vient en fait de la pub, clique sur « ➕ Vient de la pub ».
             </p>
             {autresSignes.length === 0 ? (
