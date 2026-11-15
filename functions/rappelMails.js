@@ -89,5 +89,50 @@ ${last ? `<tr><td style="padding:6px 10px;color:#666;vertical-align:top">Dernier
     },
   );
 
-  return { rappelMail10min };
+  // Chaque dimanche 10 h (Paris) : mail sur contact@ pour penser à envoyer à Claude l'export Excel
+  // d'Ads Manager, qui met à jour la page « Rentabilité Meta » (demandé par Jonas le 15/11/2026).
+  const rappelExcelMeta = onSchedule(
+    {
+      schedule: "every sunday 10:00",
+      timeZone: "Europe/Paris",
+      region: "europe-west1",
+      secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+      timeoutSeconds: 60,
+    },
+    async () => {
+      const { date } = paris();
+      try {
+        await db.doc(`rappel_mails/excel_meta_${date}`).create({ at: new Date().toISOString() });
+      } catch {
+        return; // déjà envoyé aujourd'hui
+      }
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const from = GMAIL_SENDER_EMAIL.value();
+      const html = `<div style="font-family:Arial,sans-serif;max-width:560px">
+<h2 style="color:#122f4d;margin:0 0 8px">📊 C'est dimanche : envoie l'Excel des pubs Meta à Claude</h2>
+<p style="font-size:15px;margin:0 0 12px">Pour mettre à jour la page <b>« Rentabilité Meta »</b> du CRM (dépense pub, coût par lead, bénéfice net).</p>
+<ol style="font-size:15px;line-height:1.6;padding-left:20px;margin:0 0 14px">
+<li>Sur l'ordi, ouvre <b>Ads Manager</b> → onglet <b>Publicités</b>.</li>
+<li>Période : <b>du 1er septembre à aujourd'hui</b>.</li>
+<li><b>Exporter</b> en Excel (même format que la dernière fois).</li>
+<li>Envoie le fichier à Claude dans la conversation du CRM.</li>
+</ol>
+<p style="margin-top:14px"><a href="https://adsmanager.facebook.com" style="background:#122f4d;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Ouvrir Ads Manager</a>
+&nbsp; <a href="https://ip5energie.fr/admin#renta" style="color:#122f4d">Voir la page Rentabilité</a></p>
+</div>`;
+      try {
+        await gmail.users.messages.send({
+          userId: "me",
+          requestBody: { raw: buildRawMessage({ to: from, from, subject: "📊 Dimanche : envoyer l'Excel des pubs Meta (Rentabilité)", html }) },
+        });
+        logger.info("Mail rappel Excel Meta envoyé", { date });
+      } catch (err) {
+        logger.error("Mail rappel Excel Meta : envoi échoué", { error: err.message });
+      }
+    },
+  );
+
+  return { rappelMail10min, rappelExcelMeta };
 };
