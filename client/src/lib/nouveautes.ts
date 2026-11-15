@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-15-pac-grand-ecran",
+    date: "2026-11-15",
+    emoji: "🖥️",
+    titre: "La page des pubs (/pac) prend toute la largeur sur grand écran",
+    points: [
+      "Sur un grand écran d'ordinateur, la page /pac et le menu du site sont plus larges, avec un titre plus gros.",
+      "Rien ne change sur téléphone.",
+    ],
+  },
+  {
     id: "2026-11-12-bareme-praimy",
     date: "2026-11-12",
     emoji: "🧮",

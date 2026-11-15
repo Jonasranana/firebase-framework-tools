@@ -144,7 +144,7 @@ export const SiteHeader = () => {
     // En-tête « flottant » : une capsule arrondie en verre dépoli, décollée des
     // bords, posée par-dessus la page.
     <nav className="fixed inset-x-0 z-50 top-0 lg:px-4 lg:pt-3 lg:pointer-events-none">
-      <div className={`pointer-events-auto lg:max-w-[1360px] mx-auto px-4 sm:px-6 lg:px-6 border-b lg:border lg:rounded-2xl backdrop-blur-xl transition-all duration-300 ${scrolled ? "bg-white/90 lg:bg-white/85 dark:bg-slate-900/85 border-slate-200/80 dark:border-slate-700/70 shadow-[0_6px_24px_rgba(11,26,44,0.08)] lg:shadow-[0_10px_30px_-10px_rgba(11,26,44,0.25)]" : "bg-white/95 lg:bg-white/80 dark:bg-slate-900/90 border-slate-200 lg:border-white/60 dark:border-slate-700/60 lg:shadow-[0_8px_30px_-12px_rgba(11,26,44,0.3)]"}`}>
+      <div className={`pointer-events-auto lg:max-w-[1360px] 2xl:max-w-[min(90vw,1900px)] mx-auto px-4 sm:px-6 lg:px-6 border-b lg:border lg:rounded-2xl backdrop-blur-xl transition-all duration-300 ${scrolled ? "bg-white/90 lg:bg-white/85 dark:bg-slate-900/85 border-slate-200/80 dark:border-slate-700/70 shadow-[0_6px_24px_rgba(11,26,44,0.08)] lg:shadow-[0_10px_30px_-10px_rgba(11,26,44,0.25)]" : "bg-white/95 lg:bg-white/80 dark:bg-slate-900/90 border-slate-200 lg:border-white/60 dark:border-slate-700/60 lg:shadow-[0_8px_30px_-12px_rgba(11,26,44,0.3)]"}`}>
         <div className={`flex justify-between items-center h-16 transition-[height] duration-300 ${scrolled ? "lg:h-16" : "lg:h-20"}`}>
           <div className="flex items-center gap-3">
             <a href="/" aria-label="IP5 Énergie, accueil">

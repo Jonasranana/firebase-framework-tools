@@ -143,7 +143,7 @@ const QuickShell = ({
   onBack?: () => void;
   badge: string;
 }) => (
-  <div className="ip5-glass rounded-[1.75rem] max-w-md w-full mx-auto overflow-hidden text-left text-white bg-gradient-to-b from-white/[0.14] to-[#0b1a2c]/40 backdrop-blur-2xl border border-white/20 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.25)]">
+  <div className="ip5-glass rounded-[1.75rem] max-w-md xl:max-w-lg 2xl:max-w-xl min-[2200px]:max-w-2xl w-full mx-auto overflow-hidden text-left text-white bg-gradient-to-b from-white/[0.14] to-[#0b1a2c]/40 backdrop-blur-2xl border border-white/20 shadow-[0_30px_90px_-30px_rgba(0,0,0,0.7),inset_0_1px_0_rgba(255,255,255,0.25)]">
     <style>{GLASS_CSS}</style>
     <div className="relative bg-white/[0.06] border-b border-white/10 px-5 pt-4 pb-4 text-white">
       <div className="absolute inset-x-0 bottom-0 h-[2px] bg-gradient-to-r from-transparent via-amber-300/80 to-transparent" aria-hidden="true"></div>
@@ -442,7 +442,7 @@ const CHANTIER_DETAILS = [
 
 const ChantierPreuve = () => (
   <section className="py-14 md:py-24 bg-white dark:bg-slate-950">
-    <div className="max-w-5xl mx-auto px-5 sm:px-6 lg:px-8">
+    <div className="max-w-5xl xl:max-w-6xl 2xl:max-w-7xl mx-auto px-5 sm:px-6 lg:px-8">
       <SectionHead
         kicker="Un chantier récent"
         title="Avant, après : un vrai chantier IP5"
@@ -529,18 +529,18 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 -mt-10 lg:mt-0">
-          <div className="lg:grid lg:grid-cols-12 gap-14 items-center">
+        <div className="max-w-7xl 2xl:max-w-[min(90vw,1900px)] mx-auto px-4 sm:px-6 lg:px-8 2xl:px-12 relative z-10 -mt-10 lg:mt-0">
+          <div className="lg:grid lg:grid-cols-12 gap-14 2xl:gap-20 items-center">
             <div className="hidden lg:block lg:col-span-6 text-left">
               <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md text-white font-semibold text-sm mb-6 border border-white/20">
                 <ShieldCheck size={16} className="text-amber-200" /> Aides 2026 : MaPrimeRénov' et prime CEE
               </div>
-              <h1 className="text-[3.4rem] font-extrabold tracking-tight leading-[1.05] mb-6 text-white">
+              <h1 className="text-[3.4rem] xl:text-[3.9rem] 2xl:text-[4.6rem] min-[2200px]:text-[5.4rem] font-extrabold tracking-tight leading-[1.05] mb-6 text-white">
                 Jusqu'à{" "}
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-200">100&nbsp;% d'aides</span>{" "}
                 pour votre pompe à chaleur
               </h1>
-              <p className="text-xl text-white/80 mb-9 max-w-xl leading-relaxed">
+              <p className="text-xl 2xl:text-2xl text-white/80 mb-9 max-w-xl 2xl:max-w-2xl leading-relaxed">
                 Remplacez votre ancienne chaudière et divisez votre facture de chauffage. Avec{" "}
                 <b className="font-semibold text-white">MaPrimeRénov'</b> et la{" "}
                 <b className="font-semibold text-white">prime CEE</b> cumulées, découvrez en 2 minutes vos aides.
@@ -596,7 +596,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
 
       {/* Méthode : frise en 4 étapes */}
       <section className="py-14 md:py-24 bg-white dark:bg-slate-950">
-        <div className="max-w-6xl mx-auto px-5 sm:px-6 lg:px-8">
+        <div className="max-w-6xl 2xl:max-w-[1500px] mx-auto px-5 sm:px-6 lg:px-8">
           <SectionHead
             kicker="Notre méthode"
             title="Un projet suivi de A à Z"
@@ -628,7 +628,7 @@ const CampagnePAC = ({ source = "landing-pac-meta" }: { source?: string; params?
 
       {/* ── FAQ : lève les objections avant l'appel ── */}
       <section className="py-14 md:py-24 bg-slate-50 dark:bg-slate-950">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl 2xl:max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHead
             kicker="Vos questions"
             title="Tout ce que vous vous demandez"
