@@ -3050,6 +3050,12 @@ Object.assign(
   require("./rappelMails")({ db, logger, google, buildRawMessage, escapeHtmlText, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL }),
 );
 
+// ── « 📰 Le Journal des aides » : mail sur contact@ à chaque veille du soir publiée ──
+Object.assign(
+  exports,
+  require("./journalAidesMail")({ db, logger, google, buildRawMessage, escapeHtmlText, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL }),
+);
+
 // ── Assistant de relance (CRM) : compte-rendu d'appel → plan de relance ──
 // Activé : le secret ANTHROPIC_API_KEY existe dans Secret Manager (créé par
 // Jonas le 04/11/2026). Voir functions/relanceIA.js.
