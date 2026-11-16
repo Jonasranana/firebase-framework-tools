@@ -18,6 +18,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-16-planning-chantiers",
+    date: "2026-11-16",
+    emoji: "🗓️",
+    titre: "Nouvelle page « Planning chantiers »",
+    points: [
+      "Menu CRM IP5 → « Planning chantiers » : tous les clients signés, avec un calendrier du mois.",
+      "Les pré-visites (🗓 Date VT) et les poses (🔧 Date Pose) du tableau Pac Pac s'y affichent ; glissez un client sur un jour pour lui donner une date.",
+      "Colonnes « Pré-visite à caler », « Attend MaPrimeRénov' », « Prêt à poser », « Pose programmée » ; une pose prévue alors que la MPR n'est pas reçue apparaît en rouge.",
+    ],
+    pour: RENTA_VIEWERS,
+  },
+  {
     id: "2026-11-15-pac-grand-ecran",
     date: "2026-11-15",
     emoji: "🖥️",

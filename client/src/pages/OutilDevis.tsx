@@ -29,6 +29,7 @@ const DocumentsPage = lazy(() => import("./DocumentsPage"));
 const TeamPage = lazy(() => import("./TeamPage"));
 const PraimyCRM = lazy(() => import("./PraimyCRM"));
 const RentaMeta = lazy(() => import("./RentaMeta"));
+const PlanningChantiers = lazy(() => import("./PlanningChantiers"));
 const ActusCRM = lazy(() => import("./ActusCRM"));
 import Nouveautes from "@/components/Nouveautes";
 
@@ -943,6 +944,20 @@ export default function OutilDevis() {
         {p === "marges" && (TOTALS_VIEWERS.includes(email.toLowerCase()) ? narrow(<MargesPremi />) : <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>)}
         {p === "clients" && narrow(<ClientsCRM email={email} />)}
         {p === "praimy" && <PraimyCRM email={email} />}
+        {p === "planning" &&
+          (RENTA_VIEWERS.includes(email.toLowerCase()) ? (
+            <PlanningChantiers
+              email={email}
+              onOpenLead={(id) => {
+                try {
+                  sessionStorage.setItem("crm-open-lead", id);
+                } catch {}
+                navigate("leads");
+              }}
+            />
+          ) : (
+            <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée à la direction.</p>
+          ))}
         {p === "renta" && (RENTA_VIEWERS.includes(email.toLowerCase()) ? <RentaMeta email={email} /> : <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée à la direction.</p>)}
         {p === "actus" && (NEWS_VIEWERS.includes(email.toLowerCase()) ? <ActusCRM /> : <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée à la direction.</p>)}
       </Suspense>

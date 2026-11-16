@@ -3,6 +3,7 @@ import { useLeads } from "@/lib/crmStore";
 import { crmFirestore } from "@/lib/crmDb";
 import { statusInfo, type Lead } from "@/lib/crm";
 import { useColumnsConfig } from "@/lib/crmColumnsConfig";
+import { MARGE_MIN, num, ceeIp5, mprOf, poseOf, fraisOf, mprRecue, ceeSeule, margeOf, isSigne, moisSigne } from "@/lib/chantiers";
 
 // ─────────────────────────────────────────────────────────────────────────
 // « Rentabilité Meta » : réservée à Jonas et Alexis (RENTA_VIEWERS + règle
@@ -20,54 +21,13 @@ type Canal = keyof typeof CANAUX;
 const canalOf = (l: Lead): Canal | null =>
   /^site \(incomplet\)/i.test(l.source ?? "") ? "site" : (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
 
-// Marge d'un signé — barème donné par Alexis (12/11/2026) :
-//   CEE touchée : H1 bleu 8 517 €, H1 jaune/violet 4 580 € ; H2 bleu 7 080 €, H2 jaune/violet 3 822 €.
-//   MaPrimeRénov' : bleu 5 000 €, jaune 4 000 €, violet (classique) 3 000 €.
-//   Frais Praimy : bleu 600 €, jaune 500 €, violet 400 €.
-//   Fourni-posé : Praimy 5 800 €, Georges 5 300 € (colonne « Poseur »).
-// Marge = CEE + MaPrimeRénov' − frais Praimy − fourni-posé, au moins 2 500 € (reste à charge client).
-// « 💵 Marge nette » saisie sur la fiche prend le pas sur ce calcul.
-const MARGE_MIN = 2500;
 // Fines lignes verticales entre les colonnes des tableaux (pas avant la 1re colonne).
 const lignesCol = "[&_th]:border-l [&_td]:border-l [&_th:first-child]:border-l-0 [&_td:first-child]:border-l-0 [&_th]:border-gray-200 [&_td]:border-gray-200";
-const num = (v: unknown) => {
-  const n = parseFloat(String(v ?? "").replace(/\s/g, "").replace(",", ".").replace(/[^0-9.\-]/g, ""));
-  return Number.isFinite(n) ? n : null;
-};
-const CEE_IP5: Record<string, number> = {
-  "H1 bleu": 8517, "H1 jaune": 4580, "H1 classique": 4580,
-  "H2 bleu": 7080, "H2 jaune": 3822, "H2 classique": 3822,
-};
-const MPR_PROFIL: Record<string, number> = { bleu: 5000, jaune: 4000, classique: 3000 };
-const FRAIS_PRAIMY: Record<string, number> = { bleu: 600, jaune: 500, classique: 400 };
-const POSE = { praimy: 5800, georges: 5300 };
-const profilOf = (l: Lead) => String(l.fields.zoneProfil ?? "").split(" ")[1] ?? "";
-const estGeorges = (l: Lead) => /georges/i.test(String(l.fields.poseur ?? ""));
-const ceeIp5 = (l: Lead): number | null => CEE_IP5[String(l.fields.zoneProfil ?? "")] ?? num(l.fields.primeCee);
-const mprOf = (l: Lead): number | null => MPR_PROFIL[profilOf(l)] ?? num(l.fields.mprPraimy);
-const fraisOf = (l: Lead): number => (estGeorges(l) ? 0 : FRAIS_PRAIMY[profilOf(l)] ?? 0);
-const poseOf = (l: Lead): number => (estGeorges(l) ? POSE.georges : POSE.praimy);
-// Ce qu'on touche avec la CEE seule (versée ~1 semaine après la pose) : CEE − fourni-posé.
-// Négatif = la CEE ne couvre pas la pose : on attend l'octroi MaPrimeRénov' avant d'installer (on n'avance rien).
-const mprRecue = (l: Lead) => l.fields.mprRecue === "oui";
-const ceeSeule = (l: Lead): number | null => {
-  const cee = ceeIp5(l);
-  return cee === null ? null : cee - poseOf(l);
-};
-function margeOf(l: Lead): { marge: number | null; calc: boolean } {
-  const saisie = num(l.fields.margeNette);
-  if (saisie !== null) return { marge: saisie, calc: false };
-  const cee = ceeIp5(l);
-  const mpr = mprOf(l);
-  if (cee === null && mpr === null) return { marge: null, calc: true };
-  return { marge: Math.max(MARGE_MIN, (cee ?? 0) + (mpr ?? 0) - fraisOf(l) - poseOf(l)), calc: true };
-}
 // « Signé en octobre / novembre… » sont des étiquettes ajoutées dans le CRM (clés o_…) : leurs noms
 // ne sont connus qu'une fois la configuration du tableau chargée (useColumnsConfig ci-dessous).
 // Le client vient-il des pubs Meta (lancées début septembre) ? Choix fait sur la page (fields.vientDeMeta
 // « oui » / « non »), sinon d'après la source : landing du site ou formulaire Facebook.
 const vientDeMeta = (l: Lead) => (l.fields.vientDeMeta === "oui" ? true : l.fields.vientDeMeta === "non" ? false : canalOf(l) !== null);
-const isSigne = (l: Lead) => (l.status as string) === "o_yt99h" || /^sign/i.test(String(statusInfo(l.status).label ?? "").trim());
 
 type Depense = { id: string; du: string; au: string; canal: Canal; campagne: string; montant: number; leadsMeta?: number };
 const DAY = 86400000;
@@ -244,7 +204,6 @@ export default function RentaMeta({ email }: { email: string }) {
   // Une ligne = un client : ce qu'on touche tout de suite (CEE − pose), plus tard (MaPrimeRénov' − frais), le total,
   // et si on peut poser (la CEE couvre la pose, ou la MaPrimeRénov' est reçue).
   // Mois de signature, lu dans l'étiquette (« Signé en novembre » → novembre).
-  const moisSigne = (l: Lead) => (String(statusInfo(l.status).label ?? "").match(/sign[ée]\s+en\s+(\S+)/i)?.[1] ?? "—");
   const ligneSigne = (l: Lead) => {
     const m = margeOf(l);
     const compte = vientDeMeta(l);
