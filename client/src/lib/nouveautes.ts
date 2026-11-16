@@ -18,6 +18,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-16-planning-complet",
+    date: "2026-11-16",
+    emoji: "🗓️",
+    titre: "Planning chantiers : heures, dépôt MPR, vue semaine",
+    points: [
+      "Menu CRM IP5 → « Planning chantiers » : tous les clients signés dans un calendrier (mois ou semaine), avec « Aujourd'hui » et « Demain » en haut.",
+      "Pré-visites et poses avec leur heure, dépôts du dossier MaPrimeRénov' ; filtre par poseur ; glissez un client sur un jour pour lui donner une date.",
+      "Nouvelles colonnes dans Pac Pac, reliées au planning : 🕘 Heure VT, 🕘 Heure Pose, 📨 Dépôt MPR et ✅ MPR reçue.",
+    ],
+    pour: NEWS_VIEWERS,
+  },
+  {
     id: "2026-11-16-planning-chantiers",
     date: "2026-11-16",
     emoji: "🗓️",

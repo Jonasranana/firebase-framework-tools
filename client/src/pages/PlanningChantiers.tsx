@@ -2,32 +2,44 @@ import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, X, Phone, ExternalLink } from "lucide-react";
 import { useLeads } from "@/lib/crmStore";
 import { crmFirestore } from "@/lib/crmDb";
-import type { Lead } from "@/lib/crm";
+import { TOTALS_VIEWERS, type Lead } from "@/lib/crm";
+import { POSEUR } from "@/lib/crmColumns";
 import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 import { ceeSeule, mprRecue, isSigne, moisSigne } from "@/lib/chantiers";
 
 // ─────────────────────────────────────────────────────────────────────────
-// « Planning chantiers » (Jonas et Alexis) : tous les clients signés, avec un
-// calendrier du mois pour caler les pré-visites (colonne « 🗓 Date VT ») et les
-// poses (« 🔧 Date Pose »), et ce qui bloque : on ne pose pas tant que la CEE
-// ne couvre pas le fourni-posé et que MaPrimeRénov' n'est pas reçue (on
-// n'avance rien). Les dates sont celles du tableau Pac Pac : modifier ici ou
-// dans le tableau revient au même. La colonne « 🔧 Pipeline » avance seule.
+// « Planning chantiers » : tous les clients signés, dans un calendrier (mois ou
+// semaine) avec les pré-visites, les poses, les dépôts MaPrimeRénov' et les
+// paiements prévus (ces derniers pour les administrateurs seulement), et ce qui
+// bloque : on ne pose pas tant que la CEE ne couvre pas le fourni-posé et que
+// MaPrimeRénov' n'est pas reçue (on n'avance rien).
+// Tout vient des colonnes du tableau Pac Pac (🗓 Date VT, 🕘 Heure VT, 🔧 Date Pose,
+// 🕘 Heure Pose, 📨 Dépôt MPR, ✅ MPR reçue, 👷 Poseur, 🔧 Pipeline, 💰 Date prévue
+// de paiement) : modifier ici ou dans le tableau revient au même.
 // ─────────────────────────────────────────────────────────────────────────
 
 const pad = (n: number) => String(n).padStart(2, "0");
 const isoOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 const todayIso = () => isoOf(new Date());
+const addDays = (iso: string, n: number) => {
+  const d = new Date(`${iso}T12:00:00`);
+  d.setDate(d.getDate() + n);
+  return isoOf(d);
+};
+const lundiDe = (iso: string) => addDays(iso, -((new Date(`${iso}T12:00:00`).getDay() + 6) % 7));
 const MOIS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const frDate = (iso: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) : "");
+const frJour = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" });
 const AVANT_VT = ["", "Docs demandés", "Docs reçus", "Attente conf. VT"];
 
-const dateVt = (l: Lead) => String(l.fields.dateVt ?? "").slice(0, 10);
-const datePose = (l: Lead) => String(l.fields.datePose ?? "").slice(0, 10);
+const f = (l: Lead, k: string) => String(l.fields[k] ?? "").trim();
+const dateVt = (l: Lead) => f(l, "dateVt").slice(0, 10);
+const datePose = (l: Lead) => f(l, "datePose").slice(0, 10);
 const installe = (l: Lead) => l.fields.pipeline === "Installé";
 const peutPoser = (l: Lead) => (ceeSeule(l) ?? 0) >= 0 || mprRecue(l);
 const montantsInconnus = (l: Lead) => ceeSeule(l) === null;
+const poseurOf = (l: Lead) => f(l, "poseur") || "Sans poseur";
 
 type Etape = "vt" | "mpr" | "pret" | "pose" | "fait";
 const etapeOf = (l: Lead): Etape => {
@@ -39,55 +51,80 @@ const etapeOf = (l: Lead): Etape => {
 const ETAPES: { key: Etape; titre: string; aide: string; ton: string }[] = [
   { key: "vt", titre: "🔍 Pré-visite à caler", aide: "Signés sans date de pré-visite.", ton: "border-sky-300 bg-sky-50" },
   { key: "mpr", titre: "⏳ Attend MaPrimeRénov'", aide: "Pré-visite calée, mais la CEE ne couvre pas la pose : on attend l'octroi.", ton: "border-amber-300 bg-amber-50" },
-  { key: "pret", titre: "✅ Prêt à poser", aide: "Pré-visite calée et dossier qui permet d'installer : il reste à fixer la date.", ton: "border-emerald-300 bg-emerald-50" },
+  { key: "pret", titre: "✅ Prêt à poser", aide: "Le dossier permet d'installer : il reste à fixer la date de pose.", ton: "border-emerald-300 bg-emerald-50" },
   { key: "pose", titre: "🔧 Pose programmée", aide: "Date de pose fixée.", ton: "border-violet-300 bg-violet-50" },
   { key: "fait", titre: "🏁 Installés", aide: "Marqués « Installé ».", ton: "border-gray-300 bg-gray-50" },
 ];
 
+type TypeEv = "vt" | "pose" | "depot" | "paiement";
+const TYPES: Record<TypeEv, { label: string; icone: string; couleur: string; date: string; heure?: string }> = {
+  vt: { label: "Pré-visite", icone: "🔍", couleur: "bg-sky-500", date: "dateVt", heure: "heureVt" },
+  pose: { label: "Pose", icone: "🔧", couleur: "bg-emerald-600", date: "datePose", heure: "heurePose" },
+  depot: { label: "Dépôt MPR", icone: "📨", couleur: "bg-fuchsia-500", date: "dateDepotMpr" },
+  paiement: { label: "Paiement prévu", icone: "💰", couleur: "bg-yellow-500", date: "datePaiementPrevue" },
+};
+type Ev = { l: Lead; type: TypeEv; heure: string; alerte: boolean };
+
 export default function PlanningChantiers({ email, onOpenLead }: { email: string; onOpenLead: (id: string) => void }) {
   const { data: allLeads } = useLeads();
   const { version: colsVersion } = useColumnsConfig(email, "leads");
-  const [mois, setMois] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  });
+  const admin = TOTALS_VIEWERS.includes(email.toLowerCase());
+  const today = todayIso();
+  const [vue, setVue] = useState<"mois" | "semaine">("mois");
+  const [ref, setRef] = useState(today); // jour de référence du mois / de la semaine affichés
+  const [types, setTypes] = useState<Record<TypeEv, boolean>>({ vt: true, pose: true, depot: true, paiement: admin });
+  const [poseur, setPoseur] = useState("tous");
   const [ouvert, setOuvert] = useState<string | null>(null);
   const [voirFaits, setVoirFaits] = useState(false);
   const [erreur, setErreur] = useState("");
 
   // Clients signés (étiquettes « Signé en … ») + ceux déjà passés en pose / installés.
-  const clients = useMemo(
+  const tous = useMemo(
     () =>
       (allLeads ?? [])
         .filter((l) => isSigne(l) || !!datePose(l) || installe(l) || l.fields.pipeline === "Pose programmée")
         .sort((a, b) => a.name.localeCompare(b.name, "fr")),
     [allLeads, colsVersion],
   );
+  const poseurs = useMemo(() => Array.from(new Set(tous.map(poseurOf))).sort(), [tous]);
+  const clients = poseur === "tous" ? tous : tous.filter((l) => poseurOf(l) === poseur);
   const parEtape = (e: Etape) => clients.filter((l) => etapeOf(l) === e);
-  const today = todayIso();
 
-  // Jours affichés : du lundi précédant le 1er au dimanche suivant la fin du mois.
-  const jours = useMemo(() => {
-    const debut = new Date(mois);
-    debut.setDate(1 - ((debut.getDay() + 6) % 7));
-    const fin = new Date(mois.getFullYear(), mois.getMonth() + 1, 0);
-    fin.setDate(fin.getDate() + (6 - ((fin.getDay() + 6) % 7)));
-    const out: string[] = [];
-    for (const d = new Date(debut); d <= fin; d.setDate(d.getDate() + 1)) out.push(isoOf(d));
-    return out;
-  }, [mois]);
   const evenements = useMemo(() => {
-    const m = new Map<string, { l: Lead; type: "vt" | "pose" }[]>();
-    const add = (iso: string, l: Lead, type: "vt" | "pose") => {
-      if (!iso) return;
-      m.set(iso, [...(m.get(iso) ?? []), { l, type }]);
-    };
+    const m = new Map<string, Ev[]>();
     for (const l of clients) {
-      add(dateVt(l), l, "vt");
-      add(datePose(l), l, "pose");
+      for (const t of Object.keys(TYPES) as TypeEv[]) {
+        if (!types[t] || (t === "paiement" && !admin)) continue;
+        const iso = f(l, TYPES[t].date).slice(0, 10);
+        if (!iso) continue;
+        const ev: Ev = { l, type: t, heure: TYPES[t].heure ? f(l, TYPES[t].heure!) : "", alerte: t === "pose" && !peutPoser(l) && !installe(l) };
+        m.set(iso, [...(m.get(iso) ?? []), ev]);
+      }
     }
+    for (const evs of Array.from(m.values())) evs.sort((a, b) => (a.heure || "99").localeCompare(b.heure || "99"));
     return m;
-  }, [clients]);
+  }, [clients, types, admin]);
+
+  // Jours affichés : mois complet (semaines entières) ou une semaine.
+  const jours = useMemo(() => {
+    if (vue === "semaine") return Array.from({ length: 7 }, (_, i) => addDays(lundiDe(ref), i));
+    const premier = `${ref.slice(0, 8)}01`;
+    const d = new Date(`${premier}T12:00:00`);
+    const dernier = isoOf(new Date(d.getFullYear(), d.getMonth() + 1, 0, 12));
+    const out: string[] = [];
+    for (let x = lundiDe(premier); x <= addDays(lundiDe(dernier), 6); x = addDays(x, 1)) out.push(x);
+    return out;
+  }, [vue, ref]);
+  const moisRef = Number(ref.slice(5, 7)) - 1;
+  const titre =
+    vue === "mois"
+      ? `${MOIS[moisRef]} ${ref.slice(0, 4)}`
+      : `Semaine du ${new Date(`${jours[0]}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })} au ${new Date(`${jours[6]}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`;
+  const deplacer = (sens: number) => {
+    if (vue === "semaine") return setRef(addDays(ref, 7 * sens));
+    const d = new Date(`${ref.slice(0, 8)}01T12:00:00`);
+    setRef(isoOf(new Date(d.getFullYear(), d.getMonth() + sens, 1, 12)));
+  };
 
   const enregistrer = async (l: Lead, maj: Record<string, string>) => {
     try {
@@ -109,18 +146,35 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
   const marquerInstalle = (l: Lead) => enregistrer(l, { pipeline: "Installé", ...(datePose(l) ? {} : { datePose: today }) });
   const basculerMpr = (l: Lead) => enregistrer(l, { mprRecue: mprRecue(l) ? "" : "oui" });
 
-  // Glisser un client sur un jour : pré-visite s'il n'en a pas encore, sinon pose.
+  // Glisser sur un jour : un client de la liste reçoit sa pré-visite (ou sa pose s'il en a déjà une) ;
+  // un rendez-vous du calendrier est simplement déplacé.
   const deposer = (iso: string, data: string) => {
     const [id, type] = data.split("|");
-    const l = clients.find((x) => x.id === id);
+    const l = tous.find((x) => x.id === id);
     if (!l) return;
-    const t = type === "vt" || type === "pose" ? type : dateVt(l) ? "pose" : "vt";
+    const t = (type in TYPES ? type : dateVt(l) ? "pose" : "vt") as TypeEv;
     if (t === "vt") poserVt(l, iso);
-    else poserPose(l, iso);
+    else if (t === "pose") poserPose(l, iso);
+    else enregistrer(l, { [TYPES[t].date]: iso });
   };
 
-  const sel = clients.find((l) => l.id === ouvert) ?? null;
+  const sel = tous.find((l) => l.id === ouvert) ?? null;
   const compte = (e: Etape) => parEtape(e).length;
+  const prochains = [today, addDays(today, 1)].map((iso) => ({ iso, evs: evenements.get(iso) ?? [] }));
+
+  const Puce = ({ ev, grand }: { ev: Ev; grand?: boolean }) => (
+    <button
+      draggable
+      onDragStart={(e) => e.dataTransfer.setData("text/plain", `${ev.l.id}|${ev.type}`)}
+      onClick={() => setOuvert(ev.l.id)}
+      title={`${TYPES[ev.type].label}${ev.heure ? ` à ${ev.heure}` : ""} : ${ev.l.name}${ev.l.city ? ` (${ev.l.city})` : ""}`}
+      className={`block w-full truncate rounded-md px-1.5 text-left font-bold text-white ${grand ? "py-1.5 text-xs" : "py-1 text-[11px]"} ${ev.alerte ? "bg-red-500" : ev.type === "pose" && installe(ev.l) ? "bg-gray-400" : TYPES[ev.type].couleur}`}
+    >
+      {ev.type === "pose" && installe(ev.l) ? "🏁" : TYPES[ev.type].icone} {ev.heure && <span className="opacity-90">{ev.heure} </span>}
+      {ev.l.name}
+      {grand && ev.l.city && <span className="block truncate font-medium opacity-90">📍 {ev.l.city}</span>}
+    </button>
+  );
 
   return (
     <div className="w-full px-4 sm:px-6 py-6 space-y-5">
@@ -128,10 +182,22 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
         <div>
           <h1 className="text-2xl font-extrabold text-gray-900">🗓️ Planning chantiers</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Les {clients.length} clients signés : pré-visites, poses, et ce qui attend MaPrimeRénov'. Glissez un client sur un jour du calendrier pour lui donner une date.
+            Les {tous.length} clients signés. Glissez un client sur un jour pour lui donner une date, cliquez dessus pour tout régler. Relié au tableau Pac Pac.
           </p>
         </div>
         {erreur && <p className="text-sm font-semibold text-red-600">{erreur}</p>}
+      </div>
+
+      {/* Aujourd'hui et demain */}
+      <div className="grid gap-3 md:grid-cols-2">
+        {prochains.map(({ iso, evs }, i) => (
+          <div key={iso} className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+            <div className="mb-2 text-sm font-extrabold text-gray-900">
+              {i === 0 ? "📍 Aujourd'hui" : "➡️ Demain"} <span className="font-semibold capitalize text-gray-500">· {frJour(iso)}</span>
+            </div>
+            {evs.length === 0 ? <p className="text-xs text-gray-400 italic">Rien de prévu.</p> : <div className="grid gap-1.5 sm:grid-cols-2">{evs.map((ev) => <Puce key={`${ev.l.id}-${ev.type}`} ev={ev} grand />)}</div>}
+          </div>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -147,38 +213,67 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        {/* Calendrier du mois */}
         <section className="self-start rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-          <div className="flex items-center justify-between gap-2 bg-[#0f172a] text-white px-4 py-3">
-            <button onClick={() => setMois(new Date(mois.getFullYear(), mois.getMonth() - 1, 1))} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Mois précédent">
-              <ChevronLeft size={20} />
-            </button>
-            <div className="flex items-center gap-3">
-              <h2 className="text-lg font-extrabold capitalize">
-                {MOIS[mois.getMonth()]} {mois.getFullYear()}
-              </h2>
-              <button onClick={() => setMois(new Date(new Date().getFullYear(), new Date().getMonth(), 1))} className="rounded-lg bg-white/15 px-2.5 py-1 text-xs font-bold hover:bg-white/25">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0f172a] text-white px-4 py-3">
+            <div className="flex items-center gap-1">
+              <button onClick={() => deplacer(-1)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Précédent">
+                <ChevronLeft size={20} />
+              </button>
+              <button onClick={() => deplacer(1)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Suivant">
+                <ChevronRight size={20} />
+              </button>
+              <h2 className={`ml-2 text-lg font-extrabold ${vue === "mois" ? "capitalize" : ""}`}>{titre}</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <button onClick={() => setRef(today)} className="rounded-lg bg-white/15 px-2.5 py-1 text-xs font-bold hover:bg-white/25">
                 Aujourd'hui
               </button>
+              <div className="flex rounded-lg bg-white/10 p-0.5">
+                {(["mois", "semaine"] as const).map((v) => (
+                  <button key={v} onClick={() => setVue(v)} className={`rounded-md px-2.5 py-1 text-xs font-bold capitalize ${vue === v ? "bg-orange-500 text-white" : "text-white/80 hover:text-white"}`}>
+                    {v}
+                  </button>
+                ))}
+              </div>
             </div>
-            <button onClick={() => setMois(new Date(mois.getFullYear(), mois.getMonth() + 1, 1))} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Mois suivant">
-              <ChevronRight size={20} />
-            </button>
           </div>
-          <div className="flex flex-wrap gap-4 px-4 py-2 text-xs font-semibold text-gray-600 border-b border-gray-100">
-            <span className="flex items-center gap-1.5"><i className="w-3 h-3 rounded bg-sky-500" /> Pré-visite</span>
-            <span className="flex items-center gap-1.5"><i className="w-3 h-3 rounded bg-emerald-600" /> Pose</span>
-            <span className="flex items-center gap-1.5"><i className="w-3 h-3 rounded bg-red-500" /> Pose alors que la MPR n'est pas reçue</span>
+          {/* Filtres : types de rendez-vous et poseur */}
+          <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-gray-100 text-xs font-semibold">
+            {(Object.keys(TYPES) as TypeEv[])
+              .filter((t) => t !== "paiement" || admin)
+              .map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTypes({ ...types, [t]: !types[t] })}
+                  className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${types[t] ? "border-gray-300 bg-white text-gray-800" : "border-gray-200 bg-gray-100 text-gray-400 line-through"}`}
+                >
+                  <i className={`w-3 h-3 rounded ${TYPES[t].couleur}`} /> {TYPES[t].label}
+                </button>
+              ))}
+            <span className="flex items-center gap-1.5 px-1 text-gray-500">
+              <i className="w-3 h-3 rounded bg-red-500" /> Pose sans MPR reçue
+            </span>
+            <span className="ml-auto flex items-center gap-1.5">
+              👷
+              <select value={poseur} onChange={(e) => setPoseur(e.target.value)} className="rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs font-semibold text-gray-800">
+                <option value="tous">Tous les poseurs</option>
+                {poseurs.map((p) => (
+                  <option key={p} value={p}>{p}</option>
+                ))}
+              </select>
+            </span>
           </div>
           <div className="grid grid-cols-7 text-center text-xs font-bold uppercase tracking-wide text-gray-500 bg-gray-50 border-b border-gray-200">
-            {JOURS.map((j) => (
-              <div key={j} className="py-2">{j}</div>
+            {jours.slice(0, 7).map((iso, i) => (
+              <div key={iso} className="py-2">
+                {JOURS[i]}
+                {vue === "semaine" && <span className="ml-1 text-gray-800">{Number(iso.slice(8))}</span>}
+              </div>
             ))}
           </div>
           <div className="grid grid-cols-7">
             {jours.map((iso, i) => {
-              const d = new Date(`${iso}T12:00:00`);
-              const horsMois = d.getMonth() !== mois.getMonth();
+              const horsMois = vue === "mois" && Number(iso.slice(5, 7)) - 1 !== moisRef;
               const weekend = i % 7 >= 5;
               const evs = evenements.get(iso) ?? [];
               return (
@@ -189,25 +284,16 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
                     e.preventDefault();
                     deposer(iso, e.dataTransfer.getData("text/plain"));
                   }}
-                  className={`min-h-[110px] border-b border-r border-gray-100 p-1.5 ${horsMois ? "bg-gray-50/70" : weekend ? "bg-slate-50" : "bg-white"}`}
+                  className={`${vue === "semaine" ? "min-h-[420px]" : "min-h-[110px]"} border-b border-r border-gray-100 p-1.5 ${horsMois ? "bg-gray-50/70" : weekend ? "bg-slate-50" : "bg-white"}`}
                 >
-                  <div className={`mb-1 text-xs font-bold ${iso === today ? "inline-flex w-6 h-6 items-center justify-center rounded-full bg-orange-500 text-white" : horsMois ? "text-gray-300" : "text-gray-600"}`}>{d.getDate()}</div>
+                  {vue === "mois" && (
+                    <div className={`mb-1 text-xs font-bold ${iso === today ? "inline-flex w-6 h-6 items-center justify-center rounded-full bg-orange-500 text-white" : horsMois ? "text-gray-300" : "text-gray-600"}`}>{Number(iso.slice(8))}</div>
+                  )}
+                  {vue === "semaine" && iso === today && <div className="mb-1 h-1 rounded bg-orange-500" />}
                   <div className="space-y-1">
-                    {evs.map(({ l, type }) => {
-                      const alerte = type === "pose" && !peutPoser(l) && !installe(l);
-                      return (
-                        <button
-                          key={`${l.id}-${type}`}
-                          draggable
-                          onDragStart={(e) => e.dataTransfer.setData("text/plain", `${l.id}|${type}`)}
-                          onClick={() => setOuvert(l.id)}
-                          title={`${type === "vt" ? "Pré-visite" : "Pose"} : ${l.name}${l.city ? ` (${l.city})` : ""}`}
-                          className={`block w-full truncate rounded-md px-1.5 py-1 text-left text-[11px] font-bold text-white ${alerte ? "bg-red-500" : type === "vt" ? "bg-sky-500" : installe(l) ? "bg-gray-400" : "bg-emerald-600"}`}
-                        >
-                          {type === "vt" ? "🔍" : installe(l) ? "🏁" : "🔧"} {l.name}
-                        </button>
-                      );
-                    })}
+                    {evs.map((ev) => (
+                      <Puce key={`${ev.l.id}-${ev.type}`} ev={ev} grand={vue === "semaine"} />
+                    ))}
                   </div>
                 </div>
               );
@@ -242,9 +328,16 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
                       <div className="mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5 text-[11px] text-gray-500">
                         {l.city && <span>📍 {l.city}</span>}
                         {l.fields.zoneProfil && <span>{l.fields.zoneProfil}</span>}
-                        {dateVt(l) && <span>🔍 {frDate(dateVt(l))}</span>}
-                        {datePose(l) && <span className={datePose(l) < today && !installe(l) ? "font-bold text-red-600" : ""}>🔧 {frDate(datePose(l))}{datePose(l) < today && !installe(l) ? " · passée, installé ?" : ""}</span>}
+                        {f(l, "poseur") && <span>👷 {f(l, "poseur")}</span>}
+                        {dateVt(l) && <span>🔍 {frDate(dateVt(l))}{f(l, "heureVt") && ` ${f(l, "heureVt")}`}</span>}
+                        {f(l, "dateDepotMpr") && <span>📨 {frDate(f(l, "dateDepotMpr").slice(0, 10))}</span>}
+                        {datePose(l) && (
+                          <span className={datePose(l) < today && !installe(l) ? "font-bold text-red-600" : ""}>
+                            🔧 {frDate(datePose(l))}{f(l, "heurePose") && ` ${f(l, "heurePose")}`}{datePose(l) < today && !installe(l) ? " · passée, installé ?" : ""}
+                          </span>
+                        )}
                         {e.key === "vt" && !peutPoser(l) && <span className="font-semibold text-amber-700">⏳ MPR à attendre</span>}
+                        {e.key === "mpr" && !f(l, "dateDepotMpr") && <span className="font-semibold text-fuchsia-700">📨 dépôt MPR à noter</span>}
                         {montantsInconnus(l) && <span className="font-semibold text-gray-600">❓ zone + profil manquant</span>}
                       </div>
                     </button>
@@ -262,12 +355,12 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
       {/* Fiche planning d'un client */}
       {sel && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setOuvert(null)}>
-          <div className="w-full sm:max-w-md rounded-t-2xl sm:rounded-2xl bg-white p-5 shadow-2xl space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white p-5 shadow-2xl space-y-4" dir="ltr" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-extrabold text-gray-900">{sel.name}</h3>
                 <p className="text-sm text-gray-500">
-                  {[sel.city, sel.fields.zoneProfil, sel.fields.poseur && `👷 ${sel.fields.poseur}`, moisSigne(sel) !== "—" && `signé en ${moisSigne(sel)}`].filter(Boolean).join(" · ")}
+                  {[sel.city, sel.fields.zoneProfil, moisSigne(sel) !== "—" && `signé en ${moisSigne(sel)}`, sel.fields.pipeline && `étape : ${sel.fields.pipeline}`].filter(Boolean).join(" · ")}
                 </p>
               </div>
               <button onClick={() => setOuvert(null)} className="rounded-lg p-1 text-gray-400 hover:bg-gray-100" aria-label="Fermer">
@@ -275,7 +368,7 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
               </button>
             </div>
 
-            <div className={`rounded-xl px-3 py-2 text-sm font-semibold ${peutPoser(sel) ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
+            <div className={`rounded-xl px-3 py-2 text-sm font-semibold ${montantsInconnus(sel) ? "bg-gray-100 text-gray-700" : peutPoser(sel) ? "bg-emerald-50 text-emerald-800" : "bg-amber-50 text-amber-800"}`}>
               {montantsInconnus(sel)
                 ? "❓ Zone + profil manquant : impossible de savoir si la CEE couvre la pose."
                 : peutPoser(sel)
@@ -283,14 +376,43 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
                   : "⏳ La CEE ne couvre pas la pose : on attend l'octroi MaPrimeRénov' avant d'installer."}
             </div>
 
-            <label className="block">
-              <span className="text-sm font-bold text-gray-700">🔍 Date de pré-visite</span>
-              <input type="date" value={dateVt(sel)} onChange={(e) => poserVt(sel, e.target.value)} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900" />
-            </label>
-            <label className="block">
-              <span className="text-sm font-bold text-gray-700">🔧 Date de pose</span>
-              <input type="date" value={datePose(sel)} onChange={(e) => poserPose(sel, e.target.value)} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900" />
-            </label>
+            <div className="grid grid-cols-[1fr_110px] gap-2">
+              <label className="block">
+                <span className="text-sm font-bold text-gray-700">🔍 Pré-visite</span>
+                <input type="date" value={dateVt(sel)} onChange={(e) => poserVt(sel, e.target.value)} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-bold text-gray-700">🕘 Heure</span>
+                <input type="time" value={f(sel, "heureVt")} onChange={(e) => enregistrer(sel, { heureVt: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-2 py-2 text-gray-900" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-bold text-gray-700">🔧 Pose</span>
+                <input type="date" value={datePose(sel)} onChange={(e) => poserPose(sel, e.target.value)} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900" />
+              </label>
+              <label className="block">
+                <span className="text-sm font-bold text-gray-700">🕘 Heure</span>
+                <input type="time" value={f(sel, "heurePose")} onChange={(e) => enregistrer(sel, { heurePose: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-2 py-2 text-gray-900" />
+              </label>
+              <label className="block col-span-2">
+                <span className="text-sm font-bold text-gray-700">📨 Dépôt du dossier MaPrimeRénov'</span>
+                <input type="date" value={f(sel, "dateDepotMpr").slice(0, 10)} onChange={(e) => enregistrer(sel, { dateDepotMpr: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900" />
+              </label>
+              {admin && (
+                <label className="block col-span-2">
+                  <span className="text-sm font-bold text-gray-700">💰 Paiement prévu</span>
+                  <input type="date" value={f(sel, "datePaiementPrevue").slice(0, 10)} onChange={(e) => enregistrer(sel, { datePaiementPrevue: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900" />
+                </label>
+              )}
+              <label className="block col-span-2">
+                <span className="text-sm font-bold text-gray-700">👷 Poseur</span>
+                <select value={f(sel, "poseur")} onChange={(e) => enregistrer(sel, { poseur: e.target.value })} className="mt-1 w-full rounded-xl border border-gray-300 bg-white px-3 py-2 text-gray-900">
+                  <option value="">—</option>
+                  {POSEUR.map((p) => (
+                    <option key={p.key} value={p.key}>{p.label}</option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
             <div className="flex flex-wrap gap-2">
               <button onClick={() => basculerMpr(sel)} className={`rounded-xl border px-3 py-2 text-sm font-bold ${mprRecue(sel) ? "border-emerald-300 bg-emerald-100 text-emerald-800" : "border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"}`}>
