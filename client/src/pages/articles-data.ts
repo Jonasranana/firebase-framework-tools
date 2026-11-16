@@ -49,6 +49,60 @@ const img = (slug: string) => `/images/articles/${slug}.jpg`;
 
 export const ARTICLES: Article[] = [
   {
+    slug: "eco-ptz-pompe-a-chaleur-financer-reste-a-charge",
+    title: "Éco-prêt à taux zéro : comment financer le reste à charge d'une pompe à chaleur",
+    excerpt:
+      "Même avec MaPrimeRénov' et la prime CEE, il reste souvent une part à payer pour remplacer sa chaudière par une pompe à chaleur. L'éco-prêt à taux zéro permet de l'étaler sans payer d'intérêts. Montants, conditions, démarches : voici l'essentiel.",
+    category: "Aides & subventions",
+    date: "2026-11-16",
+    readMinutes: 5,
+    image: img("eco-ptz-pompe-a-chaleur-financer-reste-a-charge"),
+    imageAlt: "Module intérieur de pompe à chaleur et ballon d'eau chaude installés dans une cave",
+    imageCredit: "Photo IP5 Énergie",
+    keyPoints: [
+      "L'éco-PTZ est un prêt sans intérêts, accordé sans condition de ressources, pour financer des travaux de rénovation énergétique dans une résidence principale de plus de 2 ans.",
+      "Pour une seule action de travaux comme une pompe à chaleur, il peut atteindre 15 000 €, remboursables sur 15 ans au maximum.",
+      "Il se cumule avec MaPrimeRénov' et la prime CEE : il sert alors à financer ce qui reste à votre charge.",
+    ],
+    content: [
+      { type: "p", text: "Remplacer une chaudière au fioul ou au gaz par une pompe à chaleur air/eau représente un investissement important. Les aides de l'État, MaPrimeRénov' et la prime CEE, en couvrent une partie, parfois une grande partie selon vos revenus. Mais il reste souvent un « reste à charge » à financer. C'est précisément le rôle de l'éco-prêt à taux zéro, ou éco-PTZ : étaler cette somme dans le temps, sans payer d'intérêts." },
+      { type: "h2", text: "Qu'est-ce que l'éco-PTZ ?" },
+      { type: "p", text: "L'éco-PTZ est un prêt proposé par les banques ayant signé une convention avec l'État. Les intérêts sont pris en charge par l'État : vous ne remboursez que la somme empruntée. Il est attribué sans condition de ressources, mais la banque reste libre d'étudier votre capacité de remboursement, comme pour tout crédit." },
+      { type: "box", title: "Les montants maximum (rénovation ponctuelle)", items: [
+        "7 000 € pour une action de travaux sur les parois vitrées (fenêtres).",
+        "15 000 € pour une action de travaux d'une autre nature, comme l'installation d'un chauffage utilisant une énergie renouvelable.",
+        "25 000 € pour un lot de 2 travaux, 30 000 € pour un lot de 3 travaux ou plus.",
+        "Jusqu'à 50 000 € dans le cadre d'une rénovation globale, remboursables sur 20 ans.",
+      ] },
+      { type: "p", text: "Pour une rénovation ponctuelle, comme le remplacement d'une chaudière par une pompe à chaleur, la durée de remboursement est de 15 ans au maximum. Vous pouvez bien sûr choisir une durée plus courte avec votre banque." },
+      { type: "h2", text: "Les conditions à remplir" },
+      { type: "list", items: [
+        "Être propriétaire occupant ou propriétaire bailleur (certaines copropriétés et sociétés civiles peuvent aussi en bénéficier).",
+        "Le logement est une résidence principale, construite depuis plus de 2 ans au début des travaux. S'il est mis en location, il doit être loué dans les 6 mois suivant la fin des travaux.",
+        "Les travaux sont réalisés par une entreprise certifiée RGE : c'est impératif.",
+        "Les travaux sont terminés dans un délai de 3 ans après l'attribution du prêt.",
+      ] },
+      { type: "tip", title: "Bon à savoir", text: "Pour une maison individuelle, les éco-PTZ « rénovation globale » émis depuis le 1er septembre 2026 doivent financer un chauffage décarboné : pompe à chaleur non hybride, réseau de chaleur, biomasse ou solaire." },
+      { type: "h2", text: "L'éco-PTZ et MaPrimeRénov' se complètent" },
+      { type: "p", text: "L'éco-PTZ se cumule avec MaPrimeRénov', la prime CEE et les aides des collectivités. Lorsque vos travaux bénéficient de MaPrimeRénov', la banque peut s'appuyer sur la notification de l'Anah, qui indique le montant de l'aide et votre reste à charge. Dans ce cas, le montant de l'éco-PTZ ne peut pas dépasser ce reste à charge." },
+      { type: "p", text: "Concrètement, le bon ordre est donc le suivant : faire réaliser un devis par une entreprise RGE, déposer la demande d'aide, puis présenter à votre banque le devis et la notification pour obtenir le prêt correspondant à ce qui reste à payer." },
+      { type: "h2", text: "Comment faire la demande" },
+      { type: "list", items: [
+        "Demandez un devis détaillé à une entreprise RGE, qui remplit avec vous le formulaire « devis » de l'éco-PTZ.",
+        "Présentez ce dossier à une banque partenaire du dispositif (la plupart des grands réseaux le proposent).",
+        "Une fois les travaux terminés, transmettez à la banque les factures et le formulaire « factures » signé par l'entreprise, dans les délais prévus.",
+      ] },
+      { type: "faq", items: [
+        { q: "Faut-il des revenus minimum pour obtenir un éco-PTZ ?", a: "Non, il n'y a pas de condition de ressources. La banque vérifie seulement, comme pour tout prêt, que vous pouvez le rembourser." },
+        { q: "Peut-on obtenir un éco-PTZ pour une résidence secondaire ?", a: "Non, le logement doit être une résidence principale, occupée par vous ou par un locataire." },
+        { q: "Peut-on cumuler l'éco-PTZ avec MaPrimeRénov' et la prime CEE ?", a: "Oui. Lorsque vous bénéficiez de MaPrimeRénov', le montant du prêt est limité au reste à charge indiqué par l'Anah." },
+        { q: "Peut-on demander un deuxième éco-PTZ plus tard ?", a: "Oui, un éco-PTZ complémentaire est possible jusqu'au 31 décembre 2027, dans les 5 ans suivant l'offre du premier prêt, à condition que le total ne dépasse pas les plafonds." },
+      ] },
+      { type: "p", text: "Vous voulez savoir quelles aides vous pouvez obtenir pour votre pompe à chaleur, et ce qu'il resterait à financer ? Faites le point en 2 minutes avec notre simulateur, ou appelez un conseiller IP5 Énergie au 07 49 52 52 67. L'étude est gratuite et sans engagement." },
+      { type: "p", text: "Sources : service-public.fr (fiche « Éco-prêt à taux zéro », vérifiée le 1er septembre 2026) et ministère de la Transition écologique (page éco-PTZ, mise à jour le 25 août 2026)." },
+    ],
+  },
+  {
     slug: "demarchage-renovation-energetique-ce-que-dit-la-loi",
     title: "Démarchage pour une pompe à chaleur : ce que la loi interdit, et les bons réflexes",
     excerpt:
