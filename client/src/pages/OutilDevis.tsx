@@ -945,7 +945,7 @@ export default function OutilDevis() {
         {p === "clients" && narrow(<ClientsCRM email={email} />)}
         {p === "praimy" && <PraimyCRM email={email} />}
         {p === "planning" &&
-          (RENTA_VIEWERS.includes(email.toLowerCase()) ? (
+          (NEWS_VIEWERS.includes(email.toLowerCase()) ? (
             <PlanningChantiers
               email={email}
               onOpenLead={(id) => {

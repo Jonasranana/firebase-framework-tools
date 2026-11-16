@@ -87,6 +87,7 @@ export const TYPE_DEMANDE: Opt[] = [
   o("✉️ Réactivation", "#9d50dd"),
   o("📘 Formulaire Facebook", "#1877f2"),
 ];
+export const MPR_RECUE: Opt[] = [o("oui", "#00c875", "✅ Reçue")];
 export const POSEUR: Opt[] = [o("NousGeorges", "#9cd326"), o("Premy", "#cab641"), o("PRAIMY", "#cab641"), o("BETS", "#757575")];
 export const RESSENTI: Opt[] = [
   o("Positif", "#00c875"),
@@ -169,6 +170,11 @@ export const BASE_LEAD_COLUMNS: LeadColumn[] = [
   { key: "poseur", title: "👷 Poseur", type: "status", width: 120, options: POSEUR },
   { key: "dateVt", title: "🗓 Date VT", type: "date", width: 130 },
   { key: "datePose", title: "🔧 Date Pose", type: "date", width: 130 },
+  // Planning chantiers : heures des rendez-vous, dépôt du dossier MaPrimeRénov' et octroi reçu.
+  { key: "heureVt", title: "🕘 Heure VT", type: "text", width: 100 },
+  { key: "heurePose", title: "🕘 Heure Pose", type: "text", width: 110 },
+  { key: "dateDepotMpr", title: "📨 Dépôt MPR", type: "date", width: 130 },
+  { key: "mprRecue", title: "✅ MPR reçue", type: "status", width: 130, options: MPR_RECUE },
   { key: "montant", title: "💶 Montant", type: "number", width: 110, unit: "€" },
   { key: "prenom", title: "🙋 Prénom (Auto)", type: "formula", width: 130 },
   { key: "region", title: "🗺️ Région", type: "formula", width: 140 },
@@ -239,7 +245,7 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
   if (missing.length) st.splice(vide >= 0 ? vide : st.length, 0, ...missing);
   if (!st.some((x) => x.key === "vide")) st.push({ key: "vide", label: "", hex: "#c4c4c4" });
   const deleted = new Set(c.deleted ?? []);
-  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || ((x.key === ATTRIBUE_KEY || ["zoneProfil", "primeCee", "mprPraimy", "refPraimy", "margeNette"].includes(x.key)) && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
+  const all: LeadColumn[] = [...BASE_LEAD_COLUMNS.filter((x) => !deleted.has(x.key) && (!c.baseOnly || c.baseOnly.includes(x.key) || ((x.key === ATTRIBUE_KEY || ["zoneProfil", "primeCee", "mprPraimy", "refPraimy", "margeNette", "heureVt", "heurePose", "dateDepotMpr", "mprRecue"].includes(x.key)) && boardId === "leads"))), ...(c.custom ?? []).map((x) => ({ ...x, custom: true }))];
   const byKey = new Map(all.map((x) => [x.key, x]));
   const ordered: LeadColumn[] = [];
   for (const k of c.order ?? []) {
@@ -258,11 +264,12 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
   }
   // Colonne « Zone + Profil » ajoutée après coup : placée juste après « Statut Appel » (ou « Rappel ») dans les ordres déjà enregistrés.
   // Montants Praimy : juste après « Zone + Profil ».
-  for (const k of ["zoneProfil", "primeCee", "mprPraimy", "refPraimy", "margeNette"]) {
+  // Colonnes du planning (heures, dépôt MPR, MPR reçue) : juste après « Date Pose ».
+  for (const k of ["zoneProfil", "primeCee", "mprPraimy", "refPraimy", "margeNette", "heureVt", "heurePose", "dateDepotMpr", "mprRecue"]) {
     const col = byKey.get(k);
     if (!col || !(c.order ?? []).length) continue;
     byKey.delete(k);
-    const prev = { zoneProfil: "", primeCee: "zoneProfil", mprPraimy: "primeCee", refPraimy: "mprPraimy", margeNette: "refPraimy" }[k] ?? "";
+    const prev = { zoneProfil: "", primeCee: "zoneProfil", mprPraimy: "primeCee", refPraimy: "mprPraimy", margeNette: "refPraimy", heureVt: "dateVt", heurePose: "datePose", dateDepotMpr: "heurePose", mprRecue: "dateDepotMpr" }[k] ?? "";
     let at = prev ? ordered.findIndex((x) => x.key === prev) : -1;
     if (at < 0) at = ordered.findIndex((x) => x.key === "rappelRdv");
     if (at < 0) at = ordered.findIndex((x) => x.key === "status");
