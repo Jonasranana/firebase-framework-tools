@@ -254,17 +254,16 @@ module.exports = function buildCrmTeam({
       } catch (err) {
         logger.error("Mise à jour CRM : e-mails d'équipe non envoyés", { error: err.message });
       }
-      // Notification sur le téléphone des personnes taguées.
-      const taggedEmails = tagged.map((p) => p.email).filter((e) => e && e !== author);
-      if (sendPush && taggedEmails.length) {
-        await sendPush({
-          kind: "tags",
-          emails: taggedEmails,
-          title: `💬 ${authorName} vous a tagué(e) — ${snap.get("name") || "fiche"}`,
-          body: text.slice(0, 200),
-          url: kind === "lead" ? `/admin?lead=${encodeURIComponent(id)}` : "/admin#artisans",
-          tag: `tag-${id}`,
-        });
+      // Notifications sur téléphone : les personnes taguées (« tags »), puis tout le reste de l'équipe
+      // (« messages », sauf l'auteur), avec le message en entier comme dans le mail.
+      if (sendPush) {
+        const ficheName = snap.get("name") || "fiche";
+        const url = kind === "lead" ? `/admin?lead=${encodeURIComponent(id)}` : "/admin#artisans";
+        const taggedEmails = tagged.map((p) => p.email).filter((e) => e && e !== author);
+        if (taggedEmails.length) {
+          await sendPush({ kind: "tags", emails: taggedEmails, title: `🏷️ ${authorName} vous a tagué(e) — ${ficheName}`, body: text, url, tag: `msg-${id}` });
+        }
+        await sendPush({ kind: "messages", exclude: [author, ...taggedEmails], title: `💬 ${authorName} — ${ficheName}`, body: text, url, tag: `msg-${id}` });
       }
       return { ok: true, notified, tagged: tagged.map((p) => p.name) };
     },

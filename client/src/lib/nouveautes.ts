@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-17-notif-messages",
+    date: "2026-11-17",
+    emoji: "💬",
+    titre: "Notifications : les messages des bulles, en entier",
+    points: [
+      "Chaque nouveau message écrit dans la bulle d'une fiche arrive en notification sur votre téléphone, avec le nom de la personne, le client et le texte complet (glisser vers le bas pour tout lire).",
+      "Vous ne recevez pas vos propres messages. À couper dans 🔔 → « 💬 Messages dans les bulles » si c'est trop.",
+    ],
+  },
+  {
     id: "2026-11-17-notifications",
     date: "2026-11-17",
     emoji: "🔔",
