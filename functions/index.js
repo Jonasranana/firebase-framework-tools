@@ -3044,10 +3044,22 @@ Object.assign(
   }),
 );
 
+// ── Notifications du CRM sur téléphone (appli installée depuis Chrome / Safari) ──
+// Voir functions/crmPush.js. Planning du lendemain : mêmes personnes que la page « Planning chantiers ».
+const crmPush = require("./crmPush")({
+  db,
+  logger,
+  onCall,
+  HttpsError,
+  isCrmMember,
+  PLANNING_VIEWERS: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"],
+});
+Object.assign(exports, crmPush.exports);
+
 // ── Mail « ⏰ Rappel dans 10 min » à la personne qui doit rappeler ──
 Object.assign(
   exports,
-  require("./rappelMails")({ db, logger, google, buildRawMessage, escapeHtmlText, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL }),
+  require("./rappelMails")({ db, logger, google, buildRawMessage, escapeHtmlText, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, sendPush: crmPush.sendPush }),
 );
 
 // ── « 📰 Le Journal des aides » : mail sur contact@ à chaque veille du soir publiée ──
@@ -3087,6 +3099,7 @@ Object.assign(
 Object.assign(
   exports,
   require("./crmTeam")({
+    sendPush: crmPush.sendPush,
     db,
     logger,
     google,

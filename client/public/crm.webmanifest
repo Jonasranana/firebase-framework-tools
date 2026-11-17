@@ -1,0 +1,17 @@
+{
+  "name": "CRM IP5 Énergie",
+  "short_name": "CRM IP5",
+  "description": "Le CRM d'IP5 Énergie : leads, rappels, planning chantiers.",
+  "id": "/admin",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "lang": "fr",
+  "icons": [
+    { "src": "/crm-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/crm-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/crm-icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

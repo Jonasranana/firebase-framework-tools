@@ -35,6 +35,7 @@ const LogoMark = ({ className = "" }: { className?: string }) => (
   </svg>
 );
 import MailSyncStatus from "./MailSyncStatus";
+import PushBell from "@/components/PushBell";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTeam } from "@/lib/crmTeam";
 import Avatar from "@/components/Avatar";
@@ -465,6 +466,7 @@ export default function AdminShell({
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
             <MailSyncStatus email={email} />
+            <PushBell />
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
           </div>
         </header>

@@ -14,7 +14,7 @@ const EMAILS = {
   jonas: "jonassitbon8@gmail.com",
 };
 
-module.exports = function buildRappelMails({ db, logger, google, buildRawMessage, escapeHtmlText, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL }) {
+module.exports = function buildRappelMails({ db, logger, google, buildRawMessage, escapeHtmlText, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, sendPush }) {
   const paris = () => {
     const p = Object.fromEntries(
       new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hourCycle: "h23" })
@@ -84,6 +84,17 @@ ${last ? `<tr><td style="padding:6px 10px;color:#666;vertical-align:top">Dernier
           logger.info("Mail de rappel envoyé", { leadId: d.id, heure, qui });
         } catch (err) {
           logger.error("Mail de rappel : envoi échoué", { leadId: d.id, error: err.message });
+        }
+        // Notification sur le téléphone de la personne qui doit rappeler (sinon : tous ceux qui ont choisi « rappels »).
+        if (sendPush) {
+          await sendPush({
+            kind: "rappels",
+            emails: perso ? [perso] : undefined,
+            title: `⏰ À rappeler dans ${until} min : ${name}`,
+            body: [heure.replace(":", "h"), tel, qui && `par ${qui}`].filter(Boolean).join(" · "),
+            url: `/admin?lead=${encodeURIComponent(d.id)}`,
+            tag: `rappel-${d.id}`,
+          });
         }
       }
     },
