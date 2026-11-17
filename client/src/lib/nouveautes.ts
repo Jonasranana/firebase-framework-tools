@@ -18,6 +18,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-17-notifications",
+    date: "2026-11-17",
+    emoji: "🔔",
+    titre: "Notifications sur votre téléphone",
+    points: [
+      "Nouvelle cloche 🔔 en haut à droite du CRM : « Activer les notifications » sur cet appareil.",
+      "Au choix : 📥 nouveaux leads, ⏰ rappels (20 min avant), 💬 quand on vous tague avec @, 🗓️ planning du lendemain (19 h).",
+      "Sur Android : installez le CRM depuis Chrome (menu ⋮ → « Installer l'application »). Sur iPhone : depuis Safari, Partager → « Sur l'écran d'accueil », puis activez la cloche depuis l'icône.",
+    ],
+  },
+  {
     id: "2026-11-16-planning-complet",
     date: "2026-11-16",
     emoji: "🗓️",

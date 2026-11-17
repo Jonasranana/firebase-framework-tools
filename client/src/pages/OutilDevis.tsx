@@ -775,7 +775,20 @@ function useCrmTabColor() {
     const links = Array.from(document.querySelectorAll<HTMLLinkElement>('link[rel="icon"], link[rel="apple-touch-icon"]'));
     const olds = links.map((l) => ({ l, href: l.href }));
     links.forEach((l) => (l.href = "/favicon-crm.png"));
+    // Appli installable (« Ajouter à l'écran d'accueil ») : manifeste du CRM, seulement sur /admin.
+    const manifest = document.createElement("link");
+    manifest.rel = "manifest";
+    manifest.href = "/crm.webmanifest";
+    document.head.appendChild(manifest);
+    const appleIcon = document.createElement("link");
+    appleIcon.rel = "apple-touch-icon";
+    appleIcon.href = "/crm-icon-192.png";
+    document.head.appendChild(appleIcon);
+    // Service worker des notifications (déjà enregistré si elles ont été activées) : gardé à jour.
+    if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistration("/").then((r) => r?.update()).catch(() => {});
     return () => {
+      manifest.remove();
+      appleIcon.remove();
       if (createdMeta) meta?.remove();
       else if (meta) meta.content = oldColor;
       olds.forEach(({ l, href }) => (l.href = href));
@@ -783,7 +796,23 @@ function useCrmTabColor() {
   }, []);
 }
 
+// Lien d'une notification (/admin?lead=<id>) : ouvre directement la fiche dans Pac Pac.
+// Fait avant le choix de la page de départ (initialPage lit ensuite #leads).
+function useLeadFromUrl() {
+  try {
+    const u = new URL(window.location.href);
+    const id = u.searchParams.get("lead");
+    if (!id) return;
+    sessionStorage.setItem("crm-open-lead", id);
+    u.searchParams.delete("lead");
+    window.history.replaceState(null, "", `${u.pathname}${u.search}#leads`);
+  } catch {
+    /* non essentiel */
+  }
+}
+
 export default function OutilDevis() {
+  useLeadFromUrl();
   useNoIndex();
   useCrmTabColor();
   // Démarrage en parallèle de la connexion : la base de données (et son cache local) s'initialise tout de suite,
