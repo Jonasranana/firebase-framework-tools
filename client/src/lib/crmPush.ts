@@ -6,12 +6,13 @@ import { getEspaceProApp } from "@/lib/espacePro";
 // la fonction crmPushToken (functions/crmPush.js), avec les choix de
 // notifications. Le service worker /crm-sw.js les affiche.
 // ─────────────────────────────────────────────────────────────────────────
-export type PushPrefs = { leads: boolean; rappels: boolean; tags: boolean; planning: boolean };
-export const DEFAULT_PREFS: PushPrefs = { leads: true, rappels: true, tags: true, planning: true };
+export type PushPrefs = { leads: boolean; rappels: boolean; messages: boolean; tags: boolean; planning: boolean };
+export const DEFAULT_PREFS: PushPrefs = { leads: true, rappels: true, messages: true, tags: true, planning: true };
 export const PUSH_KINDS: { key: keyof PushPrefs; label: string; hint: string }[] = [
   { key: "leads", label: "📥 Nouveaux leads", hint: "Site, formulaire Facebook…" },
   { key: "rappels", label: "⏰ Rappels", hint: "20 min avant un rappel qui vous est attribué" },
-  { key: "tags", label: "💬 Quand on me tague", hint: "Avec @ dans une discussion" },
+  { key: "messages", label: "💬 Messages dans les bulles", hint: "Chaque nouveau message sur une fiche, avec le texte" },
+  { key: "tags", label: "🏷️ Quand on me tague", hint: "Avec @ dans une discussion" },
   { key: "planning", label: "🗓️ Planning du lendemain", hint: "Chaque soir à 19 h : pré-visites et poses" },
 ];
 

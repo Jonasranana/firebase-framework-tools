@@ -5,7 +5,8 @@
 // seulement par le serveur), avec ses choix :
 //   leads    : 📥 nouveau lead (site, Facebook, rappel demandé…)
 //   rappels  : ⏰ rappel dans 20 min (personne qui doit rappeler)
-//   tags     : 💬 tagué(e) avec @ dans une discussion
+//   messages : 💬 chaque nouveau message dans la bulle d'une fiche (texte affiché en entier)
+//   tags     : 🏷️ tagué(e) avec @ dans une discussion
 //   planning : 🗓️ chaque soir, pré-visites et poses du lendemain
 // Un jeton refusé par Google (appareil désinstallé…) est supprimé tout seul.
 // ─────────────────────────────────────────────────────────────────────────
@@ -14,8 +15,8 @@ const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
 
-const KINDS = ["leads", "rappels", "tags", "planning"];
-const DEFAULT_PREFS = { leads: true, rappels: true, tags: true, planning: true };
+const KINDS = ["leads", "rappels", "messages", "tags", "planning"];
+const DEFAULT_PREFS = { leads: true, rappels: true, messages: true, tags: true, planning: true };
 // Sources des demandes qui arrivent toutes seules (pas les imports ni les fiches saisies à la main).
 const AUTO_SOURCE = /landing|simulateur|site|formulaire-facebook|facebook|contact|rappel|whatsapp/i;
 
@@ -24,17 +25,21 @@ module.exports = function buildCrmPush({ db, logger, onCall, HttpsError, isCrmMe
   const cleanPrefs = (p) => Object.fromEntries(KINDS.map((k) => [k, p && typeof p[k] === "boolean" ? p[k] : DEFAULT_PREFS[k]]));
 
   // Envoie une notification aux appareils qui l'ont choisie (option : seulement certaines adresses).
-  async function sendPush({ kind, emails, title, body, url = "/admin", tag }) {
+  async function sendPush({ kind, emails, exclude, title, body, url = "/admin", tag }) {
     try {
-      let q = db.collection("crm_push_tokens").where(`prefs.${kind}`, "==", true);
-      const snap = await q.get();
+      // Peu d'appareils : on lit tout et on filtre (un choix absent = activé, pour les nouveaux types).
+      const snap = await db.collection("crm_push_tokens").get();
       const wanted = emails ? new Set(emails.map((e) => String(e).toLowerCase())) : null;
-      const docs = snap.docs.filter((d) => !wanted || wanted.has(String(d.get("email")).toLowerCase()));
+      const skip = new Set((exclude ?? []).map((e) => String(e).toLowerCase()));
+      const docs = snap.docs.filter((d) => {
+        const email = String(d.get("email")).toLowerCase();
+        return d.get(`prefs.${kind}`) !== false && (!wanted || wanted.has(email)) && !skip.has(email);
+      });
       if (!docs.length) return 0;
       const res = await getMessaging().sendEach(
         docs.map((d) => ({
           token: d.get("token"),
-          data: { title: String(title).slice(0, 120), body: String(body ?? "").slice(0, 300), url, tag: tag || kind },
+          data: { title: String(title).slice(0, 120), body: String(body ?? "").slice(0, 1000), url, tag: tag || kind },
           webpush: { headers: { Urgency: "high", TTL: "86400" } },
         })),
       );
