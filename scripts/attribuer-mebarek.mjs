@@ -1,3 +1,4 @@
+// Écriture validée par Jonas le 2026-11-18.
 // Attribue N fiches Pac Pac jamais appelées (statut « À appeler », groupe « 0/ Contacts », non attribuées) à Mebarek
 // ET les range dans le groupe « 1/ Leads Mebarek ». Les plus récentes d'abord. N'affiche que des nombres.
 // Essai à blanc tant que DRY_RUN != "false".

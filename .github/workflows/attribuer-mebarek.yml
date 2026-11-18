@@ -22,6 +22,6 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
-          DRY_RUN: "true"
+          DRY_RUN: "false"
           COUNT: "50"
         run: node scripts/attribuer-mebarek.mjs
