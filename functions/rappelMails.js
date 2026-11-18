@@ -94,6 +94,7 @@ ${last ? `<tr><td style="padding:6px 10px;color:#666;vertical-align:top">Dernier
             body: [heure.replace(":", "h"), tel, qui && `par ${qui}`].filter(Boolean).join(" · "),
             url: `/admin?lead=${encodeURIComponent(d.id)}`,
             tag: `rappel-${d.id}`,
+            leadId: d.id,
           });
         }
       }

@@ -3052,6 +3052,7 @@ const crmPush = require("./crmPush")({
   onCall,
   HttpsError,
   isCrmMember,
+  CRM_ALLOWED_EMAILS,
   PLANNING_VIEWERS: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"],
 });
 Object.assign(exports, crmPush.exports);

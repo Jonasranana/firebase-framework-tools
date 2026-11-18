@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { Bell, BellRing } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import NotifsFeed from "@/components/NotifsFeed";
+import { openNotifTarget, useNotifs } from "@/lib/crmNotifs";
 import { DEFAULT_PREFS, PUSH_KINDS, disablePush, enablePush, pushStatus, pushSupport, savePushPrefs, testPush, type PushPrefs } from "@/lib/crmPush";
 
-// Cloche de la barre du haut du CRM : activer les notifications sur cet appareil
-// et choisir lesquelles recevoir (voir lib/crmPush.ts).
-export default function PushBell() {
+// Cloche de la barre du haut du CRM : la liste des notifications reçues (onglet « Notifications »,
+// pastille rouge = non lues) et les réglages de cet appareil (onglet « Réglages », voir lib/crmPush.ts).
+export default function PushBell({ onNavigate }: { onNavigate?: (page: string) => void }) {
+  const { unread } = useNotifs();
+  const [open, setOpen] = useState(false);
+  const [onglet, setOnglet] = useState<"liste" | "reglages">("liste");
   const support = pushSupport();
   const [enabled, setEnabled] = useState(false);
   const [prefs, setPrefs] = useState<PushPrefs>(DEFAULT_PREFS);
@@ -53,17 +58,39 @@ export default function PushBell() {
   };
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <button
           title="Notifications"
           className={`relative inline-flex h-9 w-9 items-center justify-center rounded-full border transition-colors ${enabled ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100" : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"}`}
         >
           {enabled ? <BellRing size={17} /> : <Bell size={17} />}
-          {!enabled && support !== "unsupported" && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white" />}
+          {unread > 0 ? (
+            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] rounded-full bg-red-500 px-1 text-[10px] font-black leading-[18px] text-white ring-2 ring-white">{unread > 99 ? "99+" : unread}</span>
+          ) : (
+            !enabled && support !== "unsupported" && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-orange-500 ring-2 ring-white" />
+          )}
         </button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-4 bg-white text-gray-900 border border-gray-200 shadow-xl space-y-3" dir="ltr">
+      <PopoverContent align="end" className="w-[22rem] max-w-[95vw] p-3 bg-white text-gray-900 border border-gray-200 shadow-xl space-y-3" dir="ltr">
+        <div className="flex rounded-xl bg-gray-100 p-1">
+          {([["liste", "🔔 Notifications"], ["reglages", "⚙️ Réglages"]] as const).map(([k, label]) => (
+            <button key={k} onClick={() => setOnglet(k)} className={`flex-1 rounded-lg py-1.5 text-sm font-bold ${onglet === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {onglet === "liste" && (
+          <NotifsFeed
+            compact
+            onOpen={(n) => {
+              setOpen(false);
+              openNotifTarget(n, onNavigate);
+            }}
+          />
+        )}
+        {onglet === "reglages" && (
+        <>
         <div>
           <p className="font-extrabold">🔔 Notifications sur cet appareil</p>
           <p className="text-xs text-gray-500">Comme une vraie appli, même CRM fermé.</p>
@@ -106,6 +133,8 @@ export default function PushBell() {
           </>
         )}
         {msg && <p className="text-xs font-medium text-gray-700">{msg}</p>}
+        </>
+        )}
       </PopoverContent>
     </Popover>
   );

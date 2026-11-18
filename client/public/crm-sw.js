@@ -13,6 +13,8 @@ self.addEventListener("push", (event) => {
   }
   const d = p.data || p.notification || {};
   const title = d.title || "CRM IP5";
+  // Prévient les pages ouvertes du CRM (la liste « 🔔 Notifs » se met à jour tout de suite).
+  self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => list.forEach((c) => c.postMessage({ type: "crm-push" })));
   event.waitUntil(
     self.registration.showNotification(title, {
       body: d.body || "",

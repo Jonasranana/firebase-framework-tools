@@ -261,9 +261,9 @@ module.exports = function buildCrmTeam({
         const url = kind === "lead" ? `/admin?lead=${encodeURIComponent(id)}` : "/admin#artisans";
         const taggedEmails = tagged.map((p) => p.email).filter((e) => e && e !== author);
         if (taggedEmails.length) {
-          await sendPush({ kind: "tags", emails: taggedEmails, title: `🏷️ ${authorName} vous a tagué(e) — ${ficheName}`, body: text, url, tag: `msg-${id}` });
+          await sendPush({ kind: "tags", emails: taggedEmails, title: `🏷️ ${authorName} vous a tagué(e) — ${ficheName}`, body: text, url, tag: `msg-${id}`, by: author, leadId: kind === "lead" ? id : "" });
         }
-        await sendPush({ kind: "messages", exclude: [author, ...taggedEmails], title: `💬 ${authorName} — ${ficheName}`, body: text, url, tag: `msg-${id}` });
+        await sendPush({ kind: "messages", exclude: [author, ...taggedEmails], title: `💬 ${authorName} — ${ficheName}`, body: text, url, tag: `msg-${id}`, by: author, leadId: kind === "lead" ? id : "" });
       }
       return { ok: true, notified, tagged: tagged.map((p) => p.name) };
     },

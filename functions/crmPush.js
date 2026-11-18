@@ -20,12 +20,38 @@ const DEFAULT_PREFS = { leads: true, rappels: true, messages: true, tags: true, 
 // Sources des demandes qui arrivent toutes seules (pas les imports ni les fiches saisies à la main).
 const AUTO_SOURCE = /landing|simulateur|site|formulaire-facebook|facebook|contact|rappel|whatsapp/i;
 
-module.exports = function buildCrmPush({ db, logger, onCall, HttpsError, isCrmMember, PLANNING_VIEWERS }) {
+module.exports = function buildCrmPush({ db, logger, onCall, HttpsError, isCrmMember, PLANNING_VIEWERS, CRM_ALLOWED_EMAILS = [] }) {
   const tokenId = (token) => crypto.createHash("sha256").update(token).digest("hex").slice(0, 40);
   const cleanPrefs = (p) => Object.fromEntries(KINDS.map((k) => [k, p && typeof p[k] === "boolean" ? p[k] : DEFAULT_PREFS[k]]));
 
-  // Envoie une notification aux appareils qui l'ont choisie (option : seulement certaines adresses).
-  async function sendPush({ kind, emails, exclude, title, body, url = "/admin", tag }) {
+  // Historique « 🔔 Notifs » du CRM : une ligne par destinataire dans crm_notifs/<email>/items
+  // (même si cette personne n'a pas activé les notifications sur son téléphone).
+  async function teamEmails() {
+    const snap = await db.collection("crm_team").get();
+    return Array.from(new Set([...CRM_ALLOWED_EMAILS, ...snap.docs.map((d) => d.id)].map((e) => String(e).toLowerCase())));
+  }
+  async function saveFeed({ kind, emails, exclude, title, body, url, by, leadId }) {
+    try {
+      const skip = new Set((exclude ?? []).map((e) => String(e).toLowerCase()));
+      const to = (emails ? emails.map((e) => String(e).toLowerCase()) : await teamEmails()).filter((e) => e && !skip.has(e));
+      if (!to.length) return;
+      const at = new Date().toISOString();
+      const batch = db.batch();
+      for (const email of Array.from(new Set(to))) {
+        batch.set(db.collection(`crm_notifs/${email}/items`).doc(), {
+          kind, title: String(title).slice(0, 160), body: String(body ?? "").slice(0, 1000), url, by: by || "", leadId: leadId || "", at, read: false,
+        });
+      }
+      await batch.commit();
+    } catch (err) {
+      logger.error("Historique des notifications : écriture échouée", { kind, error: err.message });
+    }
+  }
+
+  // Envoie une notification aux appareils qui l'ont choisie (option : seulement certaines adresses)
+  // et l'ajoute à l'historique de chaque destinataire.
+  async function sendPush({ kind, emails, exclude, title, body, url = "/admin", tag, by, leadId }) {
+    await saveFeed({ kind, emails, exclude, title, body, url, by, leadId });
     try {
       // Peu d'appareils : on lit tout et on filtre (un choix absent = activé, pour les nouveaux types).
       const snap = await db.collection("crm_push_tokens").get();
@@ -104,6 +130,7 @@ module.exports = function buildCrmPush({ db, logger, onCall, HttpsError, isCrmMe
       body: [where, src, x.phone].filter(Boolean).join(" · "),
       url: `/admin?lead=${encodeURIComponent(event.params.leadId)}`,
       tag: `lead-${event.params.leadId}`,
+      leadId: event.params.leadId,
     });
   });
 
@@ -130,5 +157,27 @@ module.exports = function buildCrmPush({ db, logger, onCall, HttpsError, isCrmMe
     await sendPush({ kind: "planning", emails: PLANNING_VIEWERS, title: `🗓️ Demain : ${poses.length} pose(s), ${vts.length} pré-visite(s)`, body, url: "/admin#planning", tag: `planning-${demain}` });
   });
 
-  return { sendPush, exports: { crmPushToken, pushNewLead, pushPlanningDemain } };
+  // Historique « 🔔 Notifs » : liste (60 dernières), marquer lue(s).
+  const crmNotifs = onCall({ region: "europe-west9" }, async (request) => {
+    if (!isCrmMember(request)) throw new HttpsError("permission-denied", "Accès refusé.");
+    const email = String(request.auth.token.email).toLowerCase();
+    const col = db.collection(`crm_notifs/${email}/items`);
+    const { action, id } = request.data ?? {};
+    if (action === "read" && typeof id === "string" && id) {
+      await col.doc(id).set({ read: true }, { merge: true });
+      return { ok: true };
+    }
+    if (action === "readAll") {
+      const unread = await col.where("read", "==", false).get();
+      const batch = db.batch();
+      unread.docs.forEach((d) => batch.update(d.ref, { read: true }));
+      if (!unread.empty) await batch.commit();
+      return { ok: true };
+    }
+    const snap = await col.orderBy("at", "desc").limit(60).get();
+    const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    return { items, unread: items.filter((x) => !x.read).length };
+  });
+
+  return { sendPush, exports: { crmPushToken, crmNotifs, pushNewLead, pushPlanningDemain } };
 };
