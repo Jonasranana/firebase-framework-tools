@@ -466,7 +466,7 @@ export default function AdminShell({
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
             <MailSyncStatus email={email} />
-            <PushBell />
+            <PushBell onNavigate={(p) => onNavigate(p as AdminPage)} />
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
           </div>
         </header>

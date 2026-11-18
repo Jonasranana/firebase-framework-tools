@@ -18,6 +18,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-18-page-notifs",
+    date: "2026-11-18",
+    emoji: "🔔",
+    titre: "Historique des notifications",
+    points: [
+      "Sur téléphone : nouvel onglet « 🔔 Notifs » (l'onglet des rappels s'appelle maintenant « ⏰ Rappels »). Sur ordinateur : clic sur la cloche en haut à droite.",
+      "Chaque notification avec l'heure exacte et la photo de la personne qui a écrit ; les non lues sont en bleu, avec un compteur rouge.",
+      "Un clic ouvre directement la fiche du client dans Pac Pac (sur la discussion pour un message).",
+    ],
+  },
+  {
     id: "2026-11-17-notif-messages",
     date: "2026-11-17",
     emoji: "💬",

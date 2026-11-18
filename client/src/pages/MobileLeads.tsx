@@ -10,6 +10,8 @@ import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelShort } from "@/lib/rappel";
 import { buildIcs, openIcs, type IcsEvent } from "@/lib/ics";
 import { trancheInfo } from "@/lib/tranche";
 import { useUnreadNews } from "./ActusCRM";
+import NotifsFeed from "@/components/NotifsFeed";
+import { openNotifTarget, useNotifs } from "@/lib/crmNotifs";
 const ActusCRM = lazy(() => import("./ActusCRM"));
 import { IaAnalyseButton, IaBubble, canUseIa, isIaNote } from "@/components/RelanceIA";
 
@@ -632,7 +634,8 @@ export default function MobileLeads(props: Props) {
   const { leads, all, total, query, onQuery, rappelsOnly, onRappelsOnly, lateCount } = props;
   const [openId, setOpenId] = useState<string | null>(null);
   const [limit, setLimit] = useState(30);
-  const [tab, setTab] = useState<"liste" | "agenda" | "actus">("liste");
+  const [tab, setTab] = useState<"liste" | "agenda" | "notifs" | "actus">("liste");
+  const { unread: unreadNotifs } = useNotifs();
   // Onglet « Actus » (veille aides) : seulement pour la famille et le compte contact.
   const canNews = NEWS_VIEWERS.includes(props.email.toLowerCase());
   const unreadNews = useUnreadNews(canNews);
@@ -696,13 +699,16 @@ export default function MobileLeads(props: Props) {
     <div ref={topRef} style={{ touchAction: "pan-x pan-y" }}>
       <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
-          {([["liste", "📋 Clients"], ["agenda", "🔔 À rappeler"], ...(canNews ? [["actus", "📰 Actus"]] : [])] as [typeof tab, string][]).map(([k, label]) => (
+          {([["liste", "📋 Clients"], ["agenda", "⏰ Rappels"], ["notifs", "🔔 Notifs"], ...(canNews ? [["actus", "📰 Actus"]] : [])] as [typeof tab, string][]).map(([k, label]) => (
             <button
               key={k}
               onClick={() => setTab(k)}
               className={`flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-bold py-2 rounded-xl ${tab === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}
             >
               {label}
+              {k === "notifs" && unreadNotifs > 0 && (
+                <span className="min-w-[20px] rounded-full bg-red-500 text-white text-[11px] font-black px-1.5 leading-5">{unreadNotifs}</span>
+              )}
               {k === "actus" && unreadNews > 0 && (
                 <span className="min-w-[20px] rounded-full bg-red-500 text-white text-[11px] font-black px-1.5 leading-5">{unreadNews}</span>
               )}
@@ -777,6 +783,19 @@ export default function MobileLeads(props: Props) {
         )}
       </div>
 
+      {tab === "notifs" && (
+        <div className="rounded-2xl bg-white p-2 shadow-sm">
+          <NotifsFeed
+            onOpen={(n) => {
+              if (n.leadId) openNotifTarget(n);
+              else if (n.url.includes("#planning")) {
+                window.location.hash = "planning";
+                window.location.reload();
+              }
+            }}
+          />
+        </div>
+      )}
       {tab === "actus" && (
         <div className="-mx-4">
           <Suspense fallback={<p className="text-sm text-gray-400 py-10 text-center">Chargement…</p>}>

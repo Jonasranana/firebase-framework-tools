@@ -1224,6 +1224,20 @@ export default function LeadsCRM({
     () => (allLeads ? allLeads.filter((l) => (l.board || LEADS_BOARD_ID) === boardId) : allLeads),
     [allLeads, boardId],
   );
+  // Ouverture d'une fiche depuis une notification (liste « 🔔 Notifs ») quand Pac Pac est déjà affiché.
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const d = (e as CustomEvent<{ id: string; updates?: boolean }>).detail;
+      if (!d?.id) return;
+      try {
+        sessionStorage.removeItem("crm-open-lead");
+      } catch {}
+      setOpenId(d.id);
+      setFocusUpdates(!!d.updates);
+    };
+    window.addEventListener("crm-open-lead", onOpen);
+    return () => window.removeEventListener("crm-open-lead", onOpen);
+  }, []);
   // Ouverture d'une fiche demandée depuis l'Accueil.
   useEffect(() => {
     try {
