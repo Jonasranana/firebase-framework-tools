@@ -1,3 +1,4 @@
+// Écriture validée par Jonas le 2026-11-19.
 // Range le menu de gauche du CRM (crm_boards/sidebar) selon le plan A choisi par Jonas le 2026-11-19 :
 // Au quotidien / Argent & PRAIMY / Outils / Archives (replié). Aucun tableau ni lead n'est supprimé :
 // les éléments sont seulement déplacés. Copie de sauvegarde dans crm_boards/sidebar_sauvegarde_2026-11-19.
@@ -33,7 +34,9 @@ const archives = [...take(depot), ...take(page("archives")), ...take(page("clien
 const quotidien = [...take(page("leads")), ...take(page("planning")), ...take(page("actus"))];
 const argent = [...take(page("renta")), ...take(page("praimy")), ...take(page("marges")), ...take(page("bareme"))];
 const outils = [...take(page("documents")), ...take(page("stats")), ...take(page("corbeille"))];
-// Tout le reste (Artisans, tableaux créés à la main…) : gardé, à la fin d'« Au quotidien ».
+// Tableaux déjà à la corbeille (ex. Artisans) : cachés, rangés dans Archives.
+archives.push(...take((i) => !!i.deletedAt));
+// Tout le reste (, tableaux créés à la main…) : gardé, à la fin d'« Au quotidien ».
 const reste = all.filter((i) => !used.has(i));
 console.log(`Éléments non prévus dans le plan (gardés en fin d'« Au quotidien ») : ${reste.length}`);
 
