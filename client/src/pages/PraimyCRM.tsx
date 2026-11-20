@@ -13,9 +13,16 @@ import {
   ShieldAlert,
   Flame,
   CheckCircle2,
+  Phone,
+  Check,
 } from "lucide-react";
 import { getEspaceProApp } from "@/lib/espacePro";
 import BrandLoader from "@/components/BrandLoader";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useLeads } from "@/lib/crmStore";
+import { crmFirestore } from "@/lib/crmDb";
+import type { Lead } from "@/lib/crm";
+import { SUIVI, SUIVI_KEY, datePoseOf, dateVtOf, makeMatcher, prochainesEtapes, suiviLabel, suiviOf } from "@/lib/suiviPraimy";
 
 interface PraimyDossier {
   id: string;
@@ -77,7 +84,95 @@ function formatStatus(statut: string, globalStatus?: string) {
   return { label: pretty, bg: "bg-gray-100 border-gray-200", text: "text-gray-700" };
 }
 
+// Dernière action sur le dossier : mise à jour chez Praimy ou dernière ligne de suivi dans le CRM.
+const derniereAction = (updatedAt?: string, lead?: Lead | null) => {
+  const dates = [updatedAt ?? "", ...(lead?.notes ?? []).filter((n) => /@/.test(n.by)).map((n) => n.at)].filter(Boolean).sort();
+  return dates.length ? dates[dates.length - 1] : "";
+};
+const relance = (iso: string) => {
+  if (!iso) return { jours: null as number | null, cls: "text-gray-300" };
+  const jours = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  return { jours, cls: jours >= 15 ? "bg-red-100 text-red-700" : jours >= 6 ? "bg-orange-100 text-orange-700" : "bg-emerald-100 text-emerald-700" };
+};
+
+const frCourt = (iso: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
+
+// « Notre suivi » : plusieurs étiquettes possibles en même temps, cochées / décochées dans la liste.
+function SuiviCell({ lead, email }: { lead: Lead | null; email: string }) {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+  if (!lead)
+    return (
+      <span className="text-[11px] text-gray-400" title="Renseignez la colonne « Réf Praimy » de ce client dans Pac Pac pour le relier">
+        Fiche CRM non reliée
+      </span>
+    );
+  const tags = suiviOf(lead);
+  const toggle = async (key: string) => {
+    const on = tags.includes(key);
+    const next = SUIVI.map((o) => o.key).filter((k) => (k === key ? !on : tags.includes(k)));
+    setBusy(true);
+    setErr("");
+    try {
+      const { m, db } = await crmFirestore();
+      await m.updateDoc(m.doc(db, "crm_leads", lead.id), {
+        [`fields.${SUIVI_KEY}`]: next.join(","),
+        crmOwned: true,
+        updatedAt: m.serverTimestamp(),
+        updatedBy: email,
+        notes: m.arrayUnion({
+          id: Math.random().toString(36).slice(2, 12),
+          text: `Suivi Praimy : ${on ? "retiré" : "ajouté"} « ${suiviLabel(key)} »`,
+          by: email,
+          at: new Date().toISOString(),
+          kind: "statut",
+        }),
+      });
+    } catch (e) {
+      console.error(e);
+      setErr("Échec de l'enregistrement, réessayez.");
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="flex flex-wrap gap-1 min-w-[150px] max-w-[230px] text-left rounded-md p-1 -m-1 hover:bg-gray-100" title="Cliquer pour cocher / décocher nos étapes">
+          {tags.length === 0 && <span className="text-[11px] text-gray-400 border border-dashed border-gray-300 rounded-full px-2 py-0.5">+ Ajouter</span>}
+          {tags.map((k) => {
+            const o = SUIVI.find((x) => x.key === k)!;
+            return (
+              <span key={k} className="text-[11px] font-semibold text-white rounded-full px-2 py-0.5 whitespace-nowrap" style={{ background: o.hex }}>
+                {o.label}
+              </span>
+            );
+          })}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-1.5 bg-white text-gray-900 border border-gray-200 shadow-xl">
+        <p className="text-[11px] font-bold text-gray-500 px-2 py-1">Notre suivi · {lead.name}</p>
+        {SUIVI.map((o) => {
+          const on = tags.includes(o.key);
+          return (
+            <button key={o.key} disabled={busy} onClick={() => toggle(o.key)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-gray-100 disabled:opacity-50">
+              <span className={`h-4 w-4 rounded border flex items-center justify-center ${on ? "border-transparent" : "border-gray-300"}`} style={on ? { background: o.hex } : {}}>
+                {on && <Check size={12} className="text-white" />}
+              </span>
+              <span className="h-2.5 w-2.5 rounded-full" style={{ background: o.hex }} />
+              {o.label}
+            </button>
+          );
+        })}
+        {err && <p className="text-xs text-red-600 px-2 pt-1">{err}</p>}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 export default function PraimyCRM({ email }: { email: string }) {
+  const { data: allLeads } = useLeads();
+  const matchLead = useMemo(() => makeMatcher(allLeads ?? []), [allLeads]);
   const [dossiers, setDossiers] = useState<PraimyDossier[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -165,7 +260,7 @@ export default function PraimyCRM({ email }: { email: string }) {
   }, [dossiers]);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-[1900px] mx-auto space-y-6">
       {/* En-tête */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
         <div>
@@ -317,11 +412,16 @@ export default function PraimyCRM({ email }: { email: string }) {
               <thead>
                 <tr className="bg-gray-50/80 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   <th className="py-3 px-4">Client</th>
+                  <th className="py-3 px-4">Téléphone</th>
                   <th className="py-3 px-4">Étape Praimy</th>
-                  <th className="py-3 px-4">Avancement</th>
+                  <th className="py-3 px-4">À faire chez Praimy</th>
+                  <th className="py-3 px-4">Notre suivi</th>
+                  <th className="py-3 px-4">Prochaine étape (nous)</th>
+                  <th className="py-3 px-4">Pré-visite</th>
+                  <th className="py-3 px-4">Installation</th>
                   <th className="py-3 px-4">Reste à charge</th>
                   <th className="py-3 px-4">Ville</th>
-                  <th className="py-3 px-4">Mise à jour</th>
+                  <th className="py-3 px-4" title="Vert : moins de 6 jours · orange : 6 à 14 jours · rouge : 15 jours et plus">Dernière action</th>
                   <th className="py-3 px-4">Référence</th>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
@@ -333,12 +433,15 @@ export default function PraimyCRM({ email }: { email: string }) {
                   const si = stepIndex(d.statut);
                   const newStep = idx === 0 || stepIndex(filtered[idx - 1].statut) !== si;
                   const color = STEPS[si]?.color ?? "#9ca3af";
-                  const pct = Math.max(0, Math.min(100, Math.round(Number(d.progress) || 0)));
+                  const lead = matchLead(d.reference, d.client_nom);
+                  const etapes = prochainesEtapes(lead);
+                  const vt = dateVtOf(lead);
+                  const pose = datePoseOf(lead);
                   return (
                     <Fragment key={d.id}>
                       {newStep && (
                         <tr className="bg-gray-50">
-                          <td colSpan={8} className="py-1.5 px-4">
+                          <td colSpan={13} className="py-1.5 px-4">
                             <span className="inline-flex items-center gap-2 text-xs font-extrabold text-gray-700">
                               <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
                               {si < STEPS.length ? `${si + 1}. ${badge.label}` : "Autres statuts"}
@@ -360,7 +463,16 @@ export default function PraimyCRM({ email }: { email: string }) {
                             <User size={14} className="text-gray-400" />
                             {d.client_nom || "Client sans nom"}
                           </div>
-                          {d.next_action_label && <p className="text-[11px] text-gray-500 mt-0.5">➡️ {d.next_action_label}</p>}
+                        </td>
+
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">
+                          {lead?.phone ? (
+                            <a href={`tel:${lead.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-1 font-semibold text-[#0073ea] hover:underline">
+                              <Phone size={12} /> {lead.phone}
+                            </a>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
                         </td>
 
                         <td className="py-3 px-4">
@@ -374,13 +486,55 @@ export default function PraimyCRM({ email }: { email: string }) {
                           )}
                         </td>
 
+                        <td className="py-3 px-4 text-xs min-w-[150px]">
+                          {d.next_action_label ? (
+                            <span className={`font-medium ${d.awaiting_me ? "text-rose-700" : "text-gray-700"}`} title={d.awaiting_me ? "Praimy attend une action de notre part" : undefined}>
+                              {d.awaiting_me ? "⚠️ " : ""}
+                              {d.next_action_label}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+
                         <td className="py-3 px-4">
-                          <div className="flex items-center gap-2 min-w-[110px]">
-                            <div className="h-2 flex-1 rounded-full bg-gray-100 overflow-hidden">
-                              <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
-                            </div>
-                            <span className="text-xs font-bold text-gray-700 w-9 text-right">{pct} %</span>
-                          </div>
+                          <SuiviCell lead={lead} email={email} />
+                        </td>
+
+                        <td className="py-3 px-4 text-xs min-w-[170px]">
+                          {etapes.length ? (
+                            <ul className="space-y-0.5">
+                              {etapes.map((e) => (
+                                <li key={e} className={`font-semibold ${e.startsWith("✅") ? "text-emerald-700" : e.startsWith("Attendre") ? "text-amber-700" : "text-gray-800"}`}>
+                                  {e.startsWith("✅") ? e : `➡️ ${e}`}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">
+                          {vt ? (
+                            <span className="font-semibold text-sky-700">
+                              🔍 {frCourt(vt)}
+                              {lead?.fields.heureVt ? ` · ${lead.fields.heureVt}` : ""}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
+                        </td>
+
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">
+                          {pose ? (
+                            <span className="font-semibold text-emerald-700">
+                              🔧 {frCourt(pose)}
+                              {lead?.fields.heurePose ? ` · ${lead.fields.heurePose}` : ""}
+                            </span>
+                          ) : (
+                            <span className="text-gray-300">—</span>
+                          )}
                         </td>
 
                         <td className="py-3 px-4 font-medium text-gray-900 text-xs">
@@ -394,7 +548,19 @@ export default function PraimyCRM({ email }: { email: string }) {
                           </div>
                         </td>
 
-                        <td className="py-3 px-4 text-xs text-gray-500">{d.updated_at ? new Date(d.updated_at).toLocaleDateString("fr-FR") : "—"}</td>
+                        <td className="py-3 px-4 text-xs whitespace-nowrap">
+                          {(() => {
+                            const iso = derniereAction(d.updated_at, lead);
+                            const r = relance(iso);
+                            return r.jours === null ? (
+                              <span className="text-gray-300">—</span>
+                            ) : (
+                              <span className={`inline-block rounded-full px-2 py-0.5 font-semibold ${r.cls}`} title={new Date(iso).toLocaleString("fr-FR")}>
+                                {r.jours === 0 ? "aujourd'hui" : `il y a ${r.jours} j`}
+                              </span>
+                            );
+                          })()}
+                        </td>
 
                         <td className="py-3 px-4 font-mono text-xs font-semibold text-[#0f2b4a]">{d.reference || d.id.slice(0, 8)}</td>
 

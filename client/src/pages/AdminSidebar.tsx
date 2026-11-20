@@ -64,6 +64,7 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
   actus: Newspaper,
   renta: PiggyBank,
   planning: CalendarDays,
+  bets: FileCheck2,
 };
 
 const POP = "bg-white text-gray-900 border border-gray-200 shadow-xl";
