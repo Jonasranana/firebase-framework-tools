@@ -19,7 +19,7 @@ const CANAUX = {
 type Canal = keyof typeof CANAUX;
 // « Site (incomplet) : … » = demande commencée sur la landing des pubs Meta.
 const canalOf = (l: Lead): Canal | null =>
-  /^site \(incomplet\)/i.test(l.source ?? "") ? "site" : (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
+  /^site \(incomplet\)/i.test(l.source ?? "") && !/whatsapp|reactivation/i.test(l.source ?? "") ? "site" : (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
 
 // Fines lignes verticales entre les colonnes des tableaux (pas avant la 1re colonne).
 const lignesCol = "[&_th]:border-l [&_td]:border-l [&_th:first-child]:border-l-0 [&_td:first-child]:border-l-0 [&_th]:border-gray-200 [&_td]:border-gray-200";
