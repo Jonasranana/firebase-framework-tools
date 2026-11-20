@@ -18,6 +18,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-20-lien-whatsapp",
+    date: "2026-11-20",
+    emoji: "💬",
+    titre: "Lien du simulateur pour les clients WhatsApp",
+    points: [
+      "Envoyez ip5energie.fr/pac-whatsapp aux clients qui vous écrivent sur WhatsApp : ils remplissent le simulateur pendant l'appel.",
+      "La fiche arrive dans Pac Pac comme une demande du site, avec la source « whatsapp-pac ».",
+      "Ces clients ne sont pas comptés comme venus des pubs Facebook (page « Rentabilité Meta » et pixel inchangés).",
+    ],
+  },
+  {
     id: "2026-11-20-suivi-praimy-bets-nrp",
     date: "2026-11-20",
     emoji: "🗂️",

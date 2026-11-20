@@ -29,6 +29,7 @@ import {
   FRENCH_PHONE_REGEX,
   submitCallbackRequest,
   trackStep,
+  horsPub,
   type CallbackRequest,
 } from "./ip5-sections";
 
@@ -195,7 +196,7 @@ const QuickStart = ({ source }: { source: string }) => {
 
   const trackCall = () => {
     try {
-      if (!source.startsWith("reactivation"))
+      if (!horsPub(source))
         (window as any).fbq?.("track", "Contact", { content_category: source });
     } catch {
       /* sans effet sur l'appel */
