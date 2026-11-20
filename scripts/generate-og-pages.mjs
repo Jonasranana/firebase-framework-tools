@@ -39,6 +39,13 @@ const solaire = {
   alt: "Chauffe-eau solaire à tubes — IP5 Énergie",
 };
 
+const monProjet = {
+  title: "Votre projet de pompe à chaleur — IP5 Énergie",
+  description: "Quelques questions, 2 minutes : nous préparons votre étude et calculons vos aides, gratuitement et sans engagement.",
+  image: og("mon-projet"),
+  alt: "Votre projet de pompe à chaleur avec IP5 Énergie",
+};
+
 const pages = {
   "/": home,
   "/ip5-energie": home,
@@ -71,6 +78,9 @@ const pages = {
     image: og("contact"),
     alt: "Contactez IP5 Énergie",
   },
+  // Lien envoyé sur WhatsApp aux clients (même page que /pac) : aperçu plus doux, sans air de pub.
+  "/mon-projet": monProjet,
+  "/pac-whatsapp": monProjet,
   "/conseils": {
     title: "Conseils & actus : pompe à chaleur, aides et solaire — IP5 Énergie",
     description: "Conseils pratiques et actualités sur la pompe à chaleur, MaPrimeRénov', les primes CEE et le solaire, expliqués simplement.",
