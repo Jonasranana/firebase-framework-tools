@@ -18,6 +18,19 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-20-suivi-praimy-bets-nrp",
+    date: "2026-11-20",
+    emoji: "🗂️",
+    titre: "Dossiers Praimy plus clairs, page BETS et rappel des NRP",
+    points: [
+      "Dossiers PRAIMY : téléphone du client, « À faire chez Praimy » dans sa propre colonne, dates de pré-visite et d'installation.",
+      "Nouvelle colonne « Notre suivi » : nos étapes (1. Propal envoyée → 8. Installé). Plusieurs étiquettes possibles en même temps : cliquez pour cocher ou décocher.",
+      "« Prochaine étape (nous) » dit ce qu'il reste à faire, et « Dernière action » passe en orange (6 jours) puis en rouge (15 jours) pour ne rater personne.",
+      "Nouvelle page « Dossiers BETS » : les clients envoyés chez Betsalel (statut « En cours chez BETS » dans Pac Pac).",
+      "Chaque matin à 9 h, un mail liste les NRP d'il y a 2 jours à rappeler.",
+    ],
+  },
+  {
     id: "2026-11-18-page-notifs",
     date: "2026-11-18",
     emoji: "🔔",

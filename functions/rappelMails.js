@@ -146,5 +146,80 @@ ${last ? `<tr><td style="padding:6px 10px;color:#666;vertical-align:top">Dernier
     },
   );
 
-  return { rappelMail10min, rappelExcelMeta };
+  // Chaque matin 9 h (Paris) : mail « 📞 NRP à rappeler » pour les fiches passées en NRP il y a 2 jours
+  // (statut changé entre 48 h et 72 h avant l'envoi : chaque passage en NRP n'est rappelé qu'une fois).
+  // La liste complète part sur contact@ ; chaque personne reçoit aussi les siens (« Attribué à », sinon « Commercial »).
+  // Demandé par Alexis et Jonas le 20/11/2026.
+  const rappelNrp = onSchedule(
+    {
+      schedule: "every day 09:00",
+      timeZone: "Europe/Paris",
+      region: "europe-west1",
+      secrets: [GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL],
+      timeoutSeconds: 120,
+    },
+    async () => {
+      const { date } = paris();
+      try {
+        await db.doc(`rappel_mails/nrp_${date}`).create({ at: new Date().toISOString() });
+      } catch {
+        return; // déjà envoyé aujourd'hui
+      }
+      const now = Date.now();
+      const snap = await db.collection("crm_leads").where("status", "in", ["nrp", "nrp2"]).get();
+      const due = [];
+      for (const d of snap.docs) {
+        const x = d.data();
+        if (x.deletedAt || (x.board || "leads") !== "leads") continue;
+        const t = x.statusChangedAt?.toMillis?.();
+        if (!t) continue;
+        const age = now - t;
+        if (age < 48 * 3600e3 || age >= 72 * 3600e3) continue;
+        due.push({ id: d.id, x, qui: String(x.fields?.attribue || x.fields?.commercial || "").trim() });
+      }
+      if (!due.length) return;
+      due.sort((a, b) => String(a.x.name || "").localeCompare(String(b.x.name || ""), "fr"));
+
+      const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
+      oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
+      const gmail = google.gmail({ version: "v1", auth: oauth2Client });
+      const from = GMAIL_SENDER_EMAIL.value();
+      const ligne = ({ id, x, qui }) => {
+        const tel = String(x.phone ?? "").trim();
+        return `<tr><td style="padding:6px 10px;font-weight:bold">${escapeHtmlText(String(x.name || "Client").trim())}</td>
+<td style="padding:6px 10px">${tel ? `<a href="tel:${escapeHtmlText(tel.replace(/\s/g, ""))}">${escapeHtmlText(tel)}</a>` : "—"}</td>
+<td style="padding:6px 10px;color:#666">${escapeHtmlText(qui || "—")}</td>
+<td style="padding:6px 10px"><a href="https://ip5energie.fr/admin?lead=${encodeURIComponent(id)}">Ouvrir</a></td></tr>`;
+      };
+      const html = (liste) => `<div style="font-family:Arial,sans-serif;max-width:620px">
+<h2 style="color:#122f4d;margin:0 0 8px">📞 ${liste.length} NRP à rappeler aujourd'hui</h2>
+<p style="font-size:15px;margin:0 0 12px">Ces clients ne répondaient pas il y a 2 jours : on retente un appel.</p>
+<table style="border-collapse:collapse;width:100%;font-size:14px">
+<tr style="background:#f3f4f6"><th style="text-align:left;padding:6px 10px">Client</th><th style="text-align:left;padding:6px 10px">Téléphone</th><th style="text-align:left;padding:6px 10px">À rappeler par</th><th></th></tr>
+${liste.map(ligne).join("\n")}
+</table>
+<p style="margin-top:14px"><a href="https://ip5energie.fr/admin" style="background:#122f4d;color:#fff;padding:10px 16px;border-radius:8px;text-decoration:none">Ouvrir le CRM</a></p>
+</div>`;
+      const envoyer = async (to, liste) => {
+        try {
+          await gmail.users.messages.send({
+            userId: "me",
+            requestBody: { raw: buildRawMessage({ to, from, subject: `📞 ${liste.length} NRP à rappeler aujourd'hui`, html: html(liste) }) },
+          });
+        } catch (err) {
+          logger.error("Mail NRP à rappeler : envoi échoué", { to, error: err.message });
+        }
+      };
+      await envoyer(from, due);
+      const parPersonne = new Map();
+      for (const r of due) {
+        const mail = EMAILS[r.qui.toLowerCase()];
+        if (mail && mail !== from) parPersonne.set(mail, [...(parPersonne.get(mail) ?? []), r]);
+      }
+      for (const [mail, liste] of parPersonne) await envoyer(mail, liste);
+      logger.info("Mail NRP à rappeler envoyé", { date, total: due.length, personnes: parPersonne.size });
+    },
+  );
+
+  return { rappelMail10min, rappelExcelMeta, rappelNrp };
 };
