@@ -23,7 +23,7 @@ export const NOUVEAUTES: Nouveaute[] = [
     emoji: "💬",
     titre: "Lien du simulateur pour les clients WhatsApp",
     points: [
-      "Envoyez ip5energie.fr/pac-whatsapp aux clients qui vous écrivent sur WhatsApp : ils remplissent le simulateur pendant l'appel.",
+      "Envoyez ip5energie.fr/mon-projet (ou ip5energie.fr/pac-whatsapp) aux clients qui vous écrivent sur WhatsApp : ils remplissent le simulateur pendant l'appel.",
       "La fiche arrive dans Pac Pac comme une demande du site, avec la source « whatsapp-pac ».",
       "Ces clients ne sont pas comptés comme venus des pubs Facebook (page « Rentabilité Meta » et pixel inchangés).",
     ],
