@@ -23,6 +23,7 @@ const pages = [
   { name: "aides", photo: "photo-06.png", pos: "50% 50%", title: "MaPrimeRénov'<br>& primes CEE", sub: "Vos aides calculées et gérées par IP5 Énergie" },
   { name: "realisations", photo: "../../client/public/images/realisations/interieur-pac-ballon.jpg", pos: "50% 40%", title: "Nos<br>réalisations", sub: "Des installations réelles, posées par nos équipes" },
   { name: "contact", photo: "photo-02.png", pos: "50% 35%", title: "Parlons de<br>votre projet", sub: "07 49 52 52 67 · Étude gratuite" },
+  { name: "mon-projet", photo: "photo-01.png", pos: "50% 30%", title: "Votre projet<br>de pompe à chaleur", sub: "2 minutes · Gratuit · Sans engagement" },
   { name: "conseils", photo: "photo-01.png", pos: "50% 40%", title: "Conseils<br>& actus", sub: "Pompe à chaleur, aides, solaire : nos articles" },
   ...villes.map((v) => ({ name: `pac-${v.slug}`, photo: "photo-03.png", pos: "50% 50%", title: `Pompe à chaleur<br>à ${v.nom}`, sub: "Installateur RGE · Aides de l'État · Étude gratuite" })),
 ];
@@ -56,8 +57,9 @@ const articleInner = (cat) => `<div style="position:absolute;left:0;right:0;bott
     await p.screenshot({ path: out, type: "jpeg", quality: 84 });
     fs.unlinkSync(tmp);
   };
-  for (const pg of pages) await shoot(card("file://" + path.join(SRC, pg.photo), pg.pos, pageInner(pg)), path.join(OUT, `${pg.name}.jpg`));
-  for (const a of articles) {
+  const only = process.env.ONLY;
+  for (const pg of pages.filter((x) => !only || x.name === only)) await shoot(card("file://" + path.join(SRC, pg.photo), pg.pos, pageInner(pg)), path.join(OUT, `${pg.name}.jpg`));
+  for (const a of only ? [] : articles) {
     const cover = path.join(PUB, "images/articles", `${a.slug}.jpg`);
     if (!fs.existsSync(cover)) continue;
     await shoot(card("file://" + cover, "50% 50%", articleInner(a.category)), path.join(OUT, `conseils-${a.slug}.jpg`));
