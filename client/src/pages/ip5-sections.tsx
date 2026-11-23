@@ -688,12 +688,16 @@ async function submitLead(
     // Locataire : la demande reste dans le CRM (on peut convaincre son
     // propriétaire), mais Meta ne la compte pas comme un prospect, pour
     // qu'il apprenne à viser les propriétaires.
-    if (!source.startsWith("reactivation") && data.ownerStatus !== "Locataire")
+    if (!horsPub(source) && data.ownerStatus !== "Locataire")
       (window as any).fbq?.("track", "Lead", { content_category: source });
   } catch {
     /* le tracking ne doit jamais casser l'enregistrement du lead */
   }
 }
+
+// Leads qui ne viennent pas d'une pub Meta (campagnes de réactivation, clients envoyés depuis WhatsApp
+// vers /pac-whatsapp) : jamais signalés au pixel, pour ne pas fausser l'optimisation des campagnes.
+export const horsPub = (source: string) => /^(reactivation|whatsapp)/.test(source);
 
 // Demande de rappel express (landing PAC) : même collection et même circuit
 // que le simulateur (Monday, notification interne, pixel Meta), avec
@@ -739,7 +743,7 @@ export async function submitCallbackRequest(
     mondaySynced: false,
   });
   try {
-    if (!source.startsWith("reactivation"))
+    if (!horsPub(source))
       (window as any).fbq?.("track", "Lead", { content_category: source });
   } catch {
     /* le tracking ne doit jamais casser l'enregistrement du lead */

@@ -124,6 +124,15 @@ function Router() {
         <Route path="/aides-pac">
           {() => <CampagnePAC source="reactivation-pac" />}
         </Route>
+        {/* Lien envoyé aux clients qui nous contactent sur WhatsApp : même page, fiche marquée
+            « whatsapp-pac » dans le CRM, hors pixel Meta et hors « Rentabilité Meta ». */}
+        <Route path="/pac-whatsapp">
+          {() => <CampagnePAC source="whatsapp-pac" />}
+        </Route>
+        {/* Même lien, adresse plus douce à envoyer sur WhatsApp. */}
+        <Route path="/mon-projet">
+          {() => <CampagnePAC source="whatsapp-pac" />}
+        </Route>
         <Route path="/desinscription" component={Desinscription} />
         <Route path="/avis" component={Avis} />
         <Route path="/solaire" component={CampagneSolaire} />
