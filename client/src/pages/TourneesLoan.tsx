@@ -17,7 +17,7 @@ import { FRANCE_OUTLINE } from "@/lib/franceOutline";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Page « Tournées Loan » : plan des installations de l'équipe de Loan
-// (2 installateurs, départ Marseille). Données partagées : Firestore
+// (2 installateurs, départ Aix-en-Provence par défaut). Données partagées : Firestore
 // crm_boards/tournees_loan (dossiers importés depuis l'Excel + réglages).
 // ─────────────────────────────────────────────────────────────────────────
 const DOC = ["crm_boards", "tournees_loan"] as const;
@@ -25,6 +25,10 @@ const eur = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 const km = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} km`;
 const jourFr = (iso: string) =>
   iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) : "—";
+const DEPARTS = [
+  { nom: "Aix-en-Provence", lat: 43.5297, lng: 5.4474 },
+  { nom: "Marseille", lat: 43.2965, lng: 5.3698 },
+];
 const COULEURS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#ca8a04", "#db2777", "#4f46e5", "#059669", "#b91c1c", "#7c3aed"];
 
 type Champ = { k: keyof ParamsLoan; label: string; unite?: string; step?: number; aide?: string };
@@ -98,7 +102,12 @@ export default function TourneesLoan({ email }: { email: string }) {
             if (cancelled) return;
             const d = snap.data();
             if (d?.dossiers) setDossiers(d.dossiers);
-            if (d?.params) setParams({ ...PARAMS_DEFAUT, ...d.params });
+            if (d?.params) {
+              const pr = { ...PARAMS_DEFAUT, ...d.params };
+              // Réglages enregistrés avant le départ d'Aix et la règle des 500 km : on passe au départ d'Aix.
+              if (d.params.rayonMax === undefined && pr.depart === "Marseille") Object.assign(pr, { depart: PARAMS_DEFAUT.depart, departLat: PARAMS_DEFAUT.departLat, departLng: PARAMS_DEFAUT.departLng });
+              setParams(pr);
+            }
             setLoaded(true);
           },
           () => !cancelled && setLoaded(true),
@@ -158,8 +167,8 @@ export default function TourneesLoan({ email }: { email: string }) {
     if (!geo || !dossiers.length) return [];
     const s = (label: string, p: ParamsLoan, l: ModeLogement) => ({ label, r: simuler(dossiers, geo, p, l) });
     return [
-      s("Retour à Marseille chaque week-end · hôtel partout", { ...params, retourWeekend: true }, "hotel"),
-      s("Retour à Marseille chaque week-end · Airbnb dès " + params.airbnbDesNuits + " nuits", { ...params, retourWeekend: true }, "auto"),
+      s(`Retour à ${params.depart} chaque week-end` + " · hôtel partout", { ...params, retourWeekend: true }, "hotel"),
+      s(`Retour à ${params.depart} chaque week-end`+" · Airbnb dès " + params.airbnbDesNuits + " nuits", { ...params, retourWeekend: true }, "auto"),
       s("Restent sur place le week-end · hôtel partout", { ...params, retourWeekend: false }, "hotel"),
       s("Restent sur place le week-end · Airbnb dès " + params.airbnbDesNuits + " nuits", { ...params, retourWeekend: false }, "auto"),
     ];
@@ -244,7 +253,7 @@ export default function TourneesLoan({ email }: { email: string }) {
                 )}
               </p>
               <select value={params.retourWeekend ? "1" : "0"} onChange={(e) => setP("retourWeekend", e.target.value === "1")} className="border border-blue-300 bg-white rounded-lg px-3 py-1.5 text-sm font-semibold text-blue-900">
-                <option value="1">Ils rentrent à Marseille chaque week-end</option>
+                <option value="1">Ils rentrent à {params.depart} chaque week-end</option>
                 <option value="0">Ils restent sur place le week-end</option>
               </select>
             </div>
@@ -324,7 +333,7 @@ export default function TourneesLoan({ email }: { email: string }) {
             </div>
             <div className="bg-white border border-gray-200 rounded-2xl p-5">
               <h2 className="text-xl font-extrabold text-gray-900 mb-1">La carte</h2>
-              <p className="text-sm text-gray-500 mb-3">Une couleur par semaine. Gris : pas dans le plan. Noir : déjà posé.</p>
+              <p className="text-sm text-gray-500 mb-3">Une couleur par semaine. Orange : trop loin pour l'instant. Gris : pas dans le plan. Noir : déjà posé.</p>
               <Carte res={res} params={params} ouverte={null} />
             </div>
           </div>
@@ -334,10 +343,45 @@ export default function TourneesLoan({ email }: { email: string }) {
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-xl font-extrabold text-gray-900">Le planning</h2>
               <label className="text-sm text-gray-600 flex items-center gap-2 ml-auto">
+                Départ
+                <select
+                  value={params.depart}
+                  onChange={(e) => {
+                    const v = DEPARTS.find((x) => x.nom === e.target.value)!;
+                    enregistrer({ params: { ...params, depart: v.nom, departLat: v.lat, departLng: v.lng } });
+                  }}
+                  className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
+                >
+                  {DEPARTS.map((x) => (
+                    <option key={x.nom}>{x.nom}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="text-sm text-gray-600 flex items-center gap-2">
                 Premier jour
                 <input type="date" value={params.debut} onChange={(e) => setP("debut", e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1 text-sm" />
               </label>
             </div>
+            <div className="rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700 flex flex-wrap items-center gap-2">
+              <span>📍 On va jusqu'à</span>
+              <input type="number" value={params.rayonMax} onChange={(e) => setP("rayonMax", Number(e.target.value) || 0)} className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>km de {params.depart}. Plus loin, seulement s'il y a au moins</span>
+              <input type="number" value={params.groupeMin} onChange={(e) => setP("groupeMin", Number(e.target.value) || 1)} className="w-14 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>poses à moins de</span>
+              <input type="number" value={params.groupeRayon} onChange={(e) => setP("groupeRayon", Number(e.target.value) || 0)} className="w-16 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>km les unes des autres.</span>
+            </div>
+            {res.lignes.some((l) => l.tropLoin) && (
+              <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
+                <b>Trop loin pour l'instant ({res.lignes.filter((l) => l.tropLoin).length}) :</b>{" "}
+                {res.lignes
+                  .filter((l) => l.tropLoin)
+                  .sort((a, b) => a.kmDepart - b.kmDepart)
+                  .map((l) => `${l.d.client} (${l.d.ville}, ${km(l.kmDepart)})`)
+                  .join(" · ")}
+                . Ils entreront dans le planning dès qu'il y aura assez de poses dans leur coin.
+              </div>
+            )}
             {res.nonPlaces.length > 0 && <p className="text-sm text-amber-700">Pas placés (ville introuvable) : {res.nonPlaces.map((l) => `${l.d.client} (${l.d.ville})`).join(", ")}.</p>}
             {res.tournees.map((t) => {
               const c = COULEURS[(t.n - 1) % COULEURS.length];
@@ -430,10 +474,17 @@ export default function TourneesLoan({ email }: { email: string }) {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {[...res.lignes]
-                    .sort((a, b) => (a.tournee ?? 999) - (b.tournee ?? 999) || (a.date ?? "").localeCompare(b.date ?? "") || a.d.client.localeCompare(b.d.client))
+                    .sort((a, b) => (a.tournee ?? (a.tropLoin ? 900 : 999)) - (b.tournee ?? (b.tropLoin ? 900 : 999)) || (a.date ?? "").localeCompare(b.date ?? "") || a.d.client.localeCompare(b.d.client))
                     .map((l, i, arr) => (
                       <Fragment key={l.d.ref}>
-                      {!l.tournee && (i === 0 || arr[i - 1].tournee) && (
+                      {l.tropLoin && (i === 0 || !arr[i - 1].tropLoin) && (
+                        <tr>
+                          <td colSpan={8} className="bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 uppercase">
+                            Trop loin pour l'instant · plus de {params.rayonMax} km et moins de {params.groupeMin} poses dans le coin
+                          </td>
+                        </tr>
+                      )}
+                      {!l.tournee && !l.tropLoin && (i === 0 || arr[i - 1].tournee || arr[i - 1].tropLoin) && (
                         <tr>
                           <td colSpan={8} className="bg-gray-50 px-3 py-2 text-xs font-bold text-gray-500 uppercase">Pas dans le plan · cochez la case pour en ajouter</td>
                         </tr>
@@ -455,6 +506,8 @@ export default function TourneesLoan({ email }: { email: string }) {
                               <span className="w-2.5 h-2.5 rounded-full" style={{ background: COULEURS[(l.tournee - 1) % COULEURS.length] }} />
                               {jourFr(l.date ?? "")}
                             </span>
+                          ) : l.tropLoin ? (
+                            <span className="text-amber-700">{km(l.kmDepart)} · en attente</span>
                           ) : l.d.fait ? (
                             "Déjà posé"
                           ) : (
@@ -585,7 +638,7 @@ function Carte({ res, params, ouverte }: { res: Resultat; params: ParamsLoan; ou
       {res.lignes
         .filter((l) => l.pt)
         .map((l) => {
-          const c = l.tournee ? COULEURS[(l.tournee - 1) % COULEURS.length] : "#9ca3af";
+          const c = l.tournee ? COULEURS[(l.tournee - 1) % COULEURS.length] : l.tropLoin ? "#f59e0b" : "#9ca3af";
           return (
             <circle key={l.d.ref} cx={X(l.pt!.lng)} cy={Y(l.pt!.lat)} r={l.tournee ? 4.5 : 3} fill={l.d.fait ? "#111827" : c} stroke="#fff" strokeWidth={1.2}>
               <title>
