@@ -47,6 +47,8 @@ export type ParamsLoan = {
   rayonMax: number; // km (route estimée) au-delà desquels on ne va pas…
   groupeMin: number; // …sauf s'il y a au moins ce nombre de poses…
   groupeRayon: number; // …à moins de ce nombre de km les unes des autres
+  rayonLoin: number; // au-delà de cette distance (très loin)…
+  groupeMinLoin: number; // …il faut au moins ce nombre de poses groupées
   coefRoute: number; // distance route / vol d'oiseau
   vitesse: number; // km/h moyenne porte à porte
   routeSoirMax: number; // heures de route possibles le soir après un chantier
@@ -75,8 +77,10 @@ export const PARAMS_DEFAUT: ParamsLoan = {
   seuilKw2Jours: 14,
   retourWeekend: true,
   rayonMax: 500,
-  groupeMin: 3,
+  groupeMin: 2,
   groupeRayon: 100,
+  rayonLoin: 700,
+  groupeMinLoin: 3,
   coefRoute: 1.2,
   vitesse: 90,
   routeSoirMax: 3,
@@ -225,13 +229,15 @@ export function simuler(dossiers: DossierLoan[], geo: Geo, p: ParamsLoan, logeme
   });
   const parRef = new Map(lignes.map((l) => [l.d.ref, l]));
   // Règle de distance : au-delà de rayonMax km du départ, on n'y va que s'il y a au moins
-  // groupeMin poses (celle-ci comprise) à moins de groupeRayon km les unes des autres.
+  // groupeMin poses (celle-ci comprise) à moins de groupeRayon km les unes des autres ;
+  // au-delà de rayonLoin km, il en faut groupeMinLoin.
   const candidats = lignes.filter((l) => l.d.inclus && !l.d.fait && l.pt);
   if (p.rayonMax > 0)
     for (const l of candidats) {
       if (l.kmDepart <= p.rayonMax) continue;
       const voisins = candidats.filter((o) => km(l.pt!, o.pt!) <= p.groupeRayon).length;
-      if (voisins < Math.max(1, p.groupeMin)) l.tropLoin = true;
+      const mini = p.rayonLoin > 0 && l.kmDepart > p.rayonLoin ? p.groupeMinLoin : p.groupeMin;
+      if (voisins < Math.max(1, mini)) l.tropLoin = true;
     }
   let restants: Job[] = candidats.filter((l) => !l.tropLoin).map((l) => ({ d: l.d, pt: l.pt!, jours: l.jours }));
 

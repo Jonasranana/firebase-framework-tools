@@ -106,6 +106,7 @@ export default function TourneesLoan({ email }: { email: string }) {
               const pr = { ...PARAMS_DEFAUT, ...d.params };
               // Réglages enregistrés avant le départ d'Aix et la règle des 500 km : on passe au départ d'Aix.
               if (d.params.rayonMax === undefined && pr.depart === "Marseille") Object.assign(pr, { depart: PARAMS_DEFAUT.depart, departLat: PARAMS_DEFAUT.departLat, departLng: PARAMS_DEFAUT.departLng });
+              if (d.params.rayonLoin === undefined) Object.assign(pr, { groupeMin: PARAMS_DEFAUT.groupeMin, rayonLoin: PARAMS_DEFAUT.rayonLoin, groupeMinLoin: PARAMS_DEFAUT.groupeMinLoin });
               setParams(pr);
             }
             setLoaded(true);
@@ -369,7 +370,11 @@ export default function TourneesLoan({ email }: { email: string }) {
               <input type="number" value={params.groupeMin} onChange={(e) => setP("groupeMin", Number(e.target.value) || 1)} className="w-14 border border-gray-300 rounded-md px-2 py-1 text-right" />
               <span>poses à moins de</span>
               <input type="number" value={params.groupeRayon} onChange={(e) => setP("groupeRayon", Number(e.target.value) || 0)} className="w-16 border border-gray-300 rounded-md px-2 py-1 text-right" />
-              <span>km les unes des autres.</span>
+              <span>km les unes des autres, et au moins</span>
+              <input type="number" value={params.groupeMinLoin} onChange={(e) => setP("groupeMinLoin", Number(e.target.value) || 1)} className="w-14 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>au-delà de</span>
+              <input type="number" value={params.rayonLoin} onChange={(e) => setP("rayonLoin", Number(e.target.value) || 0)} className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>km.</span>
             </div>
             {res.lignes.some((l) => l.tropLoin) && (
               <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
@@ -480,7 +485,7 @@ export default function TourneesLoan({ email }: { email: string }) {
                       {l.tropLoin && (i === 0 || !arr[i - 1].tropLoin) && (
                         <tr>
                           <td colSpan={8} className="bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800 uppercase">
-                            Trop loin pour l'instant · plus de {params.rayonMax} km et moins de {params.groupeMin} poses dans le coin
+                            Trop loin pour l'instant · plus de {params.rayonMax} km et pas assez de poses dans le coin
                           </td>
                         </tr>
                       )}
