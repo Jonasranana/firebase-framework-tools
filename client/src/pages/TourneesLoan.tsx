@@ -13,6 +13,7 @@ import {
   type ParamsLoan,
   type Resultat,
 } from "@/lib/tourneesLoan";
+import { useSimuParams } from "@/lib/margeSimu";
 import { FRANCE_OUTLINE } from "@/lib/franceOutline";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -109,6 +110,11 @@ export default function TourneesLoan({ email }: { email: string }) {
               if (d.params.rayonLoin === undefined) Object.assign(pr, { groupeMin: PARAMS_DEFAUT.groupeMin, rayonLoin: PARAMS_DEFAUT.rayonLoin, groupeMinLoin: PARAMS_DEFAUT.groupeMinLoin });
               // Repas retirés (pas payés par IP5) : une fois pour les réglages enregistrés avant.
               if (d.params.sansRepas === undefined) Object.assign(pr, { repasHotel: 0, repasAirbnb: 0 });
+              // Loan payé 1 200 € par pose et marge calculée par le simulateur : une fois pour les réglages enregistrés avant.
+              if (d.params.margeSource === undefined) {
+                pr.margeSource = "simulateur";
+                if (!d.params.primeParPose) Object.assign(pr, { coutJourPose: 0, coutJourRoute: 0, primeParPose: 1200 });
+              }
               setParams(pr);
             }
             setLoaded(true);
@@ -165,17 +171,18 @@ export default function TourneesLoan({ email }: { email: string }) {
     }
   };
 
-  const res: Resultat | null = useMemo(() => (geo && dossiers.length ? simuler(dossiers, geo, params, logement) : null), [geo, dossiers, params, logement]);
+  const { params: simu } = useSimuParams(email);
+  const res: Resultat | null = useMemo(() => (geo && dossiers.length ? simuler(dossiers, geo, params, logement, simu) : null), [geo, dossiers, params, logement, simu]);
   const scenarios = useMemo(() => {
     if (!geo || !dossiers.length) return [];
-    const s = (label: string, p: ParamsLoan, l: ModeLogement) => ({ label, r: simuler(dossiers, geo, p, l) });
+    const s = (label: string, p: ParamsLoan, l: ModeLogement) => ({ label, r: simuler(dossiers, geo, p, l, simu) });
     return [
       s(`Retour à ${params.depart} chaque week-end` + " · hôtel partout", { ...params, retourWeekend: true }, "hotel"),
       s(`Retour à ${params.depart} chaque week-end`+" · Airbnb dès " + params.airbnbDesNuits + " nuits", { ...params, retourWeekend: true }, "auto"),
       s("Restent sur place le week-end · hôtel partout", { ...params, retourWeekend: false }, "hotel"),
       s("Restent sur place le week-end · Airbnb dès " + params.airbnbDesNuits + " nuits", { ...params, retourWeekend: false }, "auto"),
     ];
-  }, [geo, dossiers, params]);
+  }, [geo, dossiers, params, simu]);
   const meilleur = scenarios.length ? scenarios.reduce((a, b) => (a.r.total.cout <= b.r.total.cout ? a : b)) : null;
 
   const setP = (k: keyof ParamsLoan, v: any) => enregistrer({ params: { ...params, [k]: v } });
@@ -311,26 +318,20 @@ export default function TourneesLoan({ email }: { email: string }) {
                     </select>
                   </label>
                   <label className="text-sm text-gray-700 flex items-center gap-2 mt-2">
-                    Gain avec la nouvelle fiche CEE
-                    <input
-                      type="number"
-                      value={params.gainNouvelleFiche}
-                      onChange={(e) => setP("gainNouvelleFiche", Number(e.target.value) || 0)}
-                      className="w-24 border border-gray-300 rounded-md px-2 py-1 text-sm text-right"
-                    />
-                    € par dossier
+                    Marge des dossiers
+                    <select
+                      value={params.margeSource ?? "simulateur"}
+                      onChange={(e) => setP("margeSource", e.target.value)}
+                      className="border border-gray-300 rounded-md px-2 py-1 text-sm"
+                    >
+                      <option value="simulateur">Simulateur (vente posée par nous, règles du 16/11)</option>
+                      <option value="excel">Colonne « Marge » du fichier Excel (Praimy)</option>
+                    </select>
                   </label>
-                  <p className="text-xs text-gray-500 mt-1">S'ajoute à la marge des dossiers cochés ci-dessous.</p>
-                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-                    {res.lignes
-                      .filter((l) => l.d.inclus && !l.d.fait)
-                      .map((l) => (
-                        <label key={l.d.ref} className="text-xs text-gray-600 flex items-center gap-1">
-                          <input type="checkbox" checked={!!l.d.nouvelleFiche} onChange={(e) => setD(l.d.ref, { nouvelleFiche: e.target.checked })} />
-                          {l.d.client}
-                        </label>
-                      ))}
-                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Simulateur : vente à {eur(simu.prix)} TTC, matériel {eur(simu.materiel)} HT, CEE à {simu.valoBleu} / {simu.valoJaune} / {simu.valoViolet} €/MWh
+                    (Bleu / Jaune / Violet), surface du fichier. La pose n'y est pas : c'est le coût Loan des tournées. Réglages dans la page « Marges PRAIMY ».
+                  </p>
                 </div>
               </div>
             </div>
@@ -504,7 +505,7 @@ export default function TourneesLoan({ email }: { email: string }) {
                           <span className={`font-semibold ${l.d.inclus && !l.d.fait ? "text-gray-900" : ""}`}>{l.d.client}</span>
                           <span className="block text-xs text-gray-500">
                             {l.d.ville} ({l.d.cp.slice(0, 2)}) · {l.d.statut}
-                            {l.d.categorie ? ` · ${l.d.categorie}` : ""}
+                            {l.margeCalc ? ` · ${l.margeCalc.profil} ${l.margeCalc.zone}` : l.d.categorie ? ` · ${l.d.categorie}` : ""}
                           </span>
                         </td>
                         <td className="py-2 px-3 whitespace-nowrap">
@@ -524,12 +525,23 @@ export default function TourneesLoan({ email }: { email: string }) {
                         <td className="py-2 px-3 text-right">
                           <input
                             type="number"
-                            value={l.d.marge ?? ""}
+                            value={l.d.margeModifiee ? l.d.marge ?? "" : l.marge}
                             placeholder="?"
                             onChange={(e) => setD(l.d.ref, { marge: e.target.value === "" ? null : Number(e.target.value), margeModifiee: true })}
-                            className="w-24 text-right border border-gray-200 rounded-md px-1.5 py-1"
-                            title="Marge du dossier, modifiable"
+                            className={`w-24 text-right border rounded-md px-1.5 py-1 ${l.d.margeModifiee ? "border-amber-400" : "border-gray-200"}`}
+                            title={
+                              l.d.margeModifiee
+                                ? "Marge corrigée à la main"
+                                : l.margeCalc
+                                  ? `Simulateur : ${l.margeCalc.profil} · ${l.margeCalc.zone} · ${l.margeCalc.surface} m²${l.margeCalc.avant ? " · signé avant le 16/11 (×5)" : ""} (hors pose)`
+                                  : "Colonne Marge du fichier"
+                            }
                           />
+                          {l.d.margeModifiee && (
+                            <button onClick={() => setD(l.d.ref, { margeModifiee: false })} className="block ml-auto text-[11px] text-amber-700 hover:underline" title="Revenir à la marge calculée">
+                              ↺ calculée
+                            </button>
+                          )}
                         </td>
                         <td className="py-2 px-3 text-right whitespace-nowrap">{l.tournee ? eur(l.cout) : "—"}</td>
                         <td className={`py-2 px-3 text-right whitespace-nowrap font-bold ${!l.tournee ? "" : l.net >= 0 ? "text-emerald-700" : "text-red-600"}`}>

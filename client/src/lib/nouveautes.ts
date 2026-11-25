@@ -19,6 +19,19 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-25-simulateur-marge",
+    date: "2026-11-25",
+    emoji: "🧮",
+    titre: "Nouveau simulateur de marge (règles du 16 novembre)",
+    points: [
+      "La page « Marges PRAIMY » devient le simulateur de marge d'une pompe à chaleur vendue et posée par nous : CEE + Coup de pouce + MaPrimeRénov', par zone (H1, H2, H3) et par couleur.",
+      "Depuis le 16 novembre : Coup de pouce ×3 pour les Jaunes (×5 si le devis a été signé avant). Une case permet de comparer.",
+      "Prix de vente, matériel, pose, valorisation des CEE et reste à charge visé se règlent en haut de page, pour toute l'équipe.",
+      "Tournées Loan utilise ce simulateur pour la marge de chaque dossier (couleur, zone, surface et date de signature du fichier), et compte Loan à 1 200 € par pose.",
+    ],
+    pour: TOTALS_VIEWERS,
+  },
+  {
     id: "2026-11-25-tournees-loan-aix-500km",
     date: "2026-11-25",
     emoji: "📍",
