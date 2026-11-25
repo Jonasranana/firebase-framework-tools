@@ -49,6 +49,53 @@ const img = (slug: string) => `/images/articles/${slug}.jpg`;
 
 export const ARTICLES: Article[] = [
   {
+    slug: "pompe-a-chaleur-radiateurs-existants-temperature",
+    title: "Pompe à chaleur et radiateurs : faut-il tout changer ?",
+    excerpt:
+      "C'est l'une des premières questions quand on veut remplacer sa chaudière : mes radiateurs vont-ils fonctionner avec une pompe à chaleur ? Dans la plupart des maisons, la réponse est oui. Tout dépend de la température d'eau dont ils ont besoin. Explications.",
+    category: "Pompe à chaleur",
+    date: "2026-11-23",
+    readMinutes: 5,
+    image: img("pompe-a-chaleur-radiateurs-existants-temperature"),
+    imageAlt: "Module intérieur d'une pompe à chaleur air/eau et son vase d'expansion, installés sur un mur en pierre",
+    imageCredit: "Photo IP5 Énergie",
+    keyPoints: [
+      "Une pompe à chaleur air/eau se raccorde au circuit de chauffage central existant : dans la plupart des maisons, les radiateurs sont conservés.",
+      "Ce qui compte, c'est la température de l'eau dont les radiateurs ont besoin pour chauffer la maison : plus elle est basse, plus la pompe à chaleur est économe.",
+      "Une étude sur place (déperditions de la maison, taille des radiateurs, isolation) permet de choisir le bon modèle et la bonne puissance.",
+    ],
+    content: [
+      { type: "p", text: "Remplacer une chaudière au fioul ou au gaz par une pompe à chaleur air/eau ne veut pas dire refaire tout son chauffage. La pompe à chaleur produit de l'eau chaude, comme la chaudière, et l'envoie dans le même circuit : les mêmes tuyaux, les mêmes radiateurs, ou le même plancher chauffant. La vraie question n'est donc pas « mes radiateurs sont-ils compatibles ? », mais « à quelle température faut-il chauffer l'eau pour que la maison reste confortable ? »." },
+      { type: "h2", text: "Tout est une question de température d'eau" },
+      { type: "p", text: "Une vieille chaudière envoie souvent de l'eau très chaude dans les radiateurs, parfois autour de 70 °C ou plus. Une pompe à chaleur, elle, est d'autant plus performante que l'eau qu'elle produit est tiède : elle consomme moins d'électricité pour fournir la même chaleur. C'est pour cela que l'on parle de pompes à chaleur « basse », « moyenne » ou « haute » température." },
+      { type: "box", title: "Les grands repères", items: [
+        "Basse température (environ 35 à 45 °C) : idéale pour un plancher chauffant ou des radiateurs larges, c'est là que le rendement est le meilleur.",
+        "Moyenne température (jusqu'à environ 55 °C) : convient à la plupart des radiateurs en acier ou en fonte d'une maison correctement isolée.",
+        "Haute température (jusqu'à 65 °C, voire plus selon les modèles) : pour les maisons qui ont besoin d'une eau très chaude, au prix d'une consommation plus élevée.",
+      ] },
+      { type: "p", text: "Dans les faits, beaucoup de radiateurs sont surdimensionnés : installés à une époque où les maisons étaient moins bien isolées, ils chauffent souvent très bien avec une eau moins chaude qu'on ne le pense, surtout si des travaux d'isolation (combles, fenêtres) ont été faits depuis." },
+      { type: "h2", text: "Comment savoir si vos radiateurs conviennent ?" },
+      { type: "p", text: "Il n'y a pas de réponse au doigt mouillé : il faut une étude du logement. Le professionnel calcule les déperditions de la maison (la chaleur qu'elle perd par grand froid), puis vérifie que les radiateurs existants peuvent la restituer avec une température d'eau raisonnable. C'est ce calcul qui permet de choisir le bon modèle et la bonne puissance, ni trop faible (inconfort), ni trop forte (appareil qui s'use et consomme plus)." },
+      { type: "list", items: [
+        "La surface et la hauteur de chaque pièce, l'isolation des murs, des combles et des fenêtres.",
+        "Le nombre, la taille et le type des radiateurs (fonte, acier, aluminium).",
+        "La zone climatique : on ne dimensionne pas de la même façon en Alsace et en Bretagne.",
+        "Les besoins en eau chaude sanitaire, si la pompe à chaleur la produit aussi.",
+      ] },
+      { type: "tip", title: "Bon à savoir", text: "Il arrive qu'il suffise de remplacer un ou deux radiateurs trop petits, dans une pièce difficile à chauffer, pour que toute l'installation puisse fonctionner à plus basse température. C'est souvent bien plus économique que de choisir une pompe à chaleur haute température." },
+      { type: "h2", text: "Et pour les aides ?" },
+      { type: "p", text: "Pour ouvrir droit aux aides, MaPrimeRénov' et la prime CEE, la pompe à chaleur doit atteindre un niveau minimal d'efficacité énergétique saisonnière, et être posée par un professionnel certifié RGE. Les exigences sont plus élevées pour les modèles basse température, qui sont aussi les plus économes. Le choix du modèle se fait donc en tenant compte à la fois de vos radiateurs et des critères des aides." },
+      { type: "faq", items: [
+        { q: "Dois-je changer mes radiateurs en fonte pour installer une pompe à chaleur ?", a: "Pas forcément. Les radiateurs en fonte, souvent volumineux, fonctionnent généralement bien avec une eau moins chaude. L'étude sur place permet de le vérifier pièce par pièce." },
+        { q: "Une pompe à chaleur haute température consomme-t-elle plus ?", a: "Oui, à confort égal, produire une eau plus chaude demande plus d'électricité. C'est une bonne solution quand les radiateurs l'exigent, mais pas un choix par défaut." },
+        { q: "Et si j'ai un plancher chauffant ?", a: "C'est la situation idéale : un plancher chauffant fonctionne à basse température, ce qui permet à la pompe à chaleur d'atteindre ses meilleures performances." },
+        { q: "Mes radiateurs électriques peuvent-ils être raccordés ?", a: "Non. Une pompe à chaleur air/eau a besoin d'un circuit d'eau chaude. Sans chauffage central, il faut créer un réseau de radiateurs à eau, ou envisager une autre solution." },
+      ] },
+      { type: "p", text: "Vous vous demandez si votre maison est adaptée ? Estimez en 2 minutes vos aides avec notre simulateur, ou appelez un conseiller IP5 Énergie au 07 49 52 52 67 : l'étude sur place est gratuite et sans engagement." },
+      { type: "p", text: "Sources : ADEME / France Rénov' (guide « Se chauffer avec une pompe à chaleur »), fiche CEE BAR-TH-171." },
+    ],
+  },
+  {
     slug: "eco-ptz-pompe-a-chaleur-financer-reste-a-charge",
     title: "Éco-prêt à taux zéro : comment financer le reste à charge d'une pompe à chaleur",
     excerpt:
