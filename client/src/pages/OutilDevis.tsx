@@ -31,6 +31,7 @@ const PraimyCRM = lazy(() => import("./PraimyCRM"));
 const RentaMeta = lazy(() => import("./RentaMeta"));
 const PlanningChantiers = lazy(() => import("./PlanningChantiers"));
 const DossiersBets = lazy(() => import("./DossiersBets"));
+const TourneesLoan = lazy(() => import("./TourneesLoan"));
 const ActusCRM = lazy(() => import("./ActusCRM"));
 import Nouveautes from "@/components/Nouveautes";
 
@@ -974,6 +975,12 @@ export default function OutilDevis() {
         {p === "marges" && (TOTALS_VIEWERS.includes(email.toLowerCase()) ? narrow(<MargesPremi />) : <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>)}
         {p === "clients" && narrow(<ClientsCRM email={email} />)}
         {p === "praimy" && <PraimyCRM email={email} />}
+        {p === "loan" &&
+          (TOTALS_VIEWERS.includes(email.toLowerCase()) ? (
+            <TourneesLoan email={email} />
+          ) : (
+            <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>
+          ))}
         {p === "bets" && (
           <DossiersBets
             email={email}

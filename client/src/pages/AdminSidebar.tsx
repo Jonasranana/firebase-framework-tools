@@ -33,6 +33,7 @@ import {
   Newspaper,
   PiggyBank,
   CalendarDays,
+  Truck,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -65,6 +66,7 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
   renta: PiggyBank,
   planning: CalendarDays,
   bets: FileCheck2,
+  loan: Truck,
 };
 
 const POP = "bg-white text-gray-900 border border-gray-200 shadow-xl";
