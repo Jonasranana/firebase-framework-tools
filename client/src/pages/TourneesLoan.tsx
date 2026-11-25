@@ -54,13 +54,13 @@ const GROUPES: { titre: string; icon: typeof Wrench; champs: Champ[] }[] = [
     ],
   },
   {
-    titre: "Logement et repas",
+    titre: "Logement (et repas si payés)",
     icon: Hotel,
     champs: [
       { k: "hotelNuit", label: "Hôtel, la nuit pour les 2", unite: "€" },
       { k: "airbnbNuit", label: "Airbnb, la nuit (logement entier)", unite: "€" },
       { k: "airbnbDesNuits", label: "Airbnb dès … nuits au même endroit", unite: "nuits" },
-      { k: "repasHotel", label: "Repas / pers. / jour (hôtel)", unite: "€" },
+      { k: "repasHotel", label: "Repas / pers. / jour (hôtel)", unite: "€", aide: "0 = repas à la charge de l'équipe." },
       { k: "repasAirbnb", label: "Repas / pers. / jour (Airbnb, cuisine)", unite: "€" },
     ],
   },
@@ -107,6 +107,8 @@ export default function TourneesLoan({ email }: { email: string }) {
               // Réglages enregistrés avant le départ d'Aix et la règle des 500 km : on passe au départ d'Aix.
               if (d.params.rayonMax === undefined && pr.depart === "Marseille") Object.assign(pr, { depart: PARAMS_DEFAUT.depart, departLat: PARAMS_DEFAUT.departLat, departLng: PARAMS_DEFAUT.departLng });
               if (d.params.rayonLoin === undefined) Object.assign(pr, { groupeMin: PARAMS_DEFAUT.groupeMin, rayonLoin: PARAMS_DEFAUT.rayonLoin, groupeMinLoin: PARAMS_DEFAUT.groupeMinLoin });
+              // Repas retirés (pas payés par IP5) : une fois pour les réglages enregistrés avant.
+              if (d.params.sansRepas === undefined) Object.assign(pr, { repasHotel: 0, repasAirbnb: 0 });
               setParams(pr);
             }
             setLoaded(true);
@@ -271,7 +273,7 @@ export default function TourneesLoan({ email }: { email: string }) {
                     { l: "Équipe (jours de pose et de route)", v: res.total.equipe, c: "#2563eb" },
                     { l: `Gazole et péages (${km(res.total.km)})`, v: res.total.route, c: "#ea580c" },
                     { l: `Logement (${res.total.nuitsHotel} nuits d'hôtel, ${res.total.nuitsAirbnb} d'Airbnb)`, v: res.total.logement, c: "#9333ea" },
-                    { l: "Repas", v: res.total.repas, c: "#16a34a" },
+                    ...(res.total.repas ? [{ l: "Repas", v: res.total.repas, c: "#16a34a" }] : []),
                   ].map((x) => (
                     <div key={x.l} className="mb-2">
                       <div className="flex justify-between text-sm">
