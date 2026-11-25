@@ -7,6 +7,7 @@
 // Distances : à vol d'oiseau × coefficient routier (pas d'appel à un service
 // d'itinéraire) ; c'est une estimation, suffisante pour organiser et chiffrer.
 // ─────────────────────────────────────────────────────────────────────────
+import { DATE_NOUVELLE_REGLE, calculMarge, profilDe, zoneDuCp, type Profil, type SimuParams, type Zone } from "@/lib/margeSimu";
 
 export type DossierLoan = {
   ref: string;
@@ -15,7 +16,9 @@ export type DossierLoan = {
   cp: string;
   statut: string; // Signé, Audit, Devis, Installé…
   categorie: string; // Très modeste, Modeste, Intermédiaire, Classique
-  marge: number | null; // marge du dossier (€) hors frais d'installation Loan
+  marge: number | null; // marge du fichier Excel (Praimy), ou corrigée à la main (margeModifiee)
+  surface?: number | null; // m² chauffés (pour la prime CEE)
+  signature?: string | null; // AAAA-MM-JJ : avant le 16/11/2026, Coup de pouce ×5 pour les Jaunes
   kw: number | null;
   inclus: boolean; // pris dans le plan
   fait?: boolean; // déjà posé par Loan
@@ -55,7 +58,8 @@ export type ParamsLoan = {
   routeSoirMax: number; // heures de route possibles le soir après un chantier
   routeMatinMax: number; // heures de route le matin avant de commencer
   routeJourMax: number; // heures de route sur une journée sans chantier
-  gainNouvelleFiche: number; // € de marge en plus par dossier signé avec la nouvelle fiche
+  gainNouvelleFiche: number; // (ancien réglage, plus affiché)
+  margeSource?: "simulateur" | "excel"; // marge des dossiers : simulateur (vente posée par nous) ou colonne Marge du fichier
 };
 
 export const PARAMS_DEFAUT: ParamsLoan = {
@@ -64,9 +68,9 @@ export const PARAMS_DEFAUT: ParamsLoan = {
   departLat: 43.5297,
   departLng: 5.4474,
   personnes: 2,
-  coutJourPose: 400,
-  coutJourRoute: 300,
-  primeParPose: 0,
+  coutJourPose: 0, // Loan est payé à la pose (1 200 € par installation, trajets compris)
+  coutJourRoute: 0,
+  primeParPose: 1200,
   consoL100: 10,
   prixCarburant: 1.75,
   peageKm: 0.07,
@@ -89,6 +93,7 @@ export const PARAMS_DEFAUT: ParamsLoan = {
   routeMatinMax: 1,
   routeJourMax: 12,
   gainNouvelleFiche: 0,
+  margeSource: "simulateur",
 };
 
 // ── Géographie ────────────────────────────────────────────────────────────
@@ -202,6 +207,7 @@ export type LigneDossier = {
   date?: string;
   cout: number;
   marge: number;
+  margeCalc?: { profil: Profil; zone: Zone; avant: boolean; prix: number; surface: number }; // d'où vient la marge (simulateur)
   net: number;
   tropLoin?: boolean; // au-delà du rayon et pas assez de poses dans le coin
 };
@@ -217,17 +223,31 @@ export function joursPose(d: DossierLoan, p: ParamsLoan) {
   if (d.jours && d.jours > 0) return d.jours;
   return (d.kw ?? 0) > p.seuilKw2Jours ? 2 : 1;
 }
-export const margeDossier = (d: DossierLoan, p: ParamsLoan) => (d.marge ?? 0) + (d.nouvelleFiche ? p.gainNouvelleFiche : 0);
+// Marge d'un dossier avant les frais d'installation Loan (la pose est comptée dans le coût des tournées) :
+// corrigée à la main > simulateur (vente posée par nous) > colonne « Marge » du fichier.
+export function margeDossier(d: DossierLoan, p: ParamsLoan, sp?: SimuParams): { marge: number; calc?: LigneDossier["margeCalc"] } {
+  if (d.margeModifiee) return { marge: d.marge ?? 0 };
+  const profil = profilDe(d.categorie);
+  if (sp && (p.margeSource ?? "simulateur") === "simulateur" && profil) {
+    const zone = zoneDuCp(d.cp);
+    const avant = !!d.signature && d.signature < DATE_NOUVELLE_REGLE;
+    const surface = d.surface && d.surface > 0 ? d.surface : sp.surface;
+    const r = calculMarge(sp, zone, profil, { surface, avantNouvelleRegle: avant, sansPose: true });
+    return { marge: Math.round(r.marge), calc: { profil, zone, avant, prix: sp.prix, surface } };
+  }
+  return { marge: d.marge ?? 0 };
+}
 
 type Job = { d: DossierLoan; pt: Point; jours: number };
 
-export function simuler(dossiers: DossierLoan[], geo: Geo, p: ParamsLoan, logement: ModeLogement = "auto"): Resultat {
+export function simuler(dossiers: DossierLoan[], geo: Geo, p: ParamsLoan, logement: ModeLogement = "auto", sp?: SimuParams): Resultat {
   const base = { lat: p.departLat, lng: p.departLng };
   const km = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => volOiseau(a, b) * p.coefRoute;
   const h = (k: number) => (k < 1 ? 0 : k / p.vitesse + 0.25);
   const lignes: LigneDossier[] = dossiers.map((d) => {
     const pt = localiser(geo, d.cp, d.ville);
-    return { d, pt, jours: joursPose(d, p), kmDepart: pt ? Math.round(km(base, pt)) : 0, cout: 0, marge: margeDossier(d, p), net: 0 };
+    const mg = margeDossier(d, p, sp);
+    return { d, pt, jours: joursPose(d, p), kmDepart: pt ? Math.round(km(base, pt)) : 0, cout: 0, marge: mg.marge, margeCalc: mg.calc, net: 0 };
   });
   const parRef = new Map(lignes.map((l) => [l.d.ref, l]));
   // Règle de distance : au-delà de rayonMax km du départ, on n'y va que s'il y a au moins
@@ -582,6 +602,20 @@ export async function lireExcel(file: File): Promise<string[][]> {
 }
 
 // Lignes du tableau (Excel ou copier-coller) → dossiers.
+// Date d'une cellule Excel : nombre de jours depuis le 30/12/1899, ou texte JJ/MM/AAAA / AAAA-MM-JJ.
+function dateExcel(v: string): string | null {
+  const t = String(v ?? "").trim();
+  if (/^\d{5}(\.\d+)?$/.test(t)) {
+    const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(t)) * 86400000);
+    return d.toISOString().slice(0, 10);
+  }
+  let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  return null;
+}
+
 export function versDossiers(rows: string[][]): DossierLoan[] {
   const h = rows.findIndex((r) => r.some((c) => /^r[ée]f[ée]rence$/i.test(String(c).trim())));
   if (h < 0) return [];
@@ -595,6 +629,8 @@ export function versDossiers(rows: string[][]): DossierLoan[] {
   const iCat = col(/categorie exacte/, /^categorie/, /niveau/);
   const iMarge = col(/^marge \(/, /^marge$/);
   const iKw = col(/puissance/);
+  const iSurf = col(/^surface/);
+  const iSign = col(/date signature/);
   const num = (s: string) => {
     const n = Number(String(s ?? "").replace(/\s/g, "").replace(",", "."));
     return Number.isFinite(n) && String(s ?? "").trim() !== "" ? n : null;
@@ -613,6 +649,8 @@ export function versDossiers(rows: string[][]): DossierLoan[] {
       categorie: iCat >= 0 ? String(r[iCat] ?? "").trim() : "",
       marge: iMarge >= 0 ? num(r[iMarge]) : null,
       kw: iKw >= 0 ? num(r[iKw]) : null,
+      surface: iSurf >= 0 ? num(r[iSurf]) : null,
+      signature: iSign >= 0 ? dateExcel(r[iSign]) : null,
       inclus: /^(sign|audit)/i.test(sansAccents(statut)),
       fait: /^install/i.test(sansAccents(statut)),
     });
