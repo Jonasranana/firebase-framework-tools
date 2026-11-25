@@ -18,6 +18,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-25-article-radiateurs",
+    date: "2026-11-25",
+    emoji: "📰",
+    titre: "Nouvel article sur le site : pompe à chaleur et radiateurs",
+    points: [
+      "Dans « Conseils & actus » : peut-on garder ses radiateurs avec une pompe à chaleur ? Dans la plupart des maisons, oui. Tout dépend de la température d'eau nécessaire.",
+      "Utile à envoyer à un client qui hésite parce qu'il pense devoir changer tous ses radiateurs.",
+    ],
+  },
+  {
     id: "2026-11-20-lien-whatsapp",
     date: "2026-11-20",
     emoji: "💬",
