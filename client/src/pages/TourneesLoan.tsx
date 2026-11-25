@@ -172,7 +172,7 @@ export default function TourneesLoan({ email }: { email: string }) {
   if (!loaded) return <p className="text-sm text-gray-500 py-10 text-center">Chargement…</p>;
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+    <div className="p-6 max-w-[1400px] mx-auto space-y-6 [color-scheme:light] [&_input]:bg-white [&_select]:bg-white [&_input]:text-gray-900 [&_select]:text-gray-900 [&_input[type=checkbox]]:accent-[#0073ea]">
       {/* En-tête */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex-1 min-w-[260px]">

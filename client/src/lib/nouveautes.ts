@@ -6,6 +6,7 @@
 // `pour` = liste d'e-mails qui la voient (absent = toute l'équipe).
 // ─────────────────────────────────────────────────────────────────────────
 import { NEWS_VIEWERS, RENTA_VIEWERS, TOTALS_VIEWERS } from "@/lib/crm";
+import { ROOT_ADMINS } from "@/lib/crmTeam";
 
 export type Nouveaute = {
   id: string;
@@ -17,6 +18,18 @@ export type Nouveaute = {
 };
 
 export const NOUVEAUTES: Nouveaute[] = [
+  {
+    id: "2026-11-25-equipe-fiche-personne",
+    date: "2026-11-25",
+    emoji: "👥",
+    titre: "Page « Équipe » : la fiche de chaque personne",
+    points: [
+      "Cliquez sur une personne : ce qu'elle voit dans le CRM (pages, montants, actions permises), en ✅ / ❌.",
+      "Son activité : fiches travaillées, statuts changés, notes, jours actifs (aujourd'hui, 7 jours, 30 jours) et un graphique des 14 derniers jours.",
+      "Ses leads attribués par statut, dont ceux jamais touchés, et ses 25 dernières actions (cliquez pour ouvrir la fiche).",
+    ],
+    pour: Object.keys(ROOT_ADMINS),
+  },
   {
     id: "2026-11-25-tournees-loan",
     date: "2026-11-25",
