@@ -970,7 +970,17 @@ export default function OutilDevis() {
         {p === "archives" && <ArchivesMonday email={email} />}
         {p === "stats" && <StatsCRM email={email} />}
         {p === "documents" && <DocumentsPage />}
-        {p === "equipe" && narrow(<TeamPage email={email} />)}
+        {p === "equipe" && (
+          <TeamPage
+            email={email}
+            onOpenLead={(id) => {
+              try {
+                sessionStorage.setItem("crm-open-lead", id);
+              } catch {}
+              navigate("leads");
+            }}
+          />
+        )}
         {p === "devis" && <DevisPAC email={email} />}
         {p === "marges" && (TOTALS_VIEWERS.includes(email.toLowerCase()) ? narrow(<MargesPremi />) : <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>)}
         {p === "clients" && narrow(<ClientsCRM email={email} />)}
