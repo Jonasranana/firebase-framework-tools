@@ -19,6 +19,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-25-tournees-loan-aix-500km",
+    date: "2026-11-25",
+    emoji: "📍",
+    titre: "Tournées Loan : départ d'Aix et règle des 500 km",
+    points: [
+      "Les tournées partent maintenant d'Aix-en-Provence (Marseille reste au choix, à côté de « Premier jour »).",
+      "On ne va pas à plus de 500 km d'Aix, sauf s'il y a au moins 3 poses à moins de 100 km les unes des autres. Les trois chiffres se modifient au-dessus du planning.",
+      "Les clients trop loin pour l'instant sont listés à part (en orange sur la carte) et entrent dans le planning dès qu'il y a assez de poses dans leur coin.",
+    ],
+    pour: TOTALS_VIEWERS,
+  },
+  {
     id: "2026-11-25-equipe-fiche-personne",
     date: "2026-11-25",
     emoji: "👥",

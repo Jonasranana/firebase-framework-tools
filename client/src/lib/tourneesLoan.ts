@@ -1,6 +1,6 @@
 // ─────────────────────────────────────────────────────────────────────────
 // « Tournées Loan » : simulation des tournées d'installation de l'équipe de
-// Loan (2 installateurs partant de Marseille). À partir des dossiers à poser,
+// Loan (2 installateurs, départ d'Aix-en-Provence par défaut). À partir des dossiers à poser,
 // on construit semaine par semaine l'ordre des chantiers, les trajets, les
 // nuits (hôtel ou Airbnb) et le coût complet, comparé à la marge de chaque
 // dossier. Tout est recalculé dans le navigateur quand un réglage change.
@@ -43,7 +43,10 @@ export type ParamsLoan = {
   repasHotel: number; // € par personne et par jour (restaurant / sandwich)
   repasAirbnb: number; // € par personne et par jour (courses + cuisine)
   seuilKw2Jours: number; // au-delà de cette puissance, la pose prend 2 jours
-  retourWeekend: boolean; // rentrer à Marseille chaque week-end
+  retourWeekend: boolean; // rentrer au point de départ chaque week-end
+  rayonMax: number; // km (route estimée) au-delà desquels on ne va pas…
+  groupeMin: number; // …sauf s'il y a au moins ce nombre de poses…
+  groupeRayon: number; // …à moins de ce nombre de km les unes des autres
   coefRoute: number; // distance route / vol d'oiseau
   vitesse: number; // km/h moyenne porte à porte
   routeSoirMax: number; // heures de route possibles le soir après un chantier
@@ -54,9 +57,9 @@ export type ParamsLoan = {
 
 export const PARAMS_DEFAUT: ParamsLoan = {
   debut: "2026-12-07",
-  depart: "Marseille",
-  departLat: 43.2965,
-  departLng: 5.3698,
+  depart: "Aix-en-Provence",
+  departLat: 43.5297,
+  departLng: 5.4474,
   personnes: 2,
   coutJourPose: 400,
   coutJourRoute: 300,
@@ -71,6 +74,9 @@ export const PARAMS_DEFAUT: ParamsLoan = {
   repasAirbnb: 10,
   seuilKw2Jours: 14,
   retourWeekend: true,
+  rayonMax: 500,
+  groupeMin: 3,
+  groupeRayon: 100,
   coefRoute: 1.2,
   vitesse: 90,
   routeSoirMax: 3,
@@ -185,12 +191,13 @@ export type LigneDossier = {
   d: DossierLoan;
   pt: Point | null;
   jours: number;
-  kmMarseille: number;
+  kmDepart: number;
   tournee?: number;
   date?: string;
   cout: number;
   marge: number;
   net: number;
+  tropLoin?: boolean; // au-delà du rayon et pas assez de poses dans le coin
 };
 export type Resultat = {
   tournees: Tournee[];
@@ -214,10 +221,19 @@ export function simuler(dossiers: DossierLoan[], geo: Geo, p: ParamsLoan, logeme
   const h = (k: number) => (k < 1 ? 0 : k / p.vitesse + 0.25);
   const lignes: LigneDossier[] = dossiers.map((d) => {
     const pt = localiser(geo, d.cp, d.ville);
-    return { d, pt, jours: joursPose(d, p), kmMarseille: pt ? Math.round(km(base, pt)) : 0, cout: 0, marge: margeDossier(d, p), net: 0 };
+    return { d, pt, jours: joursPose(d, p), kmDepart: pt ? Math.round(km(base, pt)) : 0, cout: 0, marge: margeDossier(d, p), net: 0 };
   });
   const parRef = new Map(lignes.map((l) => [l.d.ref, l]));
-  let restants: Job[] = lignes.filter((l) => l.d.inclus && !l.d.fait && l.pt).map((l) => ({ d: l.d, pt: l.pt!, jours: l.jours }));
+  // Règle de distance : au-delà de rayonMax km du départ, on n'y va que s'il y a au moins
+  // groupeMin poses (celle-ci comprise) à moins de groupeRayon km les unes des autres.
+  const candidats = lignes.filter((l) => l.d.inclus && !l.d.fait && l.pt);
+  if (p.rayonMax > 0)
+    for (const l of candidats) {
+      if (l.kmDepart <= p.rayonMax) continue;
+      const voisins = candidats.filter((o) => km(l.pt!, o.pt!) <= p.groupeRayon).length;
+      if (voisins < Math.max(1, p.groupeMin)) l.tropLoin = true;
+    }
+  let restants: Job[] = candidats.filter((l) => !l.tropLoin).map((l) => ({ d: l.d, pt: l.pt!, jours: l.jours }));
 
   const tournees: Tournee[] = [];
   let cur = new Date(`${p.debut}T12:00:00`);
@@ -256,7 +272,7 @@ export function simuler(dossiers: DossierLoan[], geo: Geo, p: ParamsLoan, logeme
 
     for (;;) {
       if (!restants.length) break;
-      // Prochain chantier : la graine si on part de Marseille, sinon le plus proche.
+      // Prochain chantier : la graine si on part du dépôt, sinon le plus proche.
       let next: Job;
       if (aLaMaison) next = graine();
       else {
@@ -365,7 +381,7 @@ export function simuler(dossiers: DossierLoan[], geo: Geo, p: ParamsLoan, logeme
       soirLibre = true;
     }
 
-    // Retour à Marseille.
+    // Retour au point de départ.
     if (!aLaMaison) {
       const kR = km(pos, base);
       const hR = h(kR);
@@ -442,7 +458,7 @@ export function simuler(dossiers: DossierLoan[], geo: Geo, p: ParamsLoan, logeme
 
   for (const l of lignes) l.net = l.marge - l.cout;
   const places = lignes.filter((l) => l.tournee);
-  const nonPlaces = lignes.filter((l) => l.d.inclus && !l.d.fait && !l.tournee);
+  const nonPlaces = lignes.filter((l) => l.d.inclus && !l.d.fait && !l.tournee && !l.tropLoin);
   const sum = (f: (t: Tournee) => number) => tournees.reduce((s, t) => s + f(t), 0);
   const total = {
     poses: places.length,
