@@ -5,7 +5,7 @@
 // HAUT de la liste (id unique, date, titre, points en français simple).
 // `pour` = liste d'e-mails qui la voient (absent = toute l'équipe).
 // ─────────────────────────────────────────────────────────────────────────
-import { NEWS_VIEWERS, RENTA_VIEWERS } from "@/lib/crm";
+import { NEWS_VIEWERS, RENTA_VIEWERS, TOTALS_VIEWERS } from "@/lib/crm";
 
 export type Nouveaute = {
   id: string;
@@ -17,6 +17,19 @@ export type Nouveaute = {
 };
 
 export const NOUVEAUTES: Nouveaute[] = [
+  {
+    id: "2026-11-25-tournees-loan",
+    date: "2026-11-25",
+    emoji: "🚐",
+    titre: "Nouvelle page « Tournées Loan »",
+    points: [
+      "Dans le menu (dossier CRM) : le plan des installations de l'équipe de Loan, au départ de Marseille, tournée par tournée et jour par jour.",
+      "Importez le fichier Excel des dossiers : les « Signé » et « Audit » sont mis dans le plan, cochez ou décochez les autres.",
+      "Pour chaque tournée : la route, où dormir (hôtel ou Airbnb), le coût complet (équipe, gazole, péages, logement, repas) et la marge nette de chaque dossier.",
+      "Tous les prix se modifient en bas de page, et un tableau compare « rentrer chaque week-end » et « rester sur place ».",
+    ],
+    pour: TOTALS_VIEWERS,
+  },
   {
     id: "2026-11-25-article-radiateurs",
     date: "2026-11-25",
