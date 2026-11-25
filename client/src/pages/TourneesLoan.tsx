@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { CalendarDays, Car, FileUp, Home, Hotel, MapPin, RotateCcw, Truck, Wrench } from "lucide-react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Car, FileUp, Hotel, RotateCcw, Truck, Wrench } from "lucide-react";
 import { crmFirestore } from "@/lib/crmDb";
 import {
   PARAMS_DEFAUT,
@@ -25,7 +25,6 @@ const eur = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
 const km = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} km`;
 const jourFr = (iso: string) =>
   iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" }) : "—";
-const dateFr = (iso: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" }) : "—");
 const COULEURS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#ca8a04", "#db2777", "#4f46e5", "#059669", "#b91c1c", "#7c3aed"];
 
 type Champ = { k: keyof ParamsLoan; label: string; unite?: string; step?: number; aide?: string };
@@ -81,7 +80,6 @@ export default function TourneesLoan({ email }: { email: string }) {
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");
   const [logement, setLogement] = useState<ModeLogement>("auto");
-  const [ouverte, setOuverte] = useState<number | null>(1);
   const fileRef = useRef<HTMLInputElement>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -174,14 +172,12 @@ export default function TourneesLoan({ email }: { email: string }) {
   if (!loaded) return <p className="text-sm text-gray-500 py-10 text-center">Chargement…</p>;
 
   return (
-    <div className="p-6 max-w-[1500px] mx-auto space-y-6">
-      <div className="pb-4 border-b border-gray-200 flex flex-wrap items-end gap-4">
-        <div className="flex-1 min-w-[300px]">
-          <h1 className="text-2xl font-bold text-gray-900">Tournées Loan</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Plan des installations de l'équipe de Loan (2 installateurs, départ de {params.depart}) : ordre des chantiers, route, nuits, coût complet et marge
-            restante par dossier. Tout se recalcule dès qu'un réglage change. Distances estimées (pas de GPS) : comptez ± 10 %.
-          </p>
+    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
+      {/* En-tête */}
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex-1 min-w-[260px]">
+          <h1 className="text-2xl font-bold text-gray-900">🚐 Tournées Loan</h1>
+          <p className="text-sm text-gray-500 mt-0.5">Qui on pose, quel jour, où dormir, et ce qu'il nous reste.</p>
         </div>
         <input
           ref={fileRef}
@@ -194,363 +190,359 @@ export default function TourneesLoan({ email }: { email: string }) {
             e.target.value = "";
           }}
         />
-        <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 bg-[#0073ea] hover:bg-[#0060c0] text-white text-sm font-semibold rounded-lg px-4 py-2">
-          <FileUp size={16} /> Importer le fichier Excel des dossiers
+        <button onClick={() => fileRef.current?.click()} className="inline-flex items-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 text-sm font-semibold rounded-lg px-4 py-2">
+          <FileUp size={16} /> {dossiers.length ? "Mettre à jour avec le fichier Excel" : "Importer le fichier Excel"}
         </button>
       </div>
       {err && <p className="text-sm text-red-600">{err}</p>}
       {info && <p className="text-sm text-emerald-700">{info}</p>}
 
       {!dossiers.length ? (
-        <div className="bg-white border border-dashed border-gray-300 rounded-xl p-10 text-center text-sm text-gray-600">
-          Importez le fichier Excel des dossiers (celui avec la feuille « Tous les dossiers »). Les dossiers « Signé » et « Audit » sont mis dans le plan
-          automatiquement ; vous pourrez en ajouter ou en retirer ensuite.
+        <div className="bg-white border-2 border-dashed border-gray-300 rounded-2xl p-12 text-center">
+          <p className="text-lg font-bold text-gray-800">Commencez par importer le fichier Excel des dossiers</p>
+          <p className="text-sm text-gray-500 mt-2">Les dossiers « Signé » et « Audit » sont mis dans le plan tout seuls.</p>
         </div>
       ) : !res ? (
         <p className="text-sm text-gray-500 py-10 text-center">Calcul…</p>
       ) : (
         <>
-          {/* Réglages principaux */}
-          <div className="bg-white border border-gray-200 rounded-xl p-4 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <CalendarDays size={16} className="text-gray-400" /> Début des poses
-              <input type="date" value={params.debut} onChange={(e) => setP("debut", e.target.value)} className="border border-gray-300 rounded-md px-2 py-1 text-sm" />
-            </label>
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Home size={16} className="text-gray-400" /> Week-ends
-              <select value={params.retourWeekend ? "1" : "0"} onChange={(e) => setP("retourWeekend", e.target.value === "1")} className="border border-gray-300 rounded-md px-2 py-1 text-sm">
-                <option value="1">Retour à Marseille chaque week-end</option>
-                <option value="0">Restent sur place (rentrent à la fin)</option>
-              </select>
-            </label>
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Hotel size={16} className="text-gray-400" /> Logement
-              <select value={logement} onChange={(e) => setLogement(e.target.value as ModeLogement)} className="border border-gray-300 rounded-md px-2 py-1 text-sm">
-                <option value="auto">Le mieux : Airbnb dès {params.airbnbDesNuits} nuits au même endroit, sinon hôtel</option>
-                <option value="hotel">Hôtel partout</option>
-                <option value="airbnb">Airbnb partout</option>
-              </select>
-            </label>
-            <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              Gain nouvelle fiche CEE
-              <input
-                type="number"
-                value={params.gainNouvelleFiche}
-                onChange={(e) => setP("gainNouvelleFiche", Number(e.target.value) || 0)}
-                className="w-24 border border-gray-300 rounded-md px-2 py-1 text-sm text-right"
-              />
-              <span className="font-normal text-gray-500">€ / dossier coché « Nouvelle fiche »</span>
-            </label>
-          </div>
-
-          {/* Chiffres clés */}
-          <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
-            {[
-              { t: "Installations", v: `${res.total.poses}`, s: `${res.total.joursPose} jours de pose · ${res.total.joursRoute} jours de route` },
-              { t: "Tournées", v: `${res.tournees.length}`, s: `du ${dateFr(params.debut)} au ${dateFr(res.total.fin)}` },
-              { t: "Kilomètres", v: km(res.total.km), s: `${eur(res.total.route)} de gazole et péages` },
-              { t: "Coût complet", v: eur(res.total.cout), s: `${eur(res.total.poses ? res.total.cout / res.total.poses : 0)} par installation` },
-              { t: "Marge des dossiers", v: eur(res.total.marge), s: "avant frais d'installation" },
-              { t: "Marge nette", v: eur(res.total.net), s: "après équipe, route, logement, repas", vert: true },
-            ].map((k) => (
-              <div key={k.t} className={`rounded-xl border p-4 ${(k as any).vert ? (res.total.net >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200") : "bg-white border-gray-200"}`}>
-                <p className="text-xs font-semibold text-gray-500 uppercase">{k.t}</p>
-                <p className="text-2xl font-extrabold text-gray-900 mt-1">{k.v}</p>
-                <p className="text-xs text-gray-500 mt-1">{k.s}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid xl:grid-cols-[1fr_1fr] gap-6">
-            {/* Carte */}
-            <div className="bg-white border border-gray-200 rounded-xl p-4">
-              <h2 className="text-sm font-extrabold text-gray-800 mb-2">Carte des tournées</h2>
-              <Carte res={res} params={params} ouverte={ouverte} />
-            </div>
-            {/* Détail des coûts + scénarios */}
-            <div className="space-y-4">
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <h2 className="text-sm font-extrabold text-gray-800 mb-3">D'où vient le coût</h2>
-                {[
-                  { l: "Équipe (jours de pose et de route)", v: res.total.equipe, c: "#2563eb" },
-                  { l: "Gazole et péages", v: res.total.route, c: "#ea580c" },
-                  { l: `Logement (${res.total.nuitsHotel} nuits d'hôtel, ${res.total.nuitsAirbnb} nuits d'Airbnb)`, v: res.total.logement, c: "#9333ea" },
-                  { l: "Repas", v: res.total.repas, c: "#16a34a" },
-                ].map((x) => (
-                  <div key={x.l} className="mb-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-700">{x.l}</span>
-                      <span className="font-bold text-gray-900">{eur(x.v)}</span>
-                    </div>
-                    <div className="h-2 bg-gray-100 rounded-full mt-1">
-                      <div className="h-2 rounded-full" style={{ width: `${res.total.cout ? (100 * x.v) / res.total.cout : 0}%`, background: x.c }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <h2 className="text-sm font-extrabold text-gray-800 mb-1">Comparer les façons de faire</h2>
-                <p className="text-xs text-gray-500 mb-3">Mêmes dossiers, mêmes prix : seule l'organisation change.</p>
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-xs text-gray-500 border-b border-gray-200">
-                      <th className="text-left py-1.5">Organisation</th>
-                      <th className="text-right py-1.5">Fin</th>
-                      <th className="text-right py-1.5">Km</th>
-                      <th className="text-right py-1.5">Coût</th>
-                      <th className="text-right py-1.5">Marge nette</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scenarios.map((s) => (
-                      <tr key={s.label} className={`border-b border-gray-100 ${s === meilleur ? "bg-emerald-50 font-semibold" : ""}`}>
-                        <td className="py-1.5 pr-2">
-                          {s === meilleur ? "✅ " : ""}
-                          {s.label}
-                        </td>
-                        <td className="py-1.5 text-right whitespace-nowrap">{jourFr(s.r.total.fin)}</td>
-                        <td className="py-1.5 text-right whitespace-nowrap">{km(s.r.total.km)}</td>
-                        <td className="py-1.5 text-right whitespace-nowrap">{eur(s.r.total.cout)}</td>
-                        <td className="py-1.5 text-right whitespace-nowrap">{eur(s.r.total.net)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {meilleur && (
-                  <p className="text-xs text-gray-600 mt-3">
-                    Le moins cher : <b>{meilleur.label.toLowerCase()}</b>. Rester sur place évite les allers-retours vers Marseille (souvent 1 à 2 jours de route par
-                    semaine) mais demande l'accord de l'équipe et des nuits en plus le week-end.
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Tournées semaine par semaine */}
-          <div className="space-y-3">
-            <h2 className="text-lg font-extrabold text-gray-900">Le planning, tournée par tournée</h2>
-            {res.nonPlaces.length > 0 && (
-              <p className="text-sm text-amber-700">
-                Non placés (commune introuvable) : {res.nonPlaces.map((l) => `${l.d.client} (${l.d.ville})`).join(", ")}.
+          {/* Les 3 chiffres qui comptent */}
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="rounded-2xl bg-white border border-gray-200 p-5">
+              <p className="text-sm text-gray-500">Installations prévues</p>
+              <p className="text-4xl font-extrabold text-gray-900 mt-1">{res.total.poses}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                en {res.tournees.length} semaines · du {jourFr(res.tournees[0]?.debut ?? params.debut)} au {jourFr(res.total.fin)}
               </p>
-            )}
+            </div>
+            <div className="rounded-2xl bg-white border border-gray-200 p-5">
+              <p className="text-sm text-gray-500">Ce que ça nous coûte</p>
+              <p className="text-4xl font-extrabold text-gray-900 mt-1">{eur(res.total.cout)}</p>
+              <p className="text-sm text-gray-500 mt-1">soit {eur(res.total.poses ? res.total.cout / res.total.poses : 0)} par installation, tout compris</p>
+            </div>
+            <div className={`rounded-2xl border p-5 ${res.total.net >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
+              <p className="text-sm text-gray-600">Ce qu'il nous reste</p>
+              <p className={`text-4xl font-extrabold mt-1 ${res.total.net >= 0 ? "text-emerald-700" : "text-red-600"}`}>{eur(res.total.net)}</p>
+              <p className="text-sm text-gray-600 mt-1">marge des dossiers {eur(res.total.marge)} moins le coût</p>
+            </div>
+          </div>
+
+          {/* Le conseil */}
+          {meilleur && (
+            <div className="rounded-2xl bg-blue-50 border border-blue-200 p-4 flex flex-wrap items-center gap-3">
+              <span className="text-2xl">💡</span>
+              <p className="flex-1 min-w-[260px] text-sm text-blue-900">
+                {meilleur.r.total.cout < res.total.cout - 50 ? (
+                  <>
+                    <b>Notre conseil :</b> {meilleur.label}. On économiserait <b>{eur(res.total.cout - meilleur.r.total.cout)}</b> et on finirait le{" "}
+                    {jourFr(meilleur.r.total.fin)}.
+                  </>
+                ) : (
+                  <>
+                    <b>C'est déjà l'organisation la moins chère</b> parmi celles qu'on a comparées.
+                  </>
+                )}
+              </p>
+              <select value={params.retourWeekend ? "1" : "0"} onChange={(e) => setP("retourWeekend", e.target.value === "1")} className="border border-blue-300 bg-white rounded-lg px-3 py-1.5 text-sm font-semibold text-blue-900">
+                <option value="1">Ils rentrent à Marseille chaque week-end</option>
+                <option value="0">Ils restent sur place le week-end</option>
+              </select>
+            </div>
+          )}
+
+          {/* Les chiffres en détail + carte */}
+          <div className="grid xl:grid-cols-[1.1fr_1fr] gap-4">
+            <div className="bg-white border border-gray-200 rounded-2xl p-5">
+              <h2 className="text-xl font-extrabold text-gray-900 mb-4">Les chiffres en détail</h2>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-800 mb-2">D'où vient le coût</h3>
+                  {[
+                    { l: "Équipe (jours de pose et de route)", v: res.total.equipe, c: "#2563eb" },
+                    { l: `Gazole et péages (${km(res.total.km)})`, v: res.total.route, c: "#ea580c" },
+                    { l: `Logement (${res.total.nuitsHotel} nuits d'hôtel, ${res.total.nuitsAirbnb} d'Airbnb)`, v: res.total.logement, c: "#9333ea" },
+                    { l: "Repas", v: res.total.repas, c: "#16a34a" },
+                  ].map((x) => (
+                    <div key={x.l} className="mb-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-700">{x.l}</span>
+                        <span className="font-bold text-gray-900">{eur(x.v)}</span>
+                      </div>
+                      <div className="h-2 bg-gray-100 rounded-full mt-1">
+                        <div className="h-2 rounded-full" style={{ width: `${res.total.cout ? (100 * x.v) / res.total.cout : 0}%`, background: x.c }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-gray-800 mb-2">Les 4 façons de s'organiser</h3>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {scenarios.map((s) => (
+                        <tr key={s.label} className={`border-b border-gray-100 ${s === meilleur ? "font-bold text-emerald-800" : "text-gray-700"}`}>
+                          <td className="py-1.5 pr-2">
+                            {s === meilleur ? "✅ " : ""}
+                            {s.label}
+                          </td>
+                          <td className="py-1.5 text-right whitespace-nowrap">{eur(s.r.total.cout)}</td>
+                          <td className="py-1.5 text-right whitespace-nowrap pl-3">fin {jourFr(s.r.total.fin)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <label className="text-sm text-gray-700 flex items-center gap-2 mt-3">
+                    Logement
+                    <select value={logement} onChange={(e) => setLogement(e.target.value as ModeLogement)} className="border border-gray-300 rounded-md px-2 py-1 text-sm">
+                      <option value="auto">Airbnb dès {params.airbnbDesNuits} nuits au même endroit, sinon hôtel</option>
+                      <option value="hotel">Hôtel partout</option>
+                      <option value="airbnb">Airbnb partout</option>
+                    </select>
+                  </label>
+                  <label className="text-sm text-gray-700 flex items-center gap-2 mt-2">
+                    Gain avec la nouvelle fiche CEE
+                    <input
+                      type="number"
+                      value={params.gainNouvelleFiche}
+                      onChange={(e) => setP("gainNouvelleFiche", Number(e.target.value) || 0)}
+                      className="w-24 border border-gray-300 rounded-md px-2 py-1 text-sm text-right"
+                    />
+                    € par dossier
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">S'ajoute à la marge des dossiers cochés ci-dessous.</p>
+                  <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+                    {res.lignes
+                      .filter((l) => l.d.inclus && !l.d.fait)
+                      .map((l) => (
+                        <label key={l.d.ref} className="text-xs text-gray-600 flex items-center gap-1">
+                          <input type="checkbox" checked={!!l.d.nouvelleFiche} onChange={(e) => setD(l.d.ref, { nouvelleFiche: e.target.checked })} />
+                          {l.d.client}
+                        </label>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-white border border-gray-200 rounded-2xl p-5">
+              <h2 className="text-xl font-extrabold text-gray-900 mb-1">La carte</h2>
+              <p className="text-sm text-gray-500 mb-3">Une couleur par semaine. Gris : pas dans le plan. Noir : déjà posé.</p>
+              <Carte res={res} params={params} ouverte={null} />
+            </div>
+          </div>
+
+          {/* Le planning semaine par semaine */}
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h2 className="text-xl font-extrabold text-gray-900">Le planning</h2>
+              <label className="text-sm text-gray-600 flex items-center gap-2 ml-auto">
+                Premier jour
+                <input type="date" value={params.debut} onChange={(e) => setP("debut", e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1 text-sm" />
+              </label>
+            </div>
+            {res.nonPlaces.length > 0 && <p className="text-sm text-amber-700">Pas placés (ville introuvable) : {res.nonPlaces.map((l) => `${l.d.client} (${l.d.ville})`).join(", ")}.</p>}
             {res.tournees.map((t) => {
               const c = COULEURS[(t.n - 1) % COULEURS.length];
-              const ouvert = ouverte === t.n;
               const netT = t.marge - t.cout.total;
+              const dormir = t.sejours.filter((s) => s.ville !== "Étape sur la route");
+              const etape = t.sejours.some((s) => s.ville === "Étape sur la route");
               return (
-                <div key={t.n} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                  <button onClick={() => setOuverte(ouvert ? null : t.n)} className="w-full text-left px-4 py-3 flex flex-wrap items-center gap-x-5 gap-y-1 hover:bg-gray-50" style={{ borderLeft: `6px solid ${c}` }}>
-                    <span className="font-extrabold text-gray-900">Tournée {t.n}</span>
-                    <span className="text-sm text-gray-600">
+                <div key={t.n} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+                  <div className="px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-gray-100">
+                    <span className="w-3 h-3 rounded-full" style={{ background: c }} />
+                    <span className="text-lg font-extrabold text-gray-900">Semaine {t.n}</span>
+                    <span className="text-sm text-gray-500">
                       {jourFr(t.debut)} → {jourFr(t.fin)}
                     </span>
-                    <span className="text-sm text-gray-800 font-semibold">{t.refs.length} pose(s)</span>
-                    <span className="text-sm text-gray-600">{km(t.km)}</span>
-                    <span className="text-sm text-gray-600">Coût {eur(t.cout.total)}</span>
-                    <span className={`text-sm font-bold ${netT >= 0 ? "text-emerald-700" : "text-red-600"}`}>Net {eur(netT)}</span>
-                    <span className="ml-auto text-xs text-gray-400">{ouvert ? "Masquer" : "Voir le détail"}</span>
-                  </button>
-                  {ouvert && (
-                    <div className="px-4 pb-4">
-                      <table className="w-full text-sm">
-                        <thead>
-                          <tr className="text-xs text-gray-500 border-b border-gray-200">
-                            <th className="text-left py-2 w-32">Jour</th>
-                            <th className="text-left py-2">Programme</th>
-                            <th className="text-right py-2 w-24">Route</th>
-                            <th className="text-left py-2 pl-4 w-64">Nuit</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {t.jours.map((j, i) => {
-                            const sej = t.sejours.find((s) => j.nuit && s.ville === j.nuit && s.debut <= j.date);
-                            return (
-                              <tr key={i} className={j.type === "pose" ? "" : j.type === "route" ? "bg-amber-50/50" : "bg-gray-50"}>
-                                <td className="py-1.5 font-semibold text-gray-700 whitespace-nowrap">{jourFr(j.date)}</td>
-                                <td className="py-1.5 text-gray-800">
-                                  {j.type === "pose" ? "🔧 " : j.type === "route" ? "🚐 " : "🛌 "}
-                                  {j.texte}
-                                </td>
-                                <td className="py-1.5 text-right text-gray-600 whitespace-nowrap">{j.km ? `${j.km} km · ${j.heures.toFixed(1).replace(".", ",")} h` : "—"}</td>
-                                <td className="py-1.5 pl-4 text-gray-700">
-                                  {j.nuit ? (
-                                    <>
-                                      {sej?.type === "airbnb" ? "🏠 Airbnb" : "🏨 Hôtel"} · {j.nuit}
-                                    </>
-                                  ) : (
-                                    <span className="text-gray-400">À la maison</span>
-                                  )}
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                      <div className="mt-3 grid sm:grid-cols-2 lg:grid-cols-5 gap-2 text-xs">
-                        {[
-                          ["Équipe", t.cout.equipe],
-                          ["Gazole + péages", t.cout.route],
-                          ["Logement", t.cout.logement],
-                          ["Repas", t.cout.repas],
-                          ["Marge des dossiers", t.marge],
-                        ].map(([l, v]) => (
-                          <div key={l as string} className="bg-gray-50 rounded-lg px-3 py-2">
-                            <span className="text-gray-500">{l}</span> <b className="text-gray-900 float-right">{eur(v as number)}</b>
-                          </div>
-                        ))}
-                      </div>
-                      <p className="text-xs text-gray-600 mt-2">
-                        À réserver :{" "}
-                        {t.sejours.filter((s) => s.ville !== "Étape sur la route").length
-                          ? t.sejours
-                              .filter((s) => s.ville !== "Étape sur la route")
-                              .map((s) => `${s.type === "airbnb" ? "Airbnb" : "hôtel"} à ${s.ville} (${s.nuits} nuit${s.nuits > 1 ? "s" : ""}, dès le ${jourFr(s.debut)})`)
-                              .join(" · ")
-                          : "rien"}
-                        {t.sejours.some((s) => s.ville === "Étape sur la route") ? " · + hôtel d'étape sur l'autoroute" : ""}.
-                      </p>
-                    </div>
-                  )}
+                    <span className="ml-auto text-sm text-gray-500">
+                      {t.refs.length} pose{t.refs.length > 1 ? "s" : ""} · coût {eur(t.cout.total)} ·{" "}
+                      <b className={netT >= 0 ? "text-emerald-700" : "text-red-600"}>reste {eur(netT)}</b>
+                    </span>
+                  </div>
+                  <div className="p-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(t.jours.length, 7)}, minmax(0, 1fr))` }}>
+                    {t.jours.map((j, i) => {
+                      const lig = j.ref ? res.lignes.find((l) => l.d.ref === j.ref) : undefined;
+                      const sej = t.sejours.find((s) => j.nuit && s.ville === j.nuit && s.debut <= j.date);
+                      const style =
+                        j.type === "pose" ? "bg-emerald-50 border-emerald-200" : j.type === "route" ? "bg-amber-50 border-amber-200" : "bg-gray-50 border-gray-200";
+                      return (
+                        <div key={i} className={`rounded-xl border p-3 flex flex-col min-h-[132px] ${style}`}>
+                          <p className="text-xs font-bold text-gray-500 uppercase">{jourFr(j.date)}</p>
+                          {j.type === "pose" ? (
+                            <>
+                              <p className="mt-1.5 text-sm font-extrabold text-gray-900 leading-tight">🔧 {lig?.d.client ?? ""}</p>
+                              <p className="text-xs text-gray-600 mt-0.5">
+                                {lig?.d.ville}
+                                {lig && lig.jours > 1 ? ` · ${j.texte.includes("jour 2") ? "2e jour" : "1er jour"}` : ""}
+                              </p>
+                            </>
+                          ) : j.type === "route" ? (
+                            <>
+                              <p className="mt-1.5 text-sm font-extrabold text-gray-900 leading-tight">🚐 Route</p>
+                              <p className="text-xs text-gray-600 mt-0.5">
+                                {j.texte.replace(/^Route |^Retour /, "")} · {j.heures.toFixed(0)} h
+                              </p>
+                            </>
+                          ) : (
+                            <p className="mt-1.5 text-sm font-bold text-gray-500">🛌 Repos</p>
+                          )}
+                          {j.type === "pose" && j.km > 150 && (
+                            <p className="text-[11px] text-amber-700 mt-1">
+                              + {Math.round(j.heures)} h de route le soir{j.texte.includes("retour à") ? ` (retour à ${params.depart})` : ""}
+                            </p>
+                          )}
+                          <p className="mt-auto pt-2 text-[11px] text-gray-500">
+                            {j.nuit ? (j.nuit === "Étape sur la route" ? "🛏️ Hôtel d'étape" : `${sej?.type === "airbnb" ? "🏠 Airbnb" : "🏨 Hôtel"} · ${j.nuit}`) : "🏡 Maison"}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="px-5 pb-4 text-sm text-gray-600">
+                    <b className="text-gray-800">À réserver :</b>{" "}
+                    {dormir.length
+                      ? dormir.map((s) => `${s.type === "airbnb" ? "Airbnb" : "hôtel"} à ${s.ville} (${s.nuits} nuit${s.nuits > 1 ? "s" : ""})`).join(" · ")
+                      : "rien"}
+                    {etape ? " · un hôtel d'étape sur l'autoroute" : ""}
+                  </div>
                 </div>
               );
             })}
           </div>
 
-          {/* Dossiers */}
-          <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3 flex flex-wrap items-center gap-3 border-b border-gray-200">
-              <h2 className="text-lg font-extrabold text-gray-900">Dossiers</h2>
-              <span className="text-xs text-gray-500">Cochez « Dans le plan » pour ajouter ou retirer un dossier, « Posé » quand c'est fait. La marge et la durée se modifient directement.</span>
-              <button
-                onClick={() => enregistrer({ params: PARAMS_DEFAUT })}
-                className="ml-auto inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800"
-                title="Remettre tous les réglages par défaut"
-              >
-                <RotateCcw size={13} /> Réglages par défaut
-              </button>
+          {/* Les dossiers */}
+          <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100">
+              <h2 className="text-xl font-extrabold text-gray-900">Les dossiers</h2>
+              <p className="text-sm text-gray-500 mt-0.5">Cochez pour mettre un client dans le plan ou l'en retirer. Cochez « Posé » quand c'est fait.</p>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-xs text-gray-500 bg-gray-50 border-b border-gray-200">
-                    <th className="py-2 px-3 text-center">Dans le plan</th>
-                    <th className="py-2 px-3 text-center">Posé</th>
-                    <th className="py-2 px-3 text-left">Client</th>
-                    <th className="py-2 px-3 text-left">Ville</th>
-                    <th className="py-2 px-3 text-left">Statut</th>
-                    <th className="py-2 px-3 text-left">Catégorie</th>
-                    <th className="py-2 px-3 text-right">kW</th>
-                    <th className="py-2 px-3 text-center">Durée</th>
-                    <th className="py-2 px-3 text-right">Depuis Marseille</th>
-                    <th className="py-2 px-3 text-center">Tournée</th>
-                    <th className="py-2 px-3 text-right">Marge</th>
-                    <th className="py-2 px-3 text-center">Nouvelle fiche</th>
-                    <th className="py-2 px-3 text-right">Coût Loan</th>
-                    <th className="py-2 px-3 text-right">Net</th>
+                  <tr className="text-xs text-gray-500 bg-gray-50">
+                    <th className="py-2.5 px-3 text-center font-semibold">Dans le plan</th>
+                    <th className="py-2.5 px-3 text-left font-semibold">Client</th>
+                    <th className="py-2.5 px-3 text-left font-semibold">Quand</th>
+                    <th className="py-2.5 px-3 text-right font-semibold">Marge</th>
+                    <th className="py-2.5 px-3 text-right font-semibold">Coût Loan</th>
+                    <th className="py-2.5 px-3 text-right font-semibold">Il reste</th>
+                    <th className="py-2.5 px-3 text-center font-semibold">Durée</th>
+                    <th className="py-2.5 px-3 text-center font-semibold">Posé</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {[...res.lignes]
                     .sort((a, b) => (a.tournee ?? 999) - (b.tournee ?? 999) || (a.date ?? "").localeCompare(b.date ?? "") || a.d.client.localeCompare(b.d.client))
-                    .map((l) => (
-                      <tr key={l.d.ref} className={l.d.inclus && !l.d.fait ? "" : "opacity-50"}>
-                        <td className="py-1.5 px-3 text-center">
-                          <input type="checkbox" checked={l.d.inclus} onChange={(e) => setD(l.d.ref, { inclus: e.target.checked })} />
+                    .map((l, i, arr) => (
+                      <Fragment key={l.d.ref}>
+                      {!l.tournee && (i === 0 || arr[i - 1].tournee) && (
+                        <tr>
+                          <td colSpan={8} className="bg-gray-50 px-3 py-2 text-xs font-bold text-gray-500 uppercase">Pas dans le plan · cochez la case pour en ajouter</td>
+                        </tr>
+                      )}
+                      <tr className={l.d.inclus && !l.d.fait ? "" : "text-gray-400"}>
+                        <td className="py-2 px-3 text-center">
+                          <input type="checkbox" className="w-4 h-4" checked={l.d.inclus} onChange={(e) => setD(l.d.ref, { inclus: e.target.checked })} />
                         </td>
-                        <td className="py-1.5 px-3 text-center">
-                          <input type="checkbox" checked={!!l.d.fait} onChange={(e) => setD(l.d.ref, { fait: e.target.checked })} />
+                        <td className="py-2 px-3">
+                          <span className={`font-semibold ${l.d.inclus && !l.d.fait ? "text-gray-900" : ""}`}>{l.d.client}</span>
+                          <span className="block text-xs text-gray-500">
+                            {l.d.ville} ({l.d.cp.slice(0, 2)}) · {l.d.statut}
+                            {l.d.categorie ? ` · ${l.d.categorie}` : ""}
+                          </span>
                         </td>
-                        <td className="py-1.5 px-3 font-semibold text-gray-900 whitespace-nowrap">
-                          {l.d.client}
-                          <span className="block text-[11px] font-mono font-normal text-gray-400">{l.d.ref}</span>
-                        </td>
-                        <td className="py-1.5 px-3 text-gray-700 whitespace-nowrap">
-                          <MapPin size={12} className="inline text-gray-400 mr-1" />
-                          {l.d.cp} {l.d.ville}
-                          {l.pt?.approx && <span className="text-amber-600" title="Commune non trouvée exactement : position approximative"> ≈</span>}
-                        </td>
-                        <td className="py-1.5 px-3 text-gray-700">{l.d.statut}</td>
-                        <td className="py-1.5 px-3 text-gray-700">{l.d.categorie}</td>
-                        <td className="py-1.5 px-3 text-right">{l.d.kw ?? "—"}</td>
-                        <td className="py-1.5 px-3 text-center">
-                          <select value={l.d.jours ?? 0} onChange={(e) => setD(l.d.ref, { jours: Number(e.target.value) || null })} className="text-xs border border-gray-300 rounded px-1 py-0.5">
-                            <option value={0}>Auto ({l.jours} j)</option>
-                            <option value={1}>1 jour</option>
-                            <option value={2}>2 jours</option>
-                            <option value={3}>3 jours</option>
-                          </select>
-                        </td>
-                        <td className="py-1.5 px-3 text-right whitespace-nowrap text-gray-600">{l.kmMarseille ? km(l.kmMarseille) : "—"}</td>
-                        <td className="py-1.5 px-3 text-center">
+                        <td className="py-2 px-3 whitespace-nowrap">
                           {l.tournee ? (
-                            <span className="inline-block whitespace-nowrap text-xs font-bold text-white rounded-full px-2 py-0.5" style={{ background: COULEURS[(l.tournee - 1) % COULEURS.length] }} title={l.date ? jourFr(l.date) : ""}>
-                              T{l.tournee} · {jourFr(l.date ?? "")}
+                            <span className="inline-flex items-center gap-1.5 text-gray-800">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ background: COULEURS[(l.tournee - 1) % COULEURS.length] }} />
+                              {jourFr(l.date ?? "")}
                             </span>
+                          ) : l.d.fait ? (
+                            "Déjà posé"
                           ) : (
                             "—"
                           )}
                         </td>
-                        <td className="py-1.5 px-3 text-right">
+                        <td className="py-2 px-3 text-right">
                           <input
                             type="number"
                             value={l.d.marge ?? ""}
                             placeholder="?"
                             onChange={(e) => setD(l.d.ref, { marge: e.target.value === "" ? null : Number(e.target.value), margeModifiee: true })}
-                            className="w-24 text-right border border-gray-200 rounded px-1 py-0.5"
+                            className="w-24 text-right border border-gray-200 rounded-md px-1.5 py-1"
+                            title="Marge du dossier, modifiable"
                           />
                         </td>
-                        <td className="py-1.5 px-3 text-center">
-                          <input type="checkbox" checked={!!l.d.nouvelleFiche} onChange={(e) => setD(l.d.ref, { nouvelleFiche: e.target.checked })} />
-                        </td>
-                        <td className="py-1.5 px-3 text-right whitespace-nowrap text-gray-700">{l.tournee ? eur(l.cout) : "—"}</td>
-                        <td className={`py-1.5 px-3 text-right whitespace-nowrap font-bold ${!l.tournee ? "text-gray-300" : l.net >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+                        <td className="py-2 px-3 text-right whitespace-nowrap">{l.tournee ? eur(l.cout) : "—"}</td>
+                        <td className={`py-2 px-3 text-right whitespace-nowrap font-bold ${!l.tournee ? "" : l.net >= 0 ? "text-emerald-700" : "text-red-600"}`}>
                           {l.tournee ? eur(l.net) : "—"}
                         </td>
+                        <td className="py-2 px-3 text-center">
+                          <select value={l.d.jours ?? 0} onChange={(e) => setD(l.d.ref, { jours: Number(e.target.value) || null })} className="text-xs border border-gray-200 rounded-md px-1 py-1 bg-white">
+                            <option value={0}>{l.jours} jour{l.jours > 1 ? "s" : ""}</option>
+                            <option value={1}>1 jour</option>
+                            <option value={2}>2 jours</option>
+                            <option value={3}>3 jours</option>
+                          </select>
+                        </td>
+                        <td className="py-2 px-3 text-center">
+                          <input type="checkbox" className="w-4 h-4" checked={!!l.d.fait} onChange={(e) => setD(l.d.ref, { fait: e.target.checked })} />
+                        </td>
                       </tr>
+                      </Fragment>
                     ))}
                 </tbody>
               </table>
             </div>
           </div>
 
-          {/* Réglages détaillés */}
-          <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
-            {GROUPES.map((g) => (
-              <div key={g.titre} className="bg-white border border-gray-200 rounded-xl p-4">
-                <h3 className="text-sm font-extrabold text-gray-800 mb-3 flex items-center gap-2">
-                  <g.icon size={16} className="text-gray-400" /> {g.titre}
-                </h3>
-                <div className="space-y-2">
-                  {g.champs.map((c) => (
-                    <label key={c.k} className="block text-xs text-gray-600" title={c.aide}>
-                      <span className="flex items-center justify-between gap-2">
-                        <span>{c.label}</span>
-                        <span className="flex items-center gap-1">
-                          <input
-                            type="number"
-                            step={c.step ?? 1}
-                            value={params[c.k] as number}
-                            onChange={(e) => setP(c.k, Number(e.target.value) || 0)}
-                            className="w-20 text-right border border-gray-300 rounded px-1.5 py-1 text-sm text-gray-900"
-                          />
-                          <span className="w-10 text-gray-400">{c.unite}</span>
-                        </span>
-                      </span>
-                      {c.aide && <span className="block text-[11px] text-gray-400 mt-0.5">{c.aide}</span>}
-                    </label>
-                  ))}
-                </div>
+          {/* Réglages et détails, repliés */}
+          <details className="bg-white border border-gray-200 rounded-2xl group">
+            <summary className="px-5 py-4 cursor-pointer select-none flex items-center gap-2 text-gray-800 font-bold">
+              ⚙️ Réglages, prix et détail des calculs
+              <span className="text-sm font-normal text-gray-500">(à ouvrir si besoin)</span>
+            </summary>
+            <div className="px-5 pb-5 space-y-5">
+              <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
+                {GROUPES.map((g) => (
+                  <div key={g.titre} className="bg-gray-50 rounded-xl p-4">
+                    <h3 className="text-sm font-extrabold text-gray-800 mb-3 flex items-center gap-2">
+                      <g.icon size={16} className="text-gray-400" /> {g.titre}
+                    </h3>
+                    <div className="space-y-2">
+                      {g.champs.map((c) => (
+                        <label key={c.k} className="block text-xs text-gray-600" title={c.aide}>
+                          <span className="flex items-center justify-between gap-2">
+                            <span>{c.label}</span>
+                            <span className="flex items-center gap-1">
+                              <input
+                                type="number"
+                                step={c.step ?? 1}
+                                value={params[c.k] as number}
+                                onChange={(e) => setP(c.k, Number(e.target.value) || 0)}
+                                className="w-20 text-right border border-gray-300 rounded px-1.5 py-1 text-sm text-gray-900 bg-white"
+                              />
+                              <span className="w-10 text-gray-400">{c.unite}</span>
+                            </span>
+                          </span>
+                          {c.aide && <span className="block text-[11px] text-gray-400 mt-0.5">{c.aide}</span>}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-          <p className="text-xs text-gray-500">
-            Comment c'est calculé : chaque tournée part de {params.depart} le lundi et commence par le coin de France où il y a le plus de travail groupé, puis
-            enchaîne le chantier le plus proche. Une pose dure 1 jour (2 jours au-delà de {params.seuilKw2Jours} kW, ou la durée choisie). Jusqu'à {params.routeSoirMax} h de
-            route le soir après un chantier et {params.routeMatinMax} h le matin ; au-delà, journée de route ({params.routeJourMax} h maximum, les deux se relaient). Nuits
-            au même endroit regroupées : Airbnb dès {params.airbnbDesNuits} nuits (cuisine, machine à laver, place pour le camion), sinon hôtel. Jours fériés exclus. Le coût
-            de chaque tournée est réparti sur ses dossiers selon les jours de pose.
-          </p>
+              <div className="flex flex-wrap items-start gap-4">
+                <p className="flex-1 min-w-[300px] text-xs text-gray-500">
+                  Comment c'est calculé : chaque semaine part de {params.depart} le lundi, commence par le coin de France où il y a le plus de clients groupés, puis
+                  enchaîne le client le plus proche. Une pose dure 1 jour (2 jours au-delà de {params.seuilKw2Jours} kW). Jusqu'à {params.routeSoirMax} h de route le
+                  soir après un chantier ; au-delà, une journée de route (les deux se relaient). Airbnb quand ils restent {params.airbnbDesNuits} nuits ou plus au même
+                  endroit, sinon hôtel. Jours fériés exclus. Distances estimées sans GPS (± 10 %).
+                </p>
+                <button onClick={() => enregistrer({ params: PARAMS_DEFAUT })} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-gray-800">
+                  <RotateCcw size={13} /> Remettre les réglages par défaut
+                </button>
+              </div>
+            </div>
+          </details>
         </>
       )}
     </div>

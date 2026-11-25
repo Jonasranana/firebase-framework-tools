@@ -72,10 +72,10 @@ export const PARAMS_DEFAUT: ParamsLoan = {
   seuilKw2Jours: 14,
   retourWeekend: true,
   coefRoute: 1.2,
-  vitesse: 85,
+  vitesse: 90,
   routeSoirMax: 3,
   routeMatinMax: 1,
-  routeJourMax: 11,
+  routeJourMax: 12,
   gainNouvelleFiche: 0,
 };
 
