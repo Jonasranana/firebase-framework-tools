@@ -42,6 +42,7 @@ export type ParamsLoan = {
   airbnbDesNuits: number; // Airbnb dès N nuits au même endroit
   repasHotel: number; // € par personne et par jour (restaurant / sandwich)
   repasAirbnb: number; // € par personne et par jour (courses + cuisine)
+  sansRepas?: boolean; // marque des réglages enregistrés après le retrait des repas
   seuilKw2Jours: number; // au-delà de cette puissance, la pose prend 2 jours
   retourWeekend: boolean; // rentrer au point de départ chaque week-end
   rayonMax: number; // km (route estimée) au-delà desquels on ne va pas…
@@ -72,8 +73,9 @@ export const PARAMS_DEFAUT: ParamsLoan = {
   hotelNuit: 70,
   airbnbNuit: 85,
   airbnbDesNuits: 4,
-  repasHotel: 18,
-  repasAirbnb: 10,
+  repasHotel: 0, // repas à la charge de l'équipe (pas payés par IP5)
+  repasAirbnb: 0,
+  sansRepas: true,
   seuilKw2Jours: 14,
   retourWeekend: true,
   rayonMax: 500,

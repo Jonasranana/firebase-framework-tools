@@ -27,6 +27,7 @@ export const NOUVEAUTES: Nouveaute[] = [
       "Les tournées partent maintenant d'Aix-en-Provence (Marseille reste au choix, à côté de « Premier jour »).",
       "On ne va pas à plus de 500 km d'Aix, sauf s'il y a au moins 2 poses à moins de 100 km les unes des autres (3 poses au-delà de 700 km). Les chiffres se modifient au-dessus du planning.",
       "Les clients trop loin pour l'instant sont listés à part (en orange sur la carte) et entrent dans le planning dès qu'il y a assez de poses dans leur coin.",
+      "Les repas ne sont plus comptés dans le coût (ils sont à la charge de l'équipe).",
     ],
     pour: TOTALS_VIEWERS,
   },
