@@ -37,10 +37,6 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
           if (/node_modules\/(react|react-dom|scheduler|wouter)\//.test(id)) return "vendor-react";
-          // Firebase découpé par service : le CRM ne charge que ce dont l'écran a besoin
-          // (Firestore + connexion au départ ; stockage, fonctions, IA, notifications à la demande).
-          const fb = id.match(/node_modules\/@firebase\/(firestore|auth|storage|functions|ai|vertexai|messaging|installations|analytics|app-check)/);
-          if (fb) return `vendor-firebase-${fb[1]}`;
           if (/node_modules\/(@firebase|firebase)\//.test(id)) return "vendor-firebase";
           if (/node_modules\/(@radix-ui|cmdk|vaul|lucide-react|class-variance-authority|clsx|tailwind-merge)\//.test(id)) return "vendor-ui";
           if (/node_modules\/(date-fns|react-day-picker)\//.test(id)) return "vendor-date";
