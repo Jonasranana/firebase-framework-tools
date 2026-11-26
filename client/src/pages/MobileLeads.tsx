@@ -734,7 +734,8 @@ export default function MobileLeads(props: Props) {
       <div className="sticky top-0 z-20 -mx-2 px-2 sm:-mx-4 sm:px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         {tab === "liste" && (
           <>
-            <div className="relative">
+            {/* Décalée à droite : la bulle « menu » reste en haut à gauche quand on descend. */}
+            <div className="relative ml-11">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={query}

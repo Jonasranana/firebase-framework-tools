@@ -303,6 +303,14 @@ export default function AdminShell({
     return () => document.documentElement.classList.remove("crm-v2");
   }, []);
   const [drawer, setDrawer] = useState(false);
+  // La bulle « menu » devient plus transparente dès qu'on descend dans la page.
+  const [defile, setDefile] = useState(false);
+  useEffect(() => {
+    const f = () => setDefile(window.scrollY > 30);
+    f();
+    addEventListener("scroll", f, { passive: true });
+    return () => removeEventListener("scroll", f);
+  }, []);
   // Téléphone, comme une appli : le menu s'ouvre tout seul à l'arrivée (une fois par visite, sauf lien direct
   // vers une page), et un glissement du doigt depuis le bord gauche l'ouvre à tout moment.
   useEffect(() => {
@@ -486,15 +494,15 @@ export default function AdminShell({
         </SheetContent>
       </Sheet>
 
-      {/* Téléphone : petite bulle « menu » toujours visible sur le bord gauche, même en descendant dans la page. */}
+      {/* Téléphone : bulle ronde « menu » en haut à gauche, toujours là ; plus transparente quand on descend. */}
       {!drawer && (
         <button
           onClick={() => setDrawer(true)}
           aria-label="Ouvrir le menu"
-          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 w-9 h-14 rounded-r-2xl text-white shadow-lg flex items-center justify-center active:scale-95 transition"
-          style={{ background: "linear-gradient(180deg,#2b5a8f,#173a5e)", opacity: 0.92 }}
+          className="md:hidden fixed left-2.5 top-2 z-[45] w-10 h-10 rounded-full text-white flex items-center justify-center backdrop-blur-sm shadow-md transition-[background-color,box-shadow] duration-300 active:scale-95"
+          style={{ background: defile ? "rgba(23,58,94,0.32)" : "rgba(23,58,94,0.72)", boxShadow: defile ? "0 1px 4px rgba(0,0,0,0.08)" : undefined }}
         >
-          <Menu size={18} />
+          <Menu size={20} />
         </button>
       )}
 
@@ -510,13 +518,8 @@ export default function AdminShell({
 
       <div className="flex-1 min-w-0 flex flex-col">
         <header className={`sticky top-0 z-20 h-14 bg-white flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4 border-b border-[#eceef3]`}>
-          <button
-            onClick={() => setDrawer(true)}
-            aria-label="Ouvrir le menu"
-            className="md:hidden p-1.5 -ml-1 text-gray-500"
-          >
-            <Menu size={22} />
-          </button>
+          {/* Téléphone : place de la bulle « menu » (fixe, en haut à gauche). */}
+          <span aria-hidden className="md:hidden w-10 shrink-0" />
           <h1 className="text-lg sm:text-xl font-extrabold tracking-tight truncate text-[#1f2430]">{title}</h1>
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
