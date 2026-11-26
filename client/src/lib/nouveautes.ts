@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-menu-bulle",
+    date: "2026-11-26",
+    emoji: "👆",
+    titre: "Sur téléphone, le menu toujours à portée de doigt",
+    points: [
+      "Une petite bulle bleue reste toujours sur le bord gauche de l'écran : touchez-la pour ouvrir le menu, même en bas d'une longue liste.",
+      "Le menu s'ouvre tout seul quand vous arrivez sur l'appli, et glisser le doigt depuis le bord gauche l'ouvre aussi à tout moment.",
+    ],
+  },
+  {
     id: "2026-11-26-formulaire-site",
     date: "2026-11-26",
     emoji: "📝",

@@ -303,6 +303,41 @@ export default function AdminShell({
     return () => document.documentElement.classList.remove("crm-v2");
   }, []);
   const [drawer, setDrawer] = useState(false);
+  // Téléphone, comme une appli : le menu s'ouvre tout seul à l'arrivée (une fois par visite, sauf lien direct
+  // vers une page), et un glissement du doigt depuis le bord gauche l'ouvre à tout moment.
+  useEffect(() => {
+    if (window.innerWidth >= 768) return;
+    try {
+      const h = window.location.hash.replace("#", "");
+      if (!sessionStorage.getItem("crm-menu-auto") && (!h || h === "leads")) {
+        sessionStorage.setItem("crm-menu-auto", "1");
+        setDrawer(true);
+      }
+    } catch {
+      /* non essentiel */
+    }
+    let x0 = -1;
+    let y0 = 0;
+    const debut = (e: TouchEvent) => {
+      const t = e.touches[0];
+      x0 = t && t.clientX < 22 ? t.clientX : -1;
+      y0 = t?.clientY ?? 0;
+    };
+    const glisse = (e: TouchEvent) => {
+      if (x0 < 0) return;
+      const t = e.touches[0];
+      if (t && t.clientX - x0 > 55 && Math.abs(t.clientY - y0) < 45) {
+        x0 = -1;
+        setDrawer(true);
+      }
+    };
+    addEventListener("touchstart", debut, { passive: true });
+    addEventListener("touchmove", glisse, { passive: true });
+    return () => {
+      removeEventListener("touchstart", debut);
+      removeEventListener("touchmove", glisse);
+    };
+  }, []);
   const [overlay, setOverlay] = useState<SideItem | null>(null);
   const { config, save, loaded, error } = useSidebar(email);
   // Tableau à rouvrir : celui du lien (#view-…), sinon le dernier tableau visité. On attend que le menu soit chargé
@@ -450,6 +485,18 @@ export default function AdminShell({
           <div className="h-[calc(100%-5rem)]">{body(false)}</div>
         </SheetContent>
       </Sheet>
+
+      {/* Téléphone : petite bulle « menu » toujours visible sur le bord gauche, même en descendant dans la page. */}
+      {!drawer && (
+        <button
+          onClick={() => setDrawer(true)}
+          aria-label="Ouvrir le menu"
+          className="md:hidden fixed left-0 top-1/2 -translate-y-1/2 z-40 w-9 h-14 rounded-r-2xl text-white shadow-lg flex items-center justify-center active:scale-95 transition"
+          style={{ background: "linear-gradient(180deg,#2b5a8f,#173a5e)", opacity: 0.92 }}
+        >
+          <Menu size={18} />
+        </button>
+      )}
 
       {/* Ouverture « en superposition » d'un tableau */}
       <Dialog open={!!overlay} onOpenChange={(o) => !o && setOverlay(null)}>
