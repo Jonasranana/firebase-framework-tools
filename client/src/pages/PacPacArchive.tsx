@@ -130,7 +130,7 @@ export default function PacPacArchive({ email, onOpenLead }: { email: string; on
                       <span className="flex gap-1 mt-1.5">
                         <button
                           onClick={() => cfg && write(restoreColumn(cfg, col.key))}
-                          className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#2563eb] hover:bg-[#1d4ed8] rounded-md px-2 py-1"
+                          className="inline-flex items-center gap-1 text-[11px] font-bold text-white bg-[#1f4b7f] hover:bg-[#173a5e] rounded-md px-2 py-1"
                           title="Remettre la colonne dans Pac Pac, avec ses valeurs"
                         >
                           <RotateCcw size={11} /> Réactiver
@@ -156,7 +156,7 @@ export default function PacPacArchive({ email, onOpenLead }: { email: string; on
                   <tr key={l.id} className="hover:bg-gray-50">
                     <td className="sticky left-0 z-10 bg-white border-b border-r border-[#eceef3] px-3 py-1.5 whitespace-nowrap">
                       {onOpenLead ? (
-                        <button onClick={() => onOpenLead(l.id)} className="font-semibold text-gray-900 hover:text-[#2552d0] hover:underline text-left">
+                        <button onClick={() => onOpenLead(l.id)} className="font-semibold text-gray-900 hover:text-[#1f4b7f] hover:underline text-left">
                           {l.name || "Sans nom"}
                         </button>
                       ) : (
@@ -174,7 +174,7 @@ export default function PacPacArchive({ email, onOpenLead }: { email: string; on
             </table>
             {rows.length > limit && (
               <div className="p-3 text-center">
-                <button onClick={() => setLimit((n) => n + 200)} className="text-sm font-semibold text-[#2552d0] hover:underline">
+                <button onClick={() => setLimit((n) => n + 200)} className="text-sm font-semibold text-[#1f4b7f] hover:underline">
                   Afficher 200 fiches de plus ({rows.length - limit} restantes)
                 </button>
               </div>

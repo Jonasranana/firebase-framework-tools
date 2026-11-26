@@ -223,7 +223,7 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
               <button
                 key={k}
                 onClick={() => setOnglet(k)}
-                className={`flex-1 text-[14px] font-bold py-2 rounded-xl ${onglet === k ? "bg-white text-[#2563eb] shadow-sm" : "text-gray-500"}`}
+                className={`flex-1 text-[14px] font-bold py-2 rounded-xl ${onglet === k ? "bg-white text-[#1f4b7f] shadow-sm" : "text-gray-500"}`}
               >
                 {label}
               </button>
@@ -289,7 +289,7 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
                 const jl = jours.filter((iso) => (vue === "semaine" || Number(iso.slice(5, 7)) - 1 === moisRef) && (evenements.get(iso)?.length ?? 0) > 0);
                 if (!jl.length) return <p className="px-4 py-10 text-center text-sm text-gray-400">Aucun rendez-vous sur cette période.</p>;
                 return jl.map((iso) => (
-                  <div key={iso} className={`px-3 py-2.5 ${iso === today ? "bg-[#eef3ff]" : iso < today ? "opacity-60" : ""}`}>
+                  <div key={iso} className={`px-3 py-2.5 ${iso === today ? "bg-[#edf2f8]" : iso < today ? "opacity-60" : ""}`}>
                     <div className="mb-1.5 text-[13px] font-extrabold capitalize text-gray-900">
                       {iso === today ? "📍 Aujourd'hui · " : ""}
                       {frJour(iso)}

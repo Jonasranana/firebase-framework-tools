@@ -56,7 +56,7 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
 
 // Groupes fixes du menu, dans l'ordre d'usage.
 const GROUPES: { id: string; titre: string; couleur: string; pages: AdminPageKey[] }[] = [
-  { id: "g_tableau", titre: "Tableau", couleur: "#2563eb", pages: ["leads", "bets", "stats"] },
+  { id: "g_tableau", titre: "Tableau", couleur: "#1f4b7f", pages: ["leads", "bets", "stats"] },
   { id: "g_praimy", titre: "PRAIMY", couleur: "#7c3aed", pages: ["praimy", "marges", "bareme"] },
   { id: "g_loan", titre: "Loan · Chantiers", couleur: "#0891b2", pages: ["planning", "loan"] },
   { id: "g_pub", titre: "Pub & aides", couleur: "#db2777", pages: ["renta", "actus"] },
@@ -297,12 +297,12 @@ function NouveauGroupe({ onCreate }: { onCreate: (titre: string) => void }) {
           onChange={(e) => setTitre(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && valider()}
           placeholder="Nom du groupe (ex. Clim, Solaire…)"
-          className="mt-2 w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-2 outline-none focus:border-[#2563eb]"
+          className="mt-2 w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-2 outline-none focus:border-[#1f4b7f]"
         />
         <p className="mt-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Type</p>
         <div className="mt-1 grid grid-cols-2 gap-1.5">
-          <div className="rounded-lg border-2 border-[#2563eb] bg-[#eef3ff] px-2.5 py-2">
-            <p className="text-sm font-bold text-[#1d4ed8] flex items-center gap-1.5">
+          <div className="rounded-lg border-2 border-[#1f4b7f] bg-[#edf2f8] px-2.5 py-2">
+            <p className="text-sm font-bold text-[#173a5e] flex items-center gap-1.5">
               <BoardIcon size={14} /> Tableau
             </p>
             <p className="text-[11px] text-gray-500 leading-snug">comme Pac Pac : fiches, étiquettes, groupes</p>
@@ -315,7 +315,7 @@ function NouveauGroupe({ onCreate }: { onCreate: (titre: string) => void }) {
         <button
           onClick={valider}
           disabled={!titre.trim()}
-          className="mt-3 w-full text-sm font-bold text-white bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-40 rounded-lg py-2"
+          className="mt-3 w-full text-sm font-bold text-white bg-[#1f4b7f] hover:bg-[#173a5e] disabled:opacity-40 rounded-lg py-2"
         >
           Créer le groupe
         </button>
@@ -369,7 +369,7 @@ function MenuPerso({
                 }
                 if (e.key === "Escape") fermer();
               }}
-              className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 outline-none focus:border-[#2563eb]"
+              className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 outline-none focus:border-[#1f4b7f]"
             />
             <p className="mt-1 text-[11px] text-gray-400">Entrée pour enregistrer</p>
           </div>

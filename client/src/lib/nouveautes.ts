@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-bleu-nuit",
+    date: "2026-11-26",
+    emoji: "🌙",
+    titre: "Le CRM passe en bleu nuit",
+    points: [
+      "Nouvelle couleur du CRM : bleu nuit avec une touche dorée (comme cette fenêtre). Menu, boutons, chargement, barre du navigateur et icônes de l'appli.",
+      "« 🆕 Nouveau lead » est maintenant en bleu nuit et or. Le code couleur des statuts ne change pas (vert = ça avance, ambre = en attente, rouge = perdu).",
+    ],
+  },
+  {
     id: "2026-11-26-mobile-sans-dezoom",
     date: "2026-11-26",
     emoji: "📱",

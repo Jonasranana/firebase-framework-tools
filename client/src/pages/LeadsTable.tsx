@@ -390,7 +390,7 @@ const AjoutManuel = ({ color, onClick, haut }: { color: string; onClick: () => v
   <div className={`sticky left-0 w-fit ${haut ? "mb-1.5" : "border-t border-[#d0d4e4] w-full"}`}>
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 text-[13px] font-bold text-[#2563eb] hover:bg-[#eef3ff] ${haut ? "rounded-lg border border-dashed border-[#bcd0fb] bg-white px-3 py-1" : "px-3 h-9"}`}
+      className={`inline-flex items-center gap-1.5 text-[13px] font-bold text-[#1f4b7f] hover:bg-[#edf2f8] ${haut ? "rounded-lg border border-dashed border-[#c5d4e6] bg-white px-3 py-1" : "px-3 h-9"}`}
       style={haut ? undefined : { borderLeft: `6px solid ${color}` }}
     >
       <Plus size={15} strokeWidth={2.5} /> Ajouter un lead

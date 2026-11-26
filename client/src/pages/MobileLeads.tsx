@@ -901,7 +901,7 @@ export default function MobileLeads(props: Props) {
                     setTab(k as typeof tab);
                     window.scrollTo({ top: 0 });
                   }}
-                  className={`relative flex-1 h-full inline-flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${tab === k ? "text-[#2563eb]" : "text-gray-400"}`}
+                  className={`relative flex-1 h-full inline-flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${tab === k ? "text-[#1f4b7f]" : "text-gray-400"}`}
                 >
                   <Icon size={22} strokeWidth={tab === k ? 2.5 : 2} />
                   {label}

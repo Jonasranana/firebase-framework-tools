@@ -399,7 +399,7 @@ export default function AdminShell({
         {/* En-tête de marque orange (gardé aussi avec le nouveau design, à la demande d'Alexis). */}
         <div
           className={`relative flex items-center h-20 text-white overflow-hidden ${compact ? "justify-center" : "pl-5 pr-2 justify-between"}`}
-          style={{ background: "linear-gradient(120deg,#ff8a00 0%,#ff4d4d 45%,#e0218a 100%)" }}
+          style={{ background: "linear-gradient(120deg,#173a5e 0%,#2b5a8f 100%)" }}
         >
           <span className="pointer-events-none absolute -right-8 -top-10 w-32 h-32 rounded-full bg-white/10" />
           <span className="pointer-events-none absolute right-10 -bottom-12 w-24 h-24 rounded-full bg-white/[0.07]" />
@@ -425,7 +425,7 @@ export default function AdminShell({
           }`}
         >
           {compact ? (
-            <span className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-[#eef3ff] text-[#2552d0]`}>
+            <span className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-[#edf2f8] text-[#1f4b7f]`}>
               <ChevronsRight size={18} strokeWidth={2.5} />
             </span>
           ) : (
@@ -441,7 +441,7 @@ export default function AdminShell({
       <Sheet open={drawer} onOpenChange={setDrawer}>
         <SheetContent side="left" className="w-72 p-0" dir="ltr">
           <SheetTitle className="sr-only">Menu</SheetTitle>
-          <div className="relative h-20 flex items-center gap-2.5 px-5 text-white overflow-hidden" style={{ background: "linear-gradient(120deg,#ff8a00 0%,#ff4d4d 45%,#e0218a 100%)" }}>
+          <div className="relative h-20 flex items-center gap-2.5 px-5 text-white overflow-hidden" style={{ background: "linear-gradient(120deg,#173a5e 0%,#2b5a8f 100%)" }}>
             <LogoIP5 className="!h-12 !text-white" />
             <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/90 bg-white/15 rounded-full px-2 py-0.5">CRM</span>
             <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ffd166,#ffffff80,#ffd166)" }} />

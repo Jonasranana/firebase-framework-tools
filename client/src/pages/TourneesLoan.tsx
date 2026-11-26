@@ -31,7 +31,7 @@ const DEPARTS = [
   { nom: "Aix-en-Provence", lat: 43.5297, lng: 5.4474 },
   { nom: "Marseille", lat: 43.2965, lng: 5.3698 },
 ];
-const COULEURS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#ca8a04", "#db2777", "#4f46e5", "#059669", "#b91c1c", "#7c3aed"];
+const COULEURS = ["#1f4b7f", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0891b2", "#ca8a04", "#db2777", "#4f46e5", "#059669", "#b91c1c", "#7c3aed"];
 
 type Champ = { k: keyof ParamsLoan; label: string; unite?: string; step?: number; aide?: string };
 const GROUPES: { titre: string; icon: typeof Wrench; champs: Champ[] }[] = [
@@ -280,7 +280,7 @@ export default function TourneesLoan({ email }: { email: string }) {
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-800 mb-2">D'où vient le coût</h3>
                   {[
-                    { l: "Équipe (jours de pose et de route)", v: res.total.equipe, c: "#2563eb" },
+                    { l: "Équipe (jours de pose et de route)", v: res.total.equipe, c: "#1f4b7f" },
                     { l: `Gazole et péages (${km(res.total.km)})`, v: res.total.route, c: "#ea580c" },
                     { l: `Logement (${res.total.nuitsHotel} nuits d'hôtel, ${res.total.nuitsAirbnb} d'Airbnb)`, v: res.total.logement, c: "#9333ea" },
                     ...(res.total.repas ? [{ l: "Repas", v: res.total.repas, c: "#16a34a" }] : []),

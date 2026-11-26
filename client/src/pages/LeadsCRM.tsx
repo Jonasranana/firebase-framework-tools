@@ -1175,7 +1175,7 @@ function ExportDriveModal({
               id="archiveAfterCheck"
               checked={archiveAfter}
               onChange={(e) => setArchiveAfter(e.target.checked)}
-              className="mt-0.5 w-4 h-4 accent-[#2563eb] rounded"
+              className="mt-0.5 w-4 h-4 accent-[#1f4b7f] rounded"
             />
             <label htmlFor="archiveAfterCheck" className="text-xs text-amber-900 cursor-pointer">
               <strong className="block font-bold">Sortir ces fiches du CRM actif pour l'alléger</strong>
@@ -1905,13 +1905,13 @@ export default function LeadsCRM({
               { t: "À appeler", v: kpis.aAppeler, c: "#1f2430", on: statusFilter === "a_appeler", f: () => setStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler") },
               { t: "Rappels en retard", v: rappelsCount, c: rappelsCount ? "#dc2626" : "#1f2430", on: rappelsOnly, f: () => setRappelsOnly(!rappelsOnly) },
               { t: "Intéressés (7 j)", v: kpis.interesses, c: "#059669" },
-              { t: "Nouveaux (7 j)", v: kpis.nouveaux, c: "#2552d0" },
+              { t: "Nouveaux (7 j)", v: kpis.nouveaux, c: "#1f4b7f" },
             ].map((k) => (
               <button
                 key={k.t}
                 onClick={k.f}
                 disabled={!k.f}
-                className={`shrink-0 inline-flex items-baseline gap-1.5 rounded-full border px-2.5 py-0.5 bg-white enabled:hover:border-[#c9d4f5] disabled:cursor-default ${k.on ? "border-[#2552d0] ring-1 ring-[#2552d0]" : "border-[#eceef3]"}`}
+                className={`shrink-0 inline-flex items-baseline gap-1.5 rounded-full border px-2.5 py-0.5 bg-white enabled:hover:border-[#c9d4f5] disabled:cursor-default ${k.on ? "border-[#1f4b7f] ring-1 ring-[#1f4b7f]" : "border-[#eceef3]"}`}
               >
                 <span className="font-semibold text-[#8a90a3]">{k.t}</span>
                 <span className="font-extrabold" style={{ color: k.c }}>
@@ -2009,8 +2009,8 @@ export default function LeadsCRM({
 
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
       {partiel && (
-        <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#eef3ff] px-3 py-1 text-xs font-semibold text-[#2552d0]">
-          <span className="w-3 h-3 rounded-full border-2 border-[#2552d0] border-t-transparent animate-spin" />
+        <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#edf2f8] px-3 py-1 text-xs font-semibold text-[#1f4b7f]">
+          <span className="w-3 h-3 rounded-full border-2 border-[#1f4b7f] border-t-transparent animate-spin" />
           Les fiches les plus récentes sont affichées, les autres arrivent…
         </p>
       )}
