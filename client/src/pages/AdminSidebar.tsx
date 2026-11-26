@@ -1,53 +1,37 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import {
   Archive,
-  ArrowRight,
   BarChart3,
-  Calculator,
-  ChevronsDownUp,
-  Copy,
-  ExternalLink,
+  CalendarDays,
+  ChevronDown,
   FileCheck2,
   FolderOpen,
-  FolderPlus,
-  Plus,
   Gauge,
-  Layers,
   MoreHorizontal,
-  Palette,
-  Pencil,
-  PanelTop,
-  Percent,
-  Repeat,
-  Settings2,
-  Star,
-  PanelLeft as BoardIcon,
-  Trash2,
-  UserPlus,
-  Users,
-  ArrowUp,
-  ArrowDown,
-  Save,
-  Check,
-  Home,
   Newspaper,
+  PanelLeft as BoardIcon,
+  Pencil,
+  Percent,
   PiggyBank,
-  CalendarDays,
+  Plus,
+  Settings,
+  Trash2,
   Truck,
+  UserPlus,
+  Calculator,
+  ExternalLink,
 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  FOLDER_COLORS,
-  allItems,
-  newId,
-  type AdminPageKey,
-  type SideConfig,
-  type SideFolder,
-  type SideItem,
-} from "@/lib/crmSidebar";
+import { allItems, newId, type AdminPageKey, type SideConfig, type SideFolder, type SideItem } from "@/lib/crmSidebar";
 
-// Menu de gauche façon Monday : espace de travail, favoris, dossiers colorés,
-// tableaux. Chaque dossier et chaque tableau a son menu « ⋯ ».
+// ─────────────────────────────────────────────────────────────────────────
+// Menu de gauche, pensé pour la PAC : des groupes fixes, rangés selon l'usage
+// (Tableau, PRAIMY, Loan · Chantiers, Pub & aides, LED), et en bas « Paramètres »
+// (documents, corbeille, archives…). On ne crée plus de tableaux partout :
+// seul le bouton du haut « Nouveau groupe » crée un groupe avec son tableau
+// (comme Pac Pac). La configuration reste partagée (crm_boards/sidebar) :
+// noms des pages, tableaux ajoutés, groupes créés.
+// ─────────────────────────────────────────────────────────────────────────
 const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
   leads: BoardIcon,
   artisans: BoardIcon,
@@ -70,245 +54,29 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
   pacarchive: Archive,
 };
 
+// Groupes fixes du menu, dans l'ordre d'usage.
+const GROUPES: { id: string; titre: string; couleur: string; pages: AdminPageKey[] }[] = [
+  { id: "g_tableau", titre: "Tableau", couleur: "#2563eb", pages: ["leads", "bets", "stats"] },
+  { id: "g_praimy", titre: "PRAIMY", couleur: "#f59e0b", pages: ["praimy", "marges", "bareme"] },
+  { id: "g_loan", titre: "Loan · Chantiers", couleur: "#10b981", pages: ["planning", "loan"] },
+  { id: "g_pub", titre: "Pub & aides", couleur: "#a855f7", pages: ["renta", "actus"] },
+  // Tableaux de l'activité LED (ex. « Tableau pour Dépôt ») : les tableaux ajoutés avant le nouveau menu.
+  { id: "g_led", titre: "LED", couleur: "#eab308", pages: [] },
+];
+// Rangé dans « Paramètres » (en bas à gauche).
+const PARAMETRES: AdminPageKey[] = ["documents", "corbeille", "pacarchive", "archives", "clients", "gonflage", "artisans"];
+const COULEURS_GROUPES = ["#ef4444", "#0ea5e9", "#14b8a6", "#ec4899", "#8b5cf6", "#64748b"];
+
 const POP = "bg-white text-gray-900 border border-gray-200 shadow-xl";
+const visible = (i: SideItem, hidden: string[]) => !i.archived && !i.deletedAt && !hidden.includes(i.page);
 
-const Entry = ({
-  icon: Icon,
-  label,
-  onClick,
-  disabled,
-  danger,
-  more,
-}: {
-  icon: any;
-  label: string;
-  onClick?: () => void;
-  disabled?: boolean;
-  danger?: boolean;
-  more?: boolean;
-}) => (
-  <button
-    disabled={disabled}
-    onClick={onClick}
-    className={`w-full flex items-center gap-2.5 text-left text-sm px-2.5 py-1.5 rounded-md disabled:opacity-35 disabled:cursor-not-allowed ${
-      danger ? "text-red-600 hover:bg-red-50" : "text-gray-700 hover:bg-gray-100"
-    }`}
-  >
-    <Icon size={15} className="shrink-0" />
-    <span className="flex-1">{label}</span>
-    {more && <ArrowRight size={13} className="text-gray-400" />}
-  </button>
-);
-
-const Sep = () => <div className="my-1 border-t border-gray-100" />;
-
-type Ctx = {
-  config: SideConfig;
-  activeId: string;
-  renaming: string | null;
-  draft: string;
-  setDraft: (v: string) => void;
-  commit: () => void;
-  setRenaming: (v: string | null) => void;
-  start: (id: string, current: string) => void;
-  onSelect: (item: SideItem) => void;
-  onOverlay: (item: SideItem) => void;
-  patchItem: (id: string, p: Partial<SideItem>) => void;
-  patchFolder: (id: string, p: Partial<SideFolder>) => void;
-  toggleFav: (id: string) => void;
-  duplicateItem: (it: SideItem) => void;
-  deleteItem: (id: string) => void;
-  moveItem: (id: string, toFolder: string) => void;
-  moveFolder: (id: string, to: "top" | "up" | "down" | "bottom") => void;
-  addBoard: (folderId: string) => void;
-  addFolder: (afterId?: string) => void;
-  deleteFolder: (id: string) => void;
-  collapseAll: (collapsed: boolean) => void;
-  url: (it: SideItem) => string;
+const replie = (id: string) => {
+  try {
+    return localStorage.getItem(`menu-replie-${id}`) === "1";
+  } catch {
+    return false;
+  }
 };
-
-const ItemRow = ({ it, inFav, ctx }: { it: SideItem; inFav?: boolean; ctx: Ctx }) => {
-  const { activeId, renaming, draft, setDraft, commit, setRenaming, onSelect } = ctx;
-    const Icon = it.kind === "view" ? BoardIcon : ICONS[it.page];
-    const active = it.id === activeId;
-    return (
-      <li className="group/item relative">
-        {renaming === it.id ? (
-          <input
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") commit();
-              if (e.key === "Escape") setRenaming(null);
-            }}
-            className="w-full text-sm bg-white text-gray-900 border-2 border-[#ff6a1a] rounded-md px-2 py-1.5 outline-none"
-          />
-        ) : (
-          <div
-            className={`flex items-center rounded-md ${active ? "bg-[#fff0e6] shadow-[inset_3px_0_0_#ff6a1a]" : "hover:bg-orange-50"}`}
-          >
-            <button
-              onClick={() => onSelect(it)}
-              className={`flex-1 min-w-0 flex items-center gap-3 text-[14px] font-semibold px-3 py-2 text-left ${active ? "text-[#c2410c]" : "text-gray-700"}`}
-            >
-              {inFav ? <Star size={15} className="shrink-0 text-amber-400" fill="currentColor" /> : <Icon size={18} className="shrink-0" />}
-              <span className="truncate">{it.title}</span>
-            </button>
-            <ItemMenu it={it} ctx={ctx} />
-          </div>
-        )}
-      </li>
-    );
-  };
-
-const ItemMenu = ({ it, ctx }: { it: SideItem; ctx: Ctx }) => {
-  const { config, start, onOverlay, toggleFav, duplicateItem, deleteItem, patchItem, moveItem, url } = ctx;
-    const [open, setOpen] = useState(false);
-    const [panel, setPanel] = useState<"" | "move">("");
-    const close = () => {
-      setOpen(false);
-      setPanel("");
-    };
-    const isFav = config.favorites.includes(it.id);
-    return (
-      <Popover open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
-        <PopoverTrigger asChild>
-          <button
-            aria-label={`Options de ${it.title}`}
-            className="mr-1 p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover/item:opacity-100 data-[state=open]:opacity-100 focus:opacity-100"
-          >
-            <MoreHorizontal size={15} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent side="right" align="start" className={`w-64 p-1.5 ${POP}`}>
-          {panel === "" ? (
-            <>
-              <Entry icon={PanelTop} label="Ouvrir en superposition" onClick={() => { close(); onOverlay(it); }} />
-              <Entry icon={ExternalLink} label="Ouvrir dans un nouvel onglet" onClick={() => { close(); window.open(url(it), "_blank"); }} />
-              <Sep />
-              <Entry icon={Pencil} label="Renommer" onClick={() => { close(); start(it.id, it.title); }} />
-              <Entry icon={ArrowRight} label="Déplacer vers" more onClick={() => setPanel("move")} />
-              <Entry icon={Repeat} label="Changer le type" disabled />
-              <Entry icon={Star} label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"} onClick={() => { close(); toggleFav(it.id); }} />
-              <Entry icon={Copy} label="Dupliquer" onClick={() => { close(); duplicateItem(it); }} />
-              <Entry icon={Save} label="Enregistrer en tant que modèle" disabled />
-              <Sep />
-              <Entry
-                icon={Trash2}
-                label="Supprimer"
-                onClick={() => {
-                  if (confirm(`Supprimer « ${it.title} » ? Il sera gardé 30 jours dans la corbeille, vous pourrez le restaurer.`)) {
-                    close();
-                    deleteItem(it.id);
-                  }
-                }}
-              />
-              <Entry icon={Archive} label="Archiver" onClick={() => { close(); patchItem(it.id, { archived: true }); }} />
-            </>
-          ) : (
-            <>
-              <p className="text-[11px] font-semibold text-gray-400 px-2.5 py-1">Déplacer vers le dossier…</p>
-              {config.folders.map((f) => {
-                const here = f.items.some((i) => i.id === it.id);
-                return (
-                  <button
-                    key={f.id}
-                    disabled={here}
-                    onClick={() => { close(); moveItem(it.id, f.id); }}
-                    className="w-full flex items-center gap-2 text-left text-sm px-2.5 py-1.5 rounded-md hover:bg-gray-100 disabled:opacity-40"
-                  >
-                    <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: f.color }} />
-                    <span className="truncate flex-1">{f.title}</span>
-                    {here && <Check size={13} />}
-                  </button>
-                );
-              })}
-            </>
-          )}
-        </PopoverContent>
-      </Popover>
-    );
-  };
-
-const FolderMenu = ({ f, index, ctx }: { f: SideFolder; index: number; ctx: Ctx }) => {
-  const { config, start, patchFolder, moveFolder, addBoard, addFolder, collapseAll, deleteFolder } = ctx;
-    const [open, setOpen] = useState(false);
-    const [panel, setPanel] = useState<"" | "color" | "move" | "create">("");
-    const close = () => {
-      setOpen(false);
-      setPanel("");
-    };
-    return (
-      <Popover open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
-        <PopoverTrigger asChild>
-          <button
-            aria-label={`Options du dossier ${f.title}`}
-            className="mr-1 p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover/folder:opacity-100 data-[state=open]:opacity-100 focus:opacity-100"
-          >
-            <MoreHorizontal size={15} />
-          </button>
-        </PopoverTrigger>
-        <PopoverContent side="right" align="start" className={`w-60 p-1.5 ${POP}`}>
-          {panel === "" && (
-            <>
-              <Entry icon={Pencil} label="Renommer" onClick={() => { close(); start(f.id, f.title); }} />
-              <Entry icon={Palette} label="Modifier la couleur" more onClick={() => setPanel("color")} />
-              <Sep />
-              <Entry icon={ArrowRight} label="Déplacer vers" more onClick={() => setPanel("move")} />
-              <Entry icon={BoardIcon} label="Ajouter un tableau" onClick={() => { close(); addBoard(f.id); }} />
-              <Entry icon={FolderPlus} label="Ajouter un dossier (en dessous)" onClick={() => { close(); addFolder(f.id); }} />
-              <Sep />
-              <Entry icon={ChevronsDownUp} label="Réduire tous les dossiers" onClick={() => { close(); collapseAll(true); }} />
-              <Entry
-                icon={Trash2}
-                label="Supprimer"
-                disabled={f.items.length > 0}
-                onClick={() => {
-                  if (confirm(`Supprimer le dossier « ${f.title} » ?`)) {
-                    close();
-                    deleteFolder(f.id);
-                  }
-                }}
-              />
-            </>
-          )}
-          {panel === "color" && (
-            <div className="p-2">
-              <p className="text-[11px] font-semibold text-gray-400 mb-1.5">Couleur du dossier</p>
-              <div className="grid grid-cols-6 gap-1.5">
-                {FOLDER_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => { close(); patchFolder(f.id, { color: c }); }}
-                    aria-label={`Couleur ${c}`}
-                    className={`h-6 rounded ${f.color === c ? "ring-2 ring-offset-1 ring-gray-700" : ""}`}
-                    style={{ background: c }}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-          {panel === "move" && (
-            <>
-              <Entry icon={ArrowUp} label="Tout en haut" disabled={index === 0} onClick={() => { close(); moveFolder(f.id, "top"); }} />
-              <Entry icon={ArrowUp} label="Monter d'un cran" disabled={index === 0} onClick={() => { close(); moveFolder(f.id, "up"); }} />
-              <Entry icon={ArrowDown} label="Descendre d'un cran" disabled={index === config.folders.length - 1} onClick={() => { close(); moveFolder(f.id, "down"); }} />
-              <Entry icon={ArrowDown} label="Tout en bas" disabled={index === config.folders.length - 1} onClick={() => { close(); moveFolder(f.id, "bottom"); }} />
-            </>
-          )}
-          {panel === "create" && (
-            <>
-              <Entry icon={BoardIcon} label="Nouveau tableau de leads" onClick={() => { close(); addBoard(f.id); }} />
-              <Entry icon={FolderPlus} label="Nouveau dossier (en dessous)" onClick={() => { close(); addFolder(f.id); }} />
-            </>
-          )}
-        </PopoverContent>
-      </Popover>
-    );
-  };
-
 
 export default function AdminSidebar({
   config,
@@ -317,7 +85,6 @@ export default function AdminSidebar({
   onSelect,
   onOverlay,
   compact,
-  onManage,
   hiddenPages = [],
 }: {
   hiddenPages?: string[];
@@ -329,323 +96,363 @@ export default function AdminSidebar({
   compact: boolean;
   onManage: () => void;
 }) {
-  const [renaming, setRenaming] = useState<string | null>(null); // id d'un élément ou d'un dossier, ou "ws"
-  const [draft, setDraft] = useState("");
   const items = allItems(config);
+  const page = (p: AdminPageKey) => items.find((i) => i.core && i.page === p && visible(i, hiddenPages));
+  const persos = config.folders.filter((f) => f.perso);
+  const dansPerso = new Set(persos.flatMap((f) => f.items.map((i) => i.id)));
+  // Tableaux ajoutés avant (ex. « Tableau pour Dépôt », activité LED) : rangés dans le groupe LED.
+  const anciensTableaux = items.filter((i) => !i.core && !dansPerso.has(i.id) && visible(i, hiddenPages));
 
-  const start = (id: string, current: string) => {
-    setRenaming(id);
-    setDraft(current);
-  };
-  const commit = () => {
-    const t = draft.trim();
-    const id = renaming;
-    setRenaming(null);
-    if (!id || !t) return;
-    if (id === "ws") return save({ ...config, workspaceName: t });
-    save({
-      ...config,
-      folders: config.folders.map((f) =>
-        f.id === id
-          ? { ...f, title: t }
-          : { ...f, items: f.items.map((i) => (i.id === id ? { ...i, title: t } : i)) },
-      ),
-    });
-  };
+  const groupes = [
+    ...GROUPES.map((g) => ({
+      id: g.id,
+      titre: g.titre,
+      couleur: g.couleur,
+      perso: null as SideFolder | null,
+      items: [...g.pages.map(page).filter((i): i is SideItem => !!i), ...(g.id === "g_led" ? anciensTableaux : [])],
+    })),
+    ...persos.map((f) => ({ id: f.id, titre: f.title, couleur: f.color, perso: f, items: f.items.filter((i) => visible(i, hiddenPages)) })),
+  ].filter((g) => g.items.length > 0);
+  const rangees = new Set(groupes.flatMap((g) => g.items.map((i) => i.id)));
+  // Paramètres : la liste prévue, puis toute page d'origine qui n'a pas trouvé de groupe.
+  const parametres = [
+    ...PARAMETRES.map(page),
+    ...items.filter((i) => i.core && visible(i, hiddenPages) && !PARAMETRES.includes(i.page) && !rangees.has(i.id)),
+  ].filter((i, n, a): i is SideItem => !!i && a.indexOf(i) === n);
 
-  const patchFolder = (id: string, p: Partial<SideFolder>) =>
-    save({ ...config, folders: config.folders.map((f) => (f.id === id ? { ...f, ...p } : f)) });
-  const patchItem = (id: string, p: Partial<SideItem>) =>
-    save({ ...config, folders: config.folders.map((f) => ({ ...f, items: f.items.map((i) => (i.id === id ? { ...i, ...p } : i)) })) });
-  const collapseAll = (collapsed: boolean) => save({ ...config, folders: config.folders.map((f) => ({ ...f, collapsed })) });
+  const [ferme, setFerme] = useState<Record<string, boolean>>(() => Object.fromEntries(groupes.map((g) => [g.id, replie(g.id)])));
+  const basculer = (id: string) =>
+    setFerme((m) => {
+      const v = !m[id];
+      try {
+        localStorage.setItem(`menu-replie-${id}`, v ? "1" : "0");
+      } catch {
+        /* non essentiel */
+      }
+      return { ...m, [id]: v };
+    });
 
-  const moveItem = (id: string, toFolder: string) => {
-    const it = items.find((i) => i.id === id);
-    if (!it) return;
-    save({
-      ...config,
-      folders: config.folders.map((f) => {
-        const without = f.items.filter((i) => i.id !== id);
-        return f.id === toFolder ? { ...f, items: [...without, it], collapsed: false } : { ...f, items: without };
-      }),
-    });
+  // ── Groupes créés par l'équipe ──
+  const creerGroupe = (titre: string) => {
+    const id = newId("i");
+    const it: SideItem = { id, kind: "view", page: "leads", title: titre, board: `board_${id}`, view: { filters: [], sorts: [], groupBy: "", personKey: "", visible: [] } };
+    const f: SideFolder = { id: newId("f"), title: titre, color: COULEURS_GROUPES[persos.length % COULEURS_GROUPES.length], perso: true, items: [it] };
+    save({ ...config, folders: [...config.folders, f] });
+    onSelect(it);
   };
-  const moveFolder = (id: string, to: "top" | "up" | "down" | "bottom") => {
-    const list = [...config.folders];
-    const i = list.findIndex((f) => f.id === id);
-    const [f] = list.splice(i, 1);
-    const dest = to === "top" ? 0 : to === "bottom" ? list.length : to === "up" ? Math.max(0, i - 1) : Math.min(list.length, i + 1);
-    list.splice(dest, 0, f);
-    save({ ...config, folders: list });
-  };
-  const duplicateItem = (it: SideItem) => {
-    const copy: SideItem =
-      it.page === "leads" && it.kind === "page"
-        ? { id: newId("i"), kind: "view", page: "leads", title: `${it.title} (copie)`, view: { filters: [], sorts: [], groupBy: "", personKey: "", visible: [] } }
-        : { ...it, id: newId("i"), title: `${it.title} (copie)`, core: false, archived: false, view: it.view ? JSON.parse(JSON.stringify(it.view)) : undefined };
-    save({
-      ...config,
-      folders: config.folders.map((f) => {
-        const idx = f.items.findIndex((i) => i.id === it.id);
-        if (idx < 0) return f;
-        const next = [...f.items];
-        next.splice(idx + 1, 0, copy);
-        return { ...f, items: next };
-      }),
-    });
-  };
-  // Suppression douce : l'élément quitte le menu et reste 30 jours dans la corbeille (aucune donnée de leads n'est effacée).
-  const deleteItem = (id: string) =>
-    save({
-      ...config,
-      favorites: config.favorites.filter((x) => x !== id),
-      folders: config.folders.map((f) => ({ ...f, items: f.items.map((i) => (i.id === id ? { ...i, deletedAt: new Date().toISOString() } : i)) })),
-    });
-  const restoreItem = (id: string) =>
+  const renommer = (folderId: string | null, itemId: string, titre: string) =>
     save({
       ...config,
       folders: config.folders.map((f) => ({
         ...f,
-        items: f.items.map((i) => {
-          if (i.id !== id) return i;
-          const { deletedAt, ...rest } = i;
-          return { ...rest, archived: false };
-        }),
+        title: f.id === folderId ? titre : f.title,
+        items: f.items.map((i) => (i.id === itemId ? { ...i, title: titre } : i)),
       })),
     });
-  const toggleFav = (id: string) =>
-    save({ ...config, favorites: config.favorites.includes(id) ? config.favorites.filter((x) => x !== id) : [...config.favorites, id] });
-  const addBoard = (folderId: string) => {
-    const id = newId("i");
-    const it: SideItem = { id, kind: "view", page: "leads", title: "Nouveau tableau", board: `board_${id}`, view: { filters: [], sorts: [], groupBy: "", personKey: "", visible: [] } };
-    save({ ...config, folders: config.folders.map((f) => (f.id === folderId ? { ...f, collapsed: false, items: [...f.items, it] } : f)) });
-    start(it.id, it.title);
-  };
-  const addFolder = (afterId?: string) => {
-    const f: SideFolder = { id: newId("f"), title: "Nouveau dossier", color: FOLDER_COLORS[config.folders.length % FOLDER_COLORS.length], items: [] };
-    const list = [...config.folders];
-    const i = afterId ? list.findIndex((x) => x.id === afterId) : list.length - 1;
-    list.splice(i + 1, 0, f);
-    save({ ...config, folders: list });
-    start(f.id, f.title);
-  };
-  const deleteFolder = (id: string) => save({ ...config, folders: config.folders.filter((f) => f.id !== id) });
+  // Suppression douce : le tableau va dans la Corbeille (30 jours), ses fiches ne sont jamais effacées.
+  const supprimer = (itemIds: string[]) =>
+    save({
+      ...config,
+      favorites: config.favorites.filter((x) => !itemIds.includes(x)),
+      folders: config.folders.map((f) => ({ ...f, items: f.items.map((i) => (itemIds.includes(i.id) ? { ...i, deletedAt: new Date().toISOString() } : i)) })),
+    });
 
   const url = (it: SideItem) => `${window.location.origin}/admin#${it.kind === "view" ? `view-${it.id}` : it.page}`;
-  const archived = items.filter((i) => i.archived && !i.deletedAt);
-  const trashed = items.filter((i) => i.deletedAt);
-  const favItems = config.favorites.map((id) => items.find((i) => i.id === id)).filter((i): i is SideItem => !!i && !i.archived && !i.deletedAt && !hiddenPages.includes(i.page));
+  const Icone = (it: SideItem) => (it.kind === "view" ? BoardIcon : ICONS[it.page] ?? BoardIcon);
 
-  const ctx: Ctx = {
-    config, activeId, renaming, draft, setDraft, commit, setRenaming, start, onSelect, onOverlay,
-    patchItem, patchFolder, toggleFav, duplicateItem, deleteItem, moveItem, moveFolder, addBoard,
-    addFolder, deleteFolder, collapseAll, url,
+  const Ligne = ({ it, menu }: { it: SideItem; menu?: React.ReactNode }) => {
+    const Icon = Icone(it);
+    const actif = it.id === activeId;
+    return (
+      <li className="group/item relative">
+        <div className={`flex items-center rounded-lg ${actif ? "bg-[#fff0e6] shadow-[inset_3px_0_0_#ff6a1a]" : "hover:bg-orange-50"}`}>
+          <a
+            href={url(it)}
+            onClick={(e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey || e.button === 1) return;
+              e.preventDefault();
+              onSelect(it);
+            }}
+            className={`flex-1 min-w-0 flex items-center gap-2.5 text-[13.5px] font-semibold pl-3 pr-2 py-[7px] ${actif ? "text-[#c2410c]" : "text-gray-700"}`}
+          >
+            <Icon size={17} className={`shrink-0 ${actif ? "" : "text-gray-400"}`} />
+            <span className="truncate">{it.title}</span>
+          </a>
+          {menu}
+        </div>
+      </li>
+    );
   };
 
-  // Mode réduit (icônes seules) : liste à plat des éléments.
   if (compact) {
     return (
-      <nav className="crm-scroll py-3 px-2 space-y-0.5 overflow-y-auto h-full">
-        {config.folders.flatMap((f) =>
-          f.items
-            .filter((i) => !i.archived && !i.deletedAt)
-            .map((it) => {
-              const Icon = it.kind === "view" ? BoardIcon : ICONS[it.page];
-              return (
-                <button
-                  key={it.id}
-                  onClick={() => onSelect(it)}
-                  title={it.title}
-                  className={`w-full flex justify-center py-2.5 rounded-md ${it.id === activeId ? "bg-[#fff0e6] text-[#c2410c]" : "text-gray-600 hover:bg-orange-50"}`}
-                >
-                  <Icon size={18} />
-                </button>
-              );
-            }),
-        )}
-      </nav>
+      <div className="flex flex-col h-full">
+        <nav className="crm-scroll flex-1 py-3 px-2 space-y-0.5 overflow-y-auto">
+          {groupes.map((g, n) => (
+            <div key={g.id} className={n ? "pt-2 mt-2 border-t border-gray-100" : ""}>
+              {g.items.map((it) => {
+                const Icon = Icone(it);
+                return (
+                  <button
+                    key={it.id}
+                    onClick={() => onSelect(it)}
+                    title={`${g.titre} · ${it.title}`}
+                    className={`w-full flex justify-center py-2.5 rounded-md ${it.id === activeId ? "bg-[#fff0e6] text-[#c2410c]" : "text-gray-500 hover:bg-orange-50"}`}
+                  >
+                    <Icon size={18} />
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </nav>
+        <div className="p-2 border-t border-gray-100">
+          <Parametres items={parametres} activeId={activeId} onSelect={onSelect} compact />
+        </div>
+      </div>
     );
   }
 
   return (
-    <nav className="crm-scroll py-2 overflow-y-auto h-full">
-      {/* Espace de travail */}
-      <div className="px-2 mb-1">
-        <div className="group/item flex items-center gap-2 px-1 py-1">
-          <Popover>
-            <PopoverTrigger asChild>
-              <button
-                className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white rounded-lg px-3 py-2 shadow-sm hover:brightness-105 active:scale-[0.99] transition"
-                style={{ background: "var(--brand-grad-120)" }}
-              >
-                <Plus size={16} strokeWidth={3} /> Nouveau
-              </button>
-            </PopoverTrigger>
-            <PopoverContent align="start" className={`w-64 p-1.5 ${POP}`}>
-              <p className="text-[11px] font-semibold text-gray-400 px-2.5 py-1">Nouveau tableau dans le dossier…</p>
-              {config.folders.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => addBoard(f.id)}
-                  className="w-full flex items-center gap-2 text-left text-sm px-2.5 py-1.5 rounded-md hover:bg-orange-50"
-                >
-                  <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ background: f.color }} />
-                  <span className="truncate flex-1">{f.title}</span>
-                </button>
-              ))}
-              <Sep />
-              <Entry icon={FolderPlus} label="Nouveau dossier" onClick={() => addFolder()} />
-            </PopoverContent>
-          </Popover>
-          {renaming === "ws" ? (
-            <input
-              autoFocus
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              onBlur={commit}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") commit();
-                if (e.key === "Escape") setRenaming(null);
-              }}
-              className="flex-1 min-w-0 text-sm font-bold bg-white text-gray-900 border-2 border-[#ff6a1a] rounded-md px-2 py-0.5 outline-none"
-            />
-          ) : null}
-          <Popover>
-            <PopoverTrigger asChild>
-              <button aria-label="Options de l'espace de travail" className="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200">
-                <MoreHorizontal size={15} />
-              </button>
-            </PopoverTrigger>
-            <PopoverContent side="right" align="start" className={`w-64 p-1.5 ${POP}`}>
-              <Entry icon={Pencil} label="Renommer l'espace de travail" onClick={() => start("ws", config.workspaceName)} />
-              <Entry icon={FolderPlus} label="Ajouter un dossier" onClick={() => addFolder()} />
-              <Entry icon={ChevronsDownUp} label="Réduire tous les dossiers" onClick={() => collapseAll(true)} />
-              <Entry icon={Layers} label="Développer tous les dossiers" onClick={() => collapseAll(false)} />
-              {trashed.length > 0 && (
-                <>
-                  <Sep />
-                  <p className="text-[11px] font-semibold text-gray-400 px-2.5 py-1">Corbeille, gardée 30 jours ({trashed.length})</p>
-                  {trashed.map((a) => (
-                    <button
-                      key={a.id}
-                      onClick={() => restoreItem(a.id)}
-                      className="w-full flex items-center gap-2 text-left text-sm px-2.5 py-1.5 rounded-md hover:bg-gray-100"
-                    >
-                      <Trash2 size={14} className="shrink-0 text-gray-400" />
-                      <span className="truncate flex-1">{a.title}</span>
-                      <span className="text-xs font-bold text-[#e0511a]">Restaurer</span>
-                    </button>
-                  ))}
-                </>
-              )}
-              {archived.length > 0 && (
-                <>
-                  <Sep />
-                  <p className="text-[11px] font-semibold text-gray-400 px-2.5 py-1">Éléments archivés ({archived.length})</p>
-                  {archived.map((a) => (
-                    <button
-                      key={a.id}
-                      onClick={() => patchItem(a.id, { archived: false })}
-                      className="w-full flex items-center gap-2 text-left text-sm px-2.5 py-1.5 rounded-md hover:bg-gray-100"
-                    >
-                      <Archive size={14} className="shrink-0 text-gray-400" />
-                      <span className="truncate flex-1">{a.title}</span>
-                      <span className="text-xs font-bold text-[#e0511a]">Restaurer</span>
-                    </button>
-                  ))}
-                </>
-              )}
-            </PopoverContent>
-          </Popover>
-        </div>
-        <button
-          onClick={onManage}
-          className="w-full flex items-center gap-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-md px-2.5 py-1.5"
-        >
-          <Settings2 size={16} className="shrink-0" /> Gérer l'espace de travail
-        </button>
+    <div className="flex flex-col h-full">
+      <div className="px-3 pt-3 pb-2">
+        <NouveauGroupe onCreate={creerGroupe} />
       </div>
-
-      <div className="mx-3 my-2 border-t border-gray-100" />
-
-      {/* Favoris */}
-      {favItems.length > 0 && (
-        <div className="px-2 mb-2">
-          <p className="px-2.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-gray-400">Favoris</p>
-          <ul className="space-y-0.5">
-            {favItems.map((it) => (
-              <ItemRow key={`fav-${it.id}`} it={it} inFav ctx={ctx} />
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {/* Dossiers */}
-      {config.folders.map((f, fi) => {
-        const visible = f.items.filter((i) => !i.archived && !i.deletedAt && !hiddenPages.includes(i.page));
-        return (
-          <div key={f.id} className="px-2 mb-1.5">
-            <div className="group/folder flex items-center">
-              {renaming === f.id ? (
-                <input
-                  autoFocus
-                  value={draft}
-                  onChange={(e) => setDraft(e.target.value)}
-                  onBlur={commit}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") commit();
-                    if (e.key === "Escape") setRenaming(null);
-                  }}
-                  className="flex-1 min-w-0 text-sm font-bold bg-white text-gray-900 border-2 border-[#ff6a1a] rounded-md px-2 py-1 outline-none"
+      <nav className="crm-scroll flex-1 min-h-0 overflow-y-auto px-2 pb-3 space-y-3">
+        {groupes.map((g) => (
+          <section key={g.id}>
+            <div className="group/head flex items-center gap-1 px-1.5">
+              <button onClick={() => basculer(g.id)} className="flex-1 min-w-0 flex items-center gap-2 py-1 text-left">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: g.couleur }} />
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-500 truncate">{g.titre}</span>
+                <ChevronDown size={13} className={`shrink-0 text-gray-400 transition-transform ${ferme[g.id] ? "-rotate-90" : ""}`} />
+              </button>
+              {g.perso && (
+                <MenuPerso
+                  titre={g.titre}
+                  onRename={(t) => renommer(g.perso!.id, g.items[0]?.id ?? "", t)}
+                  onDelete={() => supprimer(g.items.map((i) => i.id))}
+                  onOverlay={g.items[0] ? () => onOverlay(g.items[0]) : undefined}
+                  confirmation={`Supprimer le groupe « ${g.titre} » ? Il va dans la Corbeille (Paramètres) pendant 30 jours ; ses fiches ne sont pas effacées.`}
                 />
-              ) : (
-                <button
-                  onClick={() => patchFolder(f.id, { collapsed: !f.collapsed })}
-                  className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 rounded-md hover:bg-gray-100 text-left"
-                >
-                  <span className="text-[10px] shrink-0 transition-transform" style={{ color: f.color, transform: f.collapsed ? "rotate(-90deg)" : "none" }}>
-                    ▼
-                  </span>
-                  <span className="truncate text-sm font-bold uppercase tracking-wide" style={{ color: f.color }}>
-                    {f.title}
-                  </span>
-                  <span className="shrink-0 text-[11px] font-bold rounded-full px-1.5" style={{ background: `${f.color}1f`, color: f.color }}>
-                    {visible.length}
-                  </span>
-                </button>
               )}
-              {renaming !== f.id && (
-                <button
-                  onClick={() => addBoard(f.id)}
-                  aria-label={`Ajouter un tableau dans ${f.title}`}
-                  title="Ajouter un tableau"
-                  className="p-1 rounded text-gray-400 hover:text-[#c2410c] hover:bg-orange-50 opacity-0 group-hover/folder:opacity-100 focus:opacity-100"
-                >
-                  <Plus size={15} />
-                </button>
-              )}
-              <FolderMenu f={f} index={fi} ctx={ctx} />
             </div>
-            {!f.collapsed && (
-              <ul className="space-y-0.5 mt-0.5 pl-3 border-l-2 ml-3.5" style={{ borderColor: `${f.color}55` }}>
-                {visible.map((it) => (
-                  <ItemRow key={it.id} it={it} ctx={ctx} />
+            {!ferme[g.id] && (
+              <ul className="mt-0.5 space-y-px">
+                {g.items.map((it) => (
+                  <Ligne
+                    key={it.id}
+                    it={it}
+                    menu={
+                      !it.core && !g.perso ? (
+                        <MenuPerso
+                          titre={it.title}
+                          onRename={(t) => renommer(null, it.id, t)}
+                          onDelete={() => supprimer([it.id])}
+                          onOverlay={() => onOverlay(it)}
+                          confirmation={`Supprimer le tableau « ${it.title} » ? Il va dans la Corbeille (Paramètres) pendant 30 jours ; ses fiches ne sont pas effacées.`}
+                        />
+                      ) : undefined
+                    }
+                  />
                 ))}
-                {visible.length === 0 && <li className="text-xs text-gray-400 px-2.5 py-1">Dossier vide</li>}
               </ul>
             )}
-          </div>
-        );
-      })}
-
-      <div className="px-2 mt-2">
-        <button
-          onClick={() => addFolder()}
-          className="w-full flex items-center justify-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#c2410c] hover:bg-orange-50 border border-dashed border-gray-300 hover:border-[#ff9a5a] rounded-lg px-2.5 py-2"
-        >
-          <FolderPlus size={15} /> Ajouter un dossier
-        </button>
+          </section>
+        ))}
+      </nav>
+      <div className="px-2 py-1.5 border-t border-gray-100">
+        <Parametres items={parametres} activeId={activeId} onSelect={onSelect} />
       </div>
-    </nav>
+    </div>
+  );
+}
+
+// Bouton du haut : créer un groupe (avec son tableau, comme Pac Pac).
+function NouveauGroupe({ onCreate }: { onCreate: (titre: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [titre, setTitre] = useState("");
+  const valider = () => {
+    const t = titre.trim();
+    if (!t) return;
+    onCreate(t);
+    setTitre("");
+    setOpen(false);
+  };
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          className="w-full inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white rounded-lg px-3 py-2 shadow-sm hover:brightness-105 active:scale-[0.99] transition"
+          style={{ background: "var(--brand-grad-120)" }}
+        >
+          <Plus size={16} strokeWidth={3} /> Nouveau groupe
+        </button>
+      </PopoverTrigger>
+      <PopoverContent dir="ltr" align="start" side="right" className={`w-72 p-3 ${POP}`}>
+        <p className="text-sm font-bold text-gray-900">Nouveau groupe</p>
+        <input
+          autoFocus
+          value={titre}
+          onChange={(e) => setTitre(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && valider()}
+          placeholder="Nom du groupe (ex. Clim, Solaire…)"
+          className="mt-2 w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-2 outline-none focus:border-[#2563eb]"
+        />
+        <p className="mt-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider">Type</p>
+        <div className="mt-1 grid grid-cols-2 gap-1.5">
+          <div className="rounded-lg border-2 border-[#2563eb] bg-[#eef3ff] px-2.5 py-2">
+            <p className="text-sm font-bold text-[#1d4ed8] flex items-center gap-1.5">
+              <BoardIcon size={14} /> Tableau
+            </p>
+            <p className="text-[11px] text-gray-500 leading-snug">comme Pac Pac : fiches, étiquettes, groupes</p>
+          </div>
+          <div className="rounded-lg border border-dashed border-gray-300 px-2.5 py-2 opacity-60" title="Bientôt">
+            <p className="text-sm font-bold text-gray-500">Autre</p>
+            <p className="text-[11px] text-gray-400 leading-snug">bientôt</p>
+          </div>
+        </div>
+        <button
+          onClick={valider}
+          disabled={!titre.trim()}
+          className="mt-3 w-full text-sm font-bold text-white bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-40 rounded-lg py-2"
+        >
+          Créer le groupe
+        </button>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// « ⋯ » d'un groupe ou d'un tableau ajouté : renommer, ouvrir ailleurs, supprimer (corbeille 30 jours).
+function MenuPerso({
+  titre,
+  onRename,
+  onDelete,
+  onOverlay,
+  confirmation,
+}: {
+  titre: string;
+  onRename: (t: string) => void;
+  onDelete: () => void;
+  onOverlay?: () => void;
+  confirmation: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [nom, setNom] = useState<string | null>(null);
+  const fermer = () => {
+    setOpen(false);
+    setNom(null);
+  };
+  const L = "w-full flex items-center gap-2.5 text-left text-sm px-2.5 py-1.5 rounded-md";
+  return (
+    <Popover open={open} onOpenChange={(o) => (o ? setOpen(true) : fermer())}>
+      <PopoverTrigger asChild>
+        <button
+          aria-label={`Options de ${titre}`}
+          className="mr-1 p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-200 opacity-0 group-hover/item:opacity-100 group-hover/head:opacity-100 data-[state=open]:opacity-100 focus:opacity-100"
+        >
+          <MoreHorizontal size={15} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent dir="ltr" side="right" align="start" className={`w-60 p-1.5 ${POP}`}>
+        {nom !== null ? (
+          <div className="p-1">
+            <input
+              autoFocus
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && nom.trim()) {
+                  onRename(nom.trim());
+                  fermer();
+                }
+                if (e.key === "Escape") fermer();
+              }}
+              className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-md px-2 py-1.5 outline-none focus:border-[#2563eb]"
+            />
+            <p className="mt-1 text-[11px] text-gray-400">Entrée pour enregistrer</p>
+          </div>
+        ) : (
+          <>
+            <button className={`${L} text-gray-700 hover:bg-gray-100`} onClick={() => setNom(titre)}>
+              <Pencil size={15} /> Renommer
+            </button>
+            {onOverlay && (
+              <button
+                className={`${L} text-gray-700 hover:bg-gray-100`}
+                onClick={() => {
+                  fermer();
+                  onOverlay();
+                }}
+              >
+                <ExternalLink size={15} /> Ouvrir en superposition
+              </button>
+            )}
+            <div className="my-1 border-t border-gray-100" />
+            <button
+              className={`${L} text-red-600 hover:bg-red-50`}
+              onClick={() => {
+                fermer();
+                if (confirm(confirmation)) onDelete();
+              }}
+            >
+              <Trash2 size={15} /> Supprimer
+            </button>
+          </>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+// « Paramètres » en bas à gauche : documents, corbeille, archives…
+function Parametres({
+  items,
+  activeId,
+  onSelect,
+  compact,
+}: {
+  items: SideItem[];
+  activeId: string;
+  onSelect: (it: SideItem) => void;
+  compact?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const dedans = items.some((i) => i.id === activeId);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          title="Paramètres"
+          className={`w-full flex items-center gap-2.5 rounded-lg text-sm font-semibold ${compact ? "justify-center py-2.5" : "px-3 py-2"} ${
+            dedans ? "bg-[#fff0e6] text-[#c2410c]" : "text-gray-600 hover:bg-gray-100"
+          }`}
+        >
+          <Settings size={18} className="shrink-0" />
+          {!compact && <span className="flex-1 text-left">Paramètres</span>}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent dir="ltr" side="right" align="end" className={`w-64 p-1.5 ${POP}`}>
+        <p className="px-2.5 pt-1 pb-1.5 text-[11px] font-extrabold uppercase tracking-wider text-gray-400">Paramètres</p>
+        {items.map((it) => {
+          const Icon = it.kind === "view" ? BoardIcon : ICONS[it.page] ?? BoardIcon;
+          const actif = it.id === activeId;
+          return (
+            <button
+              key={it.id}
+              onClick={() => {
+                setOpen(false);
+                onSelect(it);
+              }}
+              className={`w-full flex items-center gap-2.5 text-left text-sm font-semibold px-2.5 py-1.5 rounded-md ${actif ? "bg-[#fff0e6] text-[#c2410c]" : "text-gray-700 hover:bg-gray-100"}`}
+            >
+              <Icon size={16} className="shrink-0 text-gray-400" />
+              <span className="truncate">{it.title}</span>
+            </button>
+          );
+        })}
+      </PopoverContent>
+    </Popover>
   );
 }

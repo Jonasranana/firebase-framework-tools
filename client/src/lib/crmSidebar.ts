@@ -60,6 +60,8 @@ export type SideFolder = {
   title: string;
   color: string;
   collapsed?: boolean;
+  // Groupe créé par l'équipe avec « Nouveau groupe » (affiché sous les groupes fixes du menu).
+  perso?: boolean;
   items: SideItem[];
 };
 
