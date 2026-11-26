@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-pacpac-archive-modeles",
+    date: "2026-11-26",
+    emoji: "📦",
+    titre: "Pac Pac archivé, modèles de mail et « Réduire le haut »",
+    points: [
+      "Nouvelle page « Pac Pac archivé » (menu, sous Pac Pac) : les colonnes archivées avec toutes leurs valeurs. Réactivez-les d'un clic, ou supprimez-les définitivement. Une colonne archivée est gardée sans limite.",
+      "Dans Pac Pac, bouton « ⌃ Réduire le haut » (à droite de la barre d'outils) : cache les chiffres et la légende pour voir plus de lignes, idéal sur un portable.",
+      "Fiche → Gmail : écrivez un mail libre puis « 💾 Enregistrer comme modèle » pour l'ajouter à la liste ; survolez un modèle pour le modifier ✏️ ou le supprimer 🗑. « {nom} » est remplacé par le nom du client.",
+    ],
+  },
+  {
     id: "2026-11-26-une-seule-apparence",
     date: "2026-11-26",
     emoji: "🎨",

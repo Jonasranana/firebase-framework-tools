@@ -1549,18 +1549,55 @@ const isCrmMember = (request) => {
 
 // Modèles proposés dans le CRM (clé = libellé Monday). « confirmation +
 // fiche technique » est exclu : il exige un reste à charge calculé.
-const crmTemplates = () =>
-  Object.entries(MONDAY_EMAIL_TEMPLATES)
-    .filter(([, t]) => !t.requiresResolvedRac)
+// Modèles ajoutés depuis le CRM (fiche → Gmail → « ＋ Nouveau modèle ») et modèles d'origine masqués :
+// Firestore crm_boards/modeles_mail = { custom: [{ id, name, subject, body, sms }], hidden: [clé, …] }.
+// Un modèle ajouté part avec la même signature que le mail libre (logo, nom, téléphone, adresse) ;
+// « {nom} » dans l'objet ou le message est remplacé par le nom du client.
+const PERSO_PREFIX = "perso:";
+async function loadModelesMail() {
+  const d = (await db.doc("crm_boards/modeles_mail").get()).data() ?? {};
+  return {
+    custom: (Array.isArray(d.custom) ? d.custom : []).filter((m) => m && m.id && m.name && m.subject && m.body),
+    hidden: Array.isArray(d.hidden) ? d.hidden.map(String) : [],
+  };
+}
+function modelePersoComme(m) {
+  const remplir = (t, nomComplet) => String(t ?? "").replace(/\{nom\}/gi, nomComplet || "");
+  return {
+    perso: true,
+    subject: String(m.subject).slice(0, 150),
+    subjectFor: (nomComplet) => remplir(m.subject, nomComplet).slice(0, 150),
+    buildHtml: ({ nomComplet }) => buildFreeMailHtml({ bodyText: remplir(m.body, nomComplet).slice(0, 5000) }),
+    buildSms: m.sms ? () => String(m.sms).slice(0, 480) : undefined,
+  };
+}
+async function resolveModele(key) {
+  if (!key) return undefined;
+  if (String(key).startsWith(PERSO_PREFIX)) {
+    const { custom } = await loadModelesMail();
+    const m = custom.find((x) => PERSO_PREFIX + x.id === key);
+    return m ? modelePersoComme(m) : undefined;
+  }
+  return MONDAY_EMAIL_TEMPLATES[key];
+}
+const crmTemplates = async () => {
+  const { custom, hidden } = await loadModelesMail();
+  const origine = Object.entries(MONDAY_EMAIL_TEMPLATES)
+    .filter(([key, t]) => !t.requiresResolvedRac && !hidden.includes(key))
     .map(([key, t]) => ({ key, subject: t.subject, sms: t.buildSms ? t.buildSms({}) : "" }));
+  const perso = custom.map((m) => ({ key: PERSO_PREFIX + m.id, name: m.name, subject: m.subject, sms: m.sms ?? "", perso: true }));
+  return [...origine, ...perso];
+};
 
 // Contenu exact d'un mail du CRM (objet + HTML) : utilisé à la fois par l'envoi
 // (sendLeadMessage) et par l'aperçu (previewLeadMessage), pour que l'aperçu soit
 // strictement identique à ce que le client reçoit.
 function buildLeadMailContent({ lead, tpl, customSubject, customBody }) {
   const nomComplet = String(lead.name ?? "").trim();
-  if (tpl) return { subject: tpl.subject, html: tpl.buildHtml({ nomComplet, rac: undefined }), attachmentNames: (tpl.attachments ?? []).map((a) => a.filename) };
-  return { subject: customSubject, html: buildFreeMailHtml({ bodyText: customBody }), attachmentNames: [] };
+  if (tpl) return { subject: tpl.subjectFor ? tpl.subjectFor(nomComplet) : tpl.subject, html: tpl.buildHtml({ nomComplet, rac: undefined }), attachmentNames: (tpl.attachments ?? []).map((a) => a.filename) };
+  // « {nom} » dans un mail libre : remplacé par le nom du client (comme dans les modèles ajoutés).
+  const remplir = (t) => String(t ?? "").replace(/\{nom\}/gi, nomComplet);
+  return { subject: remplir(customSubject), html: buildFreeMailHtml({ bodyText: remplir(customBody) }), attachmentNames: [] };
 }
 
 exports.sendLeadMessage = onCall(
@@ -1589,7 +1626,7 @@ exports.sendLeadMessage = onCall(
     if (!snap.exists) throw new HttpsError("not-found", "Lead introuvable.");
     const lead = snap.data();
     const nomComplet = String(lead.name ?? "").trim();
-    const tpl = template ? MONDAY_EMAIL_TEMPLATES[template] : undefined;
+    const tpl = await resolveModele(template);
     if (template && (!tpl || tpl.requiresResolvedRac)) {
       throw new HttpsError("invalid-argument", "Modèle inconnu.");
     }
@@ -1635,7 +1672,7 @@ exports.sendLeadMessage = onCall(
         logger.error("Échec de l'envoi du mail CRM", { leadId, error: err.message });
         throw new HttpsError("internal", "Échec de l'envoi du mail (voir les journaux).");
       }
-      summary = `✉️ Mail envoyé : « ${tpl ? tpl.subject : customSubject} »${customAttachments.length ? ` (📎 ${customAttachments.map((a) => a.filename).join(", ")})` : ""}`;
+      summary = `✉️ Mail envoyé : « ${content.subject} »${customAttachments.length ? ` (📎 ${customAttachments.map((a) => a.filename).join(", ")})` : ""}`;
     } else {
       const to = toE164French(lead.phone);
       if (!to || !to.startsWith("+")) {
@@ -1681,7 +1718,7 @@ exports.previewLeadMessage = onCall({ region: "europe-west9" }, async (request) 
   if (typeof leadId !== "string" || !leadId) throw new HttpsError("invalid-argument", "Requête invalide.");
   const snap = await db.doc(`crm_leads/${leadId}`).get();
   if (!snap.exists) throw new HttpsError("not-found", "Lead introuvable.");
-  const tpl = template ? MONDAY_EMAIL_TEMPLATES[template] : undefined;
+  const tpl = await resolveModele(template);
   if (template && (!tpl || tpl.requiresResolvedRac)) throw new HttpsError("invalid-argument", "Modèle inconnu.");
   const content = buildLeadMailContent({
     lead: snap.data(),
@@ -1697,7 +1734,7 @@ exports.listLeadTemplates = onCall({ region: "europe-west9" }, async (request) =
   if (!isCrmMember(request)) {
     throw new HttpsError("permission-denied", "Accès refusé.");
   }
-  return { templates: crmTemplates() };
+  return { templates: await crmTemplates() };
 });
 
 // Espace client (désactivé tant que le document crm_settings/client_space n'a pas { enabled: true }).

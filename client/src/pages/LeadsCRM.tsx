@@ -286,7 +286,7 @@ const Field = ({
 );
 
 // ── Envoi de mail / SMS (fonction sendLeadMessage) ─────────────────────────
-type MsgTemplate = { key: string; subject: string; sms: string };
+type MsgTemplate = { key: string; subject: string; sms: string; name?: string };
 
 async function callFn<T>(name: string, data?: unknown): Promise<T> {
   const app = await getEspaceProApp();
@@ -347,7 +347,7 @@ const MessageSender = ({ lead }: { lead: Lead }) => {
         <option value="">Modèle…</option>
         {templates?.map((t) => (
           <option key={t.key} value={t.key}>
-            {t.key}
+            {t.name ?? t.key}
           </option>
         ))}
       </select>
@@ -1381,13 +1381,34 @@ export default function LeadsCRM({
   );
 
   // Groupement automatique par une colonne (sinon : groupes personnalisés).
-  const grouping = useMemo(() => (groupBy ? groupByColumn(filtered, groupBy) : null), [groupBy, filtered]);
+  // (une colonne archivée ne sert plus à grouper : on retombe sur les groupes du tableau)
+  const grouping = useMemo(() => (groupBy && LEAD_COLUMNS.some((c) => c.key === groupBy) ? groupByColumn(filtered, groupBy) : null), [groupBy, filtered]);
 
   // Retour en haut de liste quand un filtre change.
   useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, filters, personKey, rappelsOnly, attribTab]);
 
   const rappelsCount = useMemo(() => (leads ?? []).filter(isOverdue).length, [leads]);
   const design = useDesignV2(email);
+  // « Réduire le haut » (demande de Mebarek, écran de portable) : cache les chiffres, la légende et le choix
+  // Tableau / Suivi des dossiers pour laisser plus de place au tableau. Mémorisé sur l'appareil.
+  const [hautReduit, setHautReduit] = useState(() => {
+    try {
+      return localStorage.getItem("crm-haut-reduit") === "1";
+    } catch {
+      return false;
+    }
+  });
+  const basculerHaut = () =>
+    setHautReduit((v) => {
+      try {
+        localStorage.setItem("crm-haut-reduit", v ? "0" : "1");
+      } catch {
+        /* non essentiel */
+      }
+      // Le tableau recalcule sa hauteur (il prend la place libérée).
+      setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
+      return !v;
+    });
   // Chiffres du bandeau (nouveau design) : sur tout le tableau Pac Pac.
   const kpis = useMemo(() => {
     const semaine = Date.now() - 7 * 86400000;
@@ -1824,7 +1845,7 @@ export default function LeadsCRM({
   const attribCount = (name: string) => (leads ?? []).filter((l) => l.fields[ATTRIBUE_KEY] === name).length;
   return (
     <div>
-      {design.on && boardId === LEADS_BOARD_ID && !isMobile && (
+      {design.on && boardId === LEADS_BOARD_ID && !isMobile && !hautReduit && (
         <div className="flex flex-wrap gap-3 mb-4">
           {[
             { t: "À appeler", v: kpis.aAppeler, c: "#1f2430", f: () => setStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler") },
@@ -1847,7 +1868,7 @@ export default function LeadsCRM({
         </div>
       )}
       {attribCol && (
-        <div className="flex items-center gap-1 mb-2 overflow-x-auto no-scrollbar border-b border-gray-200">
+        <div className={`flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-gray-200 ${hautReduit ? "mb-1.5 [&>button]:py-1" : "mb-2"}`}>
           {[{ key: "", label: "Tableau principal" }, ...(attribCol.options ?? []).filter((x) => !x.off).map((x) => ({ key: x.key, label: `Mes clients — ${x.label}` }))].map((t) => (
             <button
               key={t.key || "all"}
@@ -1866,7 +1887,7 @@ export default function LeadsCRM({
           ))}
         </div>
       )}
-      {!isMobile && (view === "tableau" || view === "dossiers") && (
+      {!isMobile && !hautReduit && (view === "tableau" || view === "dossiers") && (
         <div className="inline-flex rounded-xl bg-gray-100 p-1 mb-2">
           {([["tableau", "📋 Tableau"], ["dossiers", "📁 Suivi des dossiers"]] as const).map(([k, label]) => (
             <button
@@ -1945,8 +1966,17 @@ export default function LeadsCRM({
             <X size={12} /> Tout enlever
           </button>
         )}
+        {!isMobile && (
+          <button
+            onClick={basculerHaut}
+            title={hautReduit ? "Réafficher les chiffres, la légende et le choix Tableau / Suivi des dossiers" : "Cacher le haut de la page pour voir plus de lignes du tableau"}
+            className="ml-auto shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-900 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50"
+          >
+            {hautReduit ? "⌄ Afficher le haut" : "⌃ Réduire le haut"}
+          </button>
+        )}
       </div>
-      <div className={`${view === "mobile" ? "hidden" : "flex"} items-center gap-2 mb-3`}>
+      <div className={`${view === "mobile" || hautReduit ? "hidden" : "flex"} items-center gap-2 mb-3`}>
         <span className="text-xs text-gray-400">
           {filtered.length} sur {leads?.length ?? 0} noms sociétés
         </span>
@@ -2190,7 +2220,7 @@ export default function LeadsCRM({
             } satisfies LeadNote),
           });
         }}
-        onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string; sms?: string }[] }>("listLeadTemplates")).templates}
+        onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string; sms?: string; name?: string; perso?: boolean }[] }>("listLeadTemplates")).templates}
         onPreviewMail={(id, mail) => callFn<MailPreview>("previewLeadMessage", { leadId: id, ...mail })}
         onOpenFiche={(id) => {
           setChatId(null);

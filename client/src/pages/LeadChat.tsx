@@ -132,7 +132,7 @@ export default function LeadChat({
   onLogWhatsApp: (leadId: string, text: string) => Promise<void>;
   onSendSms: (leadId: string, text: string) => Promise<void>;
   onLoadBalance: () => Promise<{ balance: number; currency: string }>;
-  onLoadTemplates: () => Promise<{ key: string; subject: string; sms?: string }[]>;
+  onLoadTemplates: () => Promise<{ key: string; subject: string; sms?: string; name?: string; perso?: boolean }[]>;
   onOpenFiche: (leadId: string) => void;
   // Aperçu exact du mail (fabriqué par le serveur, comme l'envoi) : objet, HTML, pièces jointes.
   onPreviewMail?: (leadId: string, mail: { template?: string; subject?: string; body?: string }) => Promise<MailPreview>;
@@ -146,7 +146,7 @@ export default function LeadChat({
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [tpl, setTpl] = useState("");
-  const [templates, setTemplates] = useState<{ key: string; subject: string; sms?: string }[]>([]);
+  const [templates, setTemplates] = useState<{ key: string; subject: string; sms?: string; name?: string; perso?: boolean }[]>([]);
   const [smsOpen, setSmsOpen] = useState(false);
   // Assistant de relance (direction seulement) : bouton « 🤖 » sous chaque message.
   const iaFiches = useIaFiches();
@@ -185,6 +185,7 @@ export default function LeadChat({
     setWaOpen(false);
     setWaText("");
     setTab("tout");
+    setEditId(null);
   }, [lead?.id]);
 
   const loadBalance = () => onLoadBalance().then(setBalance).catch(() => setBalance("err"));
@@ -198,6 +199,78 @@ export default function LeadChat({
     if (lead?.id && templates.length === 0) onLoadTemplates().then(setTemplates).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead?.id]);
+
+  // ── Modèles : ajout (depuis un mail libre), modification, suppression — réservé à la direction ──
+  // Stockés dans Firestore crm_boards/modeles_mail ; le serveur les lit pour l'aperçu et l'envoi.
+  const canManage = NEWS_VIEWERS.includes(email.toLowerCase());
+  const [editId, setEditId] = useState<string | null>(null);
+  const [masques, setMasques] = useState(0);
+  const reloadTemplates = () => onLoadTemplates().then(setTemplates).catch(() => {});
+  const modelesDoc = async () => {
+    const { crmFirestore } = await import("@/lib/crmDb");
+    const { m, db } = await crmFirestore();
+    const ref = m.doc(db, "crm_boards", "modeles_mail");
+    const snap = await m.getDoc(ref);
+    const d = snap.data() ?? {};
+    return { m, ref, custom: (Array.isArray(d.custom) ? d.custom : []) as { id: string; name: string; subject: string; body: string; sms?: string }[], hidden: (Array.isArray(d.hidden) ? d.hidden : []) as string[] };
+  };
+  useEffect(() => {
+    if (mailOpen && canManage) modelesDoc().then((x) => setMasques(x.hidden.length)).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailOpen]);
+  const ecrireModeles = async (custom: unknown[], hidden: string[]) => {
+    const { m, ref } = await modelesDoc();
+    await m.setDoc(ref, { custom, hidden, updatedAt: m.serverTimestamp(), updatedBy: email }, { merge: true });
+    setMasques(hidden.length);
+    await reloadTemplates();
+  };
+  const supprimerModele = async (key: string, nom: string) => {
+    if (!confirm(`Supprimer le modèle « ${nom} » de la liste ?`)) return;
+    try {
+      const { custom, hidden } = await modelesDoc();
+      if (key.startsWith("perso:")) await ecrireModeles(custom.filter((x) => "perso:" + x.id !== key), hidden);
+      else await ecrireModeles(custom, Array.from(new Set([...hidden, key])));
+      if (tpl === key) setTpl("");
+    } catch {
+      setMailMsg({ ok: false, text: "Impossible de supprimer le modèle." });
+    }
+  };
+  const modifierModele = async (key: string) => {
+    const { custom } = await modelesDoc();
+    const x = custom.find((c) => "perso:" + c.id === key);
+    if (!x) return;
+    setTpl("");
+    setSubject(x.subject);
+    setBody(x.body);
+    setEditId(x.id);
+  };
+  const enregistrerModele = async () => {
+    if (!subject.trim() || !body.trim()) return setMailMsg({ ok: false, text: "Écrivez un objet et un message avant d'enregistrer le modèle." });
+    try {
+      const { custom, hidden } = await modelesDoc();
+      const ancien = editId ? custom.find((c) => c.id === editId) : undefined;
+      const nom = prompt("Nom du modèle (comme il apparaîtra dans la liste) :", ancien?.name ?? "")?.trim();
+      if (!nom) return;
+      const id = ancien?.id ?? Math.random().toString(36).slice(2, 10);
+      const modele = { id, name: nom.slice(0, 80), subject: subject.trim().slice(0, 150), body: body.trim().slice(0, 5000), sms: ancien?.sms ?? "" };
+      await ecrireModeles(ancien ? custom.map((c) => (c.id === id ? modele : c)) : [...custom, modele], hidden);
+      setEditId(null);
+      setSubject("");
+      setBody("");
+      setTpl("perso:" + id);
+      setMailMsg({ ok: true, text: ancien ? "Modèle mis à jour." : "Modèle ajouté à la liste." });
+    } catch {
+      setMailMsg({ ok: false, text: "Impossible d'enregistrer le modèle." });
+    }
+  };
+  const restaurerModeles = async () => {
+    try {
+      const { custom } = await modelesDoc();
+      await ecrireModeles(custom, []);
+    } catch {
+      setMailMsg({ ok: false, text: "Impossible de rétablir les modèles." });
+    }
+  };
 
   // Aperçu exact du mail : demandé au serveur (même fabrication que l'envoi), un peu après la dernière frappe.
   const [preview, setPreview] = useState<{ loading: boolean; data: MailPreview | null; error: string }>({ loading: false, data: null, error: "" });
@@ -333,14 +406,30 @@ export default function LeadChat({
     .map((w) => w[0]!.toUpperCase())
     .join("");
   // Carte d'un modèle (mail, SMS ou WhatsApp) : cliquable, sélectionnée en bleu.
-  const TplCard = ({ on, title, sub, onClick }: { on: boolean; title: string; sub?: string; onClick: () => void }) => (
-    <button
-      onClick={onClick}
-      className={`text-left rounded-xl border px-3 py-2 transition ${on ? "border-[#2563eb] bg-[#eef3ff] ring-1 ring-[#2563eb]" : "border-gray-200 bg-white hover:border-[#bcd0fb] hover:bg-[#f6f8fe]"}`}
-    >
-      <span className="block text-[13px] font-bold text-gray-900 leading-tight">{title}</span>
-      {sub && <span className="block text-[11.5px] text-gray-500 mt-0.5 line-clamp-2">{sub}</span>}
-    </button>
+  const TplCard = ({ on, title, sub, onClick, onDelete, onEdit }: { on: boolean; title: string; sub?: string; onClick: () => void; onDelete?: () => void; onEdit?: () => void }) => (
+    <div className="relative group/tpl">
+      <button
+        onClick={onClick}
+        className={`w-full h-full text-left rounded-xl border px-3 py-2 pr-14 transition ${on ? "border-[#2563eb] bg-[#eef3ff] ring-1 ring-[#2563eb]" : "border-gray-200 bg-white hover:border-[#bcd0fb] hover:bg-[#f6f8fe]"}`}
+      >
+        <span className="block text-[13px] font-bold text-gray-900 leading-tight">{title}</span>
+        {sub && <span className="block text-[11.5px] text-gray-500 mt-0.5 line-clamp-2">{sub}</span>}
+      </button>
+      {(onEdit || onDelete) && (
+        <span className="absolute top-1.5 right-1.5 flex gap-0.5 opacity-0 group-hover/tpl:opacity-100 focus-within:opacity-100">
+          {onEdit && (
+            <button onClick={onEdit} title="Modifier ce modèle" className="w-6 h-6 rounded-md text-gray-400 hover:text-gray-800 hover:bg-white text-[12px]">
+              ✏️
+            </button>
+          )}
+          {onDelete && (
+            <button onClick={onDelete} title="Supprimer ce modèle de la liste" className="w-6 h-6 rounded-md text-gray-400 hover:text-red-600 hover:bg-white text-[12px]">
+              🗑
+            </button>
+          )}
+        </span>
+      )}
+    </div>
   );
   const channelBtn = (on: boolean) =>
     `flex-1 inline-flex items-center justify-center gap-2 text-[13px] font-bold rounded-xl px-3 py-2 border transition disabled:opacity-40 disabled:cursor-not-allowed ${
@@ -447,9 +536,17 @@ export default function LeadChat({
                 <div className="grid grid-cols-2 gap-2">
                   {mailOpen && (
                     <>
-                      <TplCard on={!tpl} title="✍️ Mail libre" sub="J'écris moi-même, avec photos ou fichiers" onClick={() => setTpl("")} />
+                      <TplCard on={!tpl} title={editId ? "✏️ Modification du modèle" : "✍️ Mail libre"} sub={editId ? "Modifiez l'objet et le message, puis « Mettre à jour le modèle »" : "J'écris moi-même, avec photos ou fichiers"} onClick={() => setTpl("")} />
                       {templates.map((t) => (
-                        <TplCard key={t.key} on={tpl === t.key} title={t.key} sub={t.subject} onClick={() => setTpl(t.key)} />
+                        <TplCard
+                          key={t.key}
+                          on={tpl === t.key}
+                          title={t.perso ? `📝 ${t.name ?? t.key}` : t.key}
+                          sub={t.subject}
+                          onClick={() => { setTpl(t.key); setEditId(null); }}
+                          onEdit={canManage && t.perso ? () => modifierModele(t.key) : undefined}
+                          onDelete={canManage ? () => supprimerModele(t.key, t.perso ? t.name ?? t.key : t.key) : undefined}
+                        />
                       ))}
                     </>
                   )}
@@ -465,6 +562,19 @@ export default function LeadChat({
                     smsTemplates.map((t) => <TplCard key={t.key} on={waText === t.sms} title={t.key} sub={t.sms} onClick={() => setWaText(t.sms ?? "")} />)}
                 </div>
                 {templates.length === 0 && <p className="text-xs text-gray-400 mt-1">Chargement des modèles…</p>}
+                {mailOpen && canManage && (
+                  <p className="text-[11.5px] text-gray-500 mt-2">
+                    Pour ajouter un modèle : écrivez un mail libre puis « 💾 Enregistrer comme modèle ». Survolez un modèle pour le modifier ✏️ ou le supprimer 🗑.
+                    {masques > 0 && (
+                      <>
+                        {" "}
+                        <button onClick={restaurerModeles} className="font-semibold text-[#2552d0] hover:underline">
+                          Rétablir les {masques} modèle{masques > 1 ? "s" : ""} d'origine supprimé{masques > 1 ? "s" : ""}
+                        </button>
+                      </>
+                    )}
+                  </p>
+                )}
               </div>
 
               {/* Gmail : mail libre */}
@@ -484,7 +594,18 @@ export default function LeadChat({
                     placeholder="Votre message au client…"
                     className="w-full text-[14px] bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 resize-y min-h-[180px]"
                   />
+                  <p className="text-[11.5px] text-gray-500">Astuce : écrivez <b>{"{nom}"}</b> et il sera remplacé par le nom du client (ex. « Bonjour {"{nom}"}, »). La signature IP5 Énergie (logo, téléphone, adresse) est ajoutée en bas automatiquement.</p>
                   <div className="flex flex-wrap items-center gap-1.5">
+                    {canManage && (
+                      <button onClick={enregistrerModele} className="inline-flex items-center gap-1 text-xs font-bold text-[#2552d0] border border-[#bcd0fb] bg-[#eef3ff] rounded-lg px-2.5 py-1.5 hover:bg-[#e2eafe]">
+                        💾 {editId ? "Mettre à jour le modèle" : "Enregistrer comme modèle"}
+                      </button>
+                    )}
+                    {editId && (
+                      <button onClick={() => { setEditId(null); setSubject(""); setBody(""); }} className="text-xs font-semibold text-gray-500 hover:text-gray-800 px-1">
+                        Annuler la modification
+                      </button>
+                    )}
                     <label className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-gray-50">
                       <Paperclip size={13} /> Photo / fichier
                       <input type="file" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
@@ -580,7 +701,7 @@ export default function LeadChat({
               {smsOpen && smsMsg && <p className={`text-xs mb-1.5 ${smsMsg.ok ? "text-green-700" : "text-red-600"}`}>{smsMsg.text}</p>}
               {mailOpen && (
                 <button onClick={sendMail} disabled={mailBusy} className="w-full text-[14px] font-bold text-white bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-50 rounded-xl py-2.5">
-                  {mailBusy ? "Envoi…" : tpl ? `Envoyer « ${tpl} »` : "Envoyer le mail"}
+                  {mailBusy ? "Envoi…" : tpl ? `Envoyer « ${templates.find((t) => t.key === tpl)?.name ?? tpl} »` : "Envoyer le mail"}
                 </button>
               )}
               {smsOpen && (

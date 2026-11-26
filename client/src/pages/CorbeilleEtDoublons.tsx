@@ -42,7 +42,7 @@ function TableauxSupprimes({ email }: { email: string }) {
   );
 }
 
-// Colonnes supprimées (30 jours) ou archivées (60 jours) d'un tableau : réactivables avec leurs valeurs, ou supprimables pour de bon.
+// Colonnes supprimées (30 jours) ou archivées (sans limite) d'un tableau : réactivables avec leurs valeurs, ou supprimables pour de bon.
 function ColonnesTableau({ boardId, title, email }: { boardId: string; title: string; email: string }) {
   const [cfg, setCfg] = useState<ColumnsConfig>({});
   const docId = boardId === "leads" ? "leads_columns" : `${boardId}_columns`;
@@ -73,7 +73,7 @@ function ColonnesTableau({ boardId, title, email }: { boardId: string; title: st
         {list.map((e) => (
           <li key={e.key} className="flex items-center gap-3 py-2">
             <span className="flex-1 text-sm font-semibold text-gray-900 truncate">{e.title}</span>
-            <span className="text-xs text-gray-500">{e.kind === "archive" ? "Archivée" : "Supprimée"} · {colDaysLeft(e)} j restants</span>
+            <span className="text-xs text-gray-500">{e.kind === "archive" ? "Archivée (gardée sans limite)" : `Supprimée · ${colDaysLeft(e)} j restants`}</span>
             <button onClick={() => write(restoreColumn(cfg, e.key))} className="text-xs font-bold text-white bg-[#0073ea] rounded-md px-3 py-1.5">
               Réactiver
             </button>
