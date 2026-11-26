@@ -1,6 +1,6 @@
 import { MentionPicker, MentionText, TaggedLine } from "@/components/Mentions";
 import { createContext, lazy, Suspense, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BellRing, ChevronRight, FileText, MessageCircle, MessagesSquare, Phone, Search, Send, X } from "lucide-react";
+import { AlarmClock, ArrowLeft, Bell, BellRing, ChevronRight, FileText, MessageCircle, MessagesSquare, Newspaper, Phone, Plus, Search, Send, Users, X } from "lucide-react";
 import { etapeOptions, type DossierMove } from "./DossiersBoard";
 import { authorName, dayLabel, hhmm, isChat, isMailReceived, movementText } from "./LeadChat";
 import { RappelPicker } from "@/components/RappelCell";
@@ -697,39 +697,10 @@ export default function MobileLeads(props: Props) {
 
   return (
     <CallCtx.Provider value={{ app: callApp, copy: copyNumber }}>
-    <div ref={topRef} style={{ touchAction: "pan-x pan-y" }}>
-      <div className="sticky top-0 z-20 -mx-4 px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
-        <div className="flex rounded-2xl bg-gray-200/70 p-1 mb-2">
-          {([["liste", "📋 Clients"], ["agenda", "⏰ Rappels"], ["notifs", "🔔 Notifs"], ...(canNews ? [["actus", "📰 Actus"]] : [])] as [typeof tab, string][]).map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => setTab(k)}
-              className={`flex-1 inline-flex items-center justify-center gap-1.5 text-[13px] font-bold py-2 rounded-xl ${tab === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}
-            >
-              {label}
-              {k === "notifs" && unreadNotifs > 0 && (
-                <span className="min-w-[20px] rounded-full bg-red-500 text-white text-[11px] font-black px-1.5 leading-5">{unreadNotifs}</span>
-              )}
-              {k === "actus" && unreadNews > 0 && (
-                <span className="min-w-[20px] rounded-full bg-red-500 text-white text-[11px] font-black px-1.5 leading-5">{unreadNews}</span>
-              )}
-              {k === "agenda" && lateCount > 0 && (
-                <span className="min-w-[20px] rounded-full bg-red-500 text-white text-[11px] font-black px-1.5 leading-5">{lateCount}</span>
-              )}
-            </button>
-          ))}
-        </div>
+    <div ref={topRef} className="pb-28" style={{ touchAction: "pan-x pan-y" }}>
+      <div className="sticky top-0 z-20 -mx-2 px-2 sm:-mx-4 sm:px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
         {tab === "liste" && (
           <>
-            {props.onAddLead && (
-              <button
-                onClick={props.onAddLead}
-                className="w-full mb-2 inline-flex items-center justify-center gap-1.5 text-[15px] font-bold text-white rounded-2xl py-2.5 shadow-sm"
-                style={{ background: "var(--brand-grad-2)" }}
-              >
-                ➕ Nouveau client
-              </button>
-            )}
             <div className="relative">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
@@ -745,7 +716,7 @@ export default function MobileLeads(props: Props) {
               )}
             </div>
             {tab === "liste" && (
-              <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-4 px-4">
+              <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-2 px-2 sm:-mx-4 sm:px-4">
                 <button onClick={() => { onRappelsOnly(false); setGroupFilter(""); }} className={chip(noFilter)} style={noFilter ? { background: "#374151" } : undefined}>
                   Tous
                 </button>
@@ -798,7 +769,7 @@ export default function MobileLeads(props: Props) {
         </div>
       )}
       {tab === "actus" && (
-        <div className="-mx-4">
+        <div className="-mx-2 sm:-mx-4">
           <Suspense fallback={<p className="text-sm text-gray-400 py-10 text-center">Chargement…</p>}>
             <ActusCRM />
           </Suspense>
@@ -895,8 +866,57 @@ export default function MobileLeads(props: Props) {
         />
       )}
 
+      {/* Barre d'onglets en bas, comme une appli : Clients, Rappels, + Nouveau, Notifs, Actus */}
+      {!openLead && (
+        <nav
+          className="fixed inset-x-0 bottom-0 z-40 bg-white/95 backdrop-blur border-t border-gray-200 shadow-[0_-4px_16px_rgba(16,24,40,0.06)]"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+        >
+          <div className="flex items-end justify-around px-1 h-16">
+            {(
+              [
+                ["liste", "Clients", Users, 0],
+                ["agenda", "Rappels", AlarmClock, lateCount],
+                ["+", "", Plus, 0],
+                ["notifs", "Notifs", Bell, unreadNotifs],
+                ...(canNews ? [["actus", "Actus", Newspaper, unreadNews]] : []),
+              ] as [typeof tab | "+", string, typeof Users, number][]
+            ).map(([k, label, Icon, badge]) =>
+              k === "+" ? (
+                props.onAddLead ? (
+                  <button
+                    key="+"
+                    onClick={props.onAddLead}
+                    aria-label="Nouveau client"
+                    className="-mt-6 mb-2 w-14 h-14 rounded-full inline-flex items-center justify-center text-white shadow-lg active:scale-95 transition"
+                    style={{ background: "var(--brand-grad-2)" }}
+                  >
+                    <Plus size={28} strokeWidth={3} />
+                  </button>
+                ) : null
+              ) : (
+                <button
+                  key={k}
+                  onClick={() => {
+                    setTab(k as typeof tab);
+                    window.scrollTo({ top: 0 });
+                  }}
+                  className={`relative flex-1 h-full inline-flex flex-col items-center justify-center gap-0.5 text-[11px] font-bold ${tab === k ? "text-[#2563eb]" : "text-gray-400"}`}
+                >
+                  <Icon size={22} strokeWidth={tab === k ? 2.5 : 2} />
+                  {label}
+                  {badge > 0 && (
+                    <span className="absolute top-1.5 left-1/2 ml-2 min-w-[18px] rounded-full bg-[#dc2626] text-white text-[10px] font-black px-1 leading-[18px] text-center">{badge}</span>
+                  )}
+                </button>
+              ),
+            )}
+          </div>
+        </nav>
+      )}
+
       {toast && (
-        <div className="fixed left-3 right-3 bottom-4 z-[60] rounded-2xl bg-gray-900 text-white text-sm font-semibold px-4 py-3 shadow-2xl" role="status" onClick={() => setToast("")}>
+        <div className="fixed left-3 right-3 bottom-20 z-[60] rounded-2xl bg-gray-900 text-white text-sm font-semibold px-4 py-3 shadow-2xl" role="status" onClick={() => setToast("")}>
           {toast}
         </div>
       )}

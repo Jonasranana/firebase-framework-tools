@@ -34,6 +34,7 @@ import LeadChat, { type MailPreview } from "./LeadChat";
 import ClientSpaceDashboard from "./ClientSpaceDashboard";
 import { buildClientView } from "@/lib/clientSpace";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import NouveauLeadDialog, { type NouveauLead } from "@/components/NouveauLeadDialog";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
@@ -1279,6 +1280,8 @@ export default function LeadsCRM({
   const [rappelsOnly, setRappelsOnly] = useState(false);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [openId, setOpenId] = useState<string | null>(null);
+  // « + Ajouter un lead manuellement » : groupe où la fenêtre de saisie ajoute la fiche (null = fermée).
+  const [ajoutDans, setAjoutDans] = useState<string | null>(null);
   const [focusUpdates, setFocusUpdates] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
@@ -1817,6 +1820,30 @@ export default function LeadsCRM({
     }
   };
 
+  const createManual = async (groupId: string, d: NouveauLead) => {
+    const { m, db } = await fs();
+    await m.addDoc(m.collection(db, CRM_LEADS_COLLECTION), {
+      name: d.name,
+      phone: d.phone,
+      email: "",
+      postalCode: d.postalCode,
+      city: d.city,
+      type: "PAC",
+      board: boardId,
+      source: d.source,
+      projet: "",
+      status: d.status,
+      group: groupId || DEFAULT_LEAD_GROUPS[0].id,
+      rappelLe: "",
+      details: {},
+      fields: d.attribue ? { [ATTRIBUE_KEY]: d.attribue } : {},
+      notes: [],
+      createdAt: m.serverTimestamp(),
+      updatedAt: m.serverTimestamp(),
+      updatedBy: email,
+    });
+  };
+
   const total = leads?.length ?? 0;
 
   const attribCol = boardId === LEADS_BOARD_ID ? LEAD_COLUMNS.find((c) => c.key === ATTRIBUE_KEY) : undefined;
@@ -1898,7 +1925,7 @@ export default function LeadsCRM({
           </button>
         )}
         <AddSplit
-          onAddLead={() => setCreating(true)}
+          onAddLead={() => setAjoutDans("")}
           onAddGroup={() => saveGroups([...groups, { id: `g_${newId()}`, title: "Nouveau groupe", color: "#579bfc" }])}
         />
         <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
@@ -1965,6 +1992,17 @@ export default function LeadsCRM({
       </div>
 
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+      {ajoutDans !== null && (
+        <NouveauLeadDialog
+          groupe={groups.find((g) => g.id === (ajoutDans || DEFAULT_LEAD_GROUPS[0].id))?.title ?? "Nouveaux leads"}
+          leads={leads ?? []}
+          attribues={attribCol?.options ?? []}
+          statuts={LEAD_STATUSES}
+          onCreate={(d) => createManual(ajoutDans, d)}
+          onOpen={(id) => setOpenId(id)}
+          onClose={() => setAjoutDans(null)}
+        />
+      )}
 
       {(!leads || !columnsReady || !groupsReady) && !error && <BrandLoader />}
 
@@ -2033,6 +2071,7 @@ export default function LeadsCRM({
           onStatus={moveLead}
           onPatch={patchFromTable}
           onCreate={createFromTable}
+          onAddManual={(g) => setAjoutDans(g)}
         />
         </div>
         </StatusEditContext.Provider>
@@ -2064,7 +2103,7 @@ export default function LeadsCRM({
             await callFn("postUpdate", { kind: "lead", id, text });
           }}
           onChat={(id) => setChatId(id)}
-          onAddLead={() => setCreating(true)}
+          onAddLead={() => setAjoutDans("")}
           onFull={(id) => {
             setOpenId(id);
             setFocusUpdates(false);

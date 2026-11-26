@@ -385,6 +385,19 @@ const AddRow = ({ color, onAdd, focus, nameWidth = 300 }: { color: string; onAdd
   );
 };
 
+// Bouton « + Ajouter un lead manuellement » (en haut et en bas de chaque groupe).
+const AjoutManuel = ({ color, onClick, haut }: { color: string; onClick: () => void; haut?: boolean }) => (
+  <div className={`sticky left-0 w-fit ${haut ? "mb-1.5" : "border-t border-[#d0d4e4] w-full"}`}>
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1.5 text-[13px] font-bold text-[#2563eb] hover:bg-[#eef3ff] ${haut ? "rounded-lg border border-dashed border-[#bcd0fb] bg-white px-3 py-1" : "px-3 h-9"}`}
+      style={haut ? undefined : { borderLeft: `6px solid ${color}` }}
+    >
+      <Plus size={15} strokeWidth={2.5} /> Ajouter un lead manuellement
+    </button>
+  </div>
+);
+
 const newGroupId = () => `g_${Math.random().toString(36).slice(2, 8)}`;
 
 // Menu d'un groupe (les trois petits points), comme dans Monday : ajouter un
@@ -1350,6 +1363,7 @@ export default function LeadsTable({
   onGroup,
   onPatch,
   onCreate,
+  onAddManual,
   onDuplicateLeads,
   groupKeyOf,
   readOnlyGroups,
@@ -1398,6 +1412,8 @@ export default function LeadsTable({
   onGroup: (id: string, groupId: string) => void;
   onPatch: (id: string, patch: Record<string, unknown>) => void;
   onCreate: (groupId: string, name: string) => void;
+  // « + Ajouter un lead manuellement » : ouvre la fenêtre de saisie (si absent, ligne de saisie rapide).
+  onAddManual?: (groupId: string) => void;
   // Copie les leads d'un groupe dans un autre (duplication d'un groupe).
   onDuplicateLeads: (fromGroupId: string, toGroupId: string) => void;
   onExportGroup?: (groupId: string, groupTitle: string, rows: Lead[]) => void;
@@ -1799,6 +1815,7 @@ export default function LeadsTable({
                   onCollapseAll={() => setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])))}
                   onExpandAll={() => setCollapsed({})}
                   onAddLead={() => {
+                    if (onAddManual) return onAddManual(readOnlyGroups ? "" : st.id);
                     setCollapsed((c) => ({ ...c, [st.id]: false }));
                     setFocusAdd(null);
                     setTimeout(() => setFocusAdd(st.id), 50);
@@ -1816,6 +1833,7 @@ export default function LeadsTable({
 
               {!isCollapsed && (
                 <div>
+                {onAddManual && <AjoutManuel color={st.color} onClick={() => onAddManual(readOnlyGroups ? "" : st.id)} haut />}
                 <div data-groupcard="" className="bg-white rounded-lg border border-[#d0d4e4] overflow-clip">
                   <div
                     className="grid text-xs font-semibold text-gray-500 bg-white border-b border-[#d0d4e4] h-10 items-center sticky top-9 z-20"
@@ -1974,12 +1992,16 @@ export default function LeadsTable({
 
                   {/* Tableau groupé par une colonne : les « groupes » affichés ne sont pas de vrais
                       groupes, le lead ajouté part dans le premier groupe (« Nouveaux leads »). */}
-                  <AddRow
-                    color={st.color}
-                    focus={focusAdd === st.id}
-                    onAdd={(name) => onCreate(readOnlyGroups ? "" : st.id, name)}
-                    nameWidth={isMobile && cols[0] ? mobileNameW(cols[0]) : (cols[0]?.width ?? 300)}
-                  />
+                  {onAddManual ? (
+                    <AjoutManuel color={st.color} onClick={() => onAddManual(readOnlyGroups ? "" : st.id)} />
+                  ) : (
+                    <AddRow
+                      color={st.color}
+                      focus={focusAdd === st.id}
+                      onAdd={(name) => onCreate(readOnlyGroups ? "" : st.id, name)}
+                      nameWidth={isMobile && cols[0] ? mobileNameW(cols[0]) : (cols[0]?.width ?? 300)}
+                    />
+                  )}
                 </div>
                 <LazyChunk count={1} eager={gi === 0}>
                   {() => <GroupSummary cols={cols} template={template} rows={rows} showTotals={!!showTotals} />}

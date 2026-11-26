@@ -19,6 +19,27 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-mobile-appli",
+    date: "2026-11-26",
+    emoji: "📱",
+    titre: "Sur téléphone, le CRM devient une vraie appli",
+    points: [
+      "Les onglets Clients, Rappels, Notifs et Actus sont en bas de l'écran, comme dans une appli, avec le nombre de rappels en retard et de notifications.",
+      "Le gros bouton « + » au centre ajoute un client en quelques secondes (téléphone vérifié, doublon signalé).",
+      "Plus rien ne dépasse de l'écran sur le côté. Astuce : « Ajouter à l'écran d'accueil » dans le navigateur pour l'ouvrir comme une appli.",
+    ],
+  },
+  {
+    id: "2026-11-26-ajout-lead-fenetre",
+    date: "2026-11-26",
+    emoji: "📝",
+    titre: "Ajouter un lead : une fenêtre claire",
+    points: [
+      "« + Ajouter un lead manuellement » en haut et en bas de chaque groupe de Pac Pac (et le bouton bleu du haut) ouvre une fenêtre avec seulement l'essentiel : téléphone, nom, code postal, ville, attribué à, statut, source.",
+      "Dès que le numéro est bon (✓), « Créer la fiche » ou Entrée l'ajoute au tableau. Si le numéro existe déjà, la fenêtre le dit et propose d'ouvrir la fiche.",
+    ],
+  },
+  {
     id: "2026-11-26-code-couleur",
     date: "2026-11-26",
     emoji: "🎨",
