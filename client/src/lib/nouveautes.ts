@@ -26,6 +26,7 @@ export const NOUVEAUTES: Nouveaute[] = [
     points: [
       "Nouvelle couleur du CRM : bleu nuit avec une touche dorée (comme cette fenêtre). Menu, boutons, chargement, barre du navigateur et icônes de l'appli.",
       "« 🆕 Nouveau lead » est maintenant en bleu nuit et or. Le code couleur des statuts ne change pas (vert = ça avance, ambre = en attente, rouge = perdu).",
+      "En haut de chaque rubrique, un petit bloc « En bref » explique à quoi sert la page en 2 lignes. La croix le masque ; « À quoi sert cette page ? » le fait revenir.",
     ],
   },
   {

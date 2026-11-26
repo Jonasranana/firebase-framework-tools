@@ -41,6 +41,7 @@ import { useTeam } from "@/lib/crmTeam";
 import Avatar from "@/components/Avatar";
 import ProfileDialog from "./ProfileDialog";
 import AdminSidebar from "./AdminSidebar";
+import AideRubrique from "@/components/AideRubrique";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAdminTheme } from "@/lib/crmTheme";
 import { allItems, useSidebar, type SideConfig, type SideItem } from "@/lib/crmSidebar";
@@ -477,7 +478,14 @@ export default function AdminShell({
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
           </div>
         </header>
-        <main className={`flex-1 min-w-0 p-2 sm:p-4 ${page === "leads" ? "md:px-5 md:pt-3 md:pb-5" : "md:p-6"}`}>{waitingView ? <BrandLoader /> : renderPage(page, activeItem, tools)}</main>
+        <main className={`flex-1 min-w-0 p-2 sm:p-4 ${page === "leads" ? "md:px-5 md:pt-3 md:pb-5" : "md:p-6"}`}>{waitingView ? (
+            <BrandLoader />
+          ) : (
+            <>
+              <AideRubrique key={activeItem?.kind === "view" ? "view" : page} page={activeItem?.kind === "view" ? "view" : page} />
+              {renderPage(page, activeItem, tools)}
+            </>
+          )}</main>
       </div>
     </div>
   );
