@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { pubOrigine } from "@/lib/pubOrigine";
 import {
   Leaf,
   PiggyBank,
@@ -662,6 +663,8 @@ async function submitLead(
   const db = fsMod.getFirestore(app);
   const { company, firstName, lastName, ...lead } = data;
   await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
+    // Pub d'origine (paramètres utm du lien Meta), pour savoir quelle annonce amène des clients.
+    ...(pubOrigine() ? { pub: pubOrigine() } : {}),
     ...lead,
     // Recombiné en un seul champ « Prénom Nom » : c'est le format attendu par
     // tout le reste du pipeline (extraction du prénom pour les e-mails et la
@@ -727,6 +730,8 @@ export async function submitCallbackRequest(
     : appMod.initializeApp(FIREBASE_CONFIG);
   const db = fsMod.getFirestore(app);
   await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
+    // Pub d'origine (paramètres utm du lien Meta), pour savoir quelle annonce amène des clients.
+    ...(pubOrigine() ? { pub: pubOrigine() } : {}),
     name: `${data.firstName.trim()} ${data.lastName.trim()}`.trim(),
     phone: data.phone.trim(),
     email: "",

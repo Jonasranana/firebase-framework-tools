@@ -19,6 +19,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-quelle-pub",
+    date: "2026-11-26",
+    emoji: "📊",
+    titre: "Savoir quelle pub amène des clients",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com"],
+    points: [
+      "Chaque demande du site /pac garde maintenant la pub Meta d'où vient le client (campagne et annonce). On la voit dans la fiche, dans « Pub d'origine ».",
+      "Rentabilité Meta → « 📊 Quelle pub marche ? » : pour chaque annonce, le nombre de leads, ceux qui avancent et ceux qui signent.",
+      "À faire une fois dans Meta : ajouter les paramètres d'URL indiqués sous le tableau.",
+    ],
+  },
+  {
     id: "2026-11-26-bleu-nuit",
     date: "2026-11-26",
     emoji: "🌙",

@@ -770,6 +770,16 @@ const crmTypeDemande = (f) => {
   return "🧮 Simulation";
 };
 
+// Pub d'origine d'une demande du site (paramètres utm du lien Meta) → colonnes de la fiche CRM.
+const pubVal = (v) => String(v ?? "").trim().slice(0, 120);
+const pubFields = (p) =>
+  p && typeof p === "object"
+    ? Object.fromEntries(
+        [["pubSource", p.source], ["pubCampagne", p.campagne], ["pubAnnonce", p.annonce], ["pubEnsemble", p.ensemble]].filter(([, v]) => pubVal(v)).map(([k, v]) => [k, pubVal(v)]),
+      )
+    : {};
+const pubTexte = (p) => (p && typeof p === "object" ? [p.source, p.campagne, p.annonce].map(pubVal).filter(Boolean).join(" · ") : "");
+
 exports.copyLeadToCrm = onDocumentCreated(
   {
     document: "ip5_leads/{leadId}",
@@ -820,8 +830,8 @@ exports.copyLeadToCrm = onDocumentCreated(
         rappelLe: "",
         // Colonnes « Tranche / Foyer / Chauffage / Surface (Site) » du tableau : remplies directement ici,
         // sans attendre la synchro Monday (arrêtée le 20/10, d'où des fiches sans ces informations).
-        fields: crmSiteFields(f),
-        details,
+        fields: { ...crmSiteFields(f), ...pubFields(f.pub) },
+        details: { ...details, ...(pubTexte(f.pub) ? { "Pub d'origine": pubTexte(f.pub) } : {}) },
         notes: [],
         createdAt: f.createdAt ?? FieldValue.serverTimestamp(),
         updatedAt: FieldValue.serverTimestamp(),
