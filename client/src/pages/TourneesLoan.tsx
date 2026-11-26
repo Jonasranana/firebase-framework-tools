@@ -14,6 +14,7 @@ import {
   type Resultat,
 } from "@/lib/tourneesLoan";
 import { useSimuParams } from "@/lib/margeSimu";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { FRANCE_OUTLINE } from "@/lib/franceOutline";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -78,6 +79,8 @@ const GROUPES: { titre: string; icon: typeof Wrench; champs: Champ[] }[] = [
 ];
 
 export default function TourneesLoan({ email }: { email: string }) {
+  // Téléphone : les jours de chaque semaine sont empilés (au lieu de 5 à 7 colonnes serrées).
+  const mobile = useIsMobile();
   const [dossiers, setDossiers] = useState<DossierLoan[]>([]);
   const [params, setParams] = useState<ParamsLoan>(PARAMS_DEFAUT);
   const [loaded, setLoaded] = useState(false);
@@ -191,7 +194,7 @@ export default function TourneesLoan({ email }: { email: string }) {
   if (!loaded) return <p className="text-sm text-gray-500 py-10 text-center">Chargement…</p>;
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6 [color-scheme:light] [&_input]:bg-white [&_select]:bg-white [&_input]:text-gray-900 [&_select]:text-gray-900 [&_input[type=checkbox]]:accent-[#0073ea]">
+    <div className="p-1 sm:p-6 max-w-[1400px] mx-auto space-y-4 sm:space-y-6 [color-scheme:light] [&_input]:bg-white [&_select]:bg-white [&_input]:text-gray-900 [&_select]:text-gray-900 [&_input[type=checkbox]]:accent-[#0073ea]">
       {/* En-tête */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex-1 min-w-[260px]">
@@ -270,7 +273,7 @@ export default function TourneesLoan({ email }: { email: string }) {
           )}
 
           {/* Les chiffres en détail + carte */}
-          <div className="grid xl:grid-cols-[1.1fr_1fr] gap-4">
+          <div className="grid xl:grid-cols-[1.1fr_1fr] gap-4 [&>*]:min-w-0">
             <div className="bg-white border border-gray-200 rounded-2xl p-5">
               <h2 className="text-xl font-extrabold text-gray-900 mb-4">Les chiffres en détail</h2>
               <div className="space-y-6">
@@ -409,14 +412,14 @@ export default function TourneesLoan({ email }: { email: string }) {
                       <b className={netT >= 0 ? "text-emerald-700" : "text-red-600"}>reste {eur(netT)}</b>
                     </span>
                   </div>
-                  <div className="p-4 grid gap-2" style={{ gridTemplateColumns: `repeat(${Math.min(t.jours.length, 7)}, minmax(0, 1fr))` }}>
+                  <div className="p-3 sm:p-4 grid gap-2" style={mobile ? undefined : { gridTemplateColumns: `repeat(${Math.min(t.jours.length, 7)}, minmax(0, 1fr))` }}>
                     {t.jours.map((j, i) => {
                       const lig = j.ref ? res.lignes.find((l) => l.d.ref === j.ref) : undefined;
                       const sej = t.sejours.find((s) => j.nuit && s.ville === j.nuit && s.debut <= j.date);
                       const style =
                         j.type === "pose" ? "bg-emerald-50 border-emerald-200" : j.type === "route" ? "bg-amber-50 border-amber-200" : "bg-gray-50 border-gray-200";
                       return (
-                        <div key={i} className={`rounded-xl border p-3 flex flex-col min-h-[132px] ${style}`}>
+                        <div key={i} className={`rounded-xl border p-3 flex flex-col ${mobile ? "" : "min-h-[132px]"} ${style}`}>
                           <p className="text-xs font-bold text-gray-500 uppercase">{jourFr(j.date)}</p>
                           {j.type === "pose" ? (
                             <>
