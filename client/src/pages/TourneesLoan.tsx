@@ -265,7 +265,7 @@ export default function TourneesLoan({ email }: { email: string }) {
                   </>
                 )}
               </p>
-              <select value={params.retourWeekend ? "1" : "0"} onChange={(e) => setP("retourWeekend", e.target.value === "1")} className="border border-blue-300 bg-white rounded-lg px-3 py-1.5 text-sm font-semibold text-blue-900">
+              <select value={params.retourWeekend ? "1" : "0"} onChange={(e) => setP("retourWeekend", e.target.value === "1")} className="max-w-full border border-blue-300 bg-white rounded-lg px-3 py-1.5 text-sm font-semibold text-blue-900">
                 <option value="1">Ils rentrent à {params.depart} chaque week-end</option>
                 <option value="0">Ils restent sur place le week-end</option>
               </select>
