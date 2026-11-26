@@ -182,33 +182,32 @@ export const StatusCell = ({
     setNewHex("");
     setOpen(false);
   };
-  const isMobile = useIsMobile();
   const s = options.find((o) => o.key === status);
   const visibleOptions = options.filter((o) => o.label !== "" && (!o.off || o.key === status));
 
-  // Nombre de colonnes et largeur de base (au zoom 100%)
-  // Chaque étiquette fait la taille exacte d'une cellule du tableau (hauteur h-9 / 36px, texte text-sm font-semibold)
-  // Sur mobile, 2 colonnes confortables adaptées à l'écran du smartphone sans déborder
-  const { baseWidth, gridCols } = useMemo(() => {
-    if (isMobile) {
-      if (visibleOptions.length <= 4) return { baseWidth: 160, gridCols: "grid-cols-1" };
-      return { baseWidth: Math.min(320, typeof window !== "undefined" ? window.innerWidth - 32 : 320), gridCols: "grid-cols-2" };
+  // Chaque étiquette de la liste fait EXACTEMENT la taille de l'étiquette dans la colonne (mesurée à l'écran au moment
+  // d'ouvrir) : jamais plus grande ni plus petite, quel que soit le zoom du navigateur ou du tableau.
+  const pillRef = useRef<HTMLSpanElement>(null);
+  const [taille, setTaille] = useState({ w: 150, h: 30, f: 13 });
+  const ouvrir = (o: boolean) => {
+    if (o && pillRef.current) {
+      const r = pillRef.current.getBoundingClientRect();
+      if (r.width > 20 && r.height > 10) setTaille({ w: Math.round(r.width), h: Math.round(r.height), f: Math.round(13 * (r.width / (pillRef.current.offsetWidth || r.width)) * 10) / 10 });
     }
-    if (visibleOptions.length <= 4) return { baseWidth: 160, gridCols: "grid-cols-1" };
-    // Étiquettes toujours lisibles en entier : colonnes assez larges, texte à la ligne si besoin.
-    if (visibleOptions.length <= 8) return { baseWidth: 400, gridCols: "grid-cols-2" };
-    if (visibleOptions.length <= 15) return { baseWidth: 640, gridCols: "grid-cols-4" };
-    return { baseWidth: 780, gridCols: "grid-cols-5" };
-  }, [isMobile, visibleOptions.length]);
-  // Jamais plus large que l'écran (le défilement se fait dans la fenêtre).
-  const fitWidth = Math.min(baseWidth, typeof window !== "undefined" ? window.innerWidth - 32 : baseWidth);
-  const cols = fitWidth < baseWidth ? (visibleOptions.length <= 4 ? "grid-cols-1" : "grid-cols-2") : gridCols;
+    setOpen(o);
+  };
+  const GAP = 6;
+  const ecran = typeof window !== "undefined" ? window.innerWidth - 48 : 800;
+  // Autant de colonnes que l'écran le permet (5 au plus), sans jamais réduire les étiquettes.
+  const nbCols = Math.max(1, Math.min(visibleOptions.length <= 4 ? 1 : 5, Math.floor((ecran + GAP) / (taille.w + GAP))));
+  const fitWidth = nbCols * taille.w + (nbCols - 1) * GAP;
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={ouvrir}>
       <PopoverTrigger asChild>
         <button className="w-full h-full px-1.5 py-[3px] group/pill" title={s?.label}>
           <span
+            ref={pillRef}
             data-pill={s ? "" : "vide"}
             data-pill-key={s?.key}
             className="flex items-center justify-center w-full h-full rounded-md text-[13px] font-semibold text-white px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] group-hover/pill:brightness-95 transition"
@@ -219,12 +218,13 @@ export const StatusCell = ({
         </button>
       </PopoverTrigger>
       <PopoverContent
+        dir="ltr"
         className="p-0 overflow-hidden bg-white text-gray-900 border border-[#d0d4e4] rounded-lg shadow-xl w-auto max-w-[96vw]"
         align="start"
         collisionPadding={12}
       >
         <div className="p-2.5 max-h-[440px] overflow-y-auto">
-          <div className={`grid ${cols} gap-1.5`} style={{ width: fitWidth }}>
+          <div className="grid" style={{ width: fitWidth, gap: GAP, gridTemplateColumns: `repeat(${nbCols}, ${taille.w}px)` }}>
             {visibleOptions.map((o) => {
               const isSelected = o.key === status;
               return (
@@ -234,22 +234,22 @@ export const StatusCell = ({
                     setOpen(false);
                     onChange(o.key);
                   }}
-                  className={`min-h-9 px-3 py-1 text-sm leading-tight text-center font-semibold text-white rounded transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none ${
+                  className={`px-2 text-[13px] text-center font-semibold text-white rounded-md transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none overflow-hidden ${
                     isSelected ? "ring-2 ring-gray-900/60 ring-inset font-bold shadow-inner" : ""
                   }`}
                   data-pill-opt=""
                   data-pill-key={o.key}
-                  style={{ background: o.hex, ["--pill" as any]: o.hex }}
+                  style={{ background: o.hex, ["--pill" as any]: o.hex, width: taille.w, height: taille.h, fontSize: taille.f }}
                   title={o.label}
                 >
-                  {o.label}
+                  <span className="truncate min-w-0 max-w-full">{o.label}</span>
                 </button>
               );
             })}
           </div>
 
           {onEditLabels && (
-            <div className="mt-2" style={{ width: fitWidth }}>
+            <div className="mt-2" style={{ width: Math.max(fitWidth, 260) }}>
               {!adding ? (
                 <button
                   onClick={() => {
@@ -310,7 +310,7 @@ export const StatusCell = ({
           )}
 
           {(onEditLabels || clearable || options.some((o) => o.label === "")) && (
-            <div className="mt-2.5 pt-2 border-t border-[#d0d4e4] flex items-center justify-between gap-2" style={{ width: fitWidth }}>
+            <div className="mt-2.5 pt-2 border-t border-[#d0d4e4] flex items-center justify-between gap-2" style={{ width: Math.max(fitWidth, 260) }}>
               {onEditLabels ? (
                 <button
                   onClick={() => {
