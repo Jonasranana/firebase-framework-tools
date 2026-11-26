@@ -1,4 +1,4 @@
-import { TOTALS_VIEWERS, NEWS_VIEWERS, RENTA_VIEWERS } from "@/lib/crm";
+import { TOTALS_VIEWERS, NEWS_VIEWERS, RENTA_VIEWERS, STATS_VIEWERS } from "@/lib/crm";
 import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   LogOut,
@@ -970,7 +970,12 @@ export default function OutilDevis() {
         )}
         {p === "bareme" && <BaremeCRM />}
         {p === "archives" && <ArchivesMonday email={email} />}
-        {p === "stats" && <StatsCRM email={email} />}
+        {p === "stats" &&
+          (STATS_VIEWERS.includes(email.toLowerCase()) ? (
+            <StatsCRM email={email} />
+          ) : (
+            <p className="text-center text-gray-500 text-sm py-10">Les statistiques sont réservées aux administrateurs.</p>
+          ))}
         {p === "documents" && <DocumentsPage />}
         {p === "equipe" && (
           <TeamPage

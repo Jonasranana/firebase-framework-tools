@@ -19,6 +19,14 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-stats-admins",
+    date: "2026-11-26",
+    emoji: "🔒",
+    titre: "Statistiques réservées aux administrateurs",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"],
+    points: ["La page Statistiques n'est plus visible par les membres de l'équipe : seulement par les administrateurs (et l'adresse contact)."],
+  },
+  {
     id: "2026-11-26-nouveau-menu",
     date: "2026-11-26",
     emoji: "🧭",

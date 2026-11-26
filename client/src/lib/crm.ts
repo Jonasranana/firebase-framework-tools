@@ -415,6 +415,9 @@ export const TOTALS_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.co
 // À garder identique à la règle Firestore crm_news (scripts/regles-actus.mjs).
 // Comptes qui voient la page « Rentabilité Meta » (bénéfice net après pub) : Jonas et Alexis.
 // À garder identique à la règle Firestore crm_meta_depenses (scripts/regles-renta.mjs).
+// Comptes qui voient les Statistiques : les administrateurs (famille) + ceux qui voient l'argent.
+export const STATS_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"];
+
 export const RENTA_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com"];
 
 export const NEWS_VIEWERS = ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"];
