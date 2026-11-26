@@ -1,3 +1,4 @@
+import { useDesignV2 } from "@/lib/designV2";
 import { TOTALS_VIEWERS, NEWS_VIEWERS, RENTA_VIEWERS } from "@/lib/crm";
 import { useEffect, useState } from "react";
 import {
@@ -191,6 +192,7 @@ const SidebarBody = ({
   compact,
   email,
   onSignOut,
+  designToggle,
 }: {
   config: SideConfig;
   save: (c: SideConfig) => void;
@@ -202,6 +204,7 @@ const SidebarBody = ({
   compact: boolean;
   email: string;
   onSignOut: () => void;
+  designToggle?: React.ReactNode;
 }) => (
   <div className="flex flex-col h-full">
     <div className="flex-1 min-h-0">
@@ -225,6 +228,7 @@ const SidebarBody = ({
         <LogOut size={18} className="shrink-0" />
         {!compact && "Se déconnecter"}
       </button>
+      {designToggle}
       {!compact && <p className="px-3 pt-1 text-[11px] text-gray-400 truncate">{email}</p>}
     </div>
   </div>
@@ -294,6 +298,13 @@ export default function AdminShell({
     window.addEventListener("pointerup", up);
   };
   useAdminTheme();
+  // Nouveau design en essai (comptes testeurs) : classe .crm-v2 sur la page, styles dans index.css.
+  const design = useDesignV2(email);
+  const v2 = design.on;
+  useEffect(() => {
+    document.documentElement.classList.toggle("crm-v2", v2);
+    return () => document.documentElement.classList.remove("crm-v2");
+  }, [v2]);
   const [drawer, setDrawer] = useState(false);
   const [overlay, setOverlay] = useState<SideItem | null>(null);
   const { config, save, loaded, error } = useSidebar(email);
@@ -359,11 +370,25 @@ export default function AdminShell({
       compact={c}
       email={email}
       onSignOut={onSignOut}
+      designToggle={
+        design.allowed && !c ? (
+          <button
+            onClick={design.toggle}
+            title="Nouveau design du CRM, en essai sur votre compte"
+            className="w-full flex items-center gap-3 rounded-lg text-sm font-semibold text-gray-500 hover:bg-gray-100 px-3 py-2"
+          >
+            <span className={`relative w-8 h-[18px] rounded-full transition-colors ${design.on ? "bg-[#2563eb]" : "bg-gray-300"}`}>
+              <span className={`absolute top-[2px] w-[14px] h-[14px] rounded-full bg-white shadow transition-all ${design.on ? "left-[16px]" : "left-[2px]"}`} />
+            </span>
+            Nouveau design (essai)
+          </button>
+        ) : null
+      }
     />
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex" dir="ltr">
+    <div className={`min-h-screen flex ${v2 ? "bg-[#f6f7fb]" : "bg-gray-50"}`} dir="ltr">
       {/* Menu fixe (ordinateur) */}
       <aside
         className={`hidden md:flex flex-col shrink-0 sticky top-0 h-screen bg-white border-r border-gray-100 ${resizing ? "" : "transition-[width]"} ${
@@ -388,6 +413,20 @@ export default function AdminShell({
           />
         )}
         {/* En-tête de marque : logo IP5 Énergie en blanc sur un bandeau dégradé (comme Monday). */}
+        {v2 ? (
+          <div className={`relative flex items-center h-16 border-b border-[#eceef3] ${compact ? "justify-center" : "pl-4 pr-2"}`}>
+            {!compact ? (
+              <div className="flex items-center gap-2.5 min-w-0">
+                <LogoIP5 className="!h-10" />
+                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#2552d0] bg-[#eef3ff] rounded-full px-2 py-0.5">CRM</span>
+              </div>
+            ) : (
+              <a href="/admin" aria-label="IP5 Énergie" className="flex items-center justify-center">
+                <LogoMark className="h-9 w-auto text-[#2552d0]" />
+              </a>
+            )}
+          </div>
+        ) : (
         <div
           className={`relative flex items-center h-20 text-white overflow-hidden ${compact ? "justify-center" : "pl-5 pr-2 justify-between"}`}
           style={{ background: "linear-gradient(120deg,#ff8a00 0%,#ff4d4d 45%,#e0218a 100%)" }}
@@ -406,17 +445,18 @@ export default function AdminShell({
           )}
           <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ffd166,#ffffff80,#ffd166)" }} />
         </div>
+        )}
         {/* Réduire / agrandir : grand bouton franc, bien visible dans les deux états. */}
         <button
           onClick={() => setCompact((v) => !v)}
           aria-label={compact ? "Agrandir le menu" : "Réduire le menu"}
           title={compact ? "Agrandir le menu" : "Réduire le menu"}
-          className={`shrink-0 flex items-center gap-2 border-b border-gray-100 text-[#d6246e] font-bold text-xs hover:bg-pink-50 transition-colors ${
+          className={`shrink-0 flex items-center gap-2 border-b border-gray-100 font-bold text-xs transition-colors ${v2 ? "text-gray-500 hover:bg-gray-50" : "text-[#d6246e] hover:bg-pink-50"} ${
             compact ? "justify-center h-11" : "px-4 h-10"
           }`}
         >
           {compact ? (
-            <span className="w-8 h-8 rounded-lg bg-[#e0218a] text-white flex items-center justify-center shadow-sm">
+            <span className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${v2 ? "bg-[#eef3ff] text-[#2552d0]" : "bg-[#e0218a] text-white"}`}>
               <ChevronsRight size={18} strokeWidth={2.5} />
             </span>
           ) : (
@@ -452,7 +492,7 @@ export default function AdminShell({
       </Dialog>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-20 h-14 bg-white border-b-[3px] border-b-[#ff5a4d] flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4">
+        <header className={`sticky top-0 z-20 h-14 bg-white flex items-center gap-2 sm:gap-3 px-2.5 sm:px-4 ${v2 ? "border-b border-[#eceef3]" : "border-b-[3px] border-b-[#ff5a4d]"}`}>
           <button
             onClick={() => setDrawer(true)}
             aria-label="Ouvrir le menu"
@@ -460,6 +500,10 @@ export default function AdminShell({
           >
             <Menu size={22} />
           </button>
+          {v2 ? (
+            <h1 className="text-lg sm:text-xl font-extrabold tracking-tight truncate text-[#1f2430]">{title}</h1>
+          ) : (
+            <>
           <span aria-hidden className="hidden sm:block w-1.5 h-7 rounded-full shrink-0" style={{ background: "linear-gradient(180deg,#ff8a00,#e0218a)" }} />
           <h1
             className="text-lg sm:text-2xl font-extrabold tracking-tight truncate bg-clip-text text-transparent"
@@ -467,6 +511,8 @@ export default function AdminShell({
           >
             {title}
           </h1>
+            </>
+          )}
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
             <MailSyncStatus email={email} />

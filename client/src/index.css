@@ -224,3 +224,48 @@ html.crm-dark .crm-soft { background: var(--soft-dark) !important; }
 html.crm-dark ::-webkit-scrollbar-track, html.crm-dark ::-webkit-scrollbar-corner { background: #232736; }
 html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 .crm-scroll::-webkit-scrollbar-thumb:horizontal:hover { background: linear-gradient(90deg,#ff9a20,#ec3a9a); }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Nouveau design du CRM (essai) : actif quand <html> porte la classe .crm-v2
+   (voir lib/designV2.ts). Plus clair, plus aéré, lignes non coloriées en entier.
+   ───────────────────────────────────────────────────────────────────────── */
+.crm-v2 body { background: #f6f7fb; }
+/* Bordures plus douces partout */
+.crm-v2 .border-\[\#d0d4e4\] { border-color: #eceef3; }
+/* Groupes du tableau : cartes blanches arrondies */
+.crm-v2 [data-groupcard] { border-radius: 14px; border-color: #eceef3; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05); }
+/* Lignes : fond blanc, l'âge devient une petite barre de couleur devant le nom */
+.crm-v2 [data-row] { background: #fff !important; }
+.crm-v2 [data-row]:hover, .crm-v2 [data-row]:hover [data-namecell] { background: #f8faff !important; }
+.crm-v2 [data-row] [data-namecell] { background: #fff !important; box-shadow: none; }
+.crm-v2 [data-row][data-age] [data-namecell]::after {
+  content: ""; position: absolute; left: 6px; top: 9px; bottom: 9px; width: 4px; border-radius: 3px;
+}
+.crm-v2 [data-row][data-age="vert"] [data-namecell]::after { background: #34d399; }
+.crm-v2 [data-row][data-age="orange"] [data-namecell]::after { background: #fbbf24; }
+.crm-v2 [data-row][data-age="rouge"] [data-namecell]::after { background: #f87171; }
+.crm-v2 [data-row].bg-blue-50, .crm-v2 [data-row].bg-blue-50 [data-namecell] { background: #eef3ff !important; }
+/* Étiquettes de statut : douces, avec un point de couleur */
+.crm-v2 [data-pill] {
+  background: color-mix(in srgb, var(--pill) 14%, white) !important;
+  color: color-mix(in srgb, var(--pill) 78%, black) !important;
+  box-shadow: none; justify-content: flex-start; gap: 6px; border-radius: 7px; font-size: 12.5px;
+}
+.crm-v2 [data-pill]::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--pill); }
+.crm-v2 [data-pill="vide"] { background: transparent !important; }
+.crm-v2 [data-pill="vide"]::before { background: #d9dce3; }
+/* Légende des couleurs d'âge */
+.crm-v2 [data-age-legend="vert"] { background: #34d399 !important; }
+.crm-v2 [data-age-legend="orange"] { background: #fbbf24 !important; }
+.crm-v2 [data-age-legend="rouge"] { background: #f87171 !important; }
+/* Menu de gauche : élément actif en bleu */
+.crm-v2 .bg-\[\#fff0e6\] { background: #eef3ff; }
+.crm-v2 .text-\[\#c2410c\] { color: #2552d0; }
+.crm-v2 .shadow-\[inset_3px_0_0_\#ff6a1a\] { box-shadow: inset 3px 0 0 #2563eb; }
+.crm-v2 .hover\:bg-orange-50:hover { background: #f3f5fa; }
+/* Couleur principale : bleu au lieu de l'orange */
+.crm-v2 .bg-\[\#ff6a1a\] { background-color: #2563eb; }
+.crm-v2 .hover\:bg-\[\#e85a0c\]:hover, .crm-v2 .bg-\[\#e85a0c\] { background-color: #1d4ed8; }
+.crm-v2 .border-\[\#ff6a1a\] { border-color: #2563eb; }
+.crm-v2 .border-\[\#ff9a5a\] { border-color: #93b4f5; }
+.crm-v2 .bg-\[\#fff6ef\] { background-color: #f3f6fe; }

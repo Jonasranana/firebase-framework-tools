@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-crm-plus-rapide",
+    date: "2026-11-26",
+    emoji: "⚡",
+    titre: "Le CRM est beaucoup plus rapide",
+    points: [
+      "Le tableau Pac Pac s'affiche environ 3 fois plus vite : seules les lignes proches de l'écran sont dessinées, les autres apparaissent quand vous descendez.",
+      "Modifier un statut ou une fiche est plus fluide, et la recherche ne bloque plus la frappe.",
+      "Rien ne change dans vos habitudes : mêmes colonnes, mêmes groupes, mêmes boutons.",
+    ],
+  },
+  {
     id: "2026-11-25-simulateur-marge",
     date: "2026-11-25",
     emoji: "🧮",
