@@ -93,7 +93,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   planning: "Planning chantiers",
   bets: "Dossiers BETS",
   loan: "Tournées Loan",
-  pacarchive: "Pac Pac archivé",
+  pacarchive: "Les archives de Pac Pac",
 };
 
 const PAGES = Object.keys(PAGE_TITLES) as AdminPage[];

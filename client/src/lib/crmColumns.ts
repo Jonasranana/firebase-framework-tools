@@ -204,7 +204,7 @@ export type ColTrashEntry = {
   after?: string;
 };
 
-// Colonne supprimée : 30 jours en corbeille. Colonne archivée : gardée sans limite (page « Pac Pac archivé »).
+// Colonne supprimée : 30 jours en corbeille. Colonne archivée : gardée sans limite (page « Les archives de Pac Pac »).
 export const COL_TRASH_DAYS = { archive: Infinity, delete: 30 } as const;
 export const colDaysLeft = (e: ColTrashEntry, now = Date.now()) =>
   e.kind === "archive" ? Infinity : Math.max(0, COL_TRASH_DAYS[e.kind] - Math.floor((now - new Date(e.at).getTime()) / 86400000));
