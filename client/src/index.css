@@ -242,22 +242,12 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--pill) 30%, transparent);
 }
 .crm-v2 [data-pill="vide"] { background: #eef0f4 !important; box-shadow: none; }
-/* « Nouveau lead » : l'étiquette qui brille (reflet qui passe + léger halo). */
+/* « Nouveau lead » : l'étiquette qui se voit (dégradé orange + léger halo, sans animation). */
 .crm-v2 [data-pill-key="nouveau_lead"], html:not(.crm-v2) [data-pill-key="nouveau_lead"] {
-  position: relative; overflow: hidden;
   background: linear-gradient(100deg, #ff8a00, #ff5a4d 55%, #ec3a9a) !important;
   color: #fff !important;
-  box-shadow: 0 0 0 1px rgba(255, 106, 26, 0.35), 0 0 10px rgba(255, 106, 26, 0.45) !important;
-  animation: pill-halo 2.4s ease-in-out infinite;
+  box-shadow: 0 0 0 1px rgba(255, 106, 26, 0.35), 0 0 8px rgba(255, 106, 26, 0.4) !important;
 }
-.crm-v2 [data-pill-key="nouveau_lead"]::after, html:not(.crm-v2) [data-pill-key="nouveau_lead"]::after {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.75) 50%, transparent 70%);
-  transform: translateX(-120%); animation: pill-reflet 2.4s ease-in-out infinite;
-}
-@keyframes pill-reflet { 0%, 35% { transform: translateX(-120%); } 75%, 100% { transform: translateX(120%); } }
-@keyframes pill-halo { 0%, 100% { box-shadow: 0 0 0 1px rgba(255,106,26,.35), 0 0 6px rgba(255,106,26,.35); } 50% { box-shadow: 0 0 0 1px rgba(255,106,26,.5), 0 0 14px rgba(255,106,26,.6); } }
-@media (prefers-reduced-motion: reduce) { [data-pill-key="nouveau_lead"], [data-pill-key="nouveau_lead"]::after { animation: none; } }
 /* Poignée pour glisser une fiche (⋮⋮) : visible seulement au survol de la ligne */
 .crm-v2 [data-grip] { opacity: 0; transition: opacity .15s; }
 .crm-v2 [data-row]:hover [data-grip] { opacity: 1; }

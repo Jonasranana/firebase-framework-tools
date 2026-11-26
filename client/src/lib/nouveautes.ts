@@ -25,6 +25,7 @@ export const NOUVEAUTES: Nouveaute[] = [
     titre: "Choix d'étiquette à la bonne taille",
     points: [
       "Quand vous cliquez sur une étiquette, la liste qui s'ouvre montre chaque étiquette exactement à la taille de celle de la colonne, quel que soit le zoom de Google Chrome ou du tableau.",
+      "« Nouveau lead » garde sa couleur vive, sans le reflet qui passait.",
     ],
   },
   {
