@@ -22,5 +22,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
-          ECRIRE: "non"
+          ECRIRE: "oui"
         run: node scripts/couleurs-etiquettes.mjs
