@@ -19,6 +19,13 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-mobile-sans-dezoom",
+    date: "2026-11-26",
+    emoji: "📱",
+    titre: "Sur téléphone, le CRM reste à la taille de l'écran",
+    points: ["Plus de dézoom possible ni de page qui déborde sur le côté : chaque page se range en lignes à la largeur du téléphone, comme une appli."],
+  },
+  {
     id: "2026-11-26-chargement-rapide",
     date: "2026-11-26",
     emoji: "⚡",

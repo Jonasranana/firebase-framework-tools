@@ -775,6 +775,10 @@ const Row = ({ k, v, bold }: { k: string; v: string; bold?: boolean }) => (
 function useCrmTabColor() {
   useEffect(() => {
     const ORANGE = "#ff6a1a";
+    // CRM sur téléphone : comme une appli, l'écran reste à la taille du téléphone (pas de dézoom / zoom).
+    const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+    const vpAvant = vp?.content;
+    if (vp) vp.content = "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover";
     let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
     const createdMeta = !meta;
     if (!meta) {
@@ -800,6 +804,7 @@ function useCrmTabColor() {
     // Service worker des notifications (déjà enregistré si elles ont été activées) : gardé à jour.
     if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistration("/").then((r) => r?.update()).catch(() => {});
     return () => {
+      if (vp && vpAvant) vp.content = vpAvant;
       manifest.remove();
       appleIcon.remove();
       if (createdMeta) meta?.remove();

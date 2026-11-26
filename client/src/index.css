@@ -256,6 +256,11 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 .crm-v2 .focus\:border-orange-300:focus { border-color: var(--v2-blue); }
 
 .crm-v2 body { background: #f6f7fb; }
+/* Téléphone : rien ne peut élargir la page (sinon le navigateur permet de dézoomer et tout rétrécit).
+   « clip » coupe ce qui dépasse sans créer de barre de défilement (les en-têtes collants restent collants).
+   Les tableaux larges gardent leur propre défilement horizontal. */
+html.crm-v2, .crm-v2 body { overflow-x: clip; max-width: 100%; }
+.crm-v2 select, .crm-v2 input, .crm-v2 textarea { max-width: 100%; }
 /* Bordures plus douces partout */
 .crm-v2 .border-\[\#d0d4e4\] { border-color: #eceef3; }
 /* Groupes du tableau : cartes blanches arrondies */
