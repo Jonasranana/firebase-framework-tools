@@ -455,6 +455,32 @@ async function cleanupOldIncomplete() {
   incompleteSetupDone = true;
 }
 
+// Compteur anonyme du parcours du simulateur (site) : nombre de visiteurs qui VOIENT chaque étape,
+// par jour et par source. Aucune donnée personnelle. Lu par le CRM pour savoir où les gens abandonnent.
+// Firestore : site_entonnoir/<AAAA-MM-JJ> { "<source>": { "<etape>": n } }.
+exports.compterEtape = onRequest({ region: "europe-west9", cors: true, maxInstances: 3 }, async (req, res) => {
+  try {
+    if (req.method !== "POST") {
+      res.status(204).send("");
+      return;
+    }
+    let b = req.body;
+    if (typeof b === "string") b = JSON.parse(b || "{}");
+    else if (Buffer.isBuffer(b)) b = JSON.parse(b.toString("utf8") || "{}");
+    const src = String(b?.src ?? "").replace(/[^a-z0-9_-]/gi, "").slice(0, 40) || "site";
+    const etape = String(b?.etape ?? "");
+    if (!/^(arrivee|q[1-9]|q1[0-2]|coordonnees|resultat)$/.test(etape)) {
+      res.status(204).send("");
+      return;
+    }
+    const jour = new Intl.DateTimeFormat("fr-CA", { timeZone: "Europe/Paris", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+    await db.doc(`site_entonnoir/${jour}`).set({ [src]: { [etape]: FieldValue.increment(1) } }, { merge: true });
+  } catch (err) {
+    logger.warn("compterEtape ignoré", { error: err.message });
+  }
+  res.status(204).send("");
+});
+
 exports.trackSimulatorStep = onRequest({ region: "europe-west9", cors: true, maxInstances: 5 }, async (req, res) => {
   try {
     if (req.method !== "POST") {

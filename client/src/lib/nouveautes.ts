@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-formulaire-site",
+    date: "2026-11-26",
+    emoji: "📝",
+    titre: "Formulaire du site plus simple + où les visiteurs le quittent",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com"],
+    points: [
+      "Sur /pac, l'e-mail devient facultatif (le téléphone suffit), et la question « Où se trouve votre maison ? » propose d'abord le département en un clic ; l'adresse exacte devient facultative.",
+      "Rentabilité Meta → « 🔎 Où les visiteurs quittent le formulaire » : combien de visiteurs voient chaque étape, et le % perdu à chaque question (compteur anonyme, sans donnée personnelle).",
+    ],
+  },
+  {
     id: "2026-11-26-mobile-liste-fiche",
     date: "2026-11-26",
     emoji: "📱",

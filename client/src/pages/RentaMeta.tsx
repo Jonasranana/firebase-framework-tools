@@ -71,6 +71,24 @@ export default function RentaMeta({ email }: { email: string }) {
   const [[du, au], setPeriode] = useState<[string, string]>(PERIODES[4][1]());
   const [depenses, setDepenses] = useState<Depense[]>([]);
   const [erreur, setErreur] = useState("");
+  // Compteur anonyme du formulaire du site (site_entonnoir/<jour>) : combien de visiteurs voient chaque étape.
+  const [entonnoir, setEntonnoir] = useState<{ id: string; data: Record<string, Record<string, number>> }[]>([]);
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    (async () => {
+      try {
+        const { m, db } = await crmFirestore();
+        unsub = m.onSnapshot(
+          m.collection(db, "site_entonnoir"),
+          (snap: any) => setEntonnoir(snap.docs.map((d: any) => ({ id: d.id, data: d.data() }))),
+          () => {},
+        );
+      } catch {
+        /* pas encore de compteur */
+      }
+    })();
+    return () => unsub?.();
+  }, []);
   const [form, setForm] = useState({ du: "", au: "", canal: "site" as Canal, campagne: "", montant: "", leadsMeta: "" });
 
   useEffect(() => {
@@ -126,6 +144,19 @@ export default function RentaMeta({ email }: { email: string }) {
     mpr: signesMeta.reduce((x, l) => x + (mprOf(l) ?? 0), 0),
   };
   const benef = tot.marge - tot.depense;
+  // Entonnoir du formulaire sur la période (toutes sources du site, hors réactivation).
+  const ETAPES_FORM: [string, string][] = [["arrivee", "Arrivent sur le simulateur"], ["q1", "Maison ou appartement"], ["q2", "Propriétaire"], ["q3", "Surface"], ["coordonnees", "Coordonnées"], ["q4", "Chauffage"], ["q5", "Département / adresse"], ["q6", "Foyer"], ["q7", "Revenus"], ["q8", "Échéance"], ["resultat", "Voient leur résultat"]];
+  const vus = (() => {
+    const t: Record<string, number> = {};
+    for (const j of entonnoir) {
+      if (j.id < du || j.id > au) continue;
+      for (const [src, c] of Object.entries(j.data)) {
+        if (src.startsWith("reactivation")) continue;
+        for (const [k, n] of Object.entries(c ?? {})) t[k] = (t[k] ?? 0) + (Number(n) || 0);
+      }
+    }
+    return t;
+  })();
   // Quelle annonce amène des clients : leads du site rangés par pub d'origine (paramètres utm du lien Meta).
   const parPub = useMemo(() => {
     const m = new Map<string, { leads: number; avancent: number; signes: number; campagne: string }>();
@@ -307,6 +338,33 @@ export default function RentaMeta({ email }: { email: string }) {
           ⚠️ {tot.aCompleter} signé{tot.aCompleter > 1 ? "s" : ""} sans montant : pas compté{tot.aCompleter > 1 ? "s" : ""}. Remplis « 🔗 Réf Praimy » ou « 💵 Marge nette » sur la fiche.
         </p>
       )}
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
+        <h2 className="text-lg font-black text-gray-900">🔎 Où les visiteurs quittent le formulaire</h2>
+        <p className="text-sm text-gray-600 mb-3">Nombre de visiteurs qui voient chaque étape du simulateur du site (compteur anonyme, une fois par visite).</p>
+        {!vus.arrivee ? (
+          <p className="text-sm text-gray-500">Pas encore de chiffres sur cette période (le compteur démarre avec cette mise à jour).</p>
+        ) : (
+          <div className="space-y-1.5">
+            {ETAPES_FORM.map(([k, label], i) => {
+              const n = vus[k] ?? 0;
+              const pct = Math.round((n / vus.arrivee) * 100);
+              const avant = i > 0 ? vus[ETAPES_FORM[i - 1][0]] ?? 0 : n;
+              const perte = avant > 0 && i > 0 ? Math.round(((avant - n) / avant) * 100) : 0;
+              return (
+                <div key={k} className="flex items-center gap-2 text-sm">
+                  <span className="w-44 shrink-0 truncate text-gray-700">{label}</span>
+                  <span className="flex-1 h-5 rounded-md bg-gray-100 overflow-hidden">
+                    <span className="block h-full rounded-md" style={{ width: `${Math.max(pct, 2)}%`, background: "linear-gradient(90deg,#173a5e,#2b5a8f)" }} />
+                  </span>
+                  <span className="w-12 text-right font-bold text-gray-900">{n}</span>
+                  <span className={`w-14 text-right text-xs font-semibold ${perte >= 25 ? "text-[#dc2626]" : perte >= 10 ? "text-[#d97706]" : "text-gray-400"}`}>{i > 0 ? `−${perte} %` : ""}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
         <h2 className="text-lg font-black text-gray-900">📊 Quelle pub marche ?</h2>

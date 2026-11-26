@@ -774,6 +774,22 @@ export function getVisitId(): string {
     return "";
   }
 }
+// Compteur anonyme du parcours : combien de visiteurs VOIENT chaque étape (aucune donnée personnelle,
+// une seule fois par étape et par visite). Sert à savoir où les gens quittent le formulaire.
+const COMPTEUR_URL = "https://europe-west9-kachoto-7554c.cloudfunctions.net/compterEtape";
+export function compterEtape(source: string, etape: string) {
+  try {
+    if (source.startsWith("reactivation")) return;
+    const k = `ip5-vu-${etape}`;
+    if (sessionStorage.getItem(k)) return;
+    sessionStorage.setItem(k, "1");
+    const body = JSON.stringify({ src: source.slice(0, 40), etape });
+    if (navigator.sendBeacon) navigator.sendBeacon(COMPTEUR_URL, new Blob([body], { type: "text/plain" }));
+    else fetch(COMPTEUR_URL, { method: "POST", body, headers: { "Content-Type": "text/plain" }, keepalive: true, mode: "no-cors" }).catch(() => {});
+  } catch {
+    /* jamais bloquant */
+  }
+}
 export function trackStep(source: string, step: number, answers: Record<string, unknown>) {
   try {
     if (source.startsWith("reactivation")) return;
@@ -987,6 +1003,17 @@ export const Simulator = ({
     }
   })();
 
+  // Compteur anonyme : arrivée sur le simulateur, chaque question vue, l'étape coordonnées, le résultat.
+  useEffect(() => {
+    compterEtape(effectiveSource, "arrivee");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    if (isCalculating || step > TOTAL_QUESTIONS) compterEtape(effectiveSource, "resultat");
+    else compterEtape(effectiveSource, earlyContact ? "coordonnees" : `q${step}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, earlyContact, isCalculating]);
+
   // Une fois les coordonnées données, chaque étape franchie met à jour la fiche « incomplète » du CRM.
   useEffect(() => {
     if (contactSaved && step >= 2 && step <= TOTAL_QUESTIONS + 1 && !isCalculating) trackStep(effectiveSource, step - 1, formData);
@@ -1098,9 +1125,10 @@ export const Simulator = ({
     if (!FRENCH_PHONE_REGEX.test(formData.phone.trim())) {
       newErrors.phone = "Merci d'indiquer un numéro de téléphone français valide (ex : 06 12 34 56 78).";
     }
+    // E-mail facultatif (seul le téléphone sert à rappeler) : vérifié seulement s'il est rempli.
     const email = formData.email.trim();
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
-      newErrors.email = "Merci d'indiquer une adresse e-mail valide.";
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+      newErrors.email = "Cette adresse e-mail semble incomplète (ou laissez la case vide).";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -1253,10 +1281,9 @@ export const Simulator = ({
                 <input
                   id="lead-email"
                   type="email"
-                  required
                   autoComplete="email"
                   inputMode="email"
-                  placeholder="Votre e-mail"
+                  placeholder="Votre e-mail (facultatif)"
                   value={formData.email}
                   aria-invalid={!!errors.email}
                   className={`w-full px-4 py-3.5 rounded-xl border-2 focus:ring-4 focus:ring-blue-100 focus:border-[#2b5a8f] outline-none bg-slate-50 focus:bg-white text-gray-900 placeholder-gray-400 transition-all ${errors.email ? "border-red-400" : "border-slate-200"}`}
@@ -1518,26 +1545,11 @@ export const Simulator = ({
         return (
           <div className="text-center">
             <h3 className={Q}>Où se trouve votre maison&nbsp;?</h3>
-            <p className={SUB}>Les aides varient selon votre région. Avec votre adresse, on retrouve aussi le diagnostic énergétique de votre maison.</p>
+            <p className={SUB}>Les aides varient selon votre département.</p>
 
-            <AddressDpe
-              onPick={(a, dpe) => {
-                const dep = DEPARTMENTS.find((d) => d.split(" - ")[0] === a.depcode) ?? formData.department;
-                const summary = dpe?.etiquette_dpe
-                  ? [
-                      `Étiquette ${dpe.etiquette_dpe}`,
-                      dpe.annee_construction ? `construite en ${dpe.annee_construction}` : dpe.periode_construction,
-                      dpe.surface_habitable_logement ? `${Math.round(dpe.surface_habitable_logement)} m²` : "",
-                      dpe.type_energie_principale_chauffage ? `chauffage ${dpe.type_energie_principale_chauffage}` : "",
-                      dpe.date_etablissement_dpe ? `DPE du ${dpe.date_etablissement_dpe.split("-").reverse().join("/")}` : "",
-                    ].filter(Boolean).join(" · ")
-                  : "Aucun DPE trouvé pour cette adresse";
-                setFormData((d) => ({ ...d, department: dep, address: a.label, postalCode: a.postcode, city: a.city, dpe: summary }));
-              }}
-            />
-            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider my-4">ou seulement votre département</p>
 
-            <div className="relative mb-7 text-left">
+
+            <div className="relative mb-4 text-left">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 rounded-xl bg-gradient-to-br from-[#2b5a8f] to-[#0f2b4a] text-white flex items-center justify-center shadow-sm pointer-events-none">
                 <MapPin size={18} />
               </span>
@@ -1564,6 +1576,23 @@ export const Simulator = ({
               </div>
             </div>
 
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider mt-1 mb-2">Facultatif : votre adresse, pour retrouver le diagnostic énergétique</p>
+            <AddressDpe
+              onPick={(a, dpe) => {
+                const dep = DEPARTMENTS.find((d) => d.split(" - ")[0] === a.depcode) ?? formData.department;
+                const summary = dpe?.etiquette_dpe
+                  ? [
+                      `Étiquette ${dpe.etiquette_dpe}`,
+                      dpe.annee_construction ? `construite en ${dpe.annee_construction}` : dpe.periode_construction,
+                      dpe.surface_habitable_logement ? `${Math.round(dpe.surface_habitable_logement)} m²` : "",
+                      dpe.type_energie_principale_chauffage ? `chauffage ${dpe.type_energie_principale_chauffage}` : "",
+                      dpe.date_etablissement_dpe ? `DPE du ${dpe.date_etablissement_dpe.split("-").reverse().join("/")}` : "",
+                    ].filter(Boolean).join(" · ")
+                  : "Aucun DPE trouvé pour cette adresse";
+                setFormData((d) => ({ ...d, department: dep, address: a.label, postalCode: a.postcode, city: a.city, dpe: summary }));
+              }}
+            />
+            <div className="mb-6" />
             <Button
               onClick={() => advance(rewardFor("department", formData.department))}
               className={`w-full ${CTA}`}
