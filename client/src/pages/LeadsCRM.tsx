@@ -2103,7 +2103,7 @@ export default function LeadsCRM({
             await callFn("postUpdate", { kind: "lead", id, text });
           }}
           onChat={(id) => setChatId(id)}
-          onAddLead={() => setCreating(true)}
+          onAddLead={() => setAjoutDans("")}
           onFull={(id) => {
             setOpenId(id);
             setFocusUpdates(false);

@@ -70,7 +70,7 @@ export default function NouveauLeadDialog({
   const lab = "block text-[12px] font-bold text-gray-500 mb-1";
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
-      <DialogContent dir="ltr" className="max-w-lg bg-white text-gray-900 rounded-2xl p-0 overflow-hidden">
+      <DialogContent dir="ltr" className="max-w-lg w-[calc(100vw-16px)] max-h-[92dvh] overflow-y-auto bg-white text-gray-900 rounded-2xl p-0">
         <div className="px-6 pt-5 pb-3 border-b border-gray-100">
           <DialogTitle className="text-lg font-extrabold">＋ Ajouter un lead manuellement</DialogTitle>
           <p className="text-xs text-gray-500 mt-0.5">Groupe : {groupe}. Seul le téléphone est obligatoire.</p>

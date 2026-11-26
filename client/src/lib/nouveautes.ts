@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-mobile-appli",
+    date: "2026-11-26",
+    emoji: "📱",
+    titre: "Sur téléphone, le CRM devient une vraie appli",
+    points: [
+      "Les onglets Clients, Rappels, Notifs et Actus sont en bas de l'écran, comme dans une appli, avec le nombre de rappels en retard et de notifications.",
+      "Le gros bouton « + » au centre ajoute un client en quelques secondes (téléphone vérifié, doublon signalé).",
+      "Plus rien ne dépasse de l'écran sur le côté. Astuce : « Ajouter à l'écran d'accueil » dans le navigateur pour l'ouvrir comme une appli.",
+    ],
+  },
+  {
     id: "2026-11-26-ajout-lead-fenetre",
     date: "2026-11-26",
     emoji: "📝",
