@@ -226,8 +226,8 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 .crm-scroll::-webkit-scrollbar-thumb:horizontal:hover { background: linear-gradient(90deg,#ff9a20,#ec3a9a); }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   Nouveau design du CRM (essai) : actif quand <html> porte la classe .crm-v2
-   (voir lib/designV2.ts). Plus clair, plus aéré, lignes non coloriées en entier.
+   Design du CRM (pour tout le monde) : actif quand <html> porte la classe .crm-v2
+   (posée par AdminShell). Plus clair, plus aéré.
    ───────────────────────────────────────────────────────────────────────── */
 .crm-v2 body { background: #f6f7fb; }
 /* Bordures plus douces partout */
@@ -243,7 +243,7 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 }
 .crm-v2 [data-pill="vide"] { background: #eef0f4 !important; box-shadow: none; }
 /* « Nouveau lead » : l'étiquette qui se voit (dégradé orange + léger halo, sans animation). */
-.crm-v2 [data-pill-key="nouveau_lead"], html:not(.crm-v2) [data-pill-key="nouveau_lead"] {
+.crm-v2 [data-pill-key="nouveau_lead"] {
   background: linear-gradient(100deg, #ff8a00, #ff5a4d 55%, #ec3a9a) !important;
   color: #fff !important;
   box-shadow: 0 0 0 1px rgba(255, 106, 26, 0.35), 0 0 8px rgba(255, 106, 26, 0.4) !important;
