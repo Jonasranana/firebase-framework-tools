@@ -1845,30 +1845,8 @@ export default function LeadsCRM({
   const attribCount = (name: string) => (leads ?? []).filter((l) => l.fields[ATTRIBUE_KEY] === name).length;
   return (
     <div>
-      {design.on && boardId === LEADS_BOARD_ID && !isMobile && !hautReduit && (
-        <div className="flex flex-wrap gap-3 mb-4">
-          {[
-            { t: "À appeler", v: kpis.aAppeler, c: "#1f2430", f: () => setStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler") },
-            { t: "Rappels en retard", v: rappelsCount, c: rappelsCount ? "#dc2626" : "#1f2430", f: () => setRappelsOnly(!rappelsOnly) },
-            { t: "Intéressés cette semaine", v: kpis.interesses, c: "#059669" },
-            { t: "Nouveaux leads cette semaine", v: kpis.nouveaux, c: "#2552d0" },
-          ].map((k) => (
-            <button
-              key={k.t}
-              onClick={k.f}
-              disabled={!k.f}
-              className="text-left bg-white border border-[#eceef3] rounded-xl px-4 py-2.5 min-w-[170px] shadow-[0_1px_2px_rgba(16,24,40,0.04)] enabled:hover:border-[#c9d4f5] disabled:cursor-default"
-            >
-              <span className="block text-[11px] font-semibold text-[#8a90a3]">{k.t}</span>
-              <span className="block text-xl font-extrabold" style={{ color: k.c }}>
-                {k.v.toLocaleString("fr-FR")}
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
       {attribCol && (
-        <div className={`flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-gray-200 ${hautReduit ? "mb-1.5 [&>button]:py-1" : "mb-2"}`}>
+        <div className={`flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-gray-200 mb-1.5 [&>button]:py-1`}>
           {[{ key: "", label: "Tableau principal" }, ...(attribCol.options ?? []).filter((x) => !x.off).map((x) => ({ key: x.key, label: `Mes clients — ${x.label}` }))].map((t) => (
             <button
               key={t.key || "all"}
@@ -1887,21 +1865,51 @@ export default function LeadsCRM({
           ))}
         </div>
       )}
+      {/* Haut compact (sur une seule ligne) : Tableau / Suivi, chiffres clés, nombre de fiches et légende des couleurs. */}
       {!isMobile && !hautReduit && (view === "tableau" || view === "dossiers") && (
-        <div className="inline-flex rounded-xl bg-gray-100 p-1 mb-2">
-          {([["tableau", "📋 Tableau"], ["dossiers", "📁 Suivi des dossiers"]] as const).map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => setViewPersist(k)}
-              className={`text-sm font-bold px-4 py-1.5 rounded-lg ${view === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-            >
-              {label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 mb-1.5 overflow-x-auto no-scrollbar text-[12px]">
+          <div className="inline-flex shrink-0 rounded-lg bg-gray-100 p-0.5">
+            {([["tableau", "📋 Tableau"], ["dossiers", "📁 Suivi des dossiers"]] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setViewPersist(k)}
+                className={`font-bold px-2.5 py-0.5 rounded-md ${view === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {design.on && boardId === LEADS_BOARD_ID &&
+            [
+              { t: "À appeler", v: kpis.aAppeler, c: "#1f2430", on: statusFilter === "a_appeler", f: () => setStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler") },
+              { t: "Rappels en retard", v: rappelsCount, c: rappelsCount ? "#dc2626" : "#1f2430", on: rappelsOnly, f: () => setRappelsOnly(!rappelsOnly) },
+              { t: "Intéressés (7 j)", v: kpis.interesses, c: "#059669" },
+              { t: "Nouveaux (7 j)", v: kpis.nouveaux, c: "#2552d0" },
+            ].map((k) => (
+              <button
+                key={k.t}
+                onClick={k.f}
+                disabled={!k.f}
+                className={`shrink-0 inline-flex items-baseline gap-1.5 rounded-full border px-2.5 py-0.5 bg-white enabled:hover:border-[#c9d4f5] disabled:cursor-default ${k.on ? "border-[#2552d0] ring-1 ring-[#2552d0]" : "border-[#eceef3]"}`}
+              >
+                <span className="font-semibold text-[#8a90a3]">{k.t}</span>
+                <span className="font-extrabold" style={{ color: k.c }}>
+                  {k.v.toLocaleString("fr-FR")}
+                </span>
+              </button>
+            ))}
+          <span className="ml-auto shrink-0 text-gray-400 whitespace-nowrap">
+            {filtered.length} sur {leads?.length ?? 0}
+          </span>
+          <span className="shrink-0 inline-flex items-center gap-2 text-[11px] text-gray-500 whitespace-nowrap" title="Couleur de la ligne : temps écoulé depuis le dernier changement de statut ou d'étape (contacts froids et dossiers terminés : pas de couleur)">
+            <span className="inline-flex items-center gap-1"><i data-age-legend="vert" className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.vert }} />&lt; 6 j</span>
+            <span className="inline-flex items-center gap-1"><i data-age-legend="orange" className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.orange }} />6–14 j</span>
+            <span className="inline-flex items-center gap-1"><i data-age-legend="rouge" className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.rouge }} />15 j +</span>
+          </span>
         </div>
       )}
       {/* Barre d'outils façon Monday */}
-      <div className={`${view === "mobile" ? "hidden" : "flex"} items-center gap-1.5 mb-3 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible rounded-xl border border-gray-200 bg-white shadow-sm px-2 py-1.5`}>
+      <div className={`${view === "mobile" ? "hidden" : "flex"} items-center gap-1.5 mb-2 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible rounded-xl border border-gray-200 bg-white shadow-sm px-2 py-1`}>
         {isMobile && (
           <button
             onClick={() => setViewPersist("mobile")}
@@ -1969,14 +1977,14 @@ export default function LeadsCRM({
         {!isMobile && (
           <button
             onClick={basculerHaut}
-            title={hautReduit ? "Réafficher les chiffres, la légende et le choix Tableau / Suivi des dossiers" : "Cacher le haut de la page pour voir plus de lignes du tableau"}
+            title={hautReduit ? "Réafficher la ligne des chiffres, de la légende et du choix Tableau / Suivi des dossiers" : "Cacher la ligne des chiffres pour voir encore plus de lignes du tableau"}
             className="ml-auto shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-900 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50"
           >
             {hautReduit ? "⌄ Afficher le haut" : "⌃ Réduire le haut"}
           </button>
         )}
       </div>
-      <div className={`${view === "mobile" || hautReduit ? "hidden" : "flex"} items-center gap-2 mb-3`}>
+      <div className={`${view === "mobile" || hautReduit || (!isMobile && (view === "tableau" || view === "dossiers")) ? "hidden" : "flex"} items-center gap-2 mb-2`}>
         <span className="text-xs text-gray-400">
           {filtered.length} sur {leads?.length ?? 0} noms sociétés
         </span>
