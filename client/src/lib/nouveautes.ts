@@ -25,7 +25,7 @@ export const NOUVEAUTES: Nouveaute[] = [
     titre: "Pac Pac : le haut de la page prend beaucoup moins de place",
     points: [
       "Tableau / Suivi des dossiers, les chiffres (À appeler, Rappels en retard…), le nombre de fiches et la légende des couleurs tiennent maintenant sur une seule ligne fine.",
-      "Plus de lignes du tableau visibles d'un coup, surtout sur un portable. « ⌃ Réduire le haut » cache même cette ligne.",
+      "Plus de lignes du tableau visibles d'un coup, surtout sur un portable. Le bouton « Réduire le haut » n'est plus utile : il est retiré.",
     ],
   },
   {

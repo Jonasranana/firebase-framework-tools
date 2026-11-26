@@ -1389,26 +1389,6 @@ export default function LeadsCRM({
 
   const rappelsCount = useMemo(() => (leads ?? []).filter(isOverdue).length, [leads]);
   const design = useDesignV2(email);
-  // « Réduire le haut » (demande de Mebarek, écran de portable) : cache les chiffres, la légende et le choix
-  // Tableau / Suivi des dossiers pour laisser plus de place au tableau. Mémorisé sur l'appareil.
-  const [hautReduit, setHautReduit] = useState(() => {
-    try {
-      return localStorage.getItem("crm-haut-reduit") === "1";
-    } catch {
-      return false;
-    }
-  });
-  const basculerHaut = () =>
-    setHautReduit((v) => {
-      try {
-        localStorage.setItem("crm-haut-reduit", v ? "0" : "1");
-      } catch {
-        /* non essentiel */
-      }
-      // Le tableau recalcule sa hauteur (il prend la place libérée).
-      setTimeout(() => window.dispatchEvent(new Event("resize")), 60);
-      return !v;
-    });
   // Chiffres du bandeau (nouveau design) : sur tout le tableau Pac Pac.
   const kpis = useMemo(() => {
     const semaine = Date.now() - 7 * 86400000;
@@ -1866,7 +1846,7 @@ export default function LeadsCRM({
         </div>
       )}
       {/* Haut compact (sur une seule ligne) : Tableau / Suivi, chiffres clés, nombre de fiches et légende des couleurs. */}
-      {!isMobile && !hautReduit && (view === "tableau" || view === "dossiers") && (
+      {!isMobile && (view === "tableau" || view === "dossiers") && (
         <div className="flex items-center gap-2 mb-1.5 overflow-x-auto no-scrollbar text-[12px]">
           <div className="inline-flex shrink-0 rounded-lg bg-gray-100 p-0.5">
             {([["tableau", "📋 Tableau"], ["dossiers", "📁 Suivi des dossiers"]] as const).map(([k, label]) => (
@@ -1974,17 +1954,8 @@ export default function LeadsCRM({
             <X size={12} /> Tout enlever
           </button>
         )}
-        {!isMobile && (
-          <button
-            onClick={basculerHaut}
-            title={hautReduit ? "Réafficher la ligne des chiffres, de la légende et du choix Tableau / Suivi des dossiers" : "Cacher la ligne des chiffres pour voir encore plus de lignes du tableau"}
-            className="ml-auto shrink-0 inline-flex items-center gap-1 text-xs font-semibold text-gray-500 hover:text-gray-900 border border-gray-200 rounded-md px-2.5 py-1.5 hover:bg-gray-50"
-          >
-            {hautReduit ? "⌄ Afficher le haut" : "⌃ Réduire le haut"}
-          </button>
-        )}
       </div>
-      <div className={`${view === "mobile" || hautReduit || (!isMobile && (view === "tableau" || view === "dossiers")) ? "hidden" : "flex"} items-center gap-2 mb-2`}>
+      <div className={`${view === "mobile" || (!isMobile && (view === "tableau" || view === "dossiers")) ? "hidden" : "flex"} items-center gap-2 mb-2`}>
         <span className="text-xs text-gray-400">
           {filtered.length} sur {leads?.length ?? 0} noms sociétés
         </span>
