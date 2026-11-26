@@ -24,7 +24,7 @@ export const NOUVEAUTES: Nouveaute[] = [
     emoji: "👆",
     titre: "Sur téléphone, le menu toujours à portée de doigt",
     points: [
-      "Une petite bulle bleue reste toujours sur le bord gauche de l'écran : touchez-la pour ouvrir le menu, même en bas d'une longue liste.",
+      "Le bouton du menu (☰) est dans une bulle bleue ronde en haut à gauche ; elle reste là quand vous descendez, en plus transparent.",
       "Le menu s'ouvre tout seul quand vous arrivez sur l'appli, et glisser le doigt depuis le bord gauche l'ouvre aussi à tout moment.",
     ],
   },
