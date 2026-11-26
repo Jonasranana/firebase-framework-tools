@@ -92,7 +92,7 @@ export default function DossiersBets({ email, onOpenLead }: { email: string; onO
         groupes
           .filter((g) => g.rows.length)
           .map((g) => (
-            <div key={g.key} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+            <div key={g.key} className="bg-white border border-gray-200 rounded-xl overflow-x-auto">
               <div className="px-4 py-2 text-sm font-extrabold text-gray-800 flex items-center gap-2" style={{ borderLeft: `6px solid ${g.hex}` }}>
                 {g.label} <span className="font-semibold text-gray-400">· {g.rows.length}</span>
               </div>

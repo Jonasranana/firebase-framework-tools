@@ -19,6 +19,15 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-pages-mobile",
+    date: "2026-11-26",
+    emoji: "📱",
+    titre: "Les autres pages aussi sur téléphone",
+    points: [
+      "Statistiques, Dossiers PRAIMY et Dossiers BETS ne sont plus coupés à droite sur téléphone : les boutons passent à la ligne, et les grands tableaux défilent au doigt sur le côté.",
+    ],
+  },
+  {
     id: "2026-11-26-planning-mobile",
     date: "2026-11-26",
     emoji: "🗓️",
