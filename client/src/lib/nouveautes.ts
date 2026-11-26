@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-mobile-liste-fiche",
+    date: "2026-11-26",
+    emoji: "📱",
+    titre: "Pac Pac sur téléphone : liste épurée, fiche en carte",
+    points: [
+      "La liste ne montre plus que l'essentiel : initiales, nom, statut et un bouton pour appeler. Une petite cloche signale un rappel (rouge s'il est en retard).",
+      "En touchant un client, sa fiche s'ouvre comme une carte : nom, téléphone et ville en haut, puis trois gros boutons Appeler, WhatsApp et Mail / SMS.",
+    ],
+  },
+  {
     id: "2026-11-26-quelle-pub",
     date: "2026-11-26",
     emoji: "📊",
