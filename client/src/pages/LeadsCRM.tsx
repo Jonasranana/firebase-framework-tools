@@ -37,6 +37,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
+import { useDesignV2 } from "@/lib/designV2";
 import { RappelPicker } from "@/components/RappelCell";
 import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelPhraseNote } from "@/lib/rappel";
 import { ATTRIBUE_KEY, LEAD_COLUMNS, cellValue, formulaValue, type ColType, type LeadColumn } from "@/lib/crmColumns";
@@ -1386,6 +1387,21 @@ export default function LeadsCRM({
   useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, filters, personKey, rappelsOnly, attribTab]);
 
   const rappelsCount = useMemo(() => (leads ?? []).filter(isOverdue).length, [leads]);
+  const design = useDesignV2(email);
+  // Chiffres du bandeau (nouveau design) : sur tout le tableau Pac Pac.
+  const kpis = useMemo(() => {
+    const semaine = Date.now() - 7 * 86400000;
+    let aAppeler = 0,
+      interesses = 0,
+      nouveaux = 0;
+    for (const l of leads ?? []) {
+      if ((l.board || "leads") !== "leads") continue;
+      if (l.status === "a_appeler") aAppeler++;
+      if (l.status === "interesse" && Date.parse(l.statusChangedAt || "") >= semaine) interesses++;
+      if (Date.parse(l.createdAt) >= semaine) nouveaux++;
+    }
+    return { aAppeler, interesses, nouveaux };
+  }, [leads]);
   const openLead = leads?.find((l) => l.id === openId) ?? null;
   // Ouvrir le chat = lire le mail reçu : le repère « Réponse » disparaît du tableau.
   const chatLead = leads?.find((l) => l.id === chatId) ?? null;
@@ -1808,6 +1824,28 @@ export default function LeadsCRM({
   const attribCount = (name: string) => (leads ?? []).filter((l) => l.fields[ATTRIBUE_KEY] === name).length;
   return (
     <div>
+      {design.on && boardId === LEADS_BOARD_ID && !isMobile && (
+        <div className="flex flex-wrap gap-3 mb-4">
+          {[
+            { t: "À appeler", v: kpis.aAppeler, c: "#1f2430", f: () => setStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler") },
+            { t: "Rappels en retard", v: rappelsCount, c: rappelsCount ? "#dc2626" : "#1f2430", f: () => setRappelsOnly(!rappelsOnly) },
+            { t: "Intéressés cette semaine", v: kpis.interesses, c: "#059669" },
+            { t: "Nouveaux leads cette semaine", v: kpis.nouveaux, c: "#2552d0" },
+          ].map((k) => (
+            <button
+              key={k.t}
+              onClick={k.f}
+              disabled={!k.f}
+              className="text-left bg-white border border-[#eceef3] rounded-xl px-4 py-2.5 min-w-[170px] shadow-[0_1px_2px_rgba(16,24,40,0.04)] enabled:hover:border-[#c9d4f5] disabled:cursor-default"
+            >
+              <span className="block text-[11px] font-semibold text-[#8a90a3]">{k.t}</span>
+              <span className="block text-xl font-extrabold" style={{ color: k.c }}>
+                {k.v.toLocaleString("fr-FR")}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
       {attribCol && (
         <div className="flex items-center gap-1 mb-2 overflow-x-auto no-scrollbar border-b border-gray-200">
           {[{ key: "", label: "Tableau principal" }, ...(attribCol.options ?? []).filter((x) => !x.off).map((x) => ({ key: x.key, label: `Mes clients — ${x.label}` }))].map((t) => (
@@ -1913,9 +1951,9 @@ export default function LeadsCRM({
           {filtered.length} sur {leads?.length ?? 0} noms sociétés
         </span>
         <span className="hidden sm:inline-flex items-center gap-2 text-[11px] text-gray-500 ml-2" title="Couleur de la ligne : temps écoulé depuis le dernier changement de statut ou d'étape (contacts froids et dossiers terminés : pas de couleur)">
-          <span className="inline-flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.vert }} />moins de 6 j</span>
-          <span className="inline-flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.orange }} />6 à 14 j</span>
-          <span className="inline-flex items-center gap-1"><i className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.rouge }} />15 j et plus</span>
+          <span className="inline-flex items-center gap-1"><i data-age-legend="vert" className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.vert }} />moins de 6 j</span>
+          <span className="inline-flex items-center gap-1"><i data-age-legend="orange" className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.orange }} />6 à 14 j</span>
+          <span className="inline-flex items-center gap-1"><i data-age-legend="rouge" className="w-2.5 h-2.5 rounded-sm" style={{ background: AGE_COLORS.rouge }} />15 j et plus</span>
         </span>
       </div>
 

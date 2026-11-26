@@ -209,8 +209,9 @@ export const StatusCell = ({
       <PopoverTrigger asChild>
         <button className="w-full h-full px-1.5 py-[3px] group/pill" title={s?.label}>
           <span
+            data-pill={s ? "" : "vide"}
             className="flex items-center justify-center w-full h-full rounded-md text-[13px] font-semibold text-white px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] group-hover/pill:brightness-95 transition"
-            style={{ background: s ? s.hex : "#d9dce3" }}
+            style={{ background: s ? s.hex : "#d9dce3", ["--pill" as any]: s ? s.hex : "#d9dce3" }}
           >
             <span className="truncate">{s?.label ?? ""}</span>
           </span>
@@ -959,6 +960,8 @@ const LeadRow = memo(function LeadRow({
   const ageBg = age && !selected ? ageBackground(age) : undefined;
   return (
     <div
+      data-row=""
+      data-age={age ?? undefined}
       className={`group grid items-stretch border-b border-[#d0d4e4] h-9 ${selected ? "bg-blue-50" : ageBg ? "hover:brightness-95" : "hover:bg-gray-50"}`}
       style={{ gridTemplateColumns: template, background: ageBg }}
     >
@@ -974,6 +977,7 @@ const LeadRow = memo(function LeadRow({
         return c.type === "name" ? (
           <div
             key={c.key}
+            data-namecell=""
             className={`sticky left-0 z-10 group-hover:bg-gray-50 flex items-center gap-1 pr-1 border-r border-[#d0d4e4] ${selected ? "bg-blue-50" : "bg-white"} shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]`}
             style={{ borderLeft: `6px solid ${color}`, background: ageBg }}
           >
@@ -1819,7 +1823,7 @@ export default function LeadsTable({
 
               {!isCollapsed && (
                 <div>
-                <div className="bg-white rounded-lg border border-[#d0d4e4] overflow-clip">
+                <div data-groupcard="" className="bg-white rounded-lg border border-[#d0d4e4] overflow-clip">
                   <div
                     className="grid text-xs font-semibold text-gray-500 bg-white border-b border-[#d0d4e4] h-10 items-center sticky top-9 z-20"
                     style={{ gridTemplateColumns: template }}
