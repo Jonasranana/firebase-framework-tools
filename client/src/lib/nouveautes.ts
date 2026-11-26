@@ -35,7 +35,7 @@ export const NOUVEAUTES: Nouveaute[] = [
     emoji: "📝",
     titre: "Ajouter un lead : une fenêtre claire",
     points: [
-      "« + Ajouter un lead manuellement » en haut et en bas de chaque groupe de Pac Pac (et le bouton bleu du haut) ouvre une fenêtre avec seulement l'essentiel : téléphone, nom, code postal, ville, attribué à, statut, source.",
+      "« + Ajouter un lead » en haut et en bas de chaque groupe de Pac Pac (et le bouton bleu du haut) ouvre une fenêtre avec seulement l'essentiel : téléphone, nom, code postal, ville, attribué à, statut, source.",
       "Dès que le numéro est bon (✓), « Créer la fiche » ou Entrée l'ajoute au tableau. Si le numéro existe déjà, la fenêtre le dit et propose d'ouvrir la fiche.",
     ],
   },

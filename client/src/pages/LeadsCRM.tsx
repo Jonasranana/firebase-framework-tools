@@ -1280,7 +1280,7 @@ export default function LeadsCRM({
   const [rappelsOnly, setRappelsOnly] = useState(false);
   const [limit, setLimit] = useState(PAGE_SIZE);
   const [openId, setOpenId] = useState<string | null>(null);
-  // « + Ajouter un lead manuellement » : groupe où la fenêtre de saisie ajoute la fiche (null = fermée).
+  // « + Ajouter un lead » : groupe où la fenêtre de saisie ajoute la fiche (null = fermée).
   const [ajoutDans, setAjoutDans] = useState<string | null>(null);
   const [focusUpdates, setFocusUpdates] = useState(false);
   const [chatId, setChatId] = useState<string | null>(null);
