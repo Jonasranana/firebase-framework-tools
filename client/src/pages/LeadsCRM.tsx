@@ -35,6 +35,7 @@ import ClientSpaceDashboard from "./ClientSpaceDashboard";
 import { buildClientView } from "@/lib/clientSpace";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import NouveauLeadDialog, { type NouveauLead } from "@/components/NouveauLeadDialog";
+import { chrono } from "@/lib/chrono";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
@@ -1738,6 +1739,19 @@ export default function LeadsCRM({
   };
 
   // Chaque modification d'une cellule laisse une petite ligne dans la bulle de commentaires.
+  // Chronomètre invisible : tableau affiché, recherche, ouverture d'une fiche.
+  const pret = !!leads && columnsReady && groupsReady;
+  useEffect(() => {
+    if (pret) requestAnimationFrame(() => setTimeout(() => chrono.depuisOuverture("tableau-affiche", leads?.length ?? 0), 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pret]);
+  useEffect(() => {
+    chrono.fin("recherche", filtered.length);
+  }, [filtered]);
+  useEffect(() => {
+    if (openId) chrono.fin("ouverture-fiche");
+  }, [openId]);
+
   const patchFromTable = async (id: string, patch: Record<string, unknown>) => {
     try {
       let full = patch;
@@ -1785,7 +1799,9 @@ export default function LeadsCRM({
           }
         }
       }
+      const t0 = performance.now();
       await patchLead(id, email, full);
+      chrono.noter("enregistrement", performance.now() - t0);
     } catch (e) {
       console.error(e);
       setError("Modification non enregistrée. Réessayez.");
@@ -1929,7 +1945,7 @@ export default function LeadsCRM({
           onAddGroup={() => saveGroups([...groups, { id: `g_${newId()}`, title: "Nouveau groupe", color: "#579bfc" }])}
         />
         <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
-        <SearchToggle value={query} onChange={setQuery} />
+        <SearchToggle value={query} onChange={(v: string) => { chrono.debut("recherche"); setQuery(v); }} />
         <PersonBar people={people} selected={personKey} onSelect={setPersonKey} meKey={email.toLowerCase()} />
         <QuickFilter leads={leads ?? []} filters={filters} onFilters={setFilters} onSaveView={saveView} />
         <span aria-hidden className="hidden sm:block w-px h-5 bg-gray-200 mx-1 shrink-0" />
@@ -2065,6 +2081,7 @@ export default function LeadsCRM({
               setChatId(id);
               return;
             }
+            chrono.debut("ouverture-fiche");
             setOpenId(id);
             setFocusUpdates(false);
           }}
@@ -2090,7 +2107,7 @@ export default function LeadsCRM({
           all={leads}
           total={total}
           query={query}
-          onQuery={setQuery}
+          onQuery={(v: string) => { chrono.debut("recherche"); setQuery(v); }}
           rappelsOnly={rappelsOnly}
           onRappelsOnly={setRappelsOnly}
           statusFilter={statusFilter}
@@ -2248,7 +2265,7 @@ export default function LeadsCRM({
       {/* Barre d'outils flottante en bas sur mobile (façon Monday mobile app) */}
       {view !== "mobile" && <MobileBottomBar
         query={query}
-        onQueryChange={setQuery}
+        onQueryChange={(v: string) => { chrono.debut("recherche"); setQuery(v); }}
         zoom={zoom}
         onChangeZoom={changeZoom}
         onAddLead={() => setCreating(true)}

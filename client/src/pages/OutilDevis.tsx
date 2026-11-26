@@ -895,6 +895,10 @@ export default function OutilDevis() {
           // Prépare tout de suite la base du CRM (cache local) pour que les
           // tableaux s'affichent sans attendre.
           import("@/lib/crmDb").then((m) => m.crmFirestore()).catch(() => {});
+          import("@/lib/chrono").then(({ chrono }) => {
+            chrono.utilisateur(mail);
+            chrono.depuisOuverture("connexion");
+          });
           setStatus("authorized");
         } else {
           setStatus("denied");
