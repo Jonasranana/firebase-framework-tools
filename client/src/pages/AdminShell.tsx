@@ -71,7 +71,8 @@ export type AdminPage =
   | "renta"
   | "planning"
   | "bets"
-  | "loan";
+  | "loan"
+  | "pacarchive";
 
 export const PAGE_TITLES: Record<AdminPage, string> = {
   leads: "Pac Pac",
@@ -92,6 +93,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   planning: "Planning chantiers",
   bets: "Dossiers BETS",
   loan: "Tournées Loan",
+  pacarchive: "Pac Pac archivé",
 };
 
 const PAGES = Object.keys(PAGE_TITLES) as AdminPage[];

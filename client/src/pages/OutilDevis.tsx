@@ -33,6 +33,7 @@ const PlanningChantiers = lazy(() => import("./PlanningChantiers"));
 const DossiersBets = lazy(() => import("./DossiersBets"));
 const TourneesLoan = lazy(() => import("./TourneesLoan"));
 const SimulateurMarge = lazy(() => import("./SimulateurMarge"));
+const PacPacArchive = lazy(() => import("./PacPacArchive"));
 const ActusCRM = lazy(() => import("./ActusCRM"));
 import Nouveautes from "@/components/Nouveautes";
 
@@ -992,6 +993,17 @@ export default function OutilDevis() {
           ) : (
             <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>
           ))}
+        {p === "pacarchive" && (
+          <PacPacArchive
+            email={email}
+            onOpenLead={(id) => {
+              try {
+                sessionStorage.setItem("crm-open-lead", id);
+              } catch {}
+              navigate("leads");
+            }}
+          />
+        )}
         {p === "bets" && (
           <DossiersBets
             email={email}
