@@ -998,6 +998,7 @@ const LeadRow = memo(function LeadRow({
                 if (row) e.dataTransfer.setDragImage(row, 20, 16);
               }}
               title="Glisser vers un autre groupe"
+              data-grip=""
               className="shrink-0 cursor-grab text-gray-300 hover:text-gray-500 pl-0.5"
             >
               <GripVertical size={14} />

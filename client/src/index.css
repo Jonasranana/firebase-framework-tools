@@ -237,13 +237,17 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 /* Lignes : on garde les couleurs d'âge (vert / orange / rouge) sur toute la ligne, comme avant. */
 /* Étiquettes de statut : douces, avec un point de couleur */
 .crm-v2 [data-pill] {
-  background: color-mix(in srgb, var(--pill) 14%, white) !important;
-  color: color-mix(in srgb, var(--pill) 78%, black) !important;
-  box-shadow: none; justify-content: flex-start; gap: 6px; border-radius: 7px; font-size: 12.5px;
+  background: color-mix(in srgb, var(--pill) 30%, white) !important;
+  color: color-mix(in srgb, var(--pill) 70%, black) !important;
+  border: 1px solid color-mix(in srgb, var(--pill) 55%, white);
+  box-shadow: none; justify-content: flex-start; gap: 6px; border-radius: 7px; font-size: 12.5px; font-weight: 700;
 }
 .crm-v2 [data-pill]::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--pill); }
-.crm-v2 [data-pill="vide"] { background: transparent !important; }
-.crm-v2 [data-pill="vide"]::before { background: #d9dce3; }
+.crm-v2 [data-pill="vide"] { background: transparent !important; border-color: transparent; }
+.crm-v2 [data-pill="vide"]::before { display: none; }
+/* Poignée pour glisser une fiche (⋮⋮) : visible seulement au survol de la ligne */
+.crm-v2 [data-grip] { opacity: 0; transition: opacity .15s; }
+.crm-v2 [data-row]:hover [data-grip] { opacity: 1; }
 /* Menu de gauche : élément actif en bleu */
 .crm-v2 .bg-\[\#fff0e6\] { background: #eef3ff; }
 .crm-v2 .text-\[\#c2410c\] { color: #2552d0; }
