@@ -229,6 +229,32 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
    Design du CRM (pour tout le monde) : actif quand <html> porte la classe .crm-v2
    (posée par AdminShell). Plus clair, plus aéré.
    ───────────────────────────────────────────────────────────────────────── */
+/* ═════════════════════════════════════════════════════════════════════════
+   CODE COULEUR DU CRM : une couleur = un seul sens, partout.
+   · Orange IP5 (dégradé orange → rose) : la marque seulement (logo, en-tête du menu, chargement, « Nouveau lead »).
+   · Bleu   #2563eb : agir / sélectionné (boutons, page active, liens, case cliquée).
+   · Vert   #059669 : c'est bon (intéressé, signé, payé, enregistré, < 6 j).
+   · Ambre  #d97706 : attention, à faire bientôt (à relancer, rappel aujourd'hui, 6–14 j).
+   · Rouge  #dc2626 : urgent ou perdu (en retard, 15 j +, pas intéressé, supprimer).
+   · Gris            : neutre, inactif.
+   Les catégories (groupes du menu, types d'événements…) prennent bleu, violet, turquoise, rose, indigo :
+   jamais vert, ambre ni rouge, réservés aux statuts. Exception : les profils MPR officiels (Bleu, Jaune, Violet, Rose).
+   ═════════════════════════════════════════════════════════════════════════ */
+:root { --c-marque: #ff6a1a; --c-action: #2563eb; --c-ok: #059669; --c-attention: #d97706; --c-urgent: #dc2626; --c-neutre: #64748b; }
+/* Rose → rouge (urgent / perdu) */
+.crm-v2 .text-rose-500, .crm-v2 .text-rose-600 { color: #dc2626; }
+.crm-v2 .text-rose-700 { color: #b91c1c; }
+.crm-v2 .bg-rose-50 { background-color: #fef2f2; }
+.crm-v2 .fill-rose-500 { fill: #dc2626; }
+/* Orange utilisé pour « attention » → ambre */
+.crm-v2 .text-orange-500, .crm-v2 .text-orange-600 { color: #d97706; }
+.crm-v2 .text-orange-700 { color: #b45309; }
+.crm-v2 .bg-orange-100 { background-color: #fef3c7; }
+/* Orange utilisé comme fond d'interface → bleu doux (agir / sélectionné) */
+.crm-v2 .bg-orange-50 { background-color: var(--v2-blue-soft); }
+.crm-v2 .data-\[state\=open\]\:bg-orange-100[data-state="open"] { background-color: #e2eafe; }
+.crm-v2 .focus\:border-orange-300:focus { border-color: var(--v2-blue); }
+
 .crm-v2 body { background: #f6f7fb; }
 /* Bordures plus douces partout */
 .crm-v2 .border-\[\#d0d4e4\] { border-color: #eceef3; }

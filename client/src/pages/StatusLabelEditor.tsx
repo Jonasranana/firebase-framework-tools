@@ -3,6 +3,49 @@ import { GripVertical, Plus, X } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Opt } from "@/lib/crm";
+import { FAMILLES, couleursPour, familleDeCouleur, familleDuNom, type Famille } from "@/lib/codeCouleur";
+
+// Choix de couleur « intelligent » : la famille (ça avance / en attente / perdu / neutre) est devinée
+// d'après le nom de l'étiquette, et seules les couleurs de cette famille sont proposées.
+export function ChoixCouleurSens({ nom, hex, prises, onChange }: { nom: string; hex: string; prises: Iterable<string>; onChange: (hex: string) => void }) {
+  const [choisie, setChoisie] = useState<Famille | null>(null);
+  const devinee = familleDuNom(nom);
+  const famille: Famille = choisie ?? devinee ?? familleDeCouleur(hex) ?? "gris";
+  const couleurs = couleursPour(famille, Array.from(prises).filter((c) => c.toLowerCase() !== hex.toLowerCase()));
+  return (
+    <div className="space-y-1.5" dir="ltr">
+      <div className="flex flex-wrap gap-1">
+        {FAMILLES.map((f) => (
+          <button
+            key={f.key}
+            type="button"
+            title={f.aide}
+            onClick={() => {
+              setChoisie(f.key);
+              onChange(couleursPour(f.key, prises)[0]);
+            }}
+            className={`text-[11px] font-bold rounded-full px-2 py-0.5 border ${famille === f.key ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+      {!choisie && devinee && <p className="text-[11px] text-gray-500">Couleurs proposées d'après le nom « {nom.trim()} ».</p>}
+      <div className="flex flex-wrap gap-1.5">
+        {couleurs.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onChange(c)}
+            aria-label={`Couleur ${c}`}
+            className={`w-7 h-7 rounded-md border-2 hover:scale-110 transition ${hex.toLowerCase() === c ? "border-gray-900" : "border-transparent"}`}
+            style={{ background: c }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 // Éditeur d'étiquettes façon Monday : renommer, changer l'ordre (glisser),
 // couleur parmi ~24 (une même couleur n'est utilisable que sur UNE étiquette
@@ -34,7 +77,7 @@ export default function StatusLabelEditor({
   const patch = (i: number, p: Partial<Opt>) => setList(list.map((o, k) => (k === i ? { ...o, ...p } : o)));
   const add = () => {
     const taken = used(-1);
-    const hex = LABEL_COLORS.find((c) => !taken.has(c)) ?? LABEL_COLORS[0];
+    const hex = couleursPour("gris", taken)[0];
     setList([...list, { key: newKey(), label: "Nouvelle étiquette", hex }]);
   };
   const drop = (to: number) => {
@@ -51,7 +94,7 @@ export default function StatusLabelEditor({
       <DialogContent className="max-w-3xl bg-white text-gray-900 max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Modifier les étiquettes</DialogTitle>
-          <p className="text-xs text-gray-500">Glissez pour changer l'ordre. Chaque couleur ne sert qu'une seule fois dans cette colonne : seules les couleurs libres sont proposées.</p>
+          <p className="text-xs text-gray-500">Glissez pour changer l'ordre. La couleur suit le sens de l'étiquette (vert = ça avance, ambre = en attente, rouge = perdu, gris = neutre) : en cliquant sur la pastille, seules les couleurs qui vont avec le nom sont proposées.</p>
         </DialogHeader>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2">
           {empty && (
@@ -76,22 +119,8 @@ export default function StatusLabelEditor({
                   <PopoverTrigger asChild>
                     <button className="w-6 h-6 rounded shrink-0 border border-black/10" style={{ background: o.hex }} aria-label="Couleur" />
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-2 bg-white border border-gray-200 shadow-xl" align="start">
-                    <div className="grid grid-cols-6 gap-1.5">
-                      {LABEL_COLORS.filter((c) => !taken.has(c) || c === o.hex.toLowerCase()).map((c) => {
-                        const isTaken = false;
-                        return (
-                          <button
-                            key={c}
-                            disabled={isTaken}
-                            onClick={() => patch(i, { hex: c })}
-                            title={isTaken ? "Déjà utilisée par une autre étiquette" : ""}
-                            className={`w-7 h-7 rounded-md border-2 ${o.hex.toLowerCase() === c ? "border-gray-900" : "border-transparent"} ${isTaken ? "opacity-20 cursor-not-allowed" : "hover:scale-110"}`}
-                            style={{ background: c }}
-                          />
-                        );
-                      })}
-                    </div>
+                  <PopoverContent dir="ltr" className="w-80 p-2.5 bg-white border border-gray-200 shadow-xl" align="start">
+                    <ChoixCouleurSens nom={o.label} hex={o.hex} prises={taken} onChange={(c) => patch(i, { hex: c })} />
                   </PopoverContent>
                 </Popover>
                 <input

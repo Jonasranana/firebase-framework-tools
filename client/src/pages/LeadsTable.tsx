@@ -1,6 +1,7 @@
 import FileColCell from "./FileColCell";
 import { type ReactNode, createContext, memo, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import StatusLabelEditor, { LABEL_COLORS } from "./StatusLabelEditor";
+import StatusLabelEditor, { ChoixCouleurSens } from "./StatusLabelEditor";
+import { couleursPour, familleDuNom } from "@/lib/codeCouleur";
 import { startPointerDrag } from "@/lib/pointerDrag";
 import {
   Check,
@@ -168,11 +169,11 @@ export const StatusCell = ({
   const [adding, setAdding] = useState(false);
   const [newLabel, setNewLabel] = useState("");
   const [newHex, setNewHex] = useState("");
-  const freeColors = LABEL_COLORS.filter((c) => !options.some((o) => o.hex.toLowerCase() === c));
+  const prises = options.map((o) => o.hex);
   const createLabel = () => {
     const label = newLabel.trim();
     if (!label || !onEditLabels) return;
-    const hex = newHex || freeColors[0] || LABEL_COLORS[0];
+    const hex = newHex || couleursPour(familleDuNom(label) ?? "gris", prises)[0];
     const key = `o_${Math.random().toString(36).slice(2, 7)}`;
     const empty = options.filter((o) => o.label === "");
     onEditLabels([...options.filter((o) => o.label !== ""), { key, label, hex }, ...empty]);
@@ -254,7 +255,7 @@ export const StatusCell = ({
                 <button
                   onClick={() => {
                     setAdding(true);
-                    setNewHex(freeColors[0] ?? "");
+                    setNewHex("");
                   }}
                   className="w-full min-h-9 inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-[#c2410c] border-2 border-dashed border-[#ffb37a] rounded hover:bg-orange-50"
                 >
@@ -273,23 +274,11 @@ export const StatusCell = ({
                     placeholder="Nom de l'étiquette"
                     className="w-full text-sm bg-white border border-gray-300 rounded px-2 py-1.5 outline-none focus:border-[#ff6a1a]"
                   />
-                  <p className="text-[11px] text-gray-500">Couleur (seulement celles qui ne sont pas déjà prises dans cette colonne) :</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {freeColors.map((c) => (
-                      <button
-                        key={c}
-                        onClick={() => setNewHex(c)}
-                        aria-label={`Couleur ${c}`}
-                        className={`w-7 h-7 rounded-md border-2 hover:scale-110 transition ${newHex === c ? "border-gray-900" : "border-transparent"}`}
-                        style={{ background: c }}
-                      />
-                    ))}
-                    {freeColors.length === 0 && <span className="text-xs text-gray-500">Toutes les couleurs sont déjà prises.</span>}
-                  </div>
+                  <ChoixCouleurSens nom={newLabel} hex={newHex || couleursPour(familleDuNom(newLabel) ?? "gris", prises)[0]} prises={prises} onChange={setNewHex} />
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className="min-h-8 flex-1 inline-flex items-center justify-center rounded text-sm font-semibold text-white px-2 truncate"
-                      style={{ background: newHex || "#c4c4c4" }}
+                      style={{ background: newHex || couleursPour(familleDuNom(newLabel) ?? "gris", prises)[0] }}
                     >
                       {newLabel.trim() || "Aperçu"}
                     </span>
