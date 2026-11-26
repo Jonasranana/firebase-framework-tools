@@ -1074,6 +1074,38 @@ function buildRemerciementAppelEmailHtml({ nomComplet }) {
   });
 }
 
+// Lien de la fiche Google d'IP5 Énergie pour laisser un avis (donné par Alexis le 26/11/2026).
+const GOOGLE_REVIEW_URL = "https://g.page/r/CQreEU8HGP2XEBM/review";
+
+// Demande d'avis Google, à envoyer depuis la fiche une fois la pompe à chaleur installée.
+function buildDemandeAvisGoogleEmailHtml({ nomComplet }) {
+  return buildBrandedEmailShell({
+    bodyHtml: `
+      <p style="margin:0 0 12px 0; font-weight:bold;">Bonjour ${nomComplet},</p>
+      <p style="margin:0 0 12px 0;">
+        Votre pompe à chaleur est installée : merci pour votre confiance !
+        Nous espérons qu'elle vous apporte déjà plus de confort.
+      </p>
+      <p style="margin:0 0 18px 0;">
+        Votre avis compte beaucoup pour nous et aide d'autres familles à se lancer.
+        Pourriez-vous prendre une minute pour le partager sur Google ?
+      </p>
+      <p style="margin:0 0 18px 0; text-align:center;">
+        <a href="${GOOGLE_REVIEW_URL}" style="display:inline-block; background:#173a5e; color:#ffffff; text-decoration:none; font-weight:bold; padding:12px 22px; border-radius:999px;">
+          ⭐ Donner mon avis sur Google
+        </a>
+      </p>
+      <p style="margin:0 0 12px 0;">
+        Une question sur votre installation ? Répondez simplement à ce mail, nous sommes là.
+      </p>
+      <p style="margin:0;">
+        Merci encore,<br/>
+        L'équipe IP5 Énergie
+      </p>
+    `,
+  });
+}
+
 // Modèles de mail pilotés depuis Monday (colonne "📧 Mail ( Auto )",
 // color_mm7ensy9, tableau "Pac Pac😀") : choisir une valeur dans cette
 // colonne envoie automatiquement l'e-mail correspondant au lead, via un
@@ -1168,6 +1200,12 @@ const MONDAY_EMAIL_TEMPLATES = {
     attachments: FICHE_TECHNIQUE_ATTACHMENTS,
     buildSms: () =>
       `IP5 Énergie : la prise en charge dépend de votre statut (propriétaire/locataire) et de votre revenu fiscal. Détails par e-mail. Pour nous joindre : ${SMS_PHONE_NUMBERS}.`,
+  },
+  "⭐ demande d'avis Google": {
+    subject: "IP5 Énergie — Votre avis compte pour nous",
+    buildHtml: buildDemandeAvisGoogleEmailHtml,
+    buildSms: () =>
+      `IP5 Énergie : merci pour votre confiance ! Votre avis compte beaucoup pour nous, une minute suffit : ${GOOGLE_REVIEW_URL}`,
   },
   "confirmation + fiche technique": {
     subject: "IP5 Énergie — Fiche technique de votre pompe à chaleur",
