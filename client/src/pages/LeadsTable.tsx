@@ -385,7 +385,7 @@ const AddRow = ({ color, onAdd, focus, nameWidth = 300 }: { color: string; onAdd
   );
 };
 
-// Bouton « + Ajouter un lead manuellement » (en haut et en bas de chaque groupe).
+// Bouton « + Ajouter un lead » (en haut et en bas de chaque groupe).
 const AjoutManuel = ({ color, onClick, haut }: { color: string; onClick: () => void; haut?: boolean }) => (
   <div className={`sticky left-0 w-fit ${haut ? "mb-1.5" : "border-t border-[#d0d4e4] w-full"}`}>
     <button
@@ -393,7 +393,7 @@ const AjoutManuel = ({ color, onClick, haut }: { color: string; onClick: () => v
       className={`inline-flex items-center gap-1.5 text-[13px] font-bold text-[#2563eb] hover:bg-[#eef3ff] ${haut ? "rounded-lg border border-dashed border-[#bcd0fb] bg-white px-3 py-1" : "px-3 h-9"}`}
       style={haut ? undefined : { borderLeft: `6px solid ${color}` }}
     >
-      <Plus size={15} strokeWidth={2.5} /> Ajouter un lead manuellement
+      <Plus size={15} strokeWidth={2.5} /> Ajouter un lead
     </button>
   </div>
 );
@@ -1412,7 +1412,7 @@ export default function LeadsTable({
   onGroup: (id: string, groupId: string) => void;
   onPatch: (id: string, patch: Record<string, unknown>) => void;
   onCreate: (groupId: string, name: string) => void;
-  // « + Ajouter un lead manuellement » : ouvre la fenêtre de saisie (si absent, ligne de saisie rapide).
+  // « + Ajouter un lead » : ouvre la fenêtre de saisie (si absent, ligne de saisie rapide).
   onAddManual?: (groupId: string) => void;
   // Copie les leads d'un groupe dans un autre (duplication d'un groupe).
   onDuplicateLeads: (fromGroupId: string, toGroupId: string) => void;
