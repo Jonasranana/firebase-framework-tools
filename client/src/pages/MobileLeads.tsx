@@ -92,6 +92,13 @@ const CallAction = ({ phone, name, className, children, style }: { phone: string
 };
 
 const GRAD = "var(--brand-grad)";
+const initiales = (nom: string) =>
+  (nom || "?")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((m) => m[0]?.toUpperCase())
+    .join("") || "?";
 const DAY = 86400000;
 
 type Props = {
@@ -135,7 +142,7 @@ const StatusPill = ({ status }: { status: LeadStatus }) => {
   const s = statusInfo(status);
   const o = LEAD_STATUSES.find((x) => x.key === status);
   return (
-    <span className="inline-flex items-center text-[11px] font-bold text-white px-2.5 py-1 rounded-full" style={{ background: o?.hex ?? "#9ca3af" }}>
+    <span data-pill="" data-pill-key={status} className="inline-flex items-center text-[11px] font-bold text-white px-2.5 py-1 rounded-full" style={{ background: o?.hex ?? "#9ca3af", ["--pill" as any]: o?.hex ?? "#9ca3af" }}>
       {s.label || "Sans statut"}
     </span>
   );
@@ -181,7 +188,7 @@ const Row = ({ label, children }: { label: string; children: React.ReactNode }) 
   </label>
 );
 
-const inputCls = "w-full text-base bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-orange-400";
+const inputCls = "w-full text-base bg-gray-50 border-2 border-gray-200 rounded-xl px-3 py-2.5 outline-none focus:border-[#1f4b7f]";
 
 // Champ texte enregistré quand on quitte la case.
 const TextRow = ({ label, value, onSave, type = "text", inputMode }: { label: string; value: string; onSave: (v: string) => void; type?: string; inputMode?: "numeric" | "text" }) => {
@@ -236,8 +243,10 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
   const iaFiches = useIaFiches();
   const thread = (lead.notes ?? []).slice(-30);
   const endRef = useRef<HTMLDivElement>(null);
+  // La fiche s'ouvre en haut (carte du client) ; seule la discussion défile jusqu'au dernier message.
+  const filRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "nearest" });
+    if (filRef.current) filRef.current.scrollTop = filRef.current.scrollHeight;
   }, [lead.id, thread.length]);
   const save = (key: string, v: string) => onPatch(lead.id, { [`fields.${key}`]: v });
 
@@ -255,28 +264,50 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
 
   return (
     <div className="fixed inset-0 z-50 bg-gray-50 overflow-y-auto" dir="ltr" style={{ touchAction: "pan-y" }}>
-      <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-3 py-2.5 flex items-center gap-2">
-        <button onClick={onClose} aria-label="Retour" className="w-10 h-10 -ml-1 inline-flex items-center justify-center rounded-full active:bg-gray-100">
+      <div className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur px-2 py-1.5 flex items-center">
+        <button onClick={onClose} aria-label="Retour" className="w-10 h-10 inline-flex items-center justify-center rounded-full active:bg-gray-200">
           <ArrowLeft size={22} />
         </button>
-        <div className="min-w-0 flex-1">
-          <p className="font-extrabold text-gray-900 truncate leading-tight">{lead.name || "Sans nom"}</p>
-          <p className="text-xs text-gray-500 truncate">{[lead.phone && formatPhone(lead.phone), lead.postalCode].filter(Boolean).join(" · ")}</p>
-          {revenuADemander(lead) && <p className="text-[11px] font-semibold text-[#1a56b8]">💰 Revenu à demander (prospect Facebook)</p>}
-        </div>
-        <StatusPill status={lead.status} />
+        <span className="text-sm font-bold text-gray-500">Fiche client</span>
       </div>
 
-      <div className="p-3 space-y-3 pb-24">
-        <div className="flex gap-2">
-          {tel && (
-            <CallAction phone={lead.phone} name={lead.name} className="flex-1 flex flex-col items-center justify-center gap-1 rounded-2xl py-3 text-white text-[12px] font-bold active:scale-95 transition" style={{ background: "#2b5a8f" }}>
-              <Phone size={22} />
+      <div className="px-3 space-y-3 pb-24">
+        <div className="rounded-3xl bg-gradient-to-br from-[#173a5e] to-[#2b5a8f] text-white p-4 shadow-md">
+          <div className="flex items-center gap-3">
+            <span className="w-14 h-14 shrink-0 rounded-2xl bg-white/15 text-xl font-extrabold flex items-center justify-center">{initiales(lead.name)}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xl font-extrabold leading-tight truncate">{lead.name || "Sans nom"}</p>
+              {lead.phone && <p className="text-sm text-white/85">{formatPhone(lead.phone)}</p>}
+              {(lead.city || lead.postalCode) && <p className="text-xs text-white/70 truncate">📍 {[lead.city, lead.postalCode].filter(Boolean).join(" · ")}</p>}
+            </div>
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            <StatusPill status={lead.status} />
+            {revenuADemander(lead) && <span className="text-[11px] font-semibold rounded-full bg-white/15 px-2 py-1">💰 Revenu à demander</span>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          {tel ? (
+            <CallAction phone={lead.phone} name={lead.name} className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-white border border-gray-100 shadow-sm text-[#1f4b7f] text-[12px] font-bold active:scale-95 transition">
+              <Phone size={24} />
               <CallLabel />
             </CallAction>
+          ) : (
+            <div />
           )}
-          {tel && <BigBtn href={whatsappHref(lead.phone)} icon={<MessageCircle size={22} />} label="WhatsApp" color="#22c55e" />}
-          <BigBtn onClick={() => onChat(lead.id)} icon={<MessagesSquare size={22} />} label="Discussion" color="#ff7a1a" />
+          {tel ? (
+            <a href={whatsappHref(lead.phone)} target="_blank" rel="noreferrer" className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-white border border-gray-100 shadow-sm text-[#16a34a] text-[12px] font-bold active:scale-95 transition">
+              <MessageCircle size={24} />
+              WhatsApp
+            </a>
+          ) : (
+            <div />
+          )}
+          <button onClick={() => onChat(lead.id)} className="aspect-square flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-white border border-gray-100 shadow-sm text-[#1f4b7f] text-[12px] font-bold active:scale-95 transition">
+            <MessagesSquare size={24} />
+            Mail / SMS
+          </button>
         </div>
 
         {lead.rappelLe && (
@@ -335,7 +366,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
         </Section>
 
         <Section title="Discussion">
-          <div className="rounded-2xl bg-[#efeae2] p-2 max-h-[55vh] overflow-y-auto space-y-1.5">
+          <div ref={filRef} className="rounded-2xl bg-[#efeae2] p-2 max-h-[55vh] overflow-y-auto space-y-1.5">
             {thread.length === 0 && <p className="text-center text-xs text-gray-500 py-6">Aucun message pour l'instant.</p>}
             {(() => {
               let lastDay = "";
@@ -415,21 +446,23 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
             </button>
           </div>
           <p className="text-[10px] text-gray-400 mt-1">L'équipe est prévenue par e-mail. Tapez @ pour taguer quelqu'un : il le reçoit aussi sur son mail perso.</p>
-          <button onClick={() => onChat(lead.id)} className="mt-2 w-full text-sm font-bold text-orange-600 py-2">
+          <button onClick={() => onChat(lead.id)} className="mt-2 w-full text-sm font-bold text-[#1f4b7f] py-2">
             Ouvrir la discussion complète (mail, SMS, WhatsApp)
           </button>
         </Section>
 
-        <Section title="Informations du client">
+        <Section title="Le client">
           <div className="flex items-center gap-3 mb-3 text-sm text-gray-600">
             <span className="font-semibold text-gray-500 text-xs">Tranche de revenus</span>
             <TrancheDot value={f.tranche ?? ""} />
             {!trancheInfo(f.tranche ?? "") && <span className="text-gray-300">—</span>}
           </div>
-          <TextRow label="Code postal" value={lead.postalCode} inputMode="numeric" onSave={(v) => onPatch(lead.id, { postalCode: v })} />
-          <TextRow label="Chauffage actuel" value={f.chauffageSite ?? ""} onSave={(v) => save("chauffageSite", v)} />
-          <TextRow label="Surface (m²)" value={f.surface ?? ""} inputMode="numeric" onSave={(v) => save("surface", v)} />
-          <TextRow label="Personnes au foyer" value={f.foyerSite ?? ""} inputMode="numeric" onSave={(v) => save("foyerSite", v)} />
+          <div className="grid grid-cols-2 gap-x-2">
+            <TextRow label="Code postal" value={lead.postalCode} inputMode="numeric" onSave={(v) => onPatch(lead.id, { postalCode: v })} />
+            <TextRow label="Surface (m²)" value={f.surface ?? ""} inputMode="numeric" onSave={(v) => save("surface", v)} />
+            <TextRow label="Chauffage" value={f.chauffageSite ?? ""} onSave={(v) => save("chauffageSite", v)} />
+            <TextRow label="Foyer (pers.)" value={f.foyerSite ?? ""} inputMode="numeric" onSave={(v) => save("foyerSite", v)} />
+          </div>
         </Section>
 
         <button onClick={() => onFull(lead.id)} className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border-2 border-gray-200 bg-white py-3.5 font-bold text-gray-700 active:bg-gray-50">
@@ -778,74 +811,44 @@ export default function MobileLeads(props: Props) {
       {tab === "agenda" && <AgendaView all={all} email={props.email} onOpen={setOpenId} onStatus={props.onStatus} onPatch={props.onPatch} />}
 
       {tab === "liste" && (
-      <div className="space-y-2.5 mt-1">
+      <>
+      <div className="mt-1 bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
         {shown.slice(0, limit).map((l) => {
           const tel = telHref(l.phone);
           const time = l.fields[RAPPEL_HEURE_KEY] ?? "";
           const late = !!l.rappelLe && rappelEnRetard(l.rappelLe, time);
-          const ec = props.etapeCol;
-          const etape = ec ? etapeOptions(ec).find((p) => p.key === l.fields[ec.key]) : undefined;
           return (
-            <div key={l.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              <button onClick={() => setOpenId(l.id)} className="w-full text-left p-3.5 active:bg-orange-50/60">
-                <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-extrabold text-gray-900 truncate">{l.name || "Sans nom"}</p>
-                    <p className="text-xs text-gray-500 truncate">{[l.phone && formatPhone(l.phone), l.postalCode].filter(Boolean).join(" · ")}</p>
-                  </div>
-                  <ChevronRight size={18} className="text-gray-300 mt-1 shrink-0" />
-                </div>
-                <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                  <StatusPill status={l.status} />
-                  {revenuADemander(l) && <span className="text-[11px] font-semibold px-2 py-1 rounded-full bg-[#e8f0fe] text-[#1a56b8]">💰 Revenu à demander</span>}
-                  {etape && (
-                    <span className="text-[11px] font-semibold px-2 py-1 rounded-full text-white" style={{ background: etape.hex }}>
-                      {etape.label}
-                    </span>
-                  )}
-                  <TrancheDot value={l.fields.tranche ?? ""} />
-                  {(() => {
-                    const g = groups.find((x) => x.id === groupIdOf(l));
-                    return g ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
-                        <span className="w-2 h-2 rounded-full" style={{ background: g.color }} />
-                        {g.title}
-                      </span>
-                    ) : null;
-                  })()}
-                  {l.rappelLe && (
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-full ${late ? "bg-red-100 text-red-700" : "bg-orange-100 text-orange-800"}`}>
-                      <BellRing size={10} /> {rappelShort(l.rappelLe, time)}
-                    </span>
-                  )}
-                  <span className="ml-auto text-[11px] text-gray-400">{ago(l.createdAt)}</span>
-                </div>
+            <div key={l.id} className="flex items-center gap-2.5 pl-3 pr-2 py-2">
+              <button onClick={() => setOpenId(l.id)} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70">
+                <span className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-[#2b5a8f] to-[#173a5e] text-white text-[13px] font-bold flex items-center justify-center">
+                  {initiales(l.name)}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold text-[15px] leading-tight text-gray-900 truncate">{l.name || "Sans nom"}</span>
+                  <span className="mt-1 flex items-center gap-1.5">
+                    <StatusPill status={l.status} />
+                    {l.rappelLe && <BellRing size={13} className={late ? "text-[#dc2626]" : "text-[#d97706]"} />}
+                  </span>
+                </span>
               </button>
               {tel && (
-                <div className="flex border-t border-gray-100">
-                  <CallAction phone={l.phone} name={l.name} className="flex-1 inline-flex items-center justify-center gap-2 py-3 text-sm font-bold text-[#2b5a8f] active:bg-gray-50">
-                    <Phone size={16} /> <CallLabel />
-                  </CallAction>
-                  <a href={whatsappHref(l.phone)} target="_blank" rel="noreferrer" className="flex-1 inline-flex items-center justify-center gap-2 py-3 text-sm font-bold text-green-600 border-l border-gray-100 active:bg-gray-50">
-                    <MessageCircle size={16} /> WhatsApp
-                  </a>
-                  {l.rappelLe && (
-                    <button onClick={() => props.onPatch(l.id, { __rappelFait: true })} className="flex-1 inline-flex items-center justify-center gap-1.5 py-3 text-sm font-bold text-green-700 border-l border-gray-100 active:bg-gray-50" title="Rappel fait : l'enlever des rappels">
-                      ✅ Rappel fait
-                    </button>
-                  )}
-                </div>
+                <CallAction phone={l.phone} name={l.name} className="w-10 h-10 shrink-0 rounded-full bg-[#edf2f8] text-[#1f4b7f] inline-flex items-center justify-center active:scale-95 transition">
+                  <Phone size={18} />
+                </CallAction>
               )}
             </div>
           );
         })}
+      </div>
+      <div>
         {shown.length === 0 && <p className="text-center text-gray-400 text-sm py-10">Aucun client ne correspond.</p>}
         {shown.length > limit && (
-          <button onClick={() => setLimit((n) => n + 30)} className="w-full text-sm font-bold text-orange-600 py-3">
+          <button onClick={() => setLimit((n) => n + 30)} className="w-full text-sm font-bold text-[#1f4b7f] py-3">
             Afficher plus ({shown.length - limit} restants)
           </button>
         )}
       </div>
+      </>
       )}
 
       {openLead && (

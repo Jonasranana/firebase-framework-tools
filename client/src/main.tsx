@@ -1,6 +1,10 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { notePub } from "./lib/pubOrigine";
+
+// Garde la pub d'origine du visiteur (paramètres utm du lien) pour la joindre à sa demande.
+notePub();
 
 // Après une mise en ligne, un visiteur dont la page était déjà ouverte peut
 // demander un morceau de code qui n'existe plus (nom changé) : la page

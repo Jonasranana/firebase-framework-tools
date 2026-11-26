@@ -126,6 +126,20 @@ export default function RentaMeta({ email }: { email: string }) {
     mpr: signesMeta.reduce((x, l) => x + (mprOf(l) ?? 0), 0),
   };
   const benef = tot.marge - tot.depense;
+  // Quelle annonce amène des clients : leads du site rangés par pub d'origine (paramètres utm du lien Meta).
+  const parPub = useMemo(() => {
+    const m = new Map<string, { leads: number; avancent: number; signes: number; campagne: string }>();
+    for (const l of leads) {
+      if (canalOf(l) !== "site") continue;
+      const k = l.fields.pubAnnonce || "";
+      const e = m.get(k) ?? { leads: 0, avancent: 0, signes: 0, campagne: l.fields.pubCampagne || "" };
+      e.leads++;
+      if (isSigne(l)) e.signes++;
+      else if (/interesse|rdv|propal|proposition|qualifi|docs|vt|en_cours|traitement/.test(String(l.status))) e.avancent++;
+      m.set(k, e);
+    }
+    return Array.from(m.entries()).sort((a, b) => (a[0] ? 0 : 1) - (b[0] ? 0 : 1) || b[1].signes - a[1].signes || b[1].leads - a[1].leads);
+  }, [leads]);
 
   const ajouter = async () => {
     const montant = num(form.montant);
@@ -293,6 +307,52 @@ export default function RentaMeta({ email }: { email: string }) {
           ⚠️ {tot.aCompleter} signé{tot.aCompleter > 1 ? "s" : ""} sans montant : pas compté{tot.aCompleter > 1 ? "s" : ""}. Remplis « 🔗 Réf Praimy » ou « 💵 Marge nette » sur la fiche.
         </p>
       )}
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
+        <h2 className="text-lg font-black text-gray-900">📊 Quelle pub marche ?</h2>
+        <p className="text-sm text-gray-600 mb-3">Les demandes du site sur la période, rangées par annonce Meta : combien de leads, combien avancent, combien signent.</p>
+        {parPub.length === 0 ? (
+          <p className="text-sm text-gray-500">Aucune demande du site sur cette période.</p>
+        ) : (
+          <div className="overflow-x-auto -mx-2">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-xs text-gray-500">
+                  <th className="py-2 px-2">Annonce</th>
+                  <th className="px-2 text-right">Leads</th>
+                  <th className="px-2 text-right">Avancent</th>
+                  <th className="px-2 text-right">Signés</th>
+                  <th className="px-2 text-right">Taux</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parPub.map(([annonce, e]) => (
+                  <tr key={annonce || "-"} className="border-t border-gray-100">
+                    <td className="py-2 px-2">
+                      {annonce ? (
+                        <>
+                          <span className="font-bold text-gray-900">{annonce}</span>
+                          {e.campagne && <span className="block text-[11px] text-gray-500">{e.campagne}</span>}
+                        </>
+                      ) : (
+                        <span className="text-gray-500 italic">Pub non notée (avant le suivi, ou lien sans paramètres)</span>
+                      )}
+                    </td>
+                    <td className="px-2 text-right font-semibold">{e.leads}</td>
+                    <td className="px-2 text-right text-[#d97706] font-semibold">{e.avancent}</td>
+                    <td className="px-2 text-right text-[#059669] font-black">{e.signes}</td>
+                    <td className="px-2 text-right text-gray-600">{e.leads ? Math.round(((e.signes + e.avancent) / e.leads) * 100) : 0} %</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="mt-3 text-[11px] text-gray-500">
+          À mettre une fois dans Meta (Gestionnaire de publicités → chaque pub → Paramètres d'URL) :{" "}
+          <code className="break-all bg-gray-100 rounded px-1">utm_source=facebook&utm_medium=paid&utm_campaign={"{{campaign.name}}"}&utm_content={"{{ad.name}}"}&utm_term={"{{adset.name}}"}</code>
+        </p>
+      </div>
 
       <div className="grid lg:grid-cols-3 gap-4 items-start">
         {/* Gauche : 1) clients venus de la pub (comptés), 2) les autres signés (pas comptés) */}
