@@ -1,4 +1,4 @@
-import { NEWS_VIEWERS, RENTA_VIEWERS, TOTALS_VIEWERS } from "@/lib/crm";
+import { NEWS_VIEWERS, RENTA_VIEWERS, STATS_VIEWERS, TOTALS_VIEWERS } from "@/lib/crm";
 import { isRootAdmin } from "@/lib/crmTeam";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ export function accesDe(email: string): GroupeAcces[] {
         { label: "Devis PAC", ok: true },
         { label: "Artisans", ok: true },
         { label: "Documents", ok: true },
-        { label: "Statistiques", ok: true, detail: argent ? "avec les montants" : "sans les montants" },
+        { label: "Statistiques", ok: STATS_VIEWERS.includes(e), detail: STATS_VIEWERS.includes(e) ? (argent ? "avec les montants" : "sans les montants") : undefined },
         { label: "Barème", ok: true },
         { label: "Corbeille et doublons", ok: true },
         { label: "Archives Monday et clients (copie Monday)", ok: true },
@@ -42,7 +42,7 @@ export function accesDe(email: string): GroupeAcces[] {
       items: [
         { label: "Colonnes montants, marges, primes CEE / MPR", ok: argent },
         { label: "Totaux en bas des groupes", ok: argent },
-        { label: "Montants dans les statistiques", ok: argent },
+        { label: "Montants dans les statistiques", ok: argent && STATS_VIEWERS.includes(e) },
       ],
     },
     {
