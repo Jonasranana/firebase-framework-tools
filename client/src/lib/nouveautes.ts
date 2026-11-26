@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-planning-mobile",
+    date: "2026-11-26",
+    emoji: "🗓️",
+    titre: "Planning chantiers sur téléphone",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"],
+    points: [
+      "Sur téléphone, deux onglets : « 📅 Agenda » (les rendez-vous jour par jour, aujourd'hui en bleu) et « 📋 À organiser » (pré-visites à caler, MPR, prêts à poser, poses programmées).",
+      "Toucher un rendez-vous ou un client ouvre sa fiche planning pour fixer les dates, l'heure et le poseur.",
+    ],
+  },
+  {
     id: "2026-11-26-mobile-appli",
     date: "2026-11-26",
     emoji: "📱",
