@@ -210,6 +210,7 @@ export const StatusCell = ({
         <button className="w-full h-full px-1.5 py-[3px] group/pill" title={s?.label}>
           <span
             data-pill={s ? "" : "vide"}
+            data-pill-key={s?.key}
             className="flex items-center justify-center w-full h-full rounded-md text-[13px] font-semibold text-white px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] group-hover/pill:brightness-95 transition"
             style={{ background: s ? s.hex : "#d9dce3", ["--pill" as any]: s ? s.hex : "#d9dce3" }}
           >
@@ -236,7 +237,9 @@ export const StatusCell = ({
                   className={`min-h-9 px-3 py-1 text-sm leading-tight text-center font-semibold text-white rounded transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none ${
                     isSelected ? "ring-2 ring-gray-900/60 ring-inset font-bold shadow-inner" : ""
                   }`}
-                  style={{ background: o.hex }}
+                  data-pill-opt=""
+                  data-pill-key={o.key}
+                  style={{ background: o.hex, ["--pill" as any]: o.hex }}
                   title={o.label}
                 >
                   {o.label}
@@ -1713,23 +1716,23 @@ export default function LeadsTable({
         style={!isMobile && maxH ? { maxHeight: maxH, marginBottom: -((typeof window !== "undefined" && window.innerWidth >= 768 ? 24 : 16) / (fitZoom || 1)) } : undefined}
       >
       <div style={{ minWidth: totalWidth }} className="space-y-6">
-        <div className="sticky left-0 flex flex-wrap items-center gap-2">
+        <div className="sticky left-0 flex flex-wrap items-center gap-1.5 -mb-3">
           <button
             onClick={() => setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])))}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-200"
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-white text-gray-600 border-gray-200"
           >
             <ChevronsDownUp size={13} /> Réduire tous les groupes
           </button>
           <button
             onClick={() => setCollapsed({})}
-            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-200"
+            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-white text-gray-600 border-gray-200"
           >
             <ChevronsUpDown size={13} /> Développer tout
           </button>
           {archived.length > 0 && (
             <Popover>
               <PopoverTrigger asChild>
-                <button className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border bg-white text-gray-600 border-gray-200">
+                <button className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-white text-gray-600 border-gray-200">
                   <Archive size={13} /> Groupes archivés ({archived.length})
                 </button>
               </PopoverTrigger>

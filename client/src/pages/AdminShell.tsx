@@ -508,7 +508,7 @@ export default function AdminShell({
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
           </div>
         </header>
-        <main className="flex-1 min-w-0 p-2 sm:p-4 md:p-6">{waitingView ? <BrandLoader /> : renderPage(page, activeItem, tools)}</main>
+        <main className={`flex-1 min-w-0 p-2 sm:p-4 ${page === "leads" ? "md:px-5 md:pt-3 md:pb-5" : "md:p-6"}`}>{waitingView ? <BrandLoader /> : renderPage(page, activeItem, tools)}</main>
       </div>
     </div>
   );

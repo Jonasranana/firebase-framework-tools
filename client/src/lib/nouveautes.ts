@@ -19,6 +19,26 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-etiquettes-pastel",
+    date: "2026-11-26",
+    emoji: "🎨",
+    titre: "Étiquettes en couleurs pastel, « Nouveau lead » qui brille",
+    points: [
+      "Les étiquettes reprennent leur ancienne forme (pleines, centrées, chaque couleur bien distincte), en pastel pour reposer les yeux.",
+      "L'étiquette « 🆕 Nouveau lead » brille : impossible de rater un nouveau contact.",
+    ],
+  },
+  {
+    id: "2026-11-26-pacpac-haut-compact",
+    date: "2026-11-26",
+    emoji: "📏",
+    titre: "Pac Pac : le haut de la page prend beaucoup moins de place",
+    points: [
+      "Tableau / Suivi des dossiers, les chiffres (À appeler, Rappels en retard…), le nombre de fiches et la légende des couleurs tiennent maintenant sur une seule ligne fine.",
+      "Plus de lignes du tableau visibles d'un coup, surtout sur un portable. Le bouton « Réduire le haut » n'est plus utile : il est retiré.",
+    ],
+  },
+  {
     id: "2026-11-26-archives-pacpac",
     date: "2026-11-26",
     emoji: "🗄️",
