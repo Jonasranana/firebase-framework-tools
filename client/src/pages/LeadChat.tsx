@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Send, ExternalLink, X, Paperclip, MessageSquareText } from "lucide-react";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { APPEL_SLOTS, LEAD_COLUMNS } from "@/lib/crmColumns";
-import { IaAnalyseButton, IaBubble, isIaNote } from "@/components/RelanceIA";
+import { IaAnalyseButton, IaBubble, isIaNote, useIaFiches } from "@/components/RelanceIA";
 import { findEtapeColumn } from "./DossiersBoard";
 import { RAPPEL_HEURE_KEY, rappelShort } from "@/lib/rappel";
 import { NEWS_VIEWERS, formatDateTime, formatPhone, statusInfo, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
@@ -145,7 +145,8 @@ export default function LeadChat({
   const [templates, setTemplates] = useState<{ key: string; subject: string; sms?: string }[]>([]);
   const [smsOpen, setSmsOpen] = useState(false);
   // Assistant de relance (direction seulement) : bouton « 🤖 » sous chaque message.
-  const canIa = NEWS_VIEWERS.includes(email.toLowerCase());
+  const iaFiches = useIaFiches();
+  const canIa = NEWS_VIEWERS.includes(email.toLowerCase()) && iaFiches;
   const etapeCol = findEtapeColumn(LEAD_COLUMNS);
   const [smsText, setSmsText] = useState("");
   const [smsTpl, setSmsTpl] = useState("");
