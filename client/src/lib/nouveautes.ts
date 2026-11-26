@@ -19,6 +19,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-nouveau-menu",
+    date: "2026-11-26",
+    emoji: "🧭",
+    titre: "Un menu de gauche plus simple, rangé pour la PAC",
+    points: [
+      "Le menu est rangé en groupes : Tableau (Pac Pac, BETS, statistiques), PRAIMY, Loan · Chantiers, Pub & aides, et LED (Tableau pour Dépôt).",
+      "Documents, Corbeille, archives (de Pac Pac et de Monday) : tout est dans « ⚙️ Paramètres », en bas à gauche.",
+      "En haut, « + Nouveau groupe » crée un groupe avec son propre tableau, comme Pac Pac. On ne peut plus ajouter de tableaux un peu partout.",
+      "Cliquez sur le nom d'un groupe pour le replier ou le déplier.",
+    ],
+  },
+  {
     id: "2026-11-26-choix-etiquette-taille",
     date: "2026-11-26",
     emoji: "📐",
