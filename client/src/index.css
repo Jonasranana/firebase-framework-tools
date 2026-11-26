@@ -259,3 +259,53 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 .crm-v2 .border-\[\#ff6a1a\] { border-color: #2563eb; }
 .crm-v2 .border-\[\#ff9a5a\] { border-color: #93b4f5; }
 .crm-v2 .bg-\[\#fff6ef\] { background-color: #f3f6fe; }
+
+/* ─── Une seule direction artistique pour tout le CRM (nouveau design) ───────
+   Toutes les pages reprennent les couleurs de Pac Pac : un seul bleu principal,
+   des cartes blanches aux bordures douces, l'orange réservé aux alertes.
+   Uniquement des couleurs : la mise en page et les boutons ne bougent pas. */
+.crm-v2 {
+  --v2-blue: #2563eb; --v2-blue-dark: #1d4ed8; --v2-blue-text: #2552d0; --v2-blue-soft: #eef3ff; --v2-blue-line: #bcd0fb; --v2-line: #eceef3;
+}
+/* Bleus d'avant (bleu marine #2b5a8f, bleu Monday #0073ea…) → un seul bleu */
+.crm-v2 .bg-\[\#2b5a8f\], .crm-v2 .bg-\[\#0073ea\], .crm-v2 .bg-\[\#2e6db0\], .crm-v2 .bg-\[\#579bfc\] { background-color: var(--v2-blue); }
+.crm-v2 .hover\:bg-\[\#0060c2\]:hover, .crm-v2 .hover\:bg-\[\#0060c4\]:hover, .crm-v2 .hover\:bg-\[\#1a3d66\]:hover, .crm-v2 .active\:bg-\[\#579bfc\]:active { background-color: var(--v2-blue-dark); }
+.crm-v2 .text-\[\#2b5a8f\], .crm-v2 .text-\[\#0073ea\], .crm-v2 .text-\[\#2e6db0\], .crm-v2 .text-\[\#0b63ce\], .crm-v2 .text-\[\#1a56b8\], .crm-v2 .text-\[\#579bfc\] { color: var(--v2-blue-text); }
+.crm-v2 .hover\:text-\[\#2b5a8f\]:hover, .crm-v2 .hover\:text-\[\#0073ea\]:hover, .crm-v2 .hover\:text-\[\#005bb5\]:hover, .crm-v2 .group:hover .group-hover\:text-\[\#2b5a8f\] { color: var(--v2-blue-dark); }
+.crm-v2 .border-\[\#2b5a8f\], .crm-v2 .border-\[\#0073ea\], .crm-v2 .border-\[\#2e6db0\], .crm-v2 .hover\:border-\[\#2b5a8f\]:hover, .crm-v2 .hover\:border-\[\#0073ea\]:hover { border-color: var(--v2-blue); }
+.crm-v2 .border-\[\#2b5a8f\]\/40, .crm-v2 .border-\[\#0073ea\]\/40, .crm-v2 .border-\[\#579bfc\]\/40, .crm-v2 .hover\:border-\[\#2b5a8f\]\/40:hover { border-color: var(--v2-blue-line); }
+.crm-v2 .focus\:border-\[\#2b5a8f\]:focus, .crm-v2 .focus\:border-\[\#0073ea\]:focus, .crm-v2 .focus\:border-\[\#579bfc\]:focus, .crm-v2 .focus\:border-\[\#ff6a1a\]:focus,
+.crm-v2 .focus\:border-orange-300:focus, .crm-v2 .focus\:border-orange-400:focus { border-color: var(--v2-blue); }
+.crm-v2 .ring-\[\#2b5a8f\], .crm-v2 .ring-\[\#0073ea\], .crm-v2 .ring-\[\#579bfc\], .crm-v2 .focus\:ring-\[\#2b5a8f\]:focus, .crm-v2 .focus\:ring-\[\#0073ea\]:focus, .crm-v2 .focus\:ring-\[\#ff6a1a\]:focus, .crm-v2 .focus-visible\:ring-\[\#2b5a8f\]:focus-visible { --tw-ring-color: var(--v2-blue); }
+.crm-v2 .outline-\[\#579bfc\] { outline-color: var(--v2-blue); }
+.crm-v2 .accent-\[\#2b5a8f\], .crm-v2 .accent-\[\#0073ea\], .crm-v2 .accent-orange-500 { accent-color: var(--v2-blue); }
+/* Orange d'avant quand il servait de couleur principale (menus, boutons, onglets) → bleu.
+   L'orange des alertes (rappels du jour, âge des fiches, étiquettes) ne change pas. */
+.crm-v2 .bg-orange-500 { background-color: var(--v2-blue); }
+.crm-v2 .hover\:bg-orange-600:hover { background-color: var(--v2-blue-dark); }
+.crm-v2 .hover\:text-\[\#c2410c\]:hover, .crm-v2 .data-\[state\=open\]\:text-\[\#c2410c\][data-state="open"], .crm-v2 .text-\[\#ff6a1a\], .crm-v2 .text-\[\#e0511a\] { color: var(--v2-blue-text); }
+.crm-v2 .data-\[state\=open\]\:bg-orange-50[data-state="open"], .crm-v2 .bg-orange-50\/40, .crm-v2 .bg-orange-50\/60 { background-color: var(--v2-blue-soft); }
+.crm-v2 .border-\[\#ffb37a\], .crm-v2 .hover\:border-\[\#ff9a5a\]:hover { border-color: var(--v2-blue-line); }
+/* Bouton du compte (en haut à droite) */
+.crm-v2 .border-orange-200 { border-color: var(--v2-blue-line); }
+.crm-v2 .bg-orange-50\/60, .crm-v2 .from-orange-50 { background-color: var(--v2-blue-soft); }
+.crm-v2 .hover\:bg-orange-100:hover { background-color: #e2eafe; }
+.crm-v2 .hover\:border-orange-300:hover, .crm-v2 .border-orange-100 { border-color: var(--v2-blue-line); }
+.crm-v2 .bg-gradient-to-r.from-orange-50.to-pink-50 { background-image: none; }
+/* Cartes et blocs blancs : même bordure douce que Pac Pac */
+.crm-v2 main .bg-white.border-gray-100, .crm-v2 main .bg-white.border-gray-200 { border-color: var(--v2-line); }
+.crm-v2 main .bg-white.rounded-xl.border, .crm-v2 main .bg-white.rounded-2xl.border, .crm-v2 main .bg-white.rounded-3xl.border { box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05); }
+
+/* Dégradé de la marque (boutons « Nouveau », graphiques…) : orange/rose d'origine, bleu avec le nouveau design. */
+:root {
+  --brand-grad: linear-gradient(90deg, #ff8a00, #ff4d4d 55%, #e0218a);
+  --brand-grad-2: linear-gradient(90deg, #ff8a00, #e0218a);
+  --brand-grad-v: linear-gradient(180deg, #ff8a00, #e0218a);
+  --brand-grad-120: linear-gradient(120deg, #ff8a00, #ff4d4d 55%, #e0218a);
+}
+.crm-v2 {
+  --brand-grad: linear-gradient(90deg, #3b82f6, #2563eb 55%, #4f46e5);
+  --brand-grad-2: linear-gradient(90deg, #3b82f6, #4f46e5);
+  --brand-grad-v: linear-gradient(180deg, #60a5fa, #2563eb);
+  --brand-grad-120: linear-gradient(120deg, #3b82f6, #2563eb 55%, #4f46e5);
+}
