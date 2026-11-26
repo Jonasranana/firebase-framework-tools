@@ -644,7 +644,7 @@ export default function StatsCRM({ email = "" }: { email?: string }) {
         <Columns buckets={timeline.buckets} avg={timeline.avg} labelEvery={timeline.buckets.length > 20 ? Math.ceil(timeline.buckets.length / 10) : timeline.buckets.length > 12 ? 2 : 1} />
       </Card>
 
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4 [&>*]:min-w-0">
         <Card title="Parcours des leads" hint="statut actuel · % de passage d'une étape à l'autre">
           <Funnel
             steps={[
@@ -706,7 +706,7 @@ export default function StatsCRM({ email = "" }: { email?: string }) {
       </Card>
 
       {/* Équipe */}
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4 [&>*]:min-w-0">
         <Card title="Activité d'appels" hint={`${calls.total} appel${calls.total > 1 ? "s" : ""} sur la période`}>
           {calls.rows.length === 0 ? (
             <Empty text="Aucun appel enregistré sur la période." />
@@ -809,7 +809,7 @@ export default function StatsCRM({ email = "" }: { email?: string }) {
       </Card>
 
       {/* Qui sont les leads */}
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid lg:grid-cols-2 gap-4 [&>*]:min-w-0">
         <Card title="Tranche de revenus" hint={`${profile.renseignes} sur ${f.recus} renseignées`}>
           <BarList rows={profile.tranche} total={profile.renseignes} empty="Tranche non renseignée sur la période." />
         </Card>

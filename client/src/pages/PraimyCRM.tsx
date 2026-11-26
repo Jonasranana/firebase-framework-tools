@@ -275,7 +275,7 @@ export default function PraimyCRM({ email }: { email: string }) {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={syncToPacPac}
             disabled={syncing || loading}
