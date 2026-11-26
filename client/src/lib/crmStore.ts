@@ -16,9 +16,10 @@ import { chrono } from "@/lib/chrono";
 // L'écoute reste active tant qu'au moins un écran s'en sert, puis s'arrête
 // juste après (pas de lecture inutile quand on quitte le CRM).
 // ─────────────────────────────────────────────────────────────────────────
-type State<T> = { data: T[] | null; error: string };
+// partiel : seules les fiches les plus récentes sont arrivées (premier chargement sans cache), la suite arrive.
+type State<T> = { data: T[] | null; error: string; partiel?: boolean };
 
-function createStore<T>(collectionName: string, map: (id: string, d: Record<string, any>) => T) {
+function createStore<T>(collectionName: string, map: (id: string, d: Record<string, any>) => T, premiers = 0) {
   let state: State<T> = { data: null, error: "" };
   const listeners = new Set<() => void>();
   let cache = new Map<string, T>();
@@ -34,7 +35,22 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
     try {
       const { m, db } = await crmFirestore();
       if (!listeners.size) return; // plus personne n'écoute entre-temps
-      unsub = m.onSnapshot(
+      // Affichage tout de suite : si la liste complète tarde (téléphone sans cache), on montre d'abord
+      // les « premiers » documents les plus récents, puis tout le reste dès qu'il arrive.
+      let complet = false;
+      let stopPartiel: (() => void) | null = null;
+      if (premiers > 0) {
+        stopPartiel = m.onSnapshot(
+          m.query(m.collection(db, collectionName), m.orderBy("createdAt", "desc"), m.limit(premiers)),
+          (snap) => {
+            if (complet || snap.empty) return;
+            emit({ data: snap.docs.map((d) => map(d.id, d.data())), error: "", partiel: true });
+            if (collectionName === CRM_LEADS_COLLECTION) chrono.depuisOuverture("fiches-premieres", snap.size);
+          },
+          () => {},
+        );
+      }
+      const unsubComplet = m.onSnapshot(
         m.query(m.collection(db, collectionName), m.orderBy("createdAt", "desc")),
         (snap) => {
           // On ne retraduit que les documents modifiés : les autres gardent le même objet,
@@ -48,6 +64,11 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
             return item;
           });
           cache = next;
+          if (!complet) {
+            complet = true;
+            stopPartiel?.();
+            stopPartiel = null;
+          }
           emit({ data: list, error: "" });
           // Chronomètre invisible : arrivée des fiches (depuis le cache de l'appareil, puis depuis le serveur).
           if (collectionName === CRM_LEADS_COLLECTION) {
@@ -60,6 +81,10 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
           emit({ data: state.data, error: "Impossible de charger les données. Vérifiez que vous êtes autorisé, puis rechargez la page." });
         },
       );
+      unsub = () => {
+        unsubComplet();
+        stopPartiel?.();
+      };
     } catch (e) {
       console.error(e);
       emit({ data: null, error: "Impossible de se connecter à la base de données." });
@@ -88,7 +113,7 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
   };
 }
 
-const leadsStore = createStore<Lead>(CRM_LEADS_COLLECTION, leadFromDoc);
+const leadsStore = createStore<Lead>(CRM_LEADS_COLLECTION, leadFromDoc, 300);
 const artisansStore = createStore<Artisan>(CRM_ARTISANS_COLLECTION, artisanFromDoc);
 
 // Fiches actives / fiches à la corbeille, dérivées du même flux (mises en cache
@@ -100,7 +125,7 @@ const derive = () => {
   const raw = leadsStore.getSnapshot();
   if (raw !== lastRaw) {
     lastRaw = raw;
-    lastActive = { data: raw.data ? raw.data.filter((l) => !l.deletedAt) : null, error: raw.error };
+    lastActive = { data: raw.data ? raw.data.filter((l) => !l.deletedAt) : null, error: raw.error, partiel: raw.partiel };
     lastTrash = { data: raw.data ? raw.data.filter((l) => !!l.deletedAt) : null, error: raw.error };
   }
 };

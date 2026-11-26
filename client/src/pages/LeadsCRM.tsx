@@ -1221,7 +1221,7 @@ export default function LeadsCRM({
   boardView?: { filters: LeadFilter[]; sorts: LeadSort[]; groupBy: string; personKey: string; visible: string[] };
   onBoardViewChange?: (v: { filters: LeadFilter[]; sorts: LeadSort[]; groupBy: string; personKey: string; visible: string[] }) => void;
 }) {
-  const { data: allLeads, error: storeError } = useLeads();
+  const { data: allLeads, error: storeError, partiel } = useLeads();
   const leads = useMemo(
     () => (allLeads ? allLeads.filter((l) => (l.board || LEADS_BOARD_ID) === boardId) : allLeads),
     [allLeads, boardId],
@@ -2008,6 +2008,12 @@ export default function LeadsCRM({
       </div>
 
       {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
+      {partiel && (
+        <p className="mb-2 inline-flex items-center gap-2 rounded-full bg-[#eef3ff] px-3 py-1 text-xs font-semibold text-[#2552d0]">
+          <span className="w-3 h-3 rounded-full border-2 border-[#2552d0] border-t-transparent animate-spin" />
+          Les fiches les plus récentes sont affichées, les autres arrivent…
+        </p>
+      )}
       {ajoutDans !== null && (
         <NouveauLeadDialog
           groupe={groups.find((g) => g.id === (ajoutDans || DEFAULT_LEAD_GROUPS[0].id))?.title ?? "Nouveaux leads"}

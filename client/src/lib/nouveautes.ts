@@ -19,6 +19,15 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-chargement-rapide",
+    date: "2026-11-26",
+    emoji: "⚡",
+    titre: "Pac Pac s'affiche bien plus vite au premier chargement",
+    points: [
+      "Quand le téléphone ou l'ordinateur n'a pas encore les fiches en mémoire, les 300 plus récentes s'affichent tout de suite, et les autres arrivent derrière (petit message bleu en haut pendant ce temps).",
+    ],
+  },
+  {
     id: "2026-11-26-pages-mobile",
     date: "2026-11-26",
     emoji: "📱",
