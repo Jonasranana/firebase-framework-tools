@@ -64,7 +64,7 @@ export function AddTypeList({ onPick }: { onPick: (t: ColType) => void }) {
   );
 }
 
-export default function ColumnMenu({
+function ColumnMenuFull({
   col,
   leads,
   filters,
@@ -75,6 +75,7 @@ export default function ColumnMenu({
   onGroupBy,
   api,
   onDuplicate,
+  initialOpen,
 }: {
   col: LeadColumn;
   leads: Lead[];
@@ -95,8 +96,9 @@ export default function ColumnMenu({
     moveBy: (key: string, delta: number) => void;
   };
   onDuplicate: (col: LeadColumn) => void;
+  initialOpen?: boolean;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(!!initialOpen);
   const [panel, setPanel] = useState<"" | "settings" | "filter" | "sort" | "add" | "type" | "rename">("");
   const [title, setTitle] = useState(col.title);
   const [labelsOpen, setLabelsOpen] = useState(false);
@@ -301,5 +303,21 @@ export default function ColumnMenu({
         <StatusLabelEditor options={col.options ?? []} onApply={(next) => api.setOptions(col.key, next)} onClose={() => setLabelsOpen(false)} />
       )}
     </Popover>
+  );
+}
+
+// Le menu complet (popover, filtres, compteurs…) n'est créé qu'au premier clic : un tableau
+// affiche des centaines d'en-têtes de colonnes, et chacun n'a besoin au départ que de son bouton « ··· ».
+export default function ColumnMenu(props: Parameters<typeof ColumnMenuFull>[0]) {
+  const [armed, setArmed] = useState(false);
+  if (armed) return <ColumnMenuFull {...props} initialOpen />;
+  return (
+    <button
+      onClick={() => setArmed(true)}
+      aria-label={`Options de la colonne ${props.col.title}`}
+      className="shrink-0 p-1 rounded-md text-gray-500 hover:text-gray-900 hover:bg-gray-200"
+    >
+      <MoreHorizontal size={16} />
+    </button>
   );
 }

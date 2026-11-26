@@ -1,6 +1,6 @@
 import { MentionPicker, MentionText, TaggedLine } from "@/components/Mentions";
 import BrandLoader from "@/components/BrandLoader";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   Phone,
   MessageCircle,
@@ -1261,6 +1261,8 @@ export default function LeadsCRM({
     }
   });
   const [query, setQuery] = useState("");
+  // La recherche filtre 2 500 fiches : on garde la frappe fluide, le tableau suit juste derrière.
+  const searchQuery = useDeferredValue(query);
   const [statusFilter, setStatusFilter] = useState<"" | LeadStatus>("");
   // Personnes proposées dans le filtre « Personne » : l'équipe + les commerciaux de Monday.
   const people: Person[] = useMemo(() => {
@@ -1346,7 +1348,7 @@ export default function LeadsCRM({
   // Filtres hors statut : le décompte par statut en dépend.
   const baseFiltered = useMemo(() => {
     if (!leads) return [];
-    const q = normalize(query.trim());
+    const q = normalize(searchQuery.trim());
     return leads.filter((l) => {
       if (filters.length && !applyFilters(l, filters)) return false;
       if (attribTab && l.fields[ATTRIBUE_KEY] !== attribTab) return false;
@@ -1364,7 +1366,7 @@ export default function LeadsCRM({
       );
       return hay.includes(q);
     });
-  }, [leads, query, filters, personKey, people, rappelsOnly, attribTab]);
+  }, [leads, searchQuery, filters, personKey, people, rappelsOnly, attribTab]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};

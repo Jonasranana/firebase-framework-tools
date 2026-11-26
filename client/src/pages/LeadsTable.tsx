@@ -896,6 +896,34 @@ const BulkBar = ({
 
 // Une ligne du tableau : mémorisée, elle ne se redessine que si SA fiche, la sélection
 // ou les colonnes changent (au lieu de redessiner des milliers de cellules à chaque action).
+// ── Lignes dessinées à la demande ─────────────────────────────────────────
+// Un tableau de 10 groupes × 50 lignes × 40 colonnes, c'est des dizaines de milliers d'éléments :
+// on ne dessine un paquet de lignes que lorsqu'il arrive près de l'écran (puis il reste dessiné).
+// En attendant, un espace vide de la même hauteur garde la barre de défilement juste.
+const ROW_H = 36;
+const CHUNK = 12;
+function scrollParent(el: HTMLElement | null): Element | null {
+  for (let p = el?.parentElement; p; p = p.parentElement) {
+    const o = getComputedStyle(p).overflowY;
+    // (un défilement horizontal seul donne aussi overflow-y « auto » : on vérifie qu'il défile vraiment en hauteur)
+    if ((o === "auto" || o === "scroll") && p.scrollHeight > p.clientHeight + 1) return p;
+  }
+  return null;
+}
+function LazyChunk({ count, eager, children }: { count: number; eager: boolean; children: () => ReactNode }) {
+  const [shown, setShown] = useState(eager);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (shown || !ref.current) return;
+    if (typeof IntersectionObserver === "undefined") return setShown(true);
+    const io = new IntersectionObserver((e) => e.some((x) => x.isIntersecting) && setShown(true), { root: scrollParent(ref.current), rootMargin: "800px 0px" });
+    io.observe(ref.current);
+    return () => io.disconnect();
+  }, [shown]);
+  if (shown) return <>{children()}</>;
+  return <div ref={ref} style={{ height: count * ROW_H }} className="border-b border-[#d0d4e4] bg-[repeating-linear-gradient(180deg,transparent_0,transparent_35px,#eef0f5_35px,#eef0f5_36px)]" />;
+}
+
 const LeadRow = memo(function LeadRow({
   lead: l,
   cols,
@@ -934,10 +962,16 @@ const LeadRow = memo(function LeadRow({
       className={`group grid items-stretch border-b border-[#d0d4e4] h-9 ${selected ? "bg-blue-50" : ageBg ? "hover:brightness-95" : "hover:bg-gray-50"}`}
       style={{ gridTemplateColumns: template, background: ageBg }}
     >
-      {cols.map((c, i) =>
-        c.type !== "name" && (i < colA || i > colB) ? (
-          <div key={c.key} className={i === 0 ? "" : "border-l border-[#d0d4e4]"} />
-        ) : c.type === "name" ? (
+      {cols.map((c, i) => {
+        const horsEcran = (k: number) => k < cols.length && cols[k].type !== "name" && (k < colA || k > colB);
+        if (horsEcran(i)) {
+          // Colonnes hors de l'écran : une seule case vide qui en couvre plusieurs (au lieu d'une par colonne).
+          if (i > 0 && horsEcran(i - 1)) return null;
+          let n = 1;
+          while (horsEcran(i + n)) n++;
+          return <div key={c.key} className={i === 0 ? "" : "border-l border-[#d0d4e4]"} style={{ gridColumn: `span ${n}` }} />;
+        }
+        return c.type === "name" ? (
           <div
             key={c.key}
             className={`sticky left-0 z-10 group-hover:bg-gray-50 flex items-center gap-1 pr-1 border-r border-[#d0d4e4] ${selected ? "bg-blue-50" : "bg-white"} shadow-[2px_0_4px_-1px_rgba(0,0,0,0.06)]`}
@@ -1018,8 +1052,8 @@ const LeadRow = memo(function LeadRow({
           <div key={c.key} className={`${i === 0 ? "" : "border-l"} border-[#d0d4e4] min-w-0`}>
             <Cell lead={l} col={c} onPatch={onPatch} onStatus={onStatus} />
           </div>
-        ),
-      )}
+        );
+      })}
       <div className="border-l border-[#d0d4e4]" />
     </div>
   );
@@ -1896,7 +1930,11 @@ export default function LeadsTable({
                     </div>
                   </div>
 
-                  {shownRows.map((l) => (
+                  {Array.from({ length: Math.ceil(shownRows.length / CHUNK) }, (_, ci) => {
+                    const part = shownRows.slice(ci * CHUNK, (ci + 1) * CHUNK);
+                    return (
+                      <LazyChunk key={`${page}-${ci}`} count={part.length} eager={gi === 0 && ci < 2}>
+                        {() => part.map((l) => (
                     <LeadRow
                       key={l.id}
                       lead={l}
@@ -1913,7 +1951,10 @@ export default function LeadsTable({
                       onPatch={stableCb.patch}
                       onStatus={stableCb.status}
                     />
-                  ))}
+                        ))}
+                      </LazyChunk>
+                    );
+                  })}
 
                   {paged && (
                     <div className="h-10 border-b border-[#d0d4e4]" style={{ background: `${st.color}10` }}>
@@ -1943,7 +1984,9 @@ export default function LeadsTable({
                     nameWidth={isMobile && cols[0] ? mobileNameW(cols[0]) : (cols[0]?.width ?? 300)}
                   />
                 </div>
-                <GroupSummary cols={cols} template={template} rows={rows} showTotals={!!showTotals} />
+                <LazyChunk count={1} eager={gi === 0}>
+                  {() => <GroupSummary cols={cols} template={template} rows={rows} showTotals={!!showTotals} />}
+                </LazyChunk>
                 </div>
               )}
             </section>
