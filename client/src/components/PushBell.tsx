@@ -2,12 +2,15 @@ import { useEffect, useState } from "react";
 import { Bell, BellRing } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import NotifsFeed from "@/components/NotifsFeed";
+import { canUseIa, setIaFiches, useIaFiches } from "@/components/RelanceIA";
 import { openNotifTarget, useNotifs } from "@/lib/crmNotifs";
 import { DEFAULT_PREFS, PUSH_KINDS, disablePush, enablePush, pushStatus, pushSupport, savePushPrefs, testPush, type PushPrefs } from "@/lib/crmPush";
 
 // Cloche de la barre du haut du CRM : la liste des notifications reçues (onglet « Notifications »,
 // pastille rouge = non lues) et les réglages de cet appareil (onglet « Réglages », voir lib/crmPush.ts).
-export default function PushBell({ onNavigate }: { onNavigate?: (page: string) => void }) {
+export default function PushBell({ onNavigate, email = "" }: { onNavigate?: (page: string) => void; email?: string }) {
+  const iaFiches = useIaFiches();
+  const [iaBusy, setIaBusy] = useState(false);
   const { unread } = useNotifs();
   const [open, setOpen] = useState(false);
   const [onglet, setOnglet] = useState<"liste" | "reglages">("liste");
@@ -133,6 +136,34 @@ export default function PushBell({ onNavigate }: { onNavigate?: (page: string) =
           </>
         )}
         {msg && <p className="text-xs font-medium text-gray-700">{msg}</p>}
+        {email && canUseIa(email) && (
+          <div className="border-t border-gray-100 pt-3">
+            <label className="flex items-start gap-2.5 rounded-lg px-2 py-1.5 hover:bg-gray-50 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={iaFiches}
+                disabled={iaBusy}
+                onChange={async (e) => {
+                  setIaBusy(true);
+                  try {
+                    await setIaFiches(e.target.checked, email);
+                  } catch {
+                    setMsg("Impossible de changer le réglage de l'IA.");
+                  } finally {
+                    setIaBusy(false);
+                  }
+                }}
+                className="mt-1 h-4 w-4 accent-violet-600"
+              />
+              <span>
+                <span className="block text-sm font-semibold">🤖 Assistant IA dans les fiches</span>
+                <span className="block text-xs text-gray-500">
+                  Bouton « Analyser et planifier la relance » sous les messages, pour toute la direction. Coupé : les propositions déjà faites par l'IA restent dans les fiches.
+                </span>
+              </span>
+            </label>
+          </div>
+        )}
         </>
         )}
       </PopoverContent>

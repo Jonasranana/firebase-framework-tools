@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-ia-fiches-interrupteur",
+    date: "2026-11-26",
+    emoji: "🤖",
+    titre: "Assistant IA des fiches mis en pause",
+    points: [
+      "Le bouton « Analyser et planifier la relance » sous les messages est coupé pour l'instant. Les propositions déjà faites par l'IA restent dans les fiches.",
+      "Pour le rallumer : cloche 🔔 en haut à droite → « ⚙️ Réglages » → « Assistant IA dans les fiches ».",
+    ],
+    pour: NEWS_VIEWERS,
+  },
+  {
     id: "2026-11-26-nouveau-design",
     date: "2026-11-26",
     emoji: "🎨",

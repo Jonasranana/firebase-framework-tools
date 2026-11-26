@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { LEAD_STATUSES, NEWS_VIEWERS, whatsappHref, type Lead, type LeadNote } from "@/lib/crm";
 import { LEAD_COLUMNS, cellValue, type LeadColumn } from "@/lib/crmColumns";
@@ -33,6 +33,48 @@ export type Plan = {
 type IaNote = LeadNote & { plan?: Plan; validatedAt?: string; validatedBy?: string; sourceId?: string };
 
 export const canUseIa = (email: string) => NEWS_VIEWERS.includes(email.toLowerCase());
+
+// Interrupteur partagé « Assistant IA dans les fiches » (Réglages, sous la cloche) : Firestore
+// crm_boards/reglages, champ iaFiches (coupé par défaut depuis le 26/11/2026, à la demande d'Alexis). Coupé : plus de bouton « Analyser et planifier la relance »
+// ni de bandeau d'aide ; les propositions déjà faites par l'IA restent affichées dans les fiches.
+// Une seule écoute Firestore pour tout le CRM (le bouton est répété sous chaque message).
+let iaOn: boolean | null = null;
+const iaListeners = new Set<() => void>();
+let iaUnsub: (() => void) | null = null;
+function iaStart() {
+  if (iaUnsub) return;
+  iaUnsub = () => {};
+  import("@/lib/crmDb")
+    .then(({ crmFirestore }) => crmFirestore())
+    .then(({ m, db }) => {
+      iaUnsub = m.onSnapshot(
+        m.doc(db, "crm_boards", "reglages"),
+        (snap: any) => {
+          iaOn = snap.data()?.iaFiches === true; // coupé tant qu'on ne l'a pas rallumé
+          iaListeners.forEach((l) => l());
+        },
+        () => {},
+      );
+    })
+    .catch(() => {});
+}
+export function useIaFiches(): boolean {
+  const [, force] = useState(0);
+  useEffect(() => {
+    const l = () => force((x) => x + 1);
+    iaListeners.add(l);
+    iaStart();
+    return () => {
+      iaListeners.delete(l);
+    };
+  }, []);
+  return iaOn === true; // tant que le réglage n'est pas lu, on n'affiche rien
+}
+export async function setIaFiches(on: boolean, email: string) {
+  const { crmFirestore } = await import("@/lib/crmDb");
+  const { m, db } = await crmFirestore();
+  await m.setDoc(m.doc(db, "crm_boards", "reglages"), { iaFiches: on, iaFichesBy: email, iaFichesAt: m.serverTimestamp() }, { merge: true });
+}
 export const isIaNote = (n: LeadNote) => (n as { kind?: string }).kind === "ia";
 
 async function callFn<T>(name: string, data?: unknown): Promise<T> {

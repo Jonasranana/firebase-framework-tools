@@ -13,7 +13,7 @@ import { useUnreadNews } from "./ActusCRM";
 import NotifsFeed from "@/components/NotifsFeed";
 import { openNotifTarget, useNotifs } from "@/lib/crmNotifs";
 const ActusCRM = lazy(() => import("./ActusCRM"));
-import { IaAnalyseButton, IaBubble, canUseIa, isIaNote } from "@/components/RelanceIA";
+import { IaAnalyseButton, IaBubble, canUseIa, isIaNote, useIaFiches } from "@/components/RelanceIA";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Version simple du CRM pour le téléphone : une liste de cartes au lieu du tableau,
@@ -233,6 +233,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
   const tel = telHref(lead.phone);
   const time = f[RAPPEL_HEURE_KEY] ?? "";
   const late = !!lead.rappelLe && rappelEnRetard(lead.rappelLe, time);
+  const iaFiches = useIaFiches();
   const thread = (lead.notes ?? []).slice(-30);
   const endRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -374,7 +375,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
                           )}
                           <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : <MentionText text={n.text} light={mine} />}</p>
                           <TaggedLine note={n} light={mine} />
-                          {isChat(n) && canUseIa(email) && <IaAnalyseButton lead={lead} note={n} etapeCol={etapeCol} light={mine} />}
+                          {isChat(n) && canUseIa(email) && iaFiches && <IaAnalyseButton lead={lead} note={n} etapeCol={etapeCol} light={mine} />}
                           <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-white/70" : "text-gray-400"}`}>{hhmm(n.at)}</p>
                         </div>
                       </div>
