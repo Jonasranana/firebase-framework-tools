@@ -8,6 +8,7 @@ import {
   type Lead,
 } from "@/lib/crm";
 import { crmFirestore } from "@/lib/crmDb";
+import { chrono } from "@/lib/chrono";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Magasin de données partagé : une seule écoute Firestore par collection,
@@ -48,6 +49,11 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
           });
           cache = next;
           emit({ data: list, error: "" });
+          // Chronomètre invisible : arrivée des fiches (depuis le cache de l'appareil, puis depuis le serveur).
+          if (collectionName === CRM_LEADS_COLLECTION) {
+            chrono.depuisOuverture("fiches-arrivees", list.length);
+            if (!snap.metadata.fromCache) chrono.depuisOuverture("fiches-serveur", list.length);
+          }
         },
         (e) => {
           console.error(e);
