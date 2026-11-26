@@ -283,7 +283,7 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
    L'orange des alertes (rappels du jour, âge des fiches, étiquettes) ne change pas. */
 .crm-v2 .bg-orange-500 { background-color: var(--v2-blue); }
 .crm-v2 .hover\:bg-orange-600:hover { background-color: var(--v2-blue-dark); }
-.crm-v2 .hover\:text-\[\#c2410c\]:hover, .crm-v2 .data-\[state\=open\]\:text-\[\#c2410c\][data-state="open"], .crm-v2 .text-\[\#ff6a1a\], .crm-v2 .text-\[\#e0511a\] { color: var(--v2-blue-text); }
+.crm-v2 .hover\:text-\[\#c2410c\]:hover, .crm-v2 .data-\[state\=open\]\:text-\[\#c2410c\][data-state="open"], .crm-v2 .text-\[\#e0511a\] { color: var(--v2-blue-text); }
 .crm-v2 .data-\[state\=open\]\:bg-orange-50[data-state="open"], .crm-v2 .bg-orange-50\/40, .crm-v2 .bg-orange-50\/60 { background-color: var(--v2-blue-soft); }
 .crm-v2 .border-\[\#ffb37a\], .crm-v2 .hover\:border-\[\#ff9a5a\]:hover { border-color: var(--v2-blue-line); }
 /* Bouton du compte (en haut à droite) */

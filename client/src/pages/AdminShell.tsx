@@ -413,20 +413,7 @@ export default function AdminShell({
           />
         )}
         {/* En-tête de marque : logo IP5 Énergie en blanc sur un bandeau dégradé (comme Monday). */}
-        {v2 ? (
-          <div className={`relative flex items-center h-16 border-b border-[#eceef3] ${compact ? "justify-center" : "pl-4 pr-2"}`}>
-            {!compact ? (
-              <div className="flex items-center gap-2.5 min-w-0">
-                <LogoIP5 className="!h-10" />
-                <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#2552d0] bg-[#eef3ff] rounded-full px-2 py-0.5">CRM</span>
-              </div>
-            ) : (
-              <a href="/admin" aria-label="IP5 Énergie" className="flex items-center justify-center">
-                <LogoMark className="h-9 w-auto text-[#2552d0]" />
-              </a>
-            )}
-          </div>
-        ) : (
+        {/* En-tête de marque orange (gardé aussi avec le nouveau design, à la demande d'Alexis). */}
         <div
           className={`relative flex items-center h-20 text-white overflow-hidden ${compact ? "justify-center" : "pl-5 pr-2 justify-between"}`}
           style={{ background: "linear-gradient(120deg,#ff8a00 0%,#ff4d4d 45%,#e0218a 100%)" }}
@@ -445,7 +432,6 @@ export default function AdminShell({
           )}
           <span className="absolute inset-x-0 bottom-0 h-1" style={{ background: "linear-gradient(90deg,#ffd166,#ffffff80,#ffd166)" }} />
         </div>
-        )}
         {/* Réduire / agrandir : grand bouton franc, bien visible dans les deux états. */}
         <button
           onClick={() => setCompact((v) => !v)}

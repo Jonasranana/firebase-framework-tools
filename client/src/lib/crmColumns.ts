@@ -271,6 +271,12 @@ export function applyColumnsConfig(cfg: ColumnsConfig | null | undefined, boardI
     byKey.delete(k);
     const prev = { zoneProfil: "", primeCee: "zoneProfil", mprPraimy: "primeCee", refPraimy: "mprPraimy", margeNette: "refPraimy", heureVt: "dateVt", heurePose: "datePose", dateDepotMpr: "heurePose", mprRecue: "dateDepotMpr" }[k] ?? "";
     let at = prev ? ordered.findIndex((x) => x.key === prev) : -1;
+    // Colonnes du planning (heures, MPR) : si « Date VT » / « Date Pose » ne sont pas dans le tableau,
+    // elles vont à la fin (elles se règlent dans le Planning chantiers), jamais au début.
+    if (at < 0 && ["heureVt", "heurePose", "dateDepotMpr", "mprRecue"].includes(k)) {
+      ordered.push(col);
+      continue;
+    }
     if (at < 0) at = ordered.findIndex((x) => x.key === "rappelRdv");
     if (at < 0) at = ordered.findIndex((x) => x.key === "status");
     ordered.splice(at >= 0 ? at + 1 : ordered.length, 0, col);
