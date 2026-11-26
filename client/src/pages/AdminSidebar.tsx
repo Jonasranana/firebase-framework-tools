@@ -475,7 +475,7 @@ export default function AdminSidebar({
             <PopoverTrigger asChild>
               <button
                 className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 text-sm font-bold text-white rounded-lg px-3 py-2 shadow-sm hover:brightness-105 active:scale-[0.99] transition"
-                style={{ background: "linear-gradient(120deg,#ff8a00,#ff4d4d 55%,#e0218a)" }}
+                style={{ background: "var(--brand-grad-120)" }}
               >
                 <Plus size={16} strokeWidth={3} /> Nouveau
               </button>

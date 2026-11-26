@@ -1885,7 +1885,7 @@ export default function LeadsCRM({
           <button
             onClick={() => setViewPersist("mobile")}
             className="shrink-0 text-xs font-bold text-white px-3 py-1.5 rounded-md"
-            style={{ background: "linear-gradient(90deg,#ff8a00,#e0218a)" }}
+            style={{ background: "var(--brand-grad-2)" }}
           >
             📱 Version simple
           </button>

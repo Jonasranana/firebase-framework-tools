@@ -34,8 +34,8 @@ type PeriodKey = (typeof PERIODS)[number]["key"];
 
 const DAY = 86400000;
 const ORANGE = "#ff7a1a";
-const GRAD = "linear-gradient(90deg,#ff8a00,#ff4d4d 55%,#e0218a)";
-const GRAD_V = "linear-gradient(180deg,#ff8a00,#e0218a)";
+const GRAD = "var(--brand-grad)"; // dégradé de la marque (orange/rose, bleu avec le nouveau design : index.css)
+const GRAD_V = "var(--brand-grad-v)";
 
 const rank = (l: Lead) => STATUS_RANK[l.status] ?? 0;
 const pct = (n: number, d: number) => (d ? `${Math.round((n / d) * 100)} %` : "—");

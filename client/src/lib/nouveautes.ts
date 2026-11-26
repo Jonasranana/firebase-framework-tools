@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-une-seule-apparence",
+    date: "2026-11-26",
+    emoji: "🎨",
+    titre: "Toutes les pages du CRM aux couleurs de Pac Pac",
+    points: [
+      "Statistiques, Planning, Équipe, Dossiers PRAIMY et BETS, Artisans, Simulateur… : même bleu, mêmes cartes, mêmes boutons que Pac Pac.",
+      "L'orange reste pour les alertes (rappels du jour, fiches qui attendent). Rien ne change dans le fonctionnement des pages.",
+    ],
+  },
+  {
     id: "2026-11-26-ia-fiches-interrupteur",
     date: "2026-11-26",
     emoji: "🤖",

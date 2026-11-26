@@ -91,7 +91,7 @@ const CallAction = ({ phone, name, className, children, style }: { phone: string
   );
 };
 
-const GRAD = "linear-gradient(90deg,#ff8a00,#ff4d4d 55%,#e0218a)";
+const GRAD = "var(--brand-grad)";
 const DAY = 86400000;
 
 type Props = {
@@ -725,7 +725,7 @@ export default function MobileLeads(props: Props) {
               <button
                 onClick={props.onAddLead}
                 className="w-full mb-2 inline-flex items-center justify-center gap-1.5 text-[15px] font-bold text-white rounded-2xl py-2.5 shadow-sm"
-                style={{ background: "linear-gradient(90deg,#ff8a00,#e0218a)" }}
+                style={{ background: "var(--brand-grad-2)" }}
               >
                 ➕ Nouveau client
               </button>

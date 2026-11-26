@@ -412,7 +412,7 @@ export default function DossiersBoard({
             onPointerUp={() => (dragBar.current = null)}
             onPointerCancel={() => (dragBar.current = null)}
             className="absolute top-1 bottom-1 rounded-full cursor-grab active:cursor-grabbing"
-            style={{ left: `${thumb.left}%`, width: `${thumb.width}%`, background: "linear-gradient(90deg,#ff8a00,#e0218a)", minWidth: 44 }}
+            style={{ left: `${thumb.left}%`, width: `${thumb.width}%`, background: "var(--brand-grad-2)", minWidth: 44 }}
           />
         </div>
       </div>
