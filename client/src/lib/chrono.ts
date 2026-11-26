@@ -84,6 +84,44 @@ if (ACTIF && typeof window !== "undefined") {
   } catch {
     /* navigateur sans cette mesure (Safari) */
   }
+  // Fluidité du défilement (tableau à droite / à gauche, haut / bas) : pendant chaque défilement,
+  // on compte les images trop lentes (> 50 ms entre deux images = saccade visible).
+  let enCours = false;
+  let dernier = 0;
+  let finScroll = 0;
+  let images = 0;
+  let saccades = 0;
+  let pire = 0;
+  let debutScroll = 0;
+  const boucle = (t: number) => {
+    if (dernier) {
+      const ecart = t - dernier;
+      images++;
+      if (ecart > 50) saccades++;
+      if (ecart > pire) pire = ecart;
+    }
+    dernier = t;
+    if (performance.now() < finScroll) requestAnimationFrame(boucle);
+    else {
+      enCours = false;
+      if (images > 5) chrono.noter("defilement", pire, `${saccades}/${images} saccades en ${Math.round(t - debutScroll)} ms`);
+    }
+  };
+  addEventListener(
+    "scroll",
+    () => {
+      finScroll = performance.now() + 250;
+      if (enCours) return;
+      enCours = true;
+      dernier = 0;
+      images = 0;
+      saccades = 0;
+      pire = 0;
+      debutScroll = performance.now();
+      requestAnimationFrame(boucle);
+    },
+    { capture: true, passive: true },
+  );
   setInterval(envoyer, 90_000);
   addEventListener("visibilitychange", () => document.visibilityState === "hidden" && envoyer());
 }

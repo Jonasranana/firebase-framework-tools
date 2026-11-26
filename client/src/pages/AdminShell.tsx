@@ -345,6 +345,7 @@ export default function AdminShell({
   }, [loaded]);
 
   const select = (it: SideItem) => {
+    import("@/lib/chrono").then(({ chrono }) => chrono.debut("changement-page"));
     setDrawer(false);
     onNavigate(it.page, it);
   };

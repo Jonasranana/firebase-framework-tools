@@ -14,6 +14,15 @@ import LeadsCRM from "./LeadsCRM";
 import { memberName } from "@/lib/crmTeam";
 import { whenIdle } from "@/lib/netSpeed";
 import BrandLoader from "@/components/BrandLoader";
+import { chrono } from "@/lib/chrono";
+
+// Chronomètre invisible : fin d'un changement de page (rendu quand le code de la page est chargé).
+function FinPage({ page }: { page: string }) {
+  useEffect(() => {
+    chrono.fin("changement-page", page);
+  }, [page]);
+  return null;
+}
 import AdminShell, { initialPage, rememberPage, type AdminPage, type PageTools } from "./AdminShell";
 import type { SideItem } from "@/lib/crmSidebar";
 
@@ -951,6 +960,7 @@ export default function OutilDevis() {
     // Contenu d'une page (utilisé par l'écran principal et par « Ouvrir en superposition »).
     const renderPage = (p: AdminPage, item: SideItem | null, tools: PageTools) => (
       <Suspense fallback={<BrandLoader />}>
+        <FinPage page={item?.id ?? p} />
         {p === "leads" && (
           <LeadsCRM
             key={item?.id ?? "leads"}
