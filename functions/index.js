@@ -1554,6 +1554,15 @@ const crmTemplates = () =>
     .filter(([, t]) => !t.requiresResolvedRac)
     .map(([key, t]) => ({ key, subject: t.subject, sms: t.buildSms ? t.buildSms({}) : "" }));
 
+// Contenu exact d'un mail du CRM (objet + HTML) : utilisé à la fois par l'envoi
+// (sendLeadMessage) et par l'aperçu (previewLeadMessage), pour que l'aperçu soit
+// strictement identique à ce que le client reçoit.
+function buildLeadMailContent({ lead, tpl, customSubject, customBody }) {
+  const nomComplet = String(lead.name ?? "").trim();
+  if (tpl) return { subject: tpl.subject, html: tpl.buildHtml({ nomComplet, rac: undefined }), attachmentNames: (tpl.attachments ?? []).map((a) => a.filename) };
+  return { subject: customSubject, html: buildFreeMailHtml({ bodyText: customBody }), attachmentNames: [] };
+}
+
 exports.sendLeadMessage = onCall(
   {
     secrets: [
@@ -1612,21 +1621,14 @@ exports.sendLeadMessage = onCall(
       const oauth2Client = new google.auth.OAuth2(GMAIL_CLIENT_ID.value(), GMAIL_CLIENT_SECRET.value());
       oauth2Client.setCredentials({ refresh_token: GMAIL_REFRESH_TOKEN.value() });
       const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-      const raw = tpl
-        ? buildRawMessageWithAttachment({
-            to,
-            from: GMAIL_SENDER_EMAIL.value(),
-            subject: tpl.subject,
-            html: tpl.buildHtml({ nomComplet, rac: undefined }),
-            attachments: tpl.attachments,
-          })
-        : buildRawMessageWithAttachment({
-            to,
-            from: GMAIL_SENDER_EMAIL.value(),
-            subject: customSubject,
-            html: buildFreeMailHtml({ bodyText: customBody }),
-            attachments: customAttachments,
-          });
+      const content = buildLeadMailContent({ lead, tpl, customSubject, customBody });
+      const raw = buildRawMessageWithAttachment({
+        to,
+        from: GMAIL_SENDER_EMAIL.value(),
+        subject: content.subject,
+        html: content.html,
+        attachments: tpl ? tpl.attachments : customAttachments,
+      });
       try {
         await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
       } catch (err) {
@@ -1669,6 +1671,26 @@ exports.sendLeadMessage = onCall(
     return { ok: true };
   },
 );
+
+// Aperçu exact d'un mail avant envoi (même fabrication que sendLeadMessage, rien n'est envoyé).
+exports.previewLeadMessage = onCall({ region: "europe-west9" }, async (request) => {
+  if (!isCrmMember(request)) {
+    throw new HttpsError("permission-denied", "Accès refusé.");
+  }
+  const { leadId, template, subject: freeSubject, body: freeBody } = request.data ?? {};
+  if (typeof leadId !== "string" || !leadId) throw new HttpsError("invalid-argument", "Requête invalide.");
+  const snap = await db.doc(`crm_leads/${leadId}`).get();
+  if (!snap.exists) throw new HttpsError("not-found", "Lead introuvable.");
+  const tpl = template ? MONDAY_EMAIL_TEMPLATES[template] : undefined;
+  if (template && (!tpl || tpl.requiresResolvedRac)) throw new HttpsError("invalid-argument", "Modèle inconnu.");
+  const content = buildLeadMailContent({
+    lead: snap.data(),
+    tpl,
+    customSubject: String(freeSubject ?? "").trim().slice(0, 150),
+    customBody: String(freeBody ?? "").trim().slice(0, 5000),
+  });
+  return { to: String(snap.data().email ?? "").trim(), ...content };
+});
 
 exports.listLeadTemplates = onCall({ region: "europe-west9" }, async (request) => {
   const caller = String(request.auth?.token?.email ?? "").toLowerCase();

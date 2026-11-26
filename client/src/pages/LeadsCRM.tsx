@@ -30,7 +30,7 @@ import {
 } from "@/components/ui/sheet";
 import MobileLeads from "./MobileLeads";
 import DossiersBoard, { findEtapeColumn, etapeOptions } from "./DossiersBoard";
-import LeadChat from "./LeadChat";
+import LeadChat, { type MailPreview } from "./LeadChat";
 import ClientSpaceDashboard from "./ClientSpaceDashboard";
 import { buildClientView } from "@/lib/clientSpace";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
@@ -2191,6 +2191,7 @@ export default function LeadsCRM({
           });
         }}
         onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string; sms?: string }[] }>("listLeadTemplates")).templates}
+        onPreviewMail={(id, mail) => callFn<MailPreview>("previewLeadMessage", { leadId: id, ...mail })}
         onOpenFiche={(id) => {
           setChatId(null);
           setOpenId(id);

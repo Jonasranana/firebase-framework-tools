@@ -34,6 +34,7 @@ const WhatsAppLogo = ({ size = 16, white = false }: { size?: number; white?: boo
 );
 
 export type MailFile = { name: string; type: string; data: string; size: number };
+export type MailPreview = { to: string; subject: string; html: string; attachmentNames: string[] };
 const MAX_TOTAL = 6 * 1024 * 1024;
 
 // Lit un fichier en base64 ; les grosses photos sont réduites (2000 px, JPEG) pour rester sous la limite d'envoi.
@@ -121,6 +122,7 @@ export default function LeadChat({
   onLoadBalance,
   onLoadTemplates,
   onOpenFiche,
+  onPreviewMail,
 }: {
   lead: Lead | null;
   email: string;
@@ -132,6 +134,8 @@ export default function LeadChat({
   onLoadBalance: () => Promise<{ balance: number; currency: string }>;
   onLoadTemplates: () => Promise<{ key: string; subject: string; sms?: string }[]>;
   onOpenFiche: (leadId: string) => void;
+  // Aperçu exact du mail (fabriqué par le serveur, comme l'envoi) : objet, HTML, pièces jointes.
+  onPreviewMail?: (leadId: string, mail: { template?: string; subject?: string; body?: string }) => Promise<MailPreview>;
 }) {
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
@@ -189,10 +193,32 @@ export default function LeadChat({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead?.id]);
 
+  // Modèles chargés dès l'ouverture de la fiche : ils s'affichent tout de suite en cliquant sur Gmail / SMS / WhatsApp.
   useEffect(() => {
-    if ((mailOpen || smsOpen) && templates.length === 0) onLoadTemplates().then(setTemplates).catch(() => {});
+    if (lead?.id && templates.length === 0) onLoadTemplates().then(setTemplates).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mailOpen, smsOpen]);
+  }, [lead?.id]);
+
+  // Aperçu exact du mail : demandé au serveur (même fabrication que l'envoi), un peu après la dernière frappe.
+  const [preview, setPreview] = useState<{ loading: boolean; data: MailPreview | null; error: string }>({ loading: false, data: null, error: "" });
+  useEffect(() => {
+    if (!mailOpen || !lead || !onPreviewMail) return;
+    if (!tpl && !subject.trim() && !body.trim()) return setPreview({ loading: false, data: null, error: "" });
+    let stale = false;
+    setPreview((p) => ({ ...p, loading: true, error: "" }));
+    const t = setTimeout(
+      () =>
+        onPreviewMail(lead.id, tpl ? { template: tpl } : { subject, body })
+          .then((data) => !stale && setPreview({ loading: false, data, error: "" }))
+          .catch(() => !stale && setPreview({ loading: false, data: null, error: "Aperçu indisponible pour l'instant." })),
+      tpl ? 0 : 700,
+    );
+    return () => {
+      stale = true;
+      clearTimeout(t);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mailOpen, tpl, subject, body, lead?.id]);
 
   const addFiles = async (list: FileList | null) => {
     if (!list) return;
@@ -293,129 +319,178 @@ export default function LeadChat({
   if (lastSent) chips.push({ k: "Dernier mail", v: formatDateTime(lastSent.at) });
 
   let lastDay = "";
+  const composing = mailOpen || smsOpen || waOpen;
+  const closeAll = () => {
+    setMailOpen(false);
+    setSmsOpen(false);
+    setWaOpen(false);
+  };
+  const smsTemplates = templates.filter((t) => t.sms);
+  const initiales = (lead?.name || "?")
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join("");
+  // Carte d'un modèle (mail, SMS ou WhatsApp) : cliquable, sélectionnée en bleu.
+  const TplCard = ({ on, title, sub, onClick }: { on: boolean; title: string; sub?: string; onClick: () => void }) => (
+    <button
+      onClick={onClick}
+      className={`text-left rounded-xl border px-3 py-2 transition ${on ? "border-[#2563eb] bg-[#eef3ff] ring-1 ring-[#2563eb]" : "border-gray-200 bg-white hover:border-[#bcd0fb] hover:bg-[#f6f8fe]"}`}
+    >
+      <span className="block text-[13px] font-bold text-gray-900 leading-tight">{title}</span>
+      {sub && <span className="block text-[11.5px] text-gray-500 mt-0.5 line-clamp-2">{sub}</span>}
+    </button>
+  );
+  const channelBtn = (on: boolean) =>
+    `flex-1 inline-flex items-center justify-center gap-2 text-[13px] font-bold rounded-xl px-3 py-2 border transition disabled:opacity-40 disabled:cursor-not-allowed ${
+      on ? "bg-[#1f2430] text-white border-[#1f2430]" : "bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+    }`;
+
   return (
     <Sheet open={!!lead} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col gap-0 bg-[#efeae2]" dir="ltr">
-        <SheetHeader className="text-left bg-white border-b border-gray-200 px-4 pt-4 pb-3 space-y-1.5 max-h-[65vh] overflow-y-auto shrink-0">
-          <div className="flex items-start justify-between gap-2 pr-6">
-            <div className="min-w-0">
-              <SheetTitle className="truncate text-base">{lead?.name || "Sans nom"}</SheetTitle>
-              <SheetDescription className="text-xs truncate">
+      <SheetContent side="right" className="w-full sm:max-w-2xl xl:max-w-3xl p-0 flex flex-col gap-0 bg-[#f4f6fa]" dir="ltr">
+        {/* ── En-tête : client, coordonnées, statut ─────────────────────────── */}
+        <SheetHeader className="text-left bg-white border-b border-[#eceef3] px-5 pt-4 pb-3 space-y-3 shrink-0">
+          <div className="flex items-center gap-3 pr-6">
+            <span className="shrink-0 w-11 h-11 rounded-full bg-[#eef3ff] text-[#2552d0] font-extrabold flex items-center justify-center">{initiales}</span>
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="truncate text-lg font-extrabold text-gray-900">{lead?.name || "Sans nom"}</SheetTitle>
+              <SheetDescription className="text-[13px] truncate text-gray-500">
                 {lead?.phone ? formatPhone(lead.phone) : "Pas de téléphone"}
                 {lead?.email ? ` · ${lead.email}` : ""}
               </SheetDescription>
             </div>
             <button
               onClick={() => lead && onOpenFiche(lead.id)}
-              className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-[#2b5a8f] border border-[#2b5a8f]/40 rounded-md px-2 py-1 hover:bg-blue-50"
+              className="shrink-0 inline-flex items-center gap-1.5 text-[12px] font-bold text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1.5 hover:bg-gray-50"
             >
-              <ExternalLink size={12} /> Fiche
+              <ExternalLink size={13} /> Fiche complète
             </button>
           </div>
           {/* Petit résumé en lecture seule : on ne modifie rien depuis ici. */}
           <div className="flex flex-wrap gap-1.5">
             {st && (!lead?.board || lead.board === "leads") && (
-              <span className="text-[11px] font-bold text-white rounded-full px-2 py-0.5" style={{ background: st.hex }}>
+              <span className="text-[11.5px] font-bold text-white rounded-full px-2.5 py-0.5" style={{ background: st.hex }}>
                 {st.label}
               </span>
             )}
             {chips.map((c) => (
-              <span key={c.k} className="text-[11px] rounded-full bg-gray-100 text-gray-700 px-2 py-0.5">
+              <span key={c.k} className="text-[11.5px] rounded-full bg-gray-100 text-gray-700 px-2.5 py-0.5">
                 <span className="text-gray-400">{c.k} </span>
                 <span className="font-semibold">{c.v}</span>
               </span>
             ))}
           </div>
-          <div className="flex items-center gap-2 pt-1">
-            <button
-              onClick={() => { setMailOpen((o) => !o); setSmsOpen(false); setWaOpen(false); }}
-              className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border ${
-                mailOpen ? "bg-blue-50 text-[#2b5a8f] border-[#2b5a8f]" : "text-[#2b5a8f] border-[#2b5a8f]/40 hover:bg-blue-50"
-              }`}
-            >
-              <GmailLogo size={16} /> Gmail
+          {/* Canaux : un clic ouvre la grande fenêtre d'envoi avec les modèles. */}
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setMailOpen((o) => !o); setSmsOpen(false); setWaOpen(false); }} className={channelBtn(mailOpen)}>
+              <GmailLogo size={17} /> Gmail
             </button>
             <button
               onClick={() => { setWaOpen((o) => !o); setMailOpen(false); setSmsOpen(false); }}
               disabled={!lead || !whatsappHref(lead.phone)}
               title={lead && whatsappHref(lead.phone) ? undefined : "Pas de numéro"}
-              className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border disabled:text-gray-300 disabled:border-gray-200 ${
-                waOpen ? "bg-green-50 text-green-700 border-green-600" : "border-green-600/40 text-green-700 hover:bg-green-50"
-              }`}
+              className={channelBtn(waOpen)}
             >
-              <WhatsAppLogo size={16} /> WhatsApp
+              <WhatsAppLogo size={17} /> WhatsApp
             </button>
             <button
               onClick={() => { setSmsOpen((o) => !o); setMailOpen(false); setWaOpen(false); }}
               disabled={!lead?.phone}
               title={lead?.phone ? undefined : "Pas de numéro"}
-              className={`inline-flex items-center gap-1.5 text-xs font-bold rounded-lg px-3 py-1.5 border disabled:text-gray-300 disabled:border-gray-200 ${
-                smsOpen ? "bg-red-50 text-[#c8102e] border-[#c8102e]" : "text-[#c8102e] border-[#c8102e]/40 hover:bg-red-50"
-              }`}
+              className={channelBtn(smsOpen)}
             >
-              <MessageSquareText size={15} /> SMS Twilio
+              <MessageSquareText size={16} className={smsOpen ? "" : "text-[#c8102e]"} /> SMS
             </button>
           </div>
-          <div className="flex items-center justify-between gap-2">
-            <span
-              className="text-[11px] font-semibold text-gray-600"
-              title="Crédits restants sur le compte Twilio"
-            >
-              {balance === null ? "Crédits Twilio : …" : balance === "err" ? "Crédits Twilio : indisponible" : (
-                <>
-                  Crédits Twilio : <span className={balance.balance < 5 ? "text-red-600" : "text-green-700"}>{balance.balance.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {balance.currency === "USD" ? "$" : balance.currency === "EUR" ? "€" : balance.currency}</span>
-                </>
-              )}
-            </span>
-            <div className="inline-flex rounded-lg bg-gray-100 p-0.5 text-[11px] font-semibold">
-              {([["tout", "Tout"], ["messages", "Messages"], ["mouvements", "Mouvements"]] as const).map(([k, l]) => (
-                <button key={k} onClick={() => setTab(k)} className={`px-2 py-1 rounded-md ${tab === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
-                  {l}
-                </button>
-              ))}
-            </div>
-          </div>
-          {mailOpen && (
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-2.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700">Mail à {lead?.email || "—"} <span className="font-normal text-gray-500">· envoyé depuis la boîte contact@ip5energie.com</span></span>
-                <button onClick={() => setMailOpen(false)} aria-label="Fermer" className="text-gray-400 hover:text-gray-600">
-                  <X size={14} />
-                </button>
-              </div>
-              <select value={tpl} onChange={(e) => setTpl(e.target.value)} className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2 py-1.5">
-                <option value="">Mail libre (j'écris moi-même)</option>
-                {templates.map((t) => (
-                  <option key={t.key} value={t.key}>
-                    Modèle : {t.key}
-                  </option>
+          {!composing && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[11px] font-semibold text-gray-500" title="Crédits restants sur le compte Twilio">
+                {balance === null ? "Crédits SMS : …" : balance === "err" ? "Crédits SMS : indisponible" : (
+                  <>
+                    Crédits SMS : <span className={balance.balance < 5 ? "text-red-600" : "text-green-700"}>{balance.balance.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {balance.currency === "USD" ? "$" : balance.currency === "EUR" ? "€" : balance.currency}</span>
+                  </>
+                )}
+              </span>
+              <div className="inline-flex rounded-lg bg-gray-100 p-0.5 text-[11.5px] font-semibold">
+                {([["tout", "Tout"], ["messages", "Messages"], ["mouvements", "Mouvements"]] as const).map(([k, l]) => (
+                  <button key={k} onClick={() => setTab(k)} className={`px-2.5 py-1 rounded-md ${tab === k ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"}`}>
+                    {l}
+                  </button>
                 ))}
-              </select>
-              {tpl ? (
-                <p className="text-xs text-gray-600">Le modèle sera envoyé tel quel, avec ses pièces jointes éventuelles.</p>
-              ) : (
-                <>
+              </div>
+            </div>
+          )}
+        </SheetHeader>
+
+        {/* ── Grande fenêtre d'envoi (Gmail / SMS / WhatsApp) ─────────────────── */}
+        {composing && lead && (
+          <div className="flex-1 min-h-0 flex flex-col bg-white">
+            <div className="flex items-center gap-2 px-5 py-2.5 border-b border-[#eceef3]">
+              <span className="text-[13px] font-extrabold text-gray-900">
+                {mailOpen ? `Mail à ${lead.email || "— (pas d'adresse)"}` : smsOpen ? `SMS au ${formatPhone(lead.phone)}` : `WhatsApp à ${formatPhone(lead.phone)}`}
+              </span>
+              {mailOpen && <span className="text-[11.5px] text-gray-500">depuis contact@ip5energie.com</span>}
+              {smsOpen && balance && balance !== "err" && (
+                <span className="text-[11.5px] text-gray-500">· crédits {balance.balance.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} {balance.currency === "USD" ? "$" : "€"}</span>
+              )}
+              <button onClick={closeAll} className="ml-auto inline-flex items-center gap-1 text-[12px] font-semibold text-gray-500 hover:text-gray-900">
+                <X size={14} /> Fermer
+              </button>
+            </div>
+
+            <div className="flex-1 min-h-0 overflow-y-auto px-5 py-4 space-y-4">
+              {/* Modèles, visibles tout de suite */}
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Choisir un modèle</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {mailOpen && (
+                    <>
+                      <TplCard on={!tpl} title="✍️ Mail libre" sub="J'écris moi-même, avec photos ou fichiers" onClick={() => setTpl("")} />
+                      {templates.map((t) => (
+                        <TplCard key={t.key} on={tpl === t.key} title={t.key} sub={t.subject} onClick={() => setTpl(t.key)} />
+                      ))}
+                    </>
+                  )}
+                  {smsOpen && (
+                    <>
+                      <TplCard on={!smsTpl} title="✍️ SMS libre" sub="J'écris moi-même" onClick={() => { setSmsTpl(""); setSmsText(""); }} />
+                      {smsTemplates.map((t) => (
+                        <TplCard key={t.key} on={smsTpl === t.key} title={t.key} sub={t.sms} onClick={() => { setSmsTpl(t.key); setSmsText(t.sms ?? ""); }} />
+                      ))}
+                    </>
+                  )}
+                  {waOpen &&
+                    smsTemplates.map((t) => <TplCard key={t.key} on={waText === t.sms} title={t.key} sub={t.sms} onClick={() => setWaText(t.sms ?? "")} />)}
+                </div>
+                {templates.length === 0 && <p className="text-xs text-gray-400 mt-1">Chargement des modèles…</p>}
+              </div>
+
+              {/* Gmail : mail libre */}
+              {mailOpen && !tpl && (
+                <div className="space-y-2">
                   <input
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     maxLength={150}
-                    placeholder="Objet"
-                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5"
+                    placeholder="Objet du mail"
+                    className="w-full text-[14px] bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2"
                   />
                   <textarea
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    rows={5}
+                    rows={9}
                     placeholder="Votre message au client…"
-                    className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5 resize-none"
+                    className="w-full text-[14px] bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 resize-y min-h-[180px]"
                   />
                   <div className="flex flex-wrap items-center gap-1.5">
-                    <label className="inline-flex items-center gap-1 text-xs font-semibold text-[#2b5a8f] border border-[#2b5a8f]/40 rounded-lg px-2.5 py-1 cursor-pointer hover:bg-blue-50">
+                    <label className="inline-flex items-center gap-1 text-xs font-semibold text-gray-700 border border-gray-200 rounded-lg px-2.5 py-1.5 cursor-pointer hover:bg-gray-50">
                       <Paperclip size={13} /> Photo / fichier
                       <input type="file" multiple className="hidden" onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
                     </label>
                     {files.map((f, i) => (
-                      <span key={i} className="inline-flex items-center gap-1 text-[11px] bg-white border border-gray-200 rounded-full pl-2 pr-1 py-0.5 text-gray-700 max-w-[170px]">
+                      <span key={i} className="inline-flex items-center gap-1 text-[11px] bg-white border border-gray-200 rounded-full pl-2 pr-1 py-0.5 text-gray-700 max-w-[190px]">
                         <span className="truncate">{f.name}</span>
                         <span className="text-gray-400">{Math.max(1, Math.round(f.size / 1024))} Ko</span>
                         <button onClick={() => setFiles(files.filter((_, j) => j !== i))} aria-label="Retirer" className="text-gray-400 hover:text-red-500">
@@ -424,197 +499,213 @@ export default function LeadChat({
                       </span>
                     ))}
                   </div>
-                  <p className="text-[11px] text-gray-500">La signature IP5 Énergie (logo, nom, téléphone, adresse) est ajoutée automatiquement en bas du mail.</p>
-                </>
+                </div>
               )}
-              {mailMsg && <p className={`text-xs ${mailMsg.ok ? "text-green-700" : "text-red-600"}`}>{mailMsg.text}</p>}
-              <button
-                onClick={sendMail}
-                disabled={mailBusy}
-                className="w-full text-sm font-bold text-white bg-[#2b5a8f] disabled:opacity-50 rounded-lg py-1.5"
-              >
-                {mailBusy ? "Envoi…" : "Envoyer le mail"}
-              </button>
-            </div>
-          )}
-          {smsOpen && lead && (
-            <div className="rounded-xl border border-red-200 bg-red-50/60 p-2.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700">SMS Twilio au {formatPhone(lead.phone)}</span>
-                <button onClick={() => setSmsOpen(false)} aria-label="Fermer" className="text-gray-400 hover:text-gray-600">
-                  <X size={14} />
-                </button>
-              </div>
-              <select
-                value={smsTpl}
-                onChange={(e) => {
-                  setSmsTpl(e.target.value);
-                  const t = templates.find((x) => x.key === e.target.value);
-                  if (t?.sms) setSmsText(t.sms);
-                }}
-                className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2 py-1.5"
-              >
-                <option value="">SMS libre (j'écris moi-même)</option>
-                {templates.filter((t) => t.sms).map((t) => (
-                  <option key={t.key} value={t.key}>
-                    Modèle : {t.key}
-                  </option>
-                ))}
-              </select>
-              <textarea
-                value={smsText}
-                onChange={(e) => setSmsText(e.target.value)}
-                rows={4}
-                maxLength={480}
-                placeholder="Votre SMS…"
-                className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5 resize-none"
-              />
-              <p className="text-[11px] text-gray-500">
-                {smsText.length} / 480 caractères · environ {Math.max(1, Math.ceil(smsText.length / 153))} SMS facturé{smsText.length > 160 ? "s" : ""} (160 caractères par SMS, accents et émojis peuvent réduire).
-              </p>
-              {smsMsg && <p className={`text-xs ${smsMsg.ok ? "text-green-700" : "text-red-600"}`}>{smsMsg.text}</p>}
-              <button
-                onClick={sendSms}
-                disabled={smsBusy || !smsText.trim()}
-                className="w-full text-sm font-bold text-white bg-[#c8102e] disabled:opacity-50 rounded-lg py-1.5"
-              >
-                {smsBusy ? "Envoi…" : "Envoyer le SMS"}
-              </button>
-            </div>
-          )}
-          {waOpen && lead && (
-            <div className="rounded-xl border border-green-200 bg-green-50 p-2.5 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-700">WhatsApp à {formatPhone(lead.phone)}</span>
-                <button onClick={() => setWaOpen(false)} aria-label="Fermer" className="text-gray-400 hover:text-gray-600">
-                  <X size={14} />
-                </button>
-              </div>
-              <textarea
-                value={waText}
-                onChange={(e) => setWaText(e.target.value)}
-                rows={3}
-                placeholder="Écrivez votre message WhatsApp…"
-                className="w-full text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-2.5 py-1.5 resize-none"
-              />
-              <button
-                onClick={openWhatsApp}
-                disabled={!waText.trim()}
-                className="w-full text-sm font-bold text-white bg-green-600 disabled:opacity-50 rounded-lg py-1.5"
-              >
-                Ouvrir WhatsApp avec ce message
-              </button>
-              <p className="text-[11px] text-gray-600">WhatsApp s'ouvre avec le message déjà écrit : il ne reste qu'à appuyer sur Envoyer là-bas.</p>
-            </div>
-          )}
-        </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1.5">
-          {notes.length === 0 && (
-            <p className="text-center text-xs text-gray-500 mt-8">Aucun message pour l'instant. Écrivez le premier ci-dessous.</p>
-          )}
-          {notes
-            .filter((n) => tab === "tout" || (tab === "messages" ? isChat(n) || isMailReceived(n) || isIaNote(n) : !(isChat(n) || isMailReceived(n) || isIaNote(n))))
-            .map((n) => {
-            const day = dayLabel(n.at);
-            const sep =
-              day !== lastDay ? (
-                <div key={`d-${n.id}`} className="flex justify-center py-1.5">
-                  <span className="text-[11px] font-semibold text-gray-600 bg-white/80 rounded-full px-3 py-0.5 shadow-sm">{day}</span>
-                </div>
-              ) : null;
-            lastDay = day;
-
-            // Proposition de l'assistant IA (bulle violette, avec Valider).
-            if (isIaNote(n) && lead) {
-              return (
-                <div key={n.id}>
-                  {sep}
-                  <IaBubble lead={lead} note={n} email={email} etapeCol={etapeCol} />
-                </div>
-              );
-            }
-            // Grande bulle : un message d'équipe ou un mail reçu du client.
-            if (isChat(n) || isMailReceived(n)) {
-              const mine = isChat(n) && n.by === email;
-              const client = isMailReceived(n);
-              return (
-                <div key={n.id}>
-                  {sep}
-                  <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-3 py-2 shadow-sm ${
-                        mine
-                          ? "bg-[#2b5a8f] text-white rounded-br-sm"
-                          : client
-                            ? "bg-[#fff1d6] text-gray-900 rounded-bl-sm"
-                            : "bg-white text-gray-900 rounded-bl-sm"
-                      }`}
-                    >
-                      {!mine && (
-                        <p className={`text-[11px] font-bold mb-0.5 ${client ? "text-[#a35b00]" : "text-[#2b5a8f]"}`}>
-                          {client ? `${lead?.name || "Le client"} (mail reçu)` : authorName(n.by)}
-                        </p>
-                      )}
-                      <p className="text-sm whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : <MentionText text={n.text} light={mine} />}</p>
-                      <TaggedLine note={n} light={mine} />
-                      {isChat(n) && canIa && lead && <IaAnalyseButton lead={lead} note={n} etapeCol={etapeCol} light={mine} />}
-                      <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-white/70" : "text-gray-400"}`}>{hhmm(n.at)}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            // Petite ligne : mouvement sur la ligne (qui a changé quoi), mail/SMS envoyé, automatisation.
-            return (
-              <div key={n.id}>
-                {sep}
-                <div className="flex justify-center">
-                  <p className="max-w-[94%] text-center text-[11px] leading-snug text-gray-600 bg-white/70 rounded-full px-3 py-1 break-words">
-                    {(() => {
-                      const t = movementText(n);
-                      return t.length > 200 ? t.slice(0, 200) + "…" : t;
-                    })()}
-                    <span className="text-gray-400"> · {hhmm(n.at)}</span>
+              {/* Gmail : aperçu exact */}
+              {mailOpen && (
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">
+                    Aperçu exact du mail {preview.loading && <span className="normal-case font-semibold text-gray-400">· mise à jour…</span>}
                   </p>
+                  {preview.data ? (
+                    <div className="rounded-xl border border-gray-200 overflow-hidden">
+                      <div className="bg-gray-50 border-b border-gray-200 px-4 py-2.5 text-[12.5px] space-y-0.5">
+                        <p><span className="text-gray-400 w-12 inline-block">De</span> IP5 Énergie &lt;contact@ip5energie.com&gt;</p>
+                        <p><span className="text-gray-400 w-12 inline-block">À</span> {preview.data.to || "—"}</p>
+                        <p><span className="text-gray-400 w-12 inline-block">Objet</span> <b className="text-gray-900">{preview.data.subject || "(sans objet)"}</b></p>
+                        {(preview.data.attachmentNames.length > 0 || (!tpl && files.length > 0)) && (
+                          <p>
+                            <span className="text-gray-400 w-12 inline-block">📎</span> {[...preview.data.attachmentNames, ...(!tpl ? files.map((f) => f.name) : [])].join(", ")}
+                          </p>
+                        )}
+                      </div>
+                      <iframe title="Aperçu du mail" srcDoc={preview.data.html} sandbox="" className="w-full h-[480px] bg-white" />
+                    </div>
+                  ) : (
+                    <p className="text-[13px] text-gray-400 rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center">
+                      {preview.error || (tpl ? "Chargement de l'aperçu…" : "Écrivez un objet et un message : l'aperçu exact s'affiche ici.")}
+                    </p>
+                  )}
                 </div>
-              </div>
-            );
-          })}
-          <div ref={endRef} />
-        </div>
+              )}
 
-        <div className="bg-white border-t border-gray-200 p-2.5">
-          {error && <p className="text-xs text-red-600 mb-1 px-1">{error}</p>}
-          <MentionPicker text={text} onPick={setText} />
-          <div className="flex items-end gap-2">
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  send();
-                }
-              }}
-              rows={1}
-              placeholder="Écrire un message à l'équipe…"
-              className="flex-1 resize-none max-h-32 text-sm bg-gray-100 text-gray-900 rounded-2xl px-3.5 py-2 outline-none focus:bg-gray-50 focus:ring-2 focus:ring-[#2b5a8f]/30"
-              style={{ fieldSizing: "content" } as React.CSSProperties}
-            />
-            <button
-              onClick={send}
-              disabled={!text.trim() || busy}
-              aria-label="Envoyer"
-              className="shrink-0 h-9 w-9 rounded-full bg-[#2b5a8f] text-white flex items-center justify-center disabled:opacity-40"
-            >
-              <Send size={16} />
-            </button>
+              {/* SMS */}
+              {smsOpen && (
+                <div className="space-y-2">
+                  <textarea
+                    value={smsText}
+                    onChange={(e) => setSmsText(e.target.value)}
+                    rows={6}
+                    maxLength={480}
+                    placeholder="Votre SMS…"
+                    className="w-full text-[14px] bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 resize-y"
+                  />
+                  <p className="text-[11.5px] text-gray-500">
+                    {smsText.length} / 480 caractères · environ {Math.max(1, Math.ceil(smsText.length / 153))} SMS facturé{smsText.length > 160 ? "s" : ""}
+                  </p>
+                  {smsText.trim() && (
+                    <div className="rounded-2xl bg-gray-100 p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-400 mb-2">Ce que le client recevra</p>
+                      <div className="max-w-[80%] rounded-2xl rounded-bl-sm bg-white shadow-sm px-3.5 py-2.5 text-[14px] text-gray-900 whitespace-pre-wrap break-words">{smsText.trim()}</div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* WhatsApp */}
+              {waOpen && (
+                <div className="space-y-2">
+                  <textarea
+                    value={waText}
+                    onChange={(e) => setWaText(e.target.value)}
+                    rows={6}
+                    placeholder="Écrivez votre message WhatsApp…"
+                    className="w-full text-[14px] bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2 resize-y"
+                  />
+                  {waText.trim() && (
+                    <div className="rounded-2xl bg-[#efeae2] p-4">
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-gray-500 mb-2">Aperçu WhatsApp</p>
+                      <div className="ml-auto max-w-[80%] rounded-2xl rounded-br-sm bg-[#d9fdd3] shadow-sm px-3.5 py-2.5 text-[14px] text-gray-900 whitespace-pre-wrap break-words">{waText.trim()}</div>
+                    </div>
+                  )}
+                  <p className="text-[11.5px] text-gray-500">WhatsApp s'ouvre avec le message déjà écrit : il ne reste qu'à appuyer sur Envoyer là-bas.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Bouton d'envoi, toujours visible */}
+            <div className="border-t border-[#eceef3] px-5 py-3 bg-white">
+              {mailOpen && mailMsg && <p className={`text-xs mb-1.5 ${mailMsg.ok ? "text-green-700" : "text-red-600"}`}>{mailMsg.text}</p>}
+              {smsOpen && smsMsg && <p className={`text-xs mb-1.5 ${smsMsg.ok ? "text-green-700" : "text-red-600"}`}>{smsMsg.text}</p>}
+              {mailOpen && (
+                <button onClick={sendMail} disabled={mailBusy} className="w-full text-[14px] font-bold text-white bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-50 rounded-xl py-2.5">
+                  {mailBusy ? "Envoi…" : tpl ? `Envoyer « ${tpl} »` : "Envoyer le mail"}
+                </button>
+              )}
+              {smsOpen && (
+                <button onClick={sendSms} disabled={smsBusy || !smsText.trim()} className="w-full text-[14px] font-bold text-white bg-[#c8102e] disabled:opacity-50 rounded-xl py-2.5">
+                  {smsBusy ? "Envoi…" : "Envoyer le SMS"}
+                </button>
+              )}
+              {waOpen && (
+                <button onClick={openWhatsApp} disabled={!waText.trim()} className="w-full text-[14px] font-bold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 rounded-xl py-2.5">
+                  Ouvrir WhatsApp avec ce message
+                </button>
+              )}
+            </div>
           </div>
-          {canIa && <p className="text-[11px] text-violet-700 font-semibold mt-1 px-1">🤖 Après l'envoi, le bouton « Analyser et planifier la relance » sous le message demande à l'IA la marche à suivre.</p>}
-          <p className="text-[10px] text-gray-400 mt-1 px-1">Entrée pour envoyer · Maj+Entrée pour aller à la ligne · tapez @ pour taguer (Carole, Mebarek, Alexis, Jonas) : la personne reçoit aussi le message sur son mail perso</p>
-        </div>
+        )}
+
+        {/* ── Discussion ──────────────────────────────────────────────────── */}
+        {!composing && (
+          <>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-1.5">
+              {notes.length === 0 && <p className="text-center text-xs text-gray-500 mt-8">Aucun message pour l'instant. Écrivez le premier ci-dessous.</p>}
+              {notes
+                .filter((n) => tab === "tout" || (tab === "messages" ? isChat(n) || isMailReceived(n) || isIaNote(n) : !(isChat(n) || isMailReceived(n) || isIaNote(n))))
+                .map((n) => {
+                  const day = dayLabel(n.at);
+                  const sep =
+                    day !== lastDay ? (
+                      <div key={`d-${n.id}`} className="flex justify-center py-2">
+                        <span className="text-[11px] font-semibold text-gray-500 bg-white rounded-full px-3 py-0.5 border border-[#eceef3]">{day}</span>
+                      </div>
+                    ) : null;
+                  lastDay = day;
+
+                  // Proposition de l'assistant IA (bulle violette, avec Valider).
+                  if (isIaNote(n) && lead) {
+                    return (
+                      <div key={n.id}>
+                        {sep}
+                        <IaBubble lead={lead} note={n} email={email} etapeCol={etapeCol} />
+                      </div>
+                    );
+                  }
+                  // Grande bulle : un message d'équipe ou un mail reçu du client.
+                  if (isChat(n) || isMailReceived(n)) {
+                    const mine = isChat(n) && n.by === email;
+                    const client = isMailReceived(n);
+                    return (
+                      <div key={n.id}>
+                        {sep}
+                        <div className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                          <div
+                            className={`max-w-[80%] rounded-2xl px-3.5 py-2 ${
+                              mine
+                                ? "bg-[#2563eb] text-white rounded-br-md"
+                                : client
+                                  ? "bg-[#fff4de] text-gray-900 rounded-bl-md border border-[#fde3b0]"
+                                  : "bg-white text-gray-900 rounded-bl-md border border-[#eceef3]"
+                            }`}
+                          >
+                            {!mine && (
+                              <p className={`text-[11px] font-bold mb-0.5 ${client ? "text-[#a35b00]" : "text-[#2552d0]"}`}>
+                                {client ? `${lead?.name || "Le client"} (mail reçu)` : authorName(n.by)}
+                              </p>
+                            )}
+                            <p className="text-[14px] leading-snug whitespace-pre-wrap break-words">{client ? n.text.replace(/^📥\s*Mail reçu\s*—\s*/, "") : <MentionText text={n.text} light={mine} />}</p>
+                            <TaggedLine note={n} light={mine} />
+                            {isChat(n) && canIa && lead && <IaAnalyseButton lead={lead} note={n} etapeCol={etapeCol} light={mine} />}
+                            <p className={`text-[10px] mt-0.5 text-right ${mine ? "text-white/70" : "text-gray-400"}`}>{hhmm(n.at)}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  // Petite ligne : mouvement sur la ligne (qui a changé quoi), mail/SMS envoyé, automatisation.
+                  return (
+                    <div key={n.id}>
+                      {sep}
+                      <div className="flex justify-center">
+                        <p className="max-w-[92%] text-center text-[11.5px] leading-snug text-gray-500 px-3 py-0.5 break-words">
+                          {(() => {
+                            const t = movementText(n);
+                            return t.length > 200 ? t.slice(0, 200) + "…" : t;
+                          })()}
+                          <span className="text-gray-400"> · {hhmm(n.at)}</span>
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              <div ref={endRef} />
+            </div>
+
+            <div className="bg-white border-t border-[#eceef3] p-3">
+              {error && <p className="text-xs text-red-600 mb-1 px-1">{error}</p>}
+              <MentionPicker text={text} onPick={setText} />
+              <div className="flex items-end gap-2">
+                <textarea
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                  rows={1}
+                  placeholder="Écrire un message à l'équipe…"
+                  className="flex-1 resize-none max-h-40 text-[14px] bg-gray-100 text-gray-900 rounded-2xl px-4 py-2.5 outline-none focus:bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30"
+                  style={{ fieldSizing: "content" } as React.CSSProperties}
+                />
+                <button
+                  onClick={send}
+                  disabled={!text.trim() || busy}
+                  aria-label="Envoyer"
+                  className="shrink-0 h-10 w-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center disabled:opacity-40"
+                >
+                  <Send size={17} />
+                </button>
+              </div>
+              {canIa && <p className="text-[11px] text-violet-700 font-semibold mt-1 px-1">🤖 Après l'envoi, le bouton « Analyser et planifier la relance » sous le message demande à l'IA la marche à suivre.</p>}
+              <p className="text-[10.5px] text-gray-400 mt-1 px-1">Entrée pour envoyer · Maj+Entrée pour aller à la ligne · tapez @ pour taguer (Carole, Mebarek, Alexis, Jonas) : la personne reçoit aussi le message sur son mail perso</p>
+            </div>
+          </>
+        )}
       </SheetContent>
     </Sheet>
   );
