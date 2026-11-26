@@ -37,7 +37,6 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
-import { useDesignV2 } from "@/lib/designV2";
 import { RappelPicker } from "@/components/RappelCell";
 import { RAPPEL_HEURE_KEY, rappelEnRetard, rappelPhraseNote } from "@/lib/rappel";
 import { ATTRIBUE_KEY, LEAD_COLUMNS, cellValue, formulaValue, type ColType, type LeadColumn } from "@/lib/crmColumns";
@@ -1388,7 +1387,6 @@ export default function LeadsCRM({
   useEffect(() => setLimit(PAGE_SIZE), [query, statusFilter, filters, personKey, rappelsOnly, attribTab]);
 
   const rappelsCount = useMemo(() => (leads ?? []).filter(isOverdue).length, [leads]);
-  const design = useDesignV2(email);
   // Chiffres du bandeau (nouveau design) : sur tout le tableau Pac Pac.
   const kpis = useMemo(() => {
     const semaine = Date.now() - 7 * 86400000;
@@ -1859,7 +1857,7 @@ export default function LeadsCRM({
               </button>
             ))}
           </div>
-          {design.on && boardId === LEADS_BOARD_ID &&
+          {boardId === LEADS_BOARD_ID &&
             [
               { t: "À appeler", v: kpis.aAppeler, c: "#1f2430", on: statusFilter === "a_appeler", f: () => setStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler") },
               { t: "Rappels en retard", v: rappelsCount, c: rappelsCount ? "#dc2626" : "#1f2430", on: rappelsOnly, f: () => setRappelsOnly(!rappelsOnly) },
