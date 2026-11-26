@@ -57,15 +57,15 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
 // Groupes fixes du menu, dans l'ordre d'usage.
 const GROUPES: { id: string; titre: string; couleur: string; pages: AdminPageKey[] }[] = [
   { id: "g_tableau", titre: "Tableau", couleur: "#2563eb", pages: ["leads", "bets", "stats"] },
-  { id: "g_praimy", titre: "PRAIMY", couleur: "#f59e0b", pages: ["praimy", "marges", "bareme"] },
-  { id: "g_loan", titre: "Loan · Chantiers", couleur: "#10b981", pages: ["planning", "loan"] },
-  { id: "g_pub", titre: "Pub & aides", couleur: "#a855f7", pages: ["renta", "actus"] },
+  { id: "g_praimy", titre: "PRAIMY", couleur: "#7c3aed", pages: ["praimy", "marges", "bareme"] },
+  { id: "g_loan", titre: "Loan · Chantiers", couleur: "#0891b2", pages: ["planning", "loan"] },
+  { id: "g_pub", titre: "Pub & aides", couleur: "#db2777", pages: ["renta", "actus"] },
   // Tableaux de l'activité LED (ex. « Tableau pour Dépôt ») : les tableaux ajoutés avant le nouveau menu.
   { id: "g_led", titre: "LED", couleur: "#eab308", pages: [] },
 ];
 // Rangé dans « Paramètres » (en bas à gauche).
 const PARAMETRES: AdminPageKey[] = ["documents", "corbeille", "pacarchive", "archives", "clients", "gonflage", "artisans"];
-const COULEURS_GROUPES = ["#ef4444", "#0ea5e9", "#14b8a6", "#ec4899", "#8b5cf6", "#64748b"];
+const COULEURS_GROUPES = ["#0ea5e9", "#6366f1", "#c026d3", "#0e7490", "#475569"]; // jamais vert, ambre ni rouge (réservés aux statuts)
 
 const POP = "bg-white text-gray-900 border border-gray-200 shadow-xl";
 const visible = (i: SideItem, hidden: string[]) => !i.archived && !i.deletedAt && !hidden.includes(i.page);

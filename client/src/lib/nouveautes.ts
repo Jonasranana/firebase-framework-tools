@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-code-couleur",
+    date: "2026-11-26",
+    emoji: "🎨",
+    titre: "Un code couleur précis dans tout le CRM",
+    points: [
+      "🔵 Bleu = agir ou sélectionné · 🟢 Vert = ça avance, c'est bon · 🟡 Ambre = en attente, à relancer · 🔴 Rouge = urgent ou perdu · ⚪ Gris = neutre. L'orange reste la couleur de la marque (et de « Nouveau lead »).",
+      "Les étiquettes « Statut Appel » suivent ce code : un coup d'œil sur la colonne suffit pour voir où en est chaque client.",
+      "Les groupes du menu ont des couleurs à eux (bleu, violet, turquoise, rose, jaune) pour ne pas être confondus avec un statut.",
+    ],
+  },
+  {
     id: "2026-11-26-stats-admins",
     date: "2026-11-26",
     emoji: "🔒",

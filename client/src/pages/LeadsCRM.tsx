@@ -839,7 +839,7 @@ const LeadSheet = ({
                       n.kind === "statut"
                         ? "bg-gray-50 text-gray-500 text-xs"
                         : n.kind === "message"
-                          ? "bg-green-50 text-gray-700"
+                          ? "bg-sky-50 text-gray-700"
                           : n.kind === "mail"
                             ? "bg-indigo-50 text-gray-800 border-l-4 border-indigo-300"
                             : "bg-blue-50 text-gray-800"
@@ -1173,7 +1173,7 @@ function ExportDriveModal({
               id="archiveAfterCheck"
               checked={archiveAfter}
               onChange={(e) => setArchiveAfter(e.target.checked)}
-              className="mt-0.5 w-4 h-4 text-orange-600 rounded focus:ring-orange-500"
+              className="mt-0.5 w-4 h-4 accent-[#2563eb] rounded"
             />
             <label htmlFor="archiveAfterCheck" className="text-xs text-amber-900 cursor-pointer">
               <strong className="block font-bold">Sortir ces fiches du CRM actif pour l'alléger</strong>

@@ -61,7 +61,7 @@ const TYPES: Record<TypeEv, { label: string; icone: string; couleur: string; dat
   vt: { label: "Pré-visite", icone: "🔍", couleur: "bg-sky-500", date: "dateVt", heure: "heureVt" },
   pose: { label: "Pose", icone: "🔧", couleur: "bg-emerald-600", date: "datePose", heure: "heurePose" },
   depot: { label: "Dépôt MPR", icone: "📨", couleur: "bg-fuchsia-500", date: "dateDepotMpr" },
-  paiement: { label: "Paiement prévu", icone: "💰", couleur: "bg-yellow-500", date: "datePaiementPrevue" },
+  paiement: { label: "Paiement prévu", icone: "💰", couleur: "bg-indigo-500", date: "datePaiementPrevue" },
 };
 type Ev = { l: Lead; type: TypeEv; heure: string; alerte: boolean };
 

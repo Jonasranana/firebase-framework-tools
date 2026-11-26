@@ -549,7 +549,7 @@ export default function StatsCRM({ email = "" }: { email?: string }) {
           ))}
         </select>
         {(type || source || who) && (
-          <button onClick={() => { setType(""); setSource(""); setWho(""); }} className="text-xs text-gray-400 hover:text-orange-600 underline">
+          <button onClick={() => { setType(""); setSource(""); setWho(""); }} className="text-xs text-gray-400 hover:text-[#2563eb] underline">
             Tout afficher
           </button>
         )}
