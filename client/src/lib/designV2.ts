@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 // Le style est dans index.css, sous la classe .crm-v2 posée sur le CRM.
 // ─────────────────────────────────────────────────────────────────────────
 export const DESIGN_V2_TESTEURS = ["alexis.sitbon@gmail.com", "jonassitbon8@gmail.com"];
-export const DESIGN_V2_POUR_TOUS = false;
+export const DESIGN_V2_POUR_TOUS = true;
 const KEY = "crm-design-v2";
 const EVT = "crm-design-v2-change";
 
