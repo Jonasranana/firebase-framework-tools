@@ -234,17 +234,7 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 .crm-v2 .border-\[\#d0d4e4\] { border-color: #eceef3; }
 /* Groupes du tableau : cartes blanches arrondies */
 .crm-v2 [data-groupcard] { border-radius: 14px; border-color: #eceef3; box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05); }
-/* Lignes : fond blanc, l'âge devient une petite barre de couleur devant le nom */
-.crm-v2 [data-row] { background: #fff !important; }
-.crm-v2 [data-row]:hover, .crm-v2 [data-row]:hover [data-namecell] { background: #f8faff !important; }
-.crm-v2 [data-row] [data-namecell] { background: #fff !important; box-shadow: none; }
-.crm-v2 [data-row][data-age] [data-namecell]::after {
-  content: ""; position: absolute; left: 6px; top: 9px; bottom: 9px; width: 4px; border-radius: 3px;
-}
-.crm-v2 [data-row][data-age="vert"] [data-namecell]::after { background: #34d399; }
-.crm-v2 [data-row][data-age="orange"] [data-namecell]::after { background: #fbbf24; }
-.crm-v2 [data-row][data-age="rouge"] [data-namecell]::after { background: #f87171; }
-.crm-v2 [data-row].bg-blue-50, .crm-v2 [data-row].bg-blue-50 [data-namecell] { background: #eef3ff !important; }
+/* Lignes : on garde les couleurs d'âge (vert / orange / rouge) sur toute la ligne, comme avant. */
 /* Étiquettes de statut : douces, avec un point de couleur */
 .crm-v2 [data-pill] {
   background: color-mix(in srgb, var(--pill) 14%, white) !important;
@@ -254,10 +244,6 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 .crm-v2 [data-pill]::before { content: ""; flex: none; width: 7px; height: 7px; border-radius: 50%; background: var(--pill); }
 .crm-v2 [data-pill="vide"] { background: transparent !important; }
 .crm-v2 [data-pill="vide"]::before { background: #d9dce3; }
-/* Légende des couleurs d'âge */
-.crm-v2 [data-age-legend="vert"] { background: #34d399 !important; }
-.crm-v2 [data-age-legend="orange"] { background: #fbbf24 !important; }
-.crm-v2 [data-age-legend="rouge"] { background: #f87171 !important; }
 /* Menu de gauche : élément actif en bleu */
 .crm-v2 .bg-\[\#fff0e6\] { background: #eef3ff; }
 .crm-v2 .text-\[\#c2410c\] { color: #2552d0; }

@@ -24,7 +24,7 @@ export const NOUVEAUTES: Nouveaute[] = [
     emoji: "🎨",
     titre: "Nouveau look pour le CRM",
     points: [
-      "Couleurs plus douces (bleu) et tableau plus clair : les lignes restent blanches, l'âge de la fiche est la petite barre verte / orange / rouge devant le nom.",
+      "Couleurs plus douces (bleu) et tableau plus clair. Les lignes gardent leur couleur selon l'âge de la fiche (vert, orange, rouge).",
       "Les statuts sont des étiquettes douces avec un point de couleur. Tout se modifie comme avant, en un clic.",
       "En haut de Pac Pac : « À appeler », « Rappels en retard », intéressés et nouveaux leads de la semaine. Cliquez sur les deux premiers pour filtrer.",
       "Vous préférez l'ancien ? Interrupteur « Nouveau design » en bas du menu.",
