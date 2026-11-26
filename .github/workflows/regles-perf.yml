@@ -22,4 +22,5 @@ jobs:
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
+          APPLY: "true"
         run: node scripts/regles-perf.mjs
