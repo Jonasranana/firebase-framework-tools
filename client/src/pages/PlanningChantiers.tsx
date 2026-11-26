@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { ChevronLeft, ChevronRight, X, Phone, ExternalLink } from "lucide-react";
 import { useLeads } from "@/lib/crmStore";
 import { crmFirestore } from "@/lib/crmDb";
@@ -59,7 +60,7 @@ const ETAPES: { key: Etape; titre: string; aide: string; ton: string }[] = [
 type TypeEv = "vt" | "pose" | "depot" | "paiement";
 const TYPES: Record<TypeEv, { label: string; icone: string; couleur: string; date: string; heure?: string }> = {
   vt: { label: "Pré-visite", icone: "🔍", couleur: "bg-sky-500", date: "dateVt", heure: "heureVt" },
-  pose: { label: "Pose", icone: "🔧", couleur: "bg-emerald-600", date: "datePose", heure: "heurePose" },
+  pose: { label: "Pose", icone: "🔧", couleur: "bg-violet-500", date: "datePose", heure: "heurePose" },
   depot: { label: "Dépôt MPR", icone: "📨", couleur: "bg-fuchsia-500", date: "dateDepotMpr" },
   paiement: { label: "Paiement prévu", icone: "💰", couleur: "bg-indigo-500", date: "datePaiementPrevue" },
 };
@@ -77,6 +78,9 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
   const [ouvert, setOuvert] = useState<string | null>(null);
   const [voirFaits, setVoirFaits] = useState(false);
   const [erreur, setErreur] = useState("");
+  // Téléphone : deux onglets (agenda en liste jour par jour / ce qu'il faut organiser) au lieu du calendrier 7 colonnes.
+  const mobile = useIsMobile();
+  const [onglet, setOnglet] = useState<"agenda" | "organiser">("agenda");
 
   // Clients signés (étiquettes « Signé en … ») + ceux déjà passés en pose / installés.
   const tous = useMemo(
@@ -177,11 +181,11 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
   );
 
   return (
-    <div className="w-full px-4 sm:px-6 py-6 space-y-5">
+    <div className="w-full px-1 sm:px-6 py-3 sm:py-6 space-y-4 sm:space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-gray-900">🗓️ Planning chantiers</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900">🗓️ Planning chantiers</h1>
+          <p className="hidden sm:block text-sm text-gray-500 mt-1">
             Les {tous.length} clients signés. Glissez un client sur un jour pour lui donner une date, cliquez dessus pour tout régler. Relié au tableau Pac Pac.
           </p>
         </div>
@@ -212,8 +216,24 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
         })}
       </div>
 
+      {mobile && (
+        <div className="sticky top-0 z-20 -mx-1 px-1 py-1.5 bg-gray-50/95 backdrop-blur">
+          <div className="flex rounded-2xl bg-gray-200/70 p-1">
+            {([["agenda", "📅 Agenda"], ["organiser", `📋 À organiser (${compte("vt") + compte("mpr") + compte("pret") + compte("pose")})`]] as const).map(([k, label]) => (
+              <button
+                key={k}
+                onClick={() => setOnglet(k)}
+                className={`flex-1 text-[14px] font-bold py-2 rounded-xl ${onglet === k ? "bg-white text-[#2563eb] shadow-sm" : "text-gray-500"}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-        <section className="self-start rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <section className={`self-start rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden ${mobile && onglet !== "agenda" ? "hidden" : ""}`}>
           <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0f172a] text-white px-4 py-3">
             <div className="flex items-center gap-1">
               <button onClick={() => deplacer(-1)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Précédent">
@@ -238,7 +258,7 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
             </div>
           </div>
           {/* Filtres : types de rendez-vous et poseur */}
-          <div className="flex flex-wrap items-center gap-2 px-4 py-2 border-b border-gray-100 text-xs font-semibold">
+          <div className={`flex items-center gap-2 px-4 py-2 border-b border-gray-100 text-xs font-semibold ${mobile ? "overflow-x-auto no-scrollbar [&>*]:shrink-0" : "flex-wrap"}`}>
             {(Object.keys(TYPES) as TypeEv[])
               .filter((t) => t !== "paiement" || admin)
               .map((t) => (
@@ -263,6 +283,28 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
               </select>
             </span>
           </div>
+          {mobile ? (
+            <div className="divide-y divide-gray-100">
+              {(() => {
+                const jl = jours.filter((iso) => (vue === "semaine" || Number(iso.slice(5, 7)) - 1 === moisRef) && (evenements.get(iso)?.length ?? 0) > 0);
+                if (!jl.length) return <p className="px-4 py-10 text-center text-sm text-gray-400">Aucun rendez-vous sur cette période.</p>;
+                return jl.map((iso) => (
+                  <div key={iso} className={`px-3 py-2.5 ${iso === today ? "bg-[#eef3ff]" : iso < today ? "opacity-60" : ""}`}>
+                    <div className="mb-1.5 text-[13px] font-extrabold capitalize text-gray-900">
+                      {iso === today ? "📍 Aujourd'hui · " : ""}
+                      {frJour(iso)}
+                    </div>
+                    <div className="space-y-1.5">
+                      {(evenements.get(iso) ?? []).map((ev) => (
+                        <Puce key={`${ev.l.id}-${ev.type}`} ev={ev} grand />
+                      ))}
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+          ) : (
+          <>
           <div className="grid grid-cols-7 text-center text-xs font-bold uppercase tracking-wide text-gray-500 bg-gray-50 border-b border-gray-200">
             {jours.slice(0, 7).map((iso, i) => (
               <div key={iso} className="py-2">
@@ -299,10 +341,12 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
               );
             })}
           </div>
+          </>
+          )}
         </section>
 
         {/* Ce qu'il faut organiser */}
-        <aside className="space-y-4">
+        <aside className={`space-y-4 ${mobile && onglet !== "organiser" ? "hidden" : ""}`}>
           {ETAPES.filter((e) => e.key !== "fait" || voirFaits).map((e) => {
             const ls = parEtape(e.key).sort((a, b) => (e.key === "pose" ? datePose(a).localeCompare(datePose(b)) : 0));
             return (
