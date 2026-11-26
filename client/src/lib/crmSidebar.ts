@@ -79,7 +79,7 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       id: "f_tableau",
       title: "Tableau IP5",
       color: "#579bfc",
-      items: [item("leads", "Pac Pac"), item("pacarchive", "Pac Pac archivé"), item("artisans", "Artisans")],
+      items: [item("leads", "Pac Pac"), item("pacarchive", "Les archives de Pac Pac"), item("artisans", "Artisans")],
     },
     {
       id: "f_crm",
@@ -153,6 +153,7 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
     for (const i of f.items) {
       if (i.core && i.page === "praimy") i.title = "Dossiers PRAIMY";
       if (i.core && i.page === "marges") i.title = "Marges PRAIMY";
+      if (i.core && i.page === "pacarchive" && i.title === "Pac Pac archivé") i.title = "Les archives de Pac Pac";
     }
   }
   return {

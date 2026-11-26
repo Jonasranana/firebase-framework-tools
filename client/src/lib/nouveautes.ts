@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-archives-pacpac",
+    date: "2026-11-26",
+    emoji: "🗄️",
+    titre: "« Les archives de Pac Pac »",
+    points: [
+      "La page des colonnes archivées s'appelle maintenant « Les archives de Pac Pac » (menu, sous Pac Pac).",
+      "18 colonnes vides depuis des semaines y ont été rangées (Commercial, Montant, Date VT, Date pose, Dépôt MPR…). Rien n'est perdu : chacune se réactive d'un clic avec ses valeurs.",
+    ],
+  },
+  {
     id: "2026-11-26-pacpac-archive-modeles",
     date: "2026-11-26",
     emoji: "📦",

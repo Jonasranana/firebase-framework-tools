@@ -6,7 +6,7 @@ import { BASE_LEAD_COLUMNS, cellValue, type ColumnsConfig, type LeadColumn } fro
 import { purgeColumn, restoreColumn } from "@/lib/crmColumnsConfig";
 
 // ─────────────────────────────────────────────────────────────────────────
-// « Pac Pac archivé » : toutes les colonnes archivées du tableau Pac Pac, avec
+// « Les archives de Pac Pac » : toutes les colonnes archivées du tableau Pac Pac, avec
 // leurs valeurs, dans un tableau à part (lecture seule). Chaque colonne peut
 // être réactivée (elle revient dans Pac Pac avec ses valeurs, à sa place) ou
 // supprimée définitivement (elle ne pourra plus être réactivée).
@@ -87,7 +87,7 @@ export default function PacPacArchive({ email, onOpenLead }: { email: string; on
       <div className="flex flex-wrap items-end gap-4">
         <div className="flex-1 min-w-[280px]">
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Archive size={22} className="text-gray-400" /> Pac Pac archivé
+            <Archive size={22} className="text-gray-400" /> Les archives de Pac Pac
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             Les colonnes archivées de Pac Pac, avec toutes leurs valeurs. Réactivez une colonne pour la remettre dans Pac Pac à sa place, ou supprimez-la

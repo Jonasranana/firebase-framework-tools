@@ -220,7 +220,7 @@ export function useColumnsConfig(email: string, boardId = "leads") {
           : { ...ref.current, options: { ...(ref.current.options ?? {}), [key]: options } },
       );
     },
-    // Supprimer (30 jours en corbeille) ou archiver (gardée sans limite, page « Pac Pac archivé ») : la colonne est masquée, pas détruite.
+    // Supprimer (30 jours en corbeille) ou archiver (gardée sans limite, page « Les archives de Pac Pac ») : la colonne est masquée, pas détruite.
     remove(key: string, kind: ColTrashEntry["kind"] = "delete") {
       const col = LEAD_COLUMNS.find((c) => c.key === key);
       if (!col || key === "name") return;

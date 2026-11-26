@@ -177,7 +177,7 @@ function ColumnMenuFull({
               label="Archiver la colonne"
               disabled={col.key === "name"}
               onClick={() => {
-                if (confirm(`Archiver la colonne « ${col.title} » ? Elle disparaît du tableau et va dans « Pac Pac archivé », avec toutes ses valeurs : vous pourrez la réactiver quand vous voulez.`)) {
+                if (confirm(`Archiver la colonne « ${col.title} » ? Elle disparaît du tableau et va dans « Les archives de Pac Pac », avec toutes ses valeurs : vous pourrez la réactiver quand vous voulez.`)) {
                   close();
                   api.remove(col.key, "archive");
                 }
