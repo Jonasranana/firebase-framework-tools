@@ -286,7 +286,7 @@ const Field = ({
 );
 
 // ── Envoi de mail / SMS (fonction sendLeadMessage) ─────────────────────────
-type MsgTemplate = { key: string; subject: string; sms: string };
+type MsgTemplate = { key: string; subject: string; sms: string; name?: string };
 
 async function callFn<T>(name: string, data?: unknown): Promise<T> {
   const app = await getEspaceProApp();
@@ -347,7 +347,7 @@ const MessageSender = ({ lead }: { lead: Lead }) => {
         <option value="">Modèle…</option>
         {templates?.map((t) => (
           <option key={t.key} value={t.key}>
-            {t.key}
+            {t.name ?? t.key}
           </option>
         ))}
       </select>
@@ -2190,7 +2190,7 @@ export default function LeadsCRM({
             } satisfies LeadNote),
           });
         }}
-        onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string; sms?: string }[] }>("listLeadTemplates")).templates}
+        onLoadTemplates={async () => (await callFn<{ templates: { key: string; subject: string; sms?: string; name?: string; perso?: boolean }[] }>("listLeadTemplates")).templates}
         onPreviewMail={(id, mail) => callFn<MailPreview>("previewLeadMessage", { leadId: id, ...mail })}
         onOpenFiche={(id) => {
           setChatId(null);
