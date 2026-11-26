@@ -1,31 +1,12 @@
-name: Attribuer des leads
-
-# Attribue N fiches Pac Pac jamais appelées (sans étiquette) à une personne (colonne « Attribué à »).
-# Essai à blanc par défaut : il liste seulement les fiches retenues.
+name: Attribuer des leads (ponctuel)
 on:
-  workflow_dispatch:
-    inputs:
-      dry_run:
-        description: "Essai à blanc (n'écrit rien)"
-        type: boolean
-        default: true
-      count:
-        description: "Nombre de fiches"
-        type: string
-        default: "50"
-      deplacer:
-        description: "Au lieu d'attribuer : déplacer dans « Nouveaux leads » les fiches déjà attribuées à cette personne aujourd'hui"
-        type: boolean
-        default: false
-      who:
-        description: "Attribuer à (Mebarek, Carole, Alexis)"
-        type: string
-        default: "Mebarek"
-
+  push:
+    branches: [claude/optimistic-lamport-tc88wi]
+    paths: [.github/workflows/attribuer-leads.yml]
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -38,19 +19,10 @@ jobs:
         run: |
           printf '%s' "$FIREBASE_SA" | LC_ALL=C tr -cd '\11\12\15\40-\176' > "$RUNNER_TEMP/sa.json"
       - name: Attribuer
-        if: ${{ !inputs.deplacer }}
         env:
           GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
           GCLOUD_PROJECT: kachoto-7554c
-          DRY_RUN: ${{ inputs.dry_run }}
-          COUNT: ${{ inputs.count }}
-          WHO: ${{ inputs.who }}
+          COUNT: "50"
+          WHO: "Mebarek"
+          DRY_RUN: "false"
         run: node scripts/attribuer-leads.mjs
-      - name: Déplacer vers Nouveaux leads
-        if: ${{ inputs.deplacer }}
-        env:
-          GOOGLE_APPLICATION_CREDENTIALS: ${{ runner.temp }}/sa.json
-          GCLOUD_PROJECT: kachoto-7554c
-          DRY_RUN: ${{ inputs.dry_run }}
-          WHO: ${{ inputs.who }}
-        run: node scripts/deplacer-attribuees.mjs
