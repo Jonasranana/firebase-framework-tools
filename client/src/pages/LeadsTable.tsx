@@ -210,6 +210,7 @@ export const StatusCell = ({
         <button className="w-full h-full px-1.5 py-[3px] group/pill" title={s?.label}>
           <span
             data-pill={s ? "" : "vide"}
+            data-pill-key={s?.key}
             className="flex items-center justify-center w-full h-full rounded-md text-[13px] font-semibold text-white px-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)] group-hover/pill:brightness-95 transition"
             style={{ background: s ? s.hex : "#d9dce3", ["--pill" as any]: s ? s.hex : "#d9dce3" }}
           >
@@ -236,7 +237,9 @@ export const StatusCell = ({
                   className={`min-h-9 px-3 py-1 text-sm leading-tight text-center font-semibold text-white rounded transition-transform active:scale-95 hover:brightness-95 flex items-center justify-center outline-none ${
                     isSelected ? "ring-2 ring-gray-900/60 ring-inset font-bold shadow-inner" : ""
                   }`}
-                  style={{ background: o.hex }}
+                  data-pill-opt=""
+                  data-pill-key={o.key}
+                  style={{ background: o.hex, ["--pill" as any]: o.hex }}
                   title={o.label}
                 >
                   {o.label}

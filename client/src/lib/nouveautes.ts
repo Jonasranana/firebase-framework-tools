@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-26-etiquettes-pastel",
+    date: "2026-11-26",
+    emoji: "🎨",
+    titre: "Étiquettes en couleurs pastel, « Nouveau lead » qui brille",
+    points: [
+      "Les étiquettes reprennent leur ancienne forme (pleines, centrées, chaque couleur bien distincte), en pastel pour reposer les yeux.",
+      "L'étiquette « 🆕 Nouveau lead » brille : impossible de rater un nouveau contact.",
+    ],
+  },
+  {
     id: "2026-11-26-pacpac-haut-compact",
     date: "2026-11-26",
     emoji: "📏",
