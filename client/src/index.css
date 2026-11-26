@@ -218,12 +218,12 @@ html.crm-dark .crm-soft { background: var(--soft-dark) !important; }
 ::-webkit-scrollbar-thumb:horizontal { background: linear-gradient(90deg,#ff8a00,#e0218a); }
 ::-webkit-scrollbar-thumb:hover { filter: brightness(1.08); }
 ::-webkit-scrollbar-corner { background: #f3f4f6; }
-.crm-scroll::-webkit-scrollbar-thumb, html.crm-dark .crm-scroll::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#ff8a00,#e0218a); }
-.crm-scroll::-webkit-scrollbar-thumb:horizontal, html.crm-dark .crm-scroll::-webkit-scrollbar-thumb:horizontal { background: linear-gradient(90deg,#ff8a00,#e0218a); }
-.crm-scroll::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg,#ff9a20,#ec3a9a); }
+.crm-scroll::-webkit-scrollbar-thumb, html.crm-dark .crm-scroll::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#2b5a8f,#173a5e); }
+.crm-scroll::-webkit-scrollbar-thumb:horizontal, html.crm-dark .crm-scroll::-webkit-scrollbar-thumb:horizontal { background: linear-gradient(90deg,#173a5e,#2b5a8f); }
+.crm-scroll::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg,#3a6ea8,#1f4b7f); }
 html.crm-dark ::-webkit-scrollbar-track, html.crm-dark ::-webkit-scrollbar-corner { background: #232736; }
 html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
-.crm-scroll::-webkit-scrollbar-thumb:horizontal:hover { background: linear-gradient(90deg,#ff9a20,#ec3a9a); }
+.crm-scroll::-webkit-scrollbar-thumb:horizontal:hover { background: linear-gradient(90deg,#1f4b7f,#3a6ea8); }
 
 /* ─────────────────────────────────────────────────────────────────────────
    Design du CRM (pour tout le monde) : actif quand <html> porte la classe .crm-v2
@@ -231,8 +231,8 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
    ───────────────────────────────────────────────────────────────────────── */
 /* ═════════════════════════════════════════════════════════════════════════
    CODE COULEUR DU CRM : une couleur = un seul sens, partout.
-   · Orange IP5 (dégradé orange → rose) : la marque seulement (logo, en-tête du menu, chargement, « Nouveau lead »).
-   · Bleu   #2563eb : agir / sélectionné (boutons, page active, liens, case cliquée).
+   · Bleu nuit IP5 (dégradé #173a5e → #2b5a8f, touche dorée) : la marque (logo, en-tête du menu, chargement, « Nouveau lead »).
+   · Bleu   #1f4b7f : agir / sélectionné (même famille que la marque) (boutons, page active, liens, case cliquée).
    · Vert   #059669 : c'est bon (intéressé, signé, payé, enregistré, < 6 j).
    · Ambre  #d97706 : attention, à faire bientôt (à relancer, rappel aujourd'hui, 6–14 j).
    · Rouge  #dc2626 : urgent ou perdu (en retard, 15 j +, pas intéressé, supprimer).
@@ -240,7 +240,7 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
    Les catégories (groupes du menu, types d'événements…) prennent bleu, violet, turquoise, rose, indigo :
    jamais vert, ambre ni rouge, réservés aux statuts. Exception : les profils MPR officiels (Bleu, Jaune, Violet, Rose).
    ═════════════════════════════════════════════════════════════════════════ */
-:root { --c-marque: #ff6a1a; --c-action: #2563eb; --c-ok: #059669; --c-attention: #d97706; --c-urgent: #dc2626; --c-neutre: #64748b; }
+:root { --c-marque: #173a5e; --c-action: #1f4b7f; --c-ok: #059669; --c-attention: #d97706; --c-urgent: #dc2626; --c-neutre: #64748b; }
 /* Rose → rouge (urgent / perdu) */
 .crm-v2 .text-rose-500, .crm-v2 .text-rose-600 { color: #dc2626; }
 .crm-v2 .text-rose-700 { color: #b91c1c; }
@@ -252,7 +252,7 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
 .crm-v2 .bg-orange-100 { background-color: #fef3c7; }
 /* Orange utilisé comme fond d'interface → bleu doux (agir / sélectionné) */
 .crm-v2 .bg-orange-50 { background-color: var(--v2-blue-soft); }
-.crm-v2 .data-\[state\=open\]\:bg-orange-100[data-state="open"] { background-color: #e2eafe; }
+.crm-v2 .data-\[state\=open\]\:bg-orange-100[data-state="open"] { background-color: #dde6f1; }
 .crm-v2 .focus\:border-orange-300:focus { border-color: var(--v2-blue); }
 
 .crm-v2 body { background: #f6f7fb; }
@@ -260,6 +260,9 @@ html.crm-dark ::-webkit-scrollbar-thumb { border-color: #232736; }
    « clip » coupe ce qui dépasse sans créer de barre de défilement (les en-têtes collants restent collants).
    Les tableaux larges gardent leur propre défilement horizontal. */
 html.crm-v2, .crm-v2 body { overflow-x: clip; max-width: 100%; }
+/* Barres de défilement du CRM : bleu nuit (marque). */
+html.crm-v2 ::-webkit-scrollbar-thumb { background: linear-gradient(180deg,#2b5a8f,#173a5e); }
+html.crm-v2 ::-webkit-scrollbar-thumb:horizontal { background: linear-gradient(90deg,#173a5e,#2b5a8f); }
 .crm-v2 select, .crm-v2 input, .crm-v2 textarea { max-width: 100%; }
 /* Bordures plus douces partout */
 .crm-v2 .border-\[\#d0d4e4\] { border-color: #eceef3; }
@@ -275,31 +278,31 @@ html.crm-v2, .crm-v2 body { overflow-x: clip; max-width: 100%; }
 .crm-v2 [data-pill="vide"] { background: #eef0f4 !important; box-shadow: none; }
 /* « Nouveau lead » : l'étiquette qui se voit (dégradé orange + léger halo, sans animation). */
 .crm-v2 [data-pill-key="nouveau_lead"] {
-  background: linear-gradient(100deg, #ff8a00, #ff5a4d 55%, #ec3a9a) !important;
-  color: #fff !important;
-  box-shadow: 0 0 0 1px rgba(255, 106, 26, 0.35), 0 0 8px rgba(255, 106, 26, 0.4) !important;
+  background: linear-gradient(100deg, #173a5e, #2b5a8f) !important;
+  color: #fde68a !important;
+  box-shadow: 0 0 0 1px rgba(23, 58, 94, 0.35), 0 0 8px rgba(43, 90, 143, 0.45) !important;
 }
 /* Poignée pour glisser une fiche (⋮⋮) : visible seulement au survol de la ligne */
 .crm-v2 [data-grip] { opacity: 0; transition: opacity .15s; }
 .crm-v2 [data-row]:hover [data-grip] { opacity: 1; }
 /* Menu de gauche : élément actif en bleu */
-.crm-v2 .bg-\[\#fff0e6\] { background: #eef3ff; }
-.crm-v2 .text-\[\#c2410c\] { color: #2552d0; }
-.crm-v2 .shadow-\[inset_3px_0_0_\#ff6a1a\] { box-shadow: inset 3px 0 0 #2563eb; }
-.crm-v2 .hover\:bg-orange-50:hover { background: #f3f5fa; }
+.crm-v2 .bg-\[\#fff0e6\] { background: #edf2f8; }
+.crm-v2 .text-\[\#c2410c\] { color: #1f4b7f; }
+.crm-v2 .shadow-\[inset_3px_0_0_\#ff6a1a\] { box-shadow: inset 3px 0 0 #1f4b7f; }
+.crm-v2 .hover\:bg-orange-50:hover { background: #f3f5f8; }
 /* Couleur principale : bleu au lieu de l'orange */
-.crm-v2 .bg-\[\#ff6a1a\] { background-color: #2563eb; }
-.crm-v2 .hover\:bg-\[\#e85a0c\]:hover, .crm-v2 .bg-\[\#e85a0c\] { background-color: #1d4ed8; }
-.crm-v2 .border-\[\#ff6a1a\] { border-color: #2563eb; }
-.crm-v2 .border-\[\#ff9a5a\] { border-color: #93b4f5; }
-.crm-v2 .bg-\[\#fff6ef\] { background-color: #f3f6fe; }
+.crm-v2 .bg-\[\#ff6a1a\] { background-color: #1f4b7f; }
+.crm-v2 .hover\:bg-\[\#e85a0c\]:hover, .crm-v2 .bg-\[\#e85a0c\] { background-color: #173a5e; }
+.crm-v2 .border-\[\#ff6a1a\] { border-color: #1f4b7f; }
+.crm-v2 .border-\[\#ff9a5a\] { border-color: #a9bfdb; }
+.crm-v2 .bg-\[\#fff6ef\] { background-color: #f3f6fa; }
 
 /* ─── Une seule direction artistique pour tout le CRM (nouveau design) ───────
    Toutes les pages reprennent les couleurs de Pac Pac : un seul bleu principal,
    des cartes blanches aux bordures douces, l'orange réservé aux alertes.
    Uniquement des couleurs : la mise en page et les boutons ne bougent pas. */
 .crm-v2 {
-  --v2-blue: #2563eb; --v2-blue-dark: #1d4ed8; --v2-blue-text: #2552d0; --v2-blue-soft: #eef3ff; --v2-blue-line: #bcd0fb; --v2-line: #eceef3;
+  --v2-blue: #1f4b7f; --v2-blue-dark: #173a5e; --v2-blue-text: #1f4b7f; --v2-blue-soft: #edf2f8; --v2-blue-line: #c5d4e6; --v2-line: #eceef3;
 }
 /* Bleus d'avant (bleu marine #2b5a8f, bleu Monday #0073ea…) → un seul bleu */
 .crm-v2 .bg-\[\#2b5a8f\], .crm-v2 .bg-\[\#0073ea\], .crm-v2 .bg-\[\#2e6db0\], .crm-v2 .bg-\[\#579bfc\] { background-color: var(--v2-blue); }
@@ -323,7 +326,7 @@ html.crm-v2, .crm-v2 body { overflow-x: clip; max-width: 100%; }
 /* Bouton du compte (en haut à droite) */
 .crm-v2 .border-orange-200 { border-color: var(--v2-blue-line); }
 .crm-v2 .bg-orange-50\/60, .crm-v2 .from-orange-50 { background-color: var(--v2-blue-soft); }
-.crm-v2 .hover\:bg-orange-100:hover { background-color: #e2eafe; }
+.crm-v2 .hover\:bg-orange-100:hover { background-color: #dde6f1; }
 .crm-v2 .hover\:border-orange-300:hover, .crm-v2 .border-orange-100 { border-color: var(--v2-blue-line); }
 .crm-v2 .bg-gradient-to-r.from-orange-50.to-pink-50 { background-image: none; }
 /* Cartes et blocs blancs : même bordure douce que Pac Pac */
@@ -338,8 +341,10 @@ html.crm-v2, .crm-v2 body { overflow-x: clip; max-width: 100%; }
   --brand-grad-120: linear-gradient(120deg, #ff8a00, #ff4d4d 55%, #e0218a);
 }
 .crm-v2 {
-  --brand-grad: linear-gradient(90deg, #3b82f6, #2563eb 55%, #4f46e5);
-  --brand-grad-2: linear-gradient(90deg, #3b82f6, #4f46e5);
-  --brand-grad-v: linear-gradient(180deg, #60a5fa, #2563eb);
-  --brand-grad-120: linear-gradient(120deg, #3b82f6, #2563eb 55%, #4f46e5);
+  /* Marque du CRM : bleu nuit (direction artistique de « Quoi de neuf »), touche dorée en accent. */
+  --brand-grad: linear-gradient(90deg, #173a5e, #2b5a8f);
+  --brand-grad-2: linear-gradient(90deg, #173a5e, #2b5a8f);
+  --brand-grad-v: linear-gradient(180deg, #2b5a8f, #173a5e);
+  --brand-grad-120: linear-gradient(120deg, #173a5e, #2b5a8f);
+  --brand-or: #fde68a;
 }

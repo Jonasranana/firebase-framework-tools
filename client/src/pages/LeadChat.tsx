@@ -410,7 +410,7 @@ export default function LeadChat({
     <div className="relative group/tpl">
       <button
         onClick={onClick}
-        className={`w-full h-full text-left rounded-xl border px-3 py-2 pr-14 transition ${on ? "border-[#2563eb] bg-[#eef3ff] ring-1 ring-[#2563eb]" : "border-gray-200 bg-white hover:border-[#bcd0fb] hover:bg-[#f6f8fe]"}`}
+        className={`w-full h-full text-left rounded-xl border px-3 py-2 pr-14 transition ${on ? "border-[#1f4b7f] bg-[#edf2f8] ring-1 ring-[#1f4b7f]" : "border-gray-200 bg-white hover:border-[#c5d4e6] hover:bg-[#f6f8fe]"}`}
       >
         <span className="block text-[13px] font-bold text-gray-900 leading-tight">{title}</span>
         {sub && <span className="block text-[11.5px] text-gray-500 mt-0.5 line-clamp-2">{sub}</span>}
@@ -442,7 +442,7 @@ export default function LeadChat({
         {/* ── En-tête : client, coordonnées, statut ─────────────────────────── */}
         <SheetHeader className="text-left bg-white border-b border-[#eceef3] px-5 pt-4 pb-3 space-y-3 shrink-0">
           <div className="flex items-center gap-3 pr-6">
-            <span className="shrink-0 w-11 h-11 rounded-full bg-[#eef3ff] text-[#2552d0] font-extrabold flex items-center justify-center">{initiales}</span>
+            <span className="shrink-0 w-11 h-11 rounded-full bg-[#edf2f8] text-[#1f4b7f] font-extrabold flex items-center justify-center">{initiales}</span>
             <div className="min-w-0 flex-1">
               <SheetTitle className="truncate text-lg font-extrabold text-gray-900">{lead?.name || "Sans nom"}</SheetTitle>
               <SheetDescription className="text-[13px] truncate text-gray-500">
@@ -568,7 +568,7 @@ export default function LeadChat({
                     {masques > 0 && (
                       <>
                         {" "}
-                        <button onClick={restaurerModeles} className="font-semibold text-[#2552d0] hover:underline">
+                        <button onClick={restaurerModeles} className="font-semibold text-[#1f4b7f] hover:underline">
                           Rétablir les {masques} modèle{masques > 1 ? "s" : ""} d'origine supprimé{masques > 1 ? "s" : ""}
                         </button>
                       </>
@@ -597,7 +597,7 @@ export default function LeadChat({
                   <p className="text-[11.5px] text-gray-500">Astuce : écrivez <b>{"{nom}"}</b> et il sera remplacé par le nom du client (ex. « Bonjour {"{nom}"}, »). La signature IP5 Énergie (logo, téléphone, adresse) est ajoutée en bas automatiquement.</p>
                   <div className="flex flex-wrap items-center gap-1.5">
                     {canManage && (
-                      <button onClick={enregistrerModele} className="inline-flex items-center gap-1 text-xs font-bold text-[#2552d0] border border-[#bcd0fb] bg-[#eef3ff] rounded-lg px-2.5 py-1.5 hover:bg-[#e2eafe]">
+                      <button onClick={enregistrerModele} className="inline-flex items-center gap-1 text-xs font-bold text-[#1f4b7f] border border-[#c5d4e6] bg-[#edf2f8] rounded-lg px-2.5 py-1.5 hover:bg-[#dde6f1]">
                         💾 {editId ? "Mettre à jour le modèle" : "Enregistrer comme modèle"}
                       </button>
                     )}
@@ -700,7 +700,7 @@ export default function LeadChat({
               {mailOpen && mailMsg && <p className={`text-xs mb-1.5 ${mailMsg.ok ? "text-green-700" : "text-red-600"}`}>{mailMsg.text}</p>}
               {smsOpen && smsMsg && <p className={`text-xs mb-1.5 ${smsMsg.ok ? "text-green-700" : "text-red-600"}`}>{smsMsg.text}</p>}
               {mailOpen && (
-                <button onClick={sendMail} disabled={mailBusy} className="w-full text-[14px] font-bold text-white bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-50 rounded-xl py-2.5">
+                <button onClick={sendMail} disabled={mailBusy} className="w-full text-[14px] font-bold text-white bg-[#1f4b7f] hover:bg-[#173a5e] disabled:opacity-50 rounded-xl py-2.5">
                   {mailBusy ? "Envoi…" : tpl ? `Envoyer « ${templates.find((t) => t.key === tpl)?.name ?? tpl} »` : "Envoyer le mail"}
                 </button>
               )}
@@ -755,14 +755,14 @@ export default function LeadChat({
                           <div
                             className={`max-w-[80%] rounded-2xl px-3.5 py-2 ${
                               mine
-                                ? "bg-[#2563eb] text-white rounded-br-md"
+                                ? "bg-[#1f4b7f] text-white rounded-br-md"
                                 : client
                                   ? "bg-[#fff4de] text-gray-900 rounded-bl-md border border-[#fde3b0]"
                                   : "bg-white text-gray-900 rounded-bl-md border border-[#eceef3]"
                             }`}
                           >
                             {!mine && (
-                              <p className={`text-[11px] font-bold mb-0.5 ${client ? "text-[#a35b00]" : "text-[#2552d0]"}`}>
+                              <p className={`text-[11px] font-bold mb-0.5 ${client ? "text-[#a35b00]" : "text-[#1f4b7f]"}`}>
                                 {client ? `${lead?.name || "Le client"} (mail reçu)` : authorName(n.by)}
                               </p>
                             )}
@@ -810,14 +810,14 @@ export default function LeadChat({
                   }}
                   rows={1}
                   placeholder="Écrire un message à l'équipe…"
-                  className="flex-1 resize-none max-h-40 text-[14px] bg-gray-100 text-gray-900 rounded-2xl px-4 py-2.5 outline-none focus:bg-gray-50 focus:ring-2 focus:ring-[#2563eb]/30"
+                  className="flex-1 resize-none max-h-40 text-[14px] bg-gray-100 text-gray-900 rounded-2xl px-4 py-2.5 outline-none focus:bg-gray-50 focus:ring-2 focus:ring-[#1f4b7f]/30"
                   style={{ fieldSizing: "content" } as React.CSSProperties}
                 />
                 <button
                   onClick={send}
                   disabled={!text.trim() || busy}
                   aria-label="Envoyer"
-                  className="shrink-0 h-10 w-10 rounded-full bg-[#2563eb] text-white flex items-center justify-center disabled:opacity-40"
+                  className="shrink-0 h-10 w-10 rounded-full bg-[#1f4b7f] text-white flex items-center justify-center disabled:opacity-40"
                 >
                   <Send size={17} />
                 </button>

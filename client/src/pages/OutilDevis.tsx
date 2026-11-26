@@ -774,7 +774,7 @@ const Row = ({ k, v, bold }: { k: string; v: string; bold?: boolean }) => (
 // Version pro (CRM) : barre du navigateur et logo de l'onglet en orange, remis à l'état normal en quittant.
 function useCrmTabColor() {
   useEffect(() => {
-    const ORANGE = "#ff6a1a";
+    const ORANGE = "#173a5e"; // barre du navigateur : bleu nuit, couleur de la marque du CRM
     // CRM sur téléphone : comme une appli, l'écran reste à la taille du téléphone (pas de dézoom / zoom).
     const vp = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
     const vpAvant = vp?.content;

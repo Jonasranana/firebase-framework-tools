@@ -66,7 +66,7 @@ export default function NouveauLeadDialog({
       setBusy(false);
     }
   };
-  const champ = "w-full text-[15px] bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2.5 outline-none focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/15";
+  const champ = "w-full text-[15px] bg-white text-gray-900 border border-gray-300 rounded-xl px-3 py-2.5 outline-none focus:border-[#1f4b7f] focus:ring-2 focus:ring-[#1f4b7f]/15";
   const lab = "block text-[12px] font-bold text-gray-500 mb-1";
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()}>
@@ -96,7 +96,7 @@ export default function NouveauLeadDialog({
                     onClose();
                     onOpen(doublon.id);
                   }}
-                  className="font-bold text-[#2563eb] underline"
+                  className="font-bold text-[#1f4b7f] underline"
                 >
                   Ouvrir la fiche
                 </button>
@@ -144,7 +144,7 @@ export default function NouveauLeadDialog({
                   key={s.key}
                   type="button"
                   onClick={() => setF({ ...f, source: s.key })}
-                  className={`text-[13px] font-semibold rounded-full px-3 py-1.5 border ${f.source === s.key ? "bg-[#2563eb] text-white border-[#2563eb]" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}
+                  className={`text-[13px] font-semibold rounded-full px-3 py-1.5 border ${f.source === s.key ? "bg-[#1f4b7f] text-white border-[#1f4b7f]" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"}`}
                 >
                   {s.label}
                 </button>
@@ -156,7 +156,7 @@ export default function NouveauLeadDialog({
             <button type="button" onClick={onClose} className="text-sm font-semibold text-gray-600 rounded-xl px-4 py-2.5 hover:bg-gray-100">
               Annuler
             </button>
-            <button type="submit" disabled={!ok} className="text-sm font-bold text-white bg-[#2563eb] hover:bg-[#1d4ed8] disabled:opacity-40 rounded-xl px-5 py-2.5">
+            <button type="submit" disabled={!ok} className="text-sm font-bold text-white bg-[#1f4b7f] hover:bg-[#173a5e] disabled:opacity-40 rounded-xl px-5 py-2.5">
               {busy ? "Création…" : "Créer la fiche"}
             </button>
           </div>
