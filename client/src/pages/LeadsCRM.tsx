@@ -1867,23 +1867,30 @@ export default function LeadsCRM({
   return (
     <div>
       {attribCol && (
-        <div className={`flex items-center gap-1 overflow-x-auto no-scrollbar border-b border-gray-200 mb-1.5 [&>button]:py-1`}>
-          {[{ key: "", label: "Tableau principal" }, ...(attribCol.options ?? []).filter((x) => !x.off).map((x) => ({ key: x.key, label: `Mes clients — ${x.label}` }))].map((t) => (
-            <button
-              key={t.key || "all"}
-              onClick={() => setAttribTab(t.key)}
-              className={`whitespace-nowrap text-sm px-3.5 py-2 -mb-px border-b-[3px] transition-colors ${
-                attribTab === t.key ? "border-[#ff6a1a] text-[#c2410c] font-bold bg-[#fff6ef] rounded-t-md" : "border-transparent text-gray-600 hover:bg-orange-50 hover:text-[#c2410c] rounded-t-md"
-              }`}
-            >
-              {t.label}
-              {t.key ? (
-                <span className={`ml-2 text-[11px] font-bold rounded-full px-2 py-0.5 ${attribTab === t.key ? "bg-[#ff6a1a] text-white" : "bg-gray-100 text-gray-600"}`}>
-                  {attribCount(t.key)}
-                </span>
-              ) : null}
-            </button>
-          ))}
+        // Onglets modernes : pastilles arrondies dans une barre « verre », l'onglet choisi en dégradé bleu nuit.
+        <div className="mb-2 overflow-x-auto no-scrollbar">
+          <div className="inline-flex items-center gap-1 rounded-2xl bg-white/85 backdrop-blur border border-[#e6eaf2] p-1 shadow-[0_1px_2px_rgba(16,24,40,0.05)]">
+            {[{ key: "", label: "Tout le tableau", court: "" }, ...(attribCol.options ?? []).filter((x) => !x.off).map((x) => ({ key: x.key, label: x.label, court: x.label.slice(0, 1).toUpperCase() }))].map((t) => {
+              const actif = attribTab === t.key;
+              return (
+                <button
+                  key={t.key || "all"}
+                  onClick={() => setAttribTab(t.key)}
+                  className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl px-3 py-1.5 text-[13px] font-semibold transition-all ${actif ? "text-white shadow-sm" : "text-gray-600 hover:bg-gray-100"}`}
+                  style={actif ? { background: "var(--brand-grad-120)" } : undefined}
+                  title={t.key ? `Les clients attribués à ${t.label}` : "Tous les clients du tableau"}
+                >
+                  {t.court && (
+                    <span className={`w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${actif ? "bg-white/25 text-white" : "bg-[#edf2f8] text-[#1f4b7f]"}`}>{t.court}</span>
+                  )}
+                  {t.label}
+                  {t.key ? (
+                    <span className={`text-[11px] font-bold rounded-full px-1.5 py-px ${actif ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}>{attribCount(t.key)}</span>
+                  ) : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
       {/* Haut compact (sur une seule ligne) : Tableau / Suivi, chiffres clés, nombre de fiches et légende des couleurs. */}

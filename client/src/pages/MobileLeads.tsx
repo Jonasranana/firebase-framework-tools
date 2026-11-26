@@ -725,7 +725,7 @@ export default function MobileLeads(props: Props) {
 
   // Pastilles sobres : la pastille choisie est pleine (couleur du groupe), les autres sont blanches.
   const chip = (active: boolean) =>
-    `shrink-0 whitespace-nowrap text-[13px] font-semibold px-3.5 py-2 rounded-full border ${active ? "text-white border-transparent shadow-sm" : "bg-white text-gray-700 border-gray-200"}`;
+    `shrink-0 whitespace-nowrap text-[13px] font-semibold px-3.5 py-1.5 rounded-full border transition-all ${active ? "text-white border-transparent shadow-md" : "bg-white/90 text-gray-700 border-[#e6eaf2] shadow-[0_1px_2px_rgba(16,24,40,0.05)]"}`;
   const noFilter = !rappelsOnly && groupFilter === "";
 
   return (
@@ -751,7 +751,7 @@ export default function MobileLeads(props: Props) {
             </div>
             {tab === "liste" && (
               <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-2 px-2 sm:-mx-4 sm:px-4">
-                <button onClick={() => { onRappelsOnly(false); setGroupFilter(""); }} className={chip(noFilter)} style={noFilter ? { background: "#374151" } : undefined}>
+                <button onClick={() => { onRappelsOnly(false); setGroupFilter(""); }} className={chip(noFilter)} style={noFilter ? { background: "var(--brand-grad-120)" } : undefined}>
                   Tous
                 </button>
                 {groups.map((g) => {
