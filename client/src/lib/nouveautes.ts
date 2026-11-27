@@ -19,6 +19,14 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-visites-pac",
+    date: "2026-11-27",
+    emoji: "👣",
+    titre: "Pub Meta : ce que font les visiteurs de /pac",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com"],
+    points: ["Nouveau bloc en bas de Pub Meta : combien arrivent sur /pac, choisissent leur chauffage, demandent un rappel, lancent la simulation ou appellent (compteur anonyme)."],
+  },
+  {
     id: "2026-11-27-meta-semaines",
     date: "2026-11-27",
     emoji: "📥",

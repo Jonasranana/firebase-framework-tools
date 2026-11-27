@@ -700,6 +700,35 @@ export default function RentaMeta({ email }: { email: string }) {
         </div>
       </div>
       <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
+        <h2 className="text-base font-black text-gray-900">Ce que font les visiteurs de la page /pac</h2>
+        <p className="text-sm text-gray-600 mb-3">Compteur anonyme, une fois par visite. Le pourcentage est calculé sur les visiteurs arrivés sur la page.</p>
+        {!vus.page ? (
+          <p className="text-sm text-gray-500">Pas encore de chiffres sur cette période (le compteur de la page démarre avec la mise à jour du 27 novembre).</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {(
+              [
+                ["page", "Arrivent sur /pac"],
+                ["chauffage", "Choisissent leur chauffage"],
+                ["choix_rappel", "Veulent être rappelés"],
+                ["rappel_envoye", "Envoient la demande de rappel"],
+                ["choix_simulation", "Lancent la simulation"],
+                ["resultat", "Voient leur résultat"],
+                ["appel", "Appellent directement"],
+              ] as [string, string][]
+            ).map(([k, label]) => (
+              <div key={k} className="rounded-xl border border-[#e6eaf2] bg-[#f7f9fc] px-3 py-2">
+                <p className="text-xs text-gray-600">{label}</p>
+                <p className="text-xl font-black text-gray-900">
+                  {vus[k] ?? 0}
+                  {k !== "page" && <span className="ml-1.5 text-xs font-bold text-[#1f4b7f]">{Math.round(((vus[k] ?? 0) / vus.page) * 100)} %</span>}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
         <h2 className="text-base font-black text-gray-900">Où les visiteurs quittent le formulaire du site</h2>
         <p className="text-sm text-gray-600 mb-3">Nombre de visiteurs qui voient chaque étape du simulateur du site (compteur anonyme, une fois par visite).</p>
         {!vus.arrivee ? (

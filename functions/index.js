@@ -469,7 +469,7 @@ exports.compterEtape = onRequest({ region: "europe-west9", cors: true, maxInstan
     else if (Buffer.isBuffer(b)) b = JSON.parse(b.toString("utf8") || "{}");
     const src = String(b?.src ?? "").replace(/[^a-z0-9_-]/gi, "").slice(0, 40) || "site";
     const etape = String(b?.etape ?? "");
-    if (!/^(arrivee|q[1-9]|q1[0-2]|coordonnees|resultat)$/.test(etape)) {
+    if (!/^(page|chauffage|choix_rappel|choix_simulation|rappel_envoye|appel|arrivee|q[1-9]|q1[0-2]|coordonnees|resultat)$/.test(etape)) {
       res.status(204).send("");
       return;
     }
