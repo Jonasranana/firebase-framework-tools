@@ -523,6 +523,7 @@ export default function AdminShell({
           <h1 className="text-lg sm:text-xl font-extrabold tracking-tight truncate text-[#1f2430]">{title}</h1>
           <div className="ml-auto flex items-center gap-2">
             {headerExtra}
+            <AideRubrique page={activeItem?.kind === "view" ? "view" : page} />
             <MailSyncStatus email={email} />
             <PushBell email={email} onNavigate={(p) => onNavigate(p as AdminPage)} />
             <UserChip name={userName || email} email={email} onNavigate={onNavigate} onSignOut={onSignOut} />
@@ -532,7 +533,6 @@ export default function AdminShell({
             <BrandLoader />
           ) : (
             <>
-              <AideRubrique key={activeItem?.kind === "view" ? "view" : page} page={activeItem?.kind === "view" ? "view" : page} />
               {renderPage(page, activeItem, tools)}
             </>
           )}</main>
