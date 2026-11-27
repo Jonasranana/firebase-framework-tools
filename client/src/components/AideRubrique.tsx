@@ -1,10 +1,10 @@
-import { useState } from "react";
-import { Info, X } from "lucide-react";
+import { Info } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Petit bloc d'explication en haut de chaque rubrique du CRM (bleu nuit).
 // En quelques lignes simples : à quoi sert la page et comment s'en servir.
-// « Masquer » le range sur cet appareil ; le bouton « ⓘ » le fait revenir.
+// Affiché sous forme de petit « ⓘ » dans l'en-tête, en haut à droite.
 // ─────────────────────────────────────────────────────────────────────────
 const TEXTES: Record<string, { titre: string; lignes: string[] }> = {
   leads: {
@@ -27,9 +27,10 @@ const TEXTES: Record<string, { titre: string; lignes: string[] }> = {
     lignes: ["Combien de leads arrivent, à quelle vitesse on les rappelle, combien avancent, et qui a quoi dans son portefeuille.", "Le reste (profil des leads, horaires…) est dans « Voir plus de détails », en bas."],
   },
   praimy: {
-    titre: "Dossiers PRAIMY",
-    lignes: ["Les dossiers chez PRAIMY, à jour avec leur plateforme : étape, reste à charge du client, et ce qu'ils attendent de nous (en rouge)."],
+    titre: "Nos clients PRAIMY",
+    lignes: ["Les clients signés chez PRAIMY. Pour chacun : où on en est (les 8 points d'avancement, cliquez quand une étape est faite), la prochaine action, les dates.", "En rouge : ce que PRAIMY attend de nous."],
   },
+
   marges: {
     titre: "Simulateur de marge",
     lignes: ["Choisissez la zone et le profil du client : le simulateur calcule ce qu'il nous reste après le matériel, la pose et les primes."],
@@ -80,52 +81,34 @@ const TEXTES: Record<string, { titre: string; lignes: string[] }> = {
   },
 };
 
-const cle = (page: string) => `crm-aide-masquee-${page}`;
-
+// Petit « ⓘ » rond en haut à droite (dans l'en-tête) : un toucher affiche à quoi sert la page.
 export default function AideRubrique({ page }: { page: string }) {
   const t = TEXTES[page];
-  const [masquee, setMasquee] = useState(() => {
-    try {
-      return localStorage.getItem(cle(page)) === "1";
-    } catch {
-      return false;
-    }
-  });
   if (!t) return null;
-  const changer = (v: boolean) => {
-    setMasquee(v);
-    try {
-      localStorage.setItem(cle(page), v ? "1" : "0");
-    } catch {
-      /* non essentiel */
-    }
-  };
-  if (masquee)
-    return (
-      <div className="flex justify-end -mb-1">
-        <button
-          onClick={() => changer(false)}
-          className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1f4b7f] hover:underline"
-          title="Afficher l'explication de cette page"
-        >
-          <Info size={13} /> À quoi sert cette page ?
-        </button>
-      </div>
-    );
   return (
-    <div className="relative mb-3 overflow-hidden rounded-2xl bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] px-4 py-3 pr-10 text-white shadow-sm">
-      <p className="text-[11px] font-bold uppercase tracking-widest text-amber-200">En bref</p>
-      <p className="mt-0.5 text-[15px] font-extrabold leading-snug">{t.titre}</p>
-      <ul className="mt-1 space-y-0.5">
-        {t.lignes.map((l) => (
-          <li key={l} className="text-[13px] leading-snug text-white/90">
-            {l}
-          </li>
-        ))}
-      </ul>
-      <button onClick={() => changer(true)} aria-label="Masquer l'explication" className="absolute right-2 top-2 rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white">
-        <X size={16} />
-      </button>
-    </div>
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          aria-label="À quoi sert cette page ?"
+          title="À quoi sert cette page ?"
+          className="w-8 h-8 shrink-0 rounded-full border border-[#dde6f1] bg-[#edf2f8] text-[#1f4b7f] flex items-center justify-center hover:bg-[#dde6f1] transition"
+        >
+          <Info size={16} />
+        </button>
+      </PopoverTrigger>
+      <PopoverContent dir="ltr" align="end" className="w-80 p-0 overflow-hidden border-0 shadow-xl">
+        <div className="bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] px-4 py-3 text-white">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-amber-200">En bref</p>
+          <p className="mt-0.5 text-[15px] font-extrabold leading-snug">{t.titre}</p>
+          <ul className="mt-1 space-y-0.5">
+            {t.lignes.map((l) => (
+              <li key={l} className="text-[13px] leading-snug text-white/90">
+                {l}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }

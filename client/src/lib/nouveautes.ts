@@ -19,6 +19,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-praimy-tableau",
+    date: "2026-11-27",
+    emoji: "🏗️",
+    titre: "Nos clients PRAIMY : un vrai tableau de suivi",
+    points: [
+      "Chaque client a une barre d'avancement en 8 points (Propal → Signée → MPR → Pré-visite → Pose → Installé) : cliquez sur un point quand l'étape est faite, c'est noté dans sa fiche.",
+      "À côté, la prochaine action à faire de notre côté, et en rouge ce que PRAIMY attend de nous. Une pastille « ⚠️ PRAIMY attend de nous » filtre ces dossiers.",
+      "Le haut de la page est compact : le tableau prend presque tout l'écran.",
+      "L'explication « En bref » est maintenant le petit ⓘ en haut à droite de chaque page.",
+    ],
+  },
+  {
     id: "2026-11-27-groupe-rentabilite",
     date: "2026-11-27",
     emoji: "📈",
