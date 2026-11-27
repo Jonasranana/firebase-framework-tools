@@ -58,21 +58,20 @@ function Table({ region, n, hit }: { region: Region; n: number; hit: number }) {
   const plus = DATA[region].plus;
   return (
     <section>
-      <h3 className="text-xl font-extrabold text-[#1e2a44] mb-2">{REGION_LABEL[region]}</h3>
       <div className="overflow-x-auto rounded-2xl shadow-sm border border-gray-200 bg-white">
         <table className="w-full min-w-[720px] border-separate border-spacing-0 text-center">
           <thead>
             <tr>
-              <th rowSpan={2} className="bg-[#2e6db0] text-white text-sm font-bold px-4 py-3 w-44 rounded-tl-2xl">
+              <th rowSpan={2} className="bg-[#1f4b7f] text-white text-sm font-bold px-4 py-2 w-44 rounded-tl-2xl">
                 Personnes dans le foyer fiscal
               </th>
-              <th colSpan={4} className="bg-[#2e6db0] text-white text-sm font-bold px-4 py-3 rounded-tr-2xl">
+              <th colSpan={4} className="bg-[#1f4b7f] text-white text-sm font-bold px-4 py-2 rounded-tr-2xl">
                 Revenu fiscal de référence (RFR) du foyer
               </th>
             </tr>
             <tr>
               {PROFILS.map((p) => (
-                <th key={p.key} className="text-white px-3 py-3.5" style={{ background: p.main }}>
+                <th key={p.key} className="text-white px-3 py-2" style={{ background: p.main }}>
                   <div className="text-lg font-extrabold leading-tight">{p.label}</div>
                   <div className="text-xs font-medium opacity-95">{p.sub}</div>
                 </th>
@@ -82,7 +81,7 @@ function Table({ region, n, hit }: { region: Region; n: number; hit: number }) {
           <tbody>
             {rows.map((r) => (
               <tr key={r}>
-                <th className={`text-base font-extrabold px-3 py-4 border-t border-gray-200 ${r === n && hit >= 0 ? "bg-blue-50 text-[#2e6db0]" : "text-[#1e2a44] bg-white"}`}>
+                <th className={`text-base font-extrabold px-3 py-2.5 border-t border-gray-200 ${r === n ? "bg-[#edf2f8] text-[#1f4b7f]" : "text-[#1e2a44] bg-white"}`}>
                   {r} personne{r > 1 ? "s" : ""}
                 </th>
                 {PROFILS.map((p, i) => {
@@ -91,7 +90,7 @@ function Table({ region, n, hit }: { region: Region; n: number; hit: number }) {
                   return (
                     <td
                       key={p.key}
-                      className={`px-3 py-4 border-t border-gray-200 text-sm font-bold text-[#1e2a44] leading-snug ${on ? "" : "crm-soft"}`}
+                      className={`px-3 py-2.5 border-t border-gray-200 text-sm font-bold text-[#1e2a44] leading-snug ${on ? "" : "crm-soft"}`}
                       style={{ ["--soft-dark" as any]: p.dark, background: on ? p.main : p.soft, color: on ? "#fff" : undefined, boxShadow: on ? "inset 0 0 0 3px rgba(255,255,255,.55)" : undefined }}
                     >
                       <div>{g.top}</div>
@@ -102,9 +101,9 @@ function Table({ region, n, hit }: { region: Region; n: number; hit: number }) {
               </tr>
             ))}
             <tr>
-              <th className="text-sm font-bold text-[#1e2a44] px-3 py-3.5 border-t border-gray-200 rounded-bl-2xl bg-white">Par personne en plus</th>
+              <th className="text-sm font-bold text-[#1e2a44] px-3 py-2 border-t border-gray-200 rounded-bl-2xl bg-white">Par personne en plus</th>
               {PROFILS.map((p, i) => (
-                <td key={p.key} className={`crm-soft px-3 py-3.5 border-t border-gray-200 text-sm font-bold text-[#1e2a44] ${i === 3 ? "rounded-br-2xl" : ""}`} style={{ ["--soft-dark" as any]: p.dark, background: p.soft }}>
+                <td key={p.key} className={`crm-soft px-3 py-2 border-t border-gray-200 text-sm font-bold text-[#1e2a44] ${i === 3 ? "rounded-br-2xl" : ""}`} style={{ ["--soft-dark" as any]: p.dark, background: p.soft }}>
                   + {eur(plus[Math.min(i, 2)])}
                 </td>
               ))}
@@ -125,65 +124,73 @@ export default function BaremeCRM() {
   const hit = hasRfr ? profilOf(region, n, rfr) : -1;
   const sel = "mt-1 block text-sm bg-white text-gray-900 border border-gray-300 rounded-lg px-3 py-2";
 
+  const champ = "block w-full text-base font-semibold bg-white text-gray-900 border-2 border-[#cddaea] rounded-xl px-3 py-2 outline-none focus:border-[#1f4b7f]";
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-3xl font-extrabold text-[#1e2a44] tracking-tight">
+    <div className="max-w-5xl mx-auto space-y-3">
+      {/* Titre + choix de la zone (un seul tableau à la fois, tout tient à l'écran) */}
+      <div className="flex flex-wrap items-center gap-3">
+        <h2 className="mr-auto text-2xl font-extrabold text-[#1e2a44] tracking-tight">
           Plafonds de ressources <span className="text-[#2e6db0]">2026</span>
         </h2>
-        <p className="text-sm text-gray-500 mt-1 max-w-3xl">
-          Trouvez la ligne (nombre de personnes du foyer fiscal), puis la colonne qui contient le revenu fiscal de référence (RFR, indiqué sur l'avis d'imposition).
-        </p>
+        <div className="inline-flex rounded-2xl bg-[#edf2f8] p-1 shadow-inner" role="tablist">
+          {(["idf", "hors"] as Region[]).map((r) => (
+            <button
+              key={r}
+              role="tab"
+              aria-selected={region === r}
+              onClick={() => setRegion(r)}
+              className={`rounded-xl px-5 py-2.5 text-sm font-extrabold transition ${region === r ? "text-white shadow-md" : "text-[#1f4b7f] hover:bg-white/70"}`}
+              style={region === r ? { background: "var(--brand-grad-120, #1f4b7f)" } : undefined}
+            >
+              {REGION_LABEL[r]}
+            </button>
+          ))}
+        </div>
       </div>
 
-      <section className="rounded-2xl border border-gray-200 bg-white shadow-sm p-5">
-        <h3 className="flex items-center gap-2 text-sm font-bold text-[#1e2a44] mb-3">
-          <Calculator size={16} className="text-[#2e6db0]" /> Trouver le profil d'un client
-        </h3>
+      {/* Trouver le profil d'un client */}
+      <section className="rounded-2xl border-2 border-[#dde6f1] bg-white shadow-sm px-4 py-3">
         <div className="flex flex-wrap items-end gap-4">
-          <label className="text-xs font-semibold text-gray-500">
-            Où habite-t-il ?
-            <select value={region} onChange={(e) => setRegion(e.target.value as Region)} className={`${sel} w-52`}>
-              <option value="idf">Île-de-France</option>
-              <option value="hors">Hors Île-de-France</option>
-            </select>
-          </label>
-          <label className="text-xs font-semibold text-gray-500">
-            Personnes dans le foyer fiscal
-            <select value={n} onChange={(e) => setN(Number(e.target.value))} className={`${sel} w-44`}>
-              {Array.from({ length: 10 }, (_, i) => i + 1).map((k) => (
-                <option key={k} value={k}>
-                  {k} personne{k > 1 ? "s" : ""}
-                </option>
+          <div>
+            <p className="mb-1 flex items-center gap-1.5 text-xs font-bold text-[#1f4b7f]">
+              <Calculator size={14} /> Personnes dans le foyer fiscal
+            </p>
+            <div className="flex gap-1">
+              {Array.from({ length: 8 }, (_, i) => i + 1).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => setN(k)}
+                  className={`h-10 w-10 rounded-xl text-base font-extrabold transition ${n === k ? "text-white shadow-md" : "bg-[#edf2f8] text-[#1f4b7f] hover:bg-[#dde6f1]"}`}
+                  style={n === k ? { background: "var(--brand-grad-120, #1f4b7f)" } : undefined}
+                >
+                  {k}
+                </button>
               ))}
-            </select>
+            </div>
+          </div>
+          <label className="w-56">
+            <span className="mb-1 block text-xs font-bold text-[#1f4b7f]">Revenu fiscal de référence (€)</span>
+            <input value={rfrText} onChange={(e) => setRfrText(e.target.value)} inputMode="numeric" placeholder="ex. 50000" className={champ} />
           </label>
-          <label className="text-xs font-semibold text-gray-500">
-            Revenu fiscal de référence (€)
-            <input value={rfrText} onChange={(e) => setRfrText(e.target.value)} inputMode="numeric" placeholder="ex. 50000" className={`${sel} w-56`} />
-          </label>
-          {hit >= 0 && (
-            <div className="rounded-xl px-5 py-2.5 text-white shadow-sm" style={{ background: PROFILS[hit].main }}>
+          {hit >= 0 ? (
+            <div className="rounded-xl px-5 py-2 text-white shadow-sm" style={{ background: PROFILS[hit].main }}>
               <div className="text-lg font-extrabold leading-tight">{PROFILS[hit].label}</div>
               <div className="text-xs opacity-90">
                 {PROFILS[hit].sub} · {range(region, n, hit).top} {range(region, n, hit).bottom}
               </div>
             </div>
+          ) : (
+            <p className="pb-2 text-xs text-gray-500">Tapez le revenu (avis d'imposition) : le profil s'affiche ici.</p>
           )}
         </div>
       </section>
 
-      <Table region="idf" n={n} hit={region === "idf" ? hit : -1} />
-      <Table region="hors" n={n} hit={region === "hors" ? hit : -1} />
+      <Table region={region} n={n} hit={hit} />
 
-      <aside className="rounded-xl border-l-4 border-[#2e6db0] bg-[#edf3fb] px-5 py-4 text-sm text-[#2b3a55] space-y-1.5">
-        <p>
-          <b>Exemple :</b> un foyer de 2 personnes en Île-de-France avec un RFR de 50 000 € est en <b>profil violet</b> (de 42 934 € à 60 051 €).
-        </p>
-        <p>
-          <b>Au-delà de 5 personnes :</b> ajoutez, pour chaque personne supplémentaire, le montant indiqué sur la dernière ligne au plafond du foyer de 5 personnes (le calculateur ci-dessus le fait pour vous).
-        </p>
-      </aside>
+      <p className="text-xs text-gray-500">
+        Au-delà de 5 personnes : ajoutez la dernière ligne au plafond de 5 personnes pour chaque personne en plus (le calcul ci-dessus le fait pour vous, jusqu'à 8).
+      </p>
     </div>
   );
 }
