@@ -1471,6 +1471,18 @@ export default function LeadsCRM({
   useEffect(() => {
     let unsub: (() => void) | undefined;
     let cancelled = false;
+    // Copie locale des groupes : le tableau s'affiche sans attendre le serveur (voir colonnes).
+    const cleLocale = `crm-groupes-${boardId}`;
+    try {
+      const copie = JSON.parse(localStorage.getItem(cleLocale) ?? "null");
+      if (Array.isArray(copie) && copie.length) {
+        setGroups(copie as LeadGroup[]);
+        setGroupsReady(true);
+        if (boardId === LEADS_BOARD_ID) chrono.depuisOuverture("groupes-prets", "copie");
+      }
+    } catch {
+      /* pas de copie */
+    }
     (async () => {
       try {
         const { m, db } = await fs();
@@ -1478,8 +1490,16 @@ export default function LeadsCRM({
           m.doc(db, CRM_BOARDS_COLLECTION, boardId),
           (snap) => {
             const g = snap.data()?.groups;
-            if (!cancelled && Array.isArray(g) && g.length) setGroups(g as LeadGroup[]);
+            if (!cancelled && Array.isArray(g) && g.length) {
+              setGroups(g as LeadGroup[]);
+              try {
+                localStorage.setItem(cleLocale, JSON.stringify(g));
+              } catch {
+                /* stockage plein ou bloqué */
+              }
+            }
             if (!cancelled) setGroupsReady(true);
+            if (boardId === LEADS_BOARD_ID) chrono.depuisOuverture("groupes-prets", snap.metadata.fromCache ? "memoire" : "serveur");
           },
           (e) => {
             console.error("Groupes non lisibles (règle crm_boards ?)", e);

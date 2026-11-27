@@ -14,7 +14,8 @@ let email = "";
 let gels = { nb: 0, ms: 0 };
 // L'onglet a-t-il été caché depuis l'ouverture ? (Chrome ralentit les onglets en arrière-plan : mesure à part.)
 let ongletCache = typeof document !== "undefined" && document.visibilityState === "hidden";
-const debuts = new Map<string, number>();
+const debuts = new Map<string, { t: number; c: number }>();
+let nbCaches = 0; // nombre de fois où l'onglet a été caché (Chrome met alors la page en pause)
 const dejaFait = new Set<string>();
 
 export const chrono = {
@@ -28,14 +29,15 @@ export const chrono = {
     chrono.noter(ongletCache ? `${n} (onglet caché)` : n, performance.now(), x);
   },
   debut(n: string) {
-    if (ACTIF) debuts.set(n, performance.now());
+    if (ACTIF) debuts.set(n, { t: performance.now(), c: nbCaches });
   },
   // Fin d'une action commencée par debut() : mesurée après l'affichage (image suivante).
   fin(n: string, x?: string | number) {
-    const t = debuts.get(n);
-    if (!ACTIF || t === undefined) return;
+    const d = debuts.get(n);
+    if (!ACTIF || d === undefined) return;
     debuts.delete(n);
-    requestAnimationFrame(() => setTimeout(() => chrono.noter(n, performance.now() - t, x), 0));
+    // Onglet caché pendant la mesure : le temps compte la pause de Chrome, on le range à part.
+    requestAnimationFrame(() => setTimeout(() => chrono.noter(nbCaches !== d.c ? `${n} (onglet caché)` : n, performance.now() - d.t, x), 0));
   },
   noter(n: string, ms: number, x?: string | number) {
     if (!ACTIF) return;
@@ -128,6 +130,7 @@ if (ACTIF && typeof window !== "undefined") {
   addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
       ongletCache = true;
+      nbCaches++;
       envoyer();
     }
   });

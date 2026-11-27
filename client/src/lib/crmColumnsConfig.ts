@@ -86,6 +86,22 @@ export function useColumnsConfig(email: string, boardId = "leads") {
   useEffect(() => {
     let unsub: (() => void) | undefined;
     let cancelled = false;
+    // Copie locale de la dernière configuration : le tableau s'affiche tout de suite, sans attendre
+    // que le serveur réponde (sa réponse passe derrière les 2 500 fiches) ; la vraie arrive ensuite.
+    const cleLocale = `crm-colonnes-${boardId}`;
+    try {
+      const copie = localStorage.getItem(cleLocale);
+      if (copie) {
+        const c = JSON.parse(copie) as ColumnsConfig;
+        applyColumnsConfig(c, boardId, canSeeMoney);
+        setConfig(c);
+        setVersion((v) => v + 1);
+        setReady(true);
+        if (boardId === "leads") import("@/lib/chrono").then(({ chrono }) => chrono.depuisOuverture("colonnes-pretes", "copie"));
+      }
+    } catch {
+      /* pas de copie */
+    }
     (async () => {
       try {
         const { m, db } = await crmFirestore();
@@ -104,6 +120,12 @@ export function useColumnsConfig(email: string, boardId = "leads") {
             setConfig(c);
             setVersion((v) => v + 1);
             setReady(true);
+            if (boardId === "leads") import("@/lib/chrono").then(({ chrono }) => chrono.depuisOuverture("colonnes-pretes", snap.metadata.fromCache ? "memoire" : "serveur"));
+            try {
+              localStorage.setItem(cleLocale, JSON.stringify(c));
+            } catch {
+              /* stockage plein ou bloqué */
+            }
           },
           () => !cancelled && setReady(true),
         );

@@ -19,6 +19,13 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-pacpac-rapide",
+    date: "2026-11-27",
+    emoji: "⚡",
+    titre: "Pac Pac s'ouvre plus vite",
+    points: ["Le tableau Pac Pac s'affiche dès que les premiers clients sont là, sans attendre le reste : il devrait s'ouvrir en 2 à 3 secondes au lieu d'une dizaine."],
+  },
+  {
     id: "2026-11-27-recherche-bets",
     date: "2026-11-27",
     emoji: "🔎",
