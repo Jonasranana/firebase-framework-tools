@@ -19,6 +19,14 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-equipe-chiffres",
+    date: "2026-11-27",
+    emoji: "📞",
+    titre: "Équipe & leads : des chiffres plutôt que des graphiques",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"],
+    points: ["Le parcours des leads se lit en chiffres (Reçus → Appelés → Intéressés → RDV → Gagnés, avec le % à chaque étape). Le graphique par jour est plus petit, la répartition par statut est dans « Voir plus de détails »."],
+  },
+  {
     id: "2026-11-27-pub-meta",
     date: "2026-11-27",
     emoji: "💰",

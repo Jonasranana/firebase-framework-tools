@@ -641,29 +641,39 @@ export default function StatsCRM({ email = "" }: { email?: string }) {
         title={days === 1 ? "Leads reçus par heure (aujourd'hui)" : timeline.perWeek ? "Leads reçus par jour" : "Leads reçus par semaine"}
         hint={timeline.best?.value ? `Pic : ${timeline.best.label} (${timeline.best.value} lead${timeline.best.value > 1 ? "s" : ""})` : undefined}
       >
-        <Columns buckets={timeline.buckets} avg={timeline.avg} labelEvery={timeline.buckets.length > 20 ? Math.ceil(timeline.buckets.length / 10) : timeline.buckets.length > 12 ? 2 : 1} />
+        <Columns buckets={timeline.buckets} avg={timeline.avg} height={70} labelEvery={timeline.buckets.length > 20 ? Math.ceil(timeline.buckets.length / 10) : timeline.buckets.length > 12 ? 2 : 1} />
       </Card>
 
-      <div className="grid lg:grid-cols-2 gap-4 [&>*]:min-w-0">
-        <Card title="Parcours des leads" hint="statut actuel · % de passage d'une étape à l'autre">
-          <Funnel
-            steps={[
-              { label: "Reçus", value: f.recus },
-              { label: "Appelés", value: f.appeles },
-              { label: "Intéressés et plus", value: f.interesses },
-              { label: "RDV et plus", value: f.rdv },
-              { label: "Gagnés", value: f.gagnes, color: "linear-gradient(90deg,#22c55e,#15803d)" },
-            ]}
-          />
-          <p className="text-[11px] text-gray-400 mt-3">
-            Taux RDV : <b className="text-gray-700">{tauxRdv} %</b>
-            {ptauxRdv !== null && <> (avant : {ptauxRdv} %)</>} · Perdus : {f.perdus} · Injoignables : {f.nrp}
-          </p>
-        </Card>
-        <Card title="Répartition par statut" hint={`${f.recus} lead${f.recus > 1 ? "s" : ""}`}>
-          <BarList rows={statusRows} total={f.recus} />
-        </Card>
-      </div>
+      {/* Parcours des leads : des chiffres, étape par étape (le % = passage depuis l'étape d'avant) */}
+      <Card title="Parcours des leads" hint="où en sont les leads reçus sur la période">
+        {(() => {
+          const etapes = [
+            { label: "Reçus", value: f.recus },
+            { label: "Appelés", value: f.appeles },
+            { label: "Intéressés et plus", value: f.interesses },
+            { label: "RDV et plus", value: f.rdv },
+            { label: "Gagnés", value: f.gagnes },
+          ];
+          return (
+            <div className="flex flex-wrap items-stretch gap-1.5">
+              {etapes.map((e, i) => (
+                <div key={e.label} className="flex items-center gap-1.5 flex-1 min-w-[120px]">
+                  {i > 0 && <span className="text-gray-300 text-lg">›</span>}
+                  <div className={`flex-1 rounded-xl px-3 py-2 ${i === etapes.length - 1 ? "bg-emerald-50" : "bg-[#f7f9fc]"}`}>
+                    <p className="text-[11px] font-semibold text-gray-500">{e.label}</p>
+                    <p className={`text-2xl font-black leading-tight ${i === etapes.length - 1 ? "text-[#059669]" : "text-gray-900"}`}>{e.value}</p>
+                    <p className="text-[11px] text-gray-400">{i === 0 ? "100 %" : `${pct(e.value, etapes[i - 1].value)} de l'étape d'avant`}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+        <p className="text-[11px] text-gray-400 mt-2">
+          Taux RDV : <b className="text-gray-700">{tauxRdv} %</b>
+          {ptauxRdv !== null && <> (avant : {ptauxRdv} %)</>} · Perdus : {f.perdus} · Injoignables : {f.nrp}
+        </p>
+      </Card>
 
       {/* Sources */}
       <Card title="Sources : d'où viennent les bons leads" hint="triées par volume">
@@ -816,6 +826,9 @@ export default function StatsCRM({ email = "" }: { email?: string }) {
         </summary>
         <div className="space-y-4 p-4 pt-0">
       <div className="grid lg:grid-cols-2 gap-4 [&>*]:min-w-0">
+        <Card title="Répartition par statut" hint={`${f.recus} lead${f.recus > 1 ? "s" : ""}`}>
+          <BarList rows={statusRows} total={f.recus} />
+        </Card>
         <Card title="Tranche de revenus" hint={`${profile.renseignes} sur ${f.recus} renseignées`}>
           <BarList rows={profile.tranche} total={profile.renseignes} empty="Tranche non renseignée sur la période." />
         </Card>
