@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-planning-jour",
+    date: "2026-11-27",
+    emoji: "🗓️",
+    titre: "Planning : cliquez sur un jour",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"],
+    points: [
+      "Le calendrier est plus compact. Cliquez sur un jour : il s'ouvre avec ses rendez-vous (heure, déplacer, poseur, installé, appeler) et vous pouvez y ajouter une pré-visite ou une pose, puis « Enregistrer ».",
+    ],
+  },
+  {
     id: "2026-11-27-marge-un-ecran",
     date: "2026-11-27",
     emoji: "🧮",
