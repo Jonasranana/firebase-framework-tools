@@ -19,6 +19,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-pub-meta",
+    date: "2026-11-27",
+    emoji: "💰",
+    titre: "Pub Meta : les chiffres qui comptent, en premier",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com"],
+    points: [
+      "En haut : pub dépensée, ce qu'on touche et le bénéfice net (avec « 1 € de pub rapporte X € »).",
+      "Juste dessous : leads, coût par lead, clients signés, taux de signature et coût par client signé.",
+      "Puis « Quelle pub marche ? », les clients venus de la pub et le mois par mois ; l'entonnoir du formulaire est en bas.",
+    ],
+  },
+  {
     id: "2026-11-27-loan-clair",
     date: "2026-11-27",
     emoji: "🚐",
