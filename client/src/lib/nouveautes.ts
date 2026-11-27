@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-praimy-a-faire",
+    date: "2026-11-27",
+    emoji: "📋",
+    titre: "Dossiers PRAIMY : rangés par ce qu'il faut faire",
+    points: [
+      "Les clients sont rangés par ce qu'il reste à faire : PRAIMY attend de nous, proposition, MaPrimeRénov', pré-visite, installation… Le plus urgent est en haut.",
+      "L'avancement est une barre (ex. 5/8). Cliquez dessus pour voir les 8 étapes avec leur nom et cocher ce qui est fait.",
+    ],
+  },
+  {
     id: "2026-11-27-pacpac-rapide",
     date: "2026-11-27",
     emoji: "⚡",
