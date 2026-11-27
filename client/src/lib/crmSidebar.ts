@@ -87,7 +87,7 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       id: "f_crm",
       title: "CRM IP5",
       color: "#fb275d",
-      items: [item("planning", "Planning chantiers"), item("bets", "Dossiers BETS"), item("loan", "Tournées Loan"), item("renta", "Rentabilité Meta"), item("actus", "Actualités aides"), item("documents", "Documents"), item("stats", "Statistiques"), item("bareme", "Barème"), item("corbeille", "Corbeille et doublons")],
+      items: [item("planning", "Planning chantiers"), item("bets", "Dossiers BETS"), item("loan", "Tournées Loan"), item("renta", "Pub Meta"), item("actus", "Actualités aides"), item("documents", "Documents"), item("stats", "Équipe & leads"), item("bareme", "Barème"), item("corbeille", "Corbeille et doublons")],
     },
     { id: "f_pac", title: "PRAIMY", color: "#fdab3d", items: [item("marges", "Marges PRAIMY"), item("praimy", "Dossiers PRAIMY")] },
     { id: "f_autres", title: "Autres métiers", color: "#9d50dd", items: [item("gonflage", "Station de gonflage")] },
@@ -155,6 +155,9 @@ export function normalizeConfig(c: Partial<SideConfig> | null | undefined): Side
     for (const i of f.items) {
       if (i.core && i.page === "praimy") i.title = "Dossiers PRAIMY";
       if (i.core && i.page === "marges") i.title = "Marges PRAIMY";
+      // Groupe « Rentabilité » : la page pub et les statistiques de l'équipe.
+      if (i.core && i.page === "renta" && i.title === "Rentabilité Meta") i.title = "Pub Meta";
+      if (i.core && i.page === "stats" && i.title === "Statistiques") i.title = "Équipe & leads";
       if (i.core && i.page === "pacarchive" && i.title === "Pac Pac archivé") i.title = "Les archives de Pac Pac";
     }
   }

@@ -19,6 +19,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-groupe-rentabilite",
+    date: "2026-11-27",
+    emoji: "📈",
+    titre: "Nouveau groupe « Rentabilité » dans le menu",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "carol.sitbon05@gmail.com", "contact@ip5energie.com"],
+    points: [
+      "« Pub Meta » (ex-Rentabilité Meta) : bénéfice, quelle pub marche, où les visiteurs quittent le formulaire.",
+      "« Équipe & leads » (ex-Statistiques) : seulement l'essentiel (réactivité, parcours des leads, appels, portefeuilles, rappels). Le reste est dans « Voir plus de détails », en bas.",
+      "« Actualités aides » est maintenant dans ⚙️ Paramètres.",
+    ],
+  },
+  {
     id: "2026-11-26-menu-bulle",
     date: "2026-11-26",
     emoji: "👆",

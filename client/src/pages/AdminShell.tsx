@@ -77,7 +77,7 @@ export type AdminPage =
 export const PAGE_TITLES: Record<AdminPage, string> = {
   leads: "Pac Pac",
   artisans: "Artisans",
-  stats: "Statistiques",
+  stats: "Équipe & leads",
   documents: "Documents",
   corbeille: "Corbeille et doublons",
   bareme: "Barème",
@@ -89,7 +89,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   praimy: "Dossiers PRAIMY",
   archives: "Archives Monday",
   actus: "Actualités aides",
-  renta: "Rentabilité Meta",
+  renta: "Pub Meta",
   planning: "Planning chantiers",
   bets: "Dossiers BETS",
   loan: "Tournées Loan",

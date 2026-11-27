@@ -26,7 +26,7 @@ export function accesDe(email: string): GroupeAcces[] {
         { label: "Devis PAC", ok: true },
         { label: "Artisans", ok: true },
         { label: "Documents", ok: true },
-        { label: "Statistiques", ok: STATS_VIEWERS.includes(e), detail: STATS_VIEWERS.includes(e) ? (argent ? "avec les montants" : "sans les montants") : undefined },
+        { label: "Équipe & leads (statistiques)", ok: STATS_VIEWERS.includes(e), detail: STATS_VIEWERS.includes(e) ? (argent ? "avec les montants" : "sans les montants") : undefined },
         { label: "Barème", ok: true },
         { label: "Corbeille et doublons", ok: true },
         { label: "Archives Monday et clients (copie Monday)", ok: true },
@@ -34,7 +34,7 @@ export function accesDe(email: string): GroupeAcces[] {
         { label: "Tournées Loan", ok: argent },
         { label: "Planning chantiers", ok: direction },
         { label: "Actualités aides", ok: direction },
-        { label: "Rentabilité Meta", ok: renta },
+        { label: "Pub Meta (rentabilité)", ok: renta },
       ],
     },
     {
