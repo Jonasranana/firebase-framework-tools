@@ -81,6 +81,10 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
   // Téléphone : deux onglets (agenda en liste jour par jour / ce qu'il faut organiser) au lieu du calendrier 7 colonnes.
   const mobile = useIsMobile();
   const [onglet, setOnglet] = useState<"agenda" | "organiser">("agenda");
+  // Jour ouvert (clic sur une case du calendrier) : ses rendez-vous, modifiables, et l'ajout d'un rendez-vous.
+  const [jourOuvert, setJourOuvert] = useState<string | null>(null);
+  const [ajout, setAjout] = useState<{ type: "vt" | "pose"; id: string; heure: string }>({ type: "vt", id: "", heure: "" });
+  const [enregistre, setEnregistre] = useState("");
 
   // Clients signés (étiquettes « Signé en … ») + ceux déjà passés en pose / installés.
   const tous = useMemo(
@@ -170,7 +174,10 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
     <button
       draggable
       onDragStart={(e) => e.dataTransfer.setData("text/plain", `${ev.l.id}|${ev.type}`)}
-      onClick={() => setOuvert(ev.l.id)}
+      onClick={(e) => {
+        e.stopPropagation();
+        setOuvert(ev.l.id);
+      }}
       title={`${TYPES[ev.type].label}${ev.heure ? ` à ${ev.heure}` : ""} : ${ev.l.name}${ev.l.city ? ` (${ev.l.city})` : ""}`}
       className={`block w-full truncate rounded-md px-1.5 text-left font-bold text-white ${grand ? "py-1.5 text-xs" : "py-1 text-[11px]"} ${ev.alerte ? "bg-red-500" : ev.type === "pose" && installe(ev.l) ? "bg-gray-400" : TYPES[ev.type].couleur}`}
     >
@@ -204,13 +211,13 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
         ))}
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
         {(["vt", "mpr", "pret", "pose"] as Etape[]).map((e) => {
           const d = ETAPES.find((x) => x.key === e)!;
           return (
-            <div key={e} className={`rounded-2xl border-2 px-4 py-3 ${d.ton}`}>
-              <div className="text-3xl font-extrabold text-gray-900">{compte(e)}</div>
-              <div className="text-sm font-bold text-gray-800">{d.titre}</div>
+            <div key={e} className={`rounded-xl border px-3 py-2 flex items-center gap-2.5 ${d.ton}`}>
+              <div className="text-2xl font-extrabold text-gray-900 leading-none">{compte(e)}</div>
+              <div className="text-[13px] font-bold text-gray-700 leading-tight">{d.titre}</div>
             </div>
           );
         })}
@@ -234,7 +241,7 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <section className={`self-start rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden ${mobile && onglet !== "agenda" ? "hidden" : ""}`}>
-          <div className="flex flex-wrap items-center justify-between gap-2 bg-[#0f172a] text-white px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] text-white px-4 py-2.5">
             <div className="flex items-center gap-1">
               <button onClick={() => deplacer(-1)} className="rounded-lg p-1.5 hover:bg-white/10" aria-label="Précédent">
                 <ChevronLeft size={20} />
@@ -326,16 +333,22 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
                     e.preventDefault();
                     deposer(iso, e.dataTransfer.getData("text/plain"));
                   }}
-                  className={`${vue === "semaine" ? "min-h-[420px]" : "min-h-[110px]"} border-b border-r border-gray-100 p-1.5 ${horsMois ? "bg-gray-50/70" : weekend ? "bg-slate-50" : "bg-white"}`}
+                  onClick={() => {
+                    setJourOuvert(iso);
+                    setAjout({ type: "vt", id: "", heure: "" });
+                  }}
+                  title="Cliquer pour ouvrir ce jour"
+                  className={`${vue === "semaine" ? "min-h-[260px]" : "min-h-[84px]"} cursor-pointer transition hover:ring-2 hover:ring-inset hover:ring-[#c5d4e6] border-b border-r border-gray-100 p-1 ${horsMois ? "bg-gray-50/70" : weekend ? "bg-slate-50" : "bg-white"}`}
                 >
                   {vue === "mois" && (
                     <div className={`mb-1 text-xs font-bold ${iso === today ? "inline-flex w-6 h-6 items-center justify-center rounded-full bg-orange-500 text-white" : horsMois ? "text-gray-300" : "text-gray-600"}`}>{Number(iso.slice(8))}</div>
                   )}
                   {vue === "semaine" && iso === today && <div className="mb-1 h-1 rounded bg-orange-500" />}
                   <div className="space-y-1">
-                    {evs.map((ev) => (
+                    {(vue === "mois" ? evs.slice(0, 3) : evs).map((ev) => (
                       <Puce key={`${ev.l.id}-${ev.type}`} ev={ev} grand={vue === "semaine"} />
                     ))}
+                    {vue === "mois" && evs.length > 3 && <p className="text-[10px] font-bold text-[#1f4b7f] px-1">+ {evs.length - 3} autre{evs.length > 4 ? "s" : ""}</p>}
                   </div>
                 </div>
               );
@@ -396,9 +409,154 @@ export default function PlanningChantiers({ email, onOpenLead }: { email: string
         </aside>
       </div>
 
+      {/* Jour ouvert : ses rendez-vous (heure, poseur, date, installé) et l'ajout d'un rendez-vous ce jour-là */}
+      {jourOuvert && (() => {
+        const evs = evenements.get(jourOuvert) ?? [];
+        const candidats = tous.filter((l) => (ajout.type === "vt" ? !dateVt(l) : !datePose(l) && !installe(l)));
+        const choisi = tous.find((l) => l.id === ajout.id);
+        const ok = (msg: string) => {
+          setEnregistre(msg);
+          window.setTimeout(() => setEnregistre(""), 2500);
+        };
+        return (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setJourOuvert(null)}>
+            <div className="w-full sm:max-w-xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl bg-white shadow-2xl" dir="ltr" onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 z-10 flex items-center gap-2 bg-gradient-to-r from-[#173a5e] to-[#2b5a8f] px-5 py-3.5 text-white">
+                <button onClick={() => setJourOuvert(addDays(jourOuvert, -1))} className="rounded-lg p-1 hover:bg-white/10" aria-label="Jour précédent">
+                  <ChevronLeft size={20} />
+                </button>
+                <div className="flex-1 text-center">
+                  <p className="text-[11px] font-bold uppercase tracking-widest text-amber-200">{jourOuvert === today ? "Aujourd'hui" : "Journée"}</p>
+                  <p className="text-lg font-extrabold capitalize leading-tight">{frJour(jourOuvert)}</p>
+                </div>
+                <button onClick={() => setJourOuvert(addDays(jourOuvert, 1))} className="rounded-lg p-1 hover:bg-white/10" aria-label="Jour suivant">
+                  <ChevronRight size={20} />
+                </button>
+                <button onClick={() => setJourOuvert(null)} className="rounded-lg p-1 hover:bg-white/10" aria-label="Fermer">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="p-4 space-y-3">
+                {evs.length === 0 && <p className="text-sm text-gray-400 text-center py-3">Aucun rendez-vous ce jour-là.</p>}
+                {evs.map((ev) => {
+                  const T = TYPES[ev.type];
+                  const fait = ev.type === "pose" && installe(ev.l);
+                  return (
+                    <div key={`${ev.l.id}-${ev.type}`} className="rounded-2xl border border-[#e6eaf2] p-3 shadow-sm">
+                      <div className="flex items-center gap-2">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white ${fait ? "bg-gray-400" : ev.alerte ? "bg-red-500" : T.couleur}`}>{fait ? "Installé" : T.label}</span>
+                        <span className="font-extrabold text-gray-900 truncate">{ev.l.name}</span>
+                        <span className="ml-auto text-xs text-gray-500 truncate">{ev.l.city}</span>
+                      </div>
+                      {ev.alerte && <p className="mt-1 text-xs font-semibold text-red-600">⚠️ MaPrimeRénov' pas reçue : la CEE ne couvre pas la pose.</p>}
+                      <div className="mt-2.5 grid grid-cols-3 gap-2 text-xs">
+                        {T.heure ? (
+                          <label className="block">
+                            <span className="font-semibold text-gray-500">Heure</span>
+                            <input type="time" value={f(ev.l, T.heure)} onChange={(e) => enregistrer(ev.l, { [T.heure!]: e.target.value }).then(() => ok("Heure enregistrée"))} className="mt-0.5 w-full rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-900" />
+                          </label>
+                        ) : (
+                          <span />
+                        )}
+                        <label className="block">
+                          <span className="font-semibold text-gray-500">Déplacer au</span>
+                          <input
+                            type="date"
+                            value={jourOuvert}
+                            onChange={(e) => {
+                              const iso = e.target.value;
+                              if (!iso) return;
+                              (ev.type === "vt" ? poserVt(ev.l, iso) : ev.type === "pose" ? poserPose(ev.l, iso) : enregistrer(ev.l, { [T.date]: iso }))?.then?.(() => ok("Rendez-vous déplacé"));
+                            }}
+                            className="mt-0.5 w-full rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-900"
+                          />
+                        </label>
+                        {ev.type === "vt" || ev.type === "pose" ? (
+                          <label className="block">
+                            <span className="font-semibold text-gray-500">Poseur</span>
+                            <select value={f(ev.l, "poseur")} onChange={(e) => enregistrer(ev.l, { poseur: e.target.value }).then(() => ok("Poseur enregistré"))} className="mt-0.5 w-full rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-900">
+                              <option value="">—</option>
+                              {POSEUR.map((p) => (
+                                <option key={p.key} value={p.key}>{p.label}</option>
+                              ))}
+                            </select>
+                          </label>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+                      <div className="mt-2.5 flex flex-wrap gap-1.5">
+                        {ev.type === "pose" && !fait && (
+                          <button onClick={() => marquerInstalle(ev.l).then(() => ok("Marqué installé"))} className="rounded-lg bg-[#059669] px-2.5 py-1.5 text-xs font-bold text-white hover:brightness-110">
+                            🏁 Marquer installé
+                          </button>
+                        )}
+                        <button onClick={() => setOuvert(ev.l.id)} className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-50">
+                          Fiche planning
+                        </button>
+                        {ev.l.phone && (
+                          <a href={`tel:${ev.l.phone.replace(/\s/g, "")}`} className="rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-semibold text-[#1f4b7f] hover:bg-gray-50">
+                            📞 Appeler
+                          </a>
+                        )}
+                        <button
+                          onClick={() => window.confirm(`Retirer ce rendez-vous du ${frJour(jourOuvert)} ?`) && enregistrer(ev.l, { [T.date]: "" }).then(() => ok("Rendez-vous retiré"))}
+                          className="ml-auto rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50"
+                        >
+                          Retirer du jour
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                <div className="rounded-2xl bg-[#f7f9fc] border border-dashed border-[#c5d4e6] p-3">
+                  <p className="text-sm font-extrabold text-[#1f4b7f] mb-2">+ Ajouter un rendez-vous ce jour</p>
+                  <div className="grid grid-cols-[auto_1fr] gap-2 text-sm">
+                    <div className="flex rounded-lg bg-white border border-gray-200 p-0.5">
+                      {([["vt", "Pré-visite"], ["pose", "Pose"]] as const).map(([k, label]) => (
+                        <button key={k} onClick={() => setAjout({ ...ajout, type: k, id: "" })} className={`rounded-md px-2.5 py-1 text-xs font-bold ${ajout.type === k ? "bg-[#1f4b7f] text-white" : "text-gray-600"}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <select value={ajout.id} onChange={(e) => setAjout({ ...ajout, id: e.target.value })} className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-900">
+                      <option value="">Choisir un client signé… ({candidats.length})</option>
+                      {candidats.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name}
+                          {l.city ? ` · ${l.city}` : ""}
+                        </option>
+                      ))}
+                    </select>
+                    <input type="time" value={ajout.heure} onChange={(e) => setAjout({ ...ajout, heure: e.target.value })} className="rounded-lg border border-gray-200 bg-white px-2 py-1.5 text-gray-900" />
+                    <button
+                      disabled={!choisi}
+                      onClick={async () => {
+                        if (!choisi) return;
+                        await (ajout.type === "vt" ? poserVt(choisi, jourOuvert) : poserPose(choisi, jourOuvert));
+                        if (ajout.heure) await enregistrer(choisi, { [ajout.type === "vt" ? "heureVt" : "heurePose"]: ajout.heure });
+                        setAjout({ type: ajout.type, id: "", heure: "" });
+                        ok("Rendez-vous ajouté");
+                      }}
+                      className="rounded-lg px-3 py-1.5 text-sm font-bold text-white disabled:opacity-40"
+                      style={{ background: "var(--brand-grad-120)" }}
+                    >
+                      Enregistrer
+                    </button>
+                  </div>
+                </div>
+                {enregistre && <p className="text-center text-sm font-semibold text-[#059669]">✓ {enregistre}</p>}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Fiche planning d'un client */}
       {sel && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setOuvert(null)}>
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-0 sm:p-4" onClick={() => setOuvert(null)}>
           <div className="w-full sm:max-w-lg max-h-[92vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white p-5 shadow-2xl space-y-4" dir="ltr" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between gap-3">
               <div>
