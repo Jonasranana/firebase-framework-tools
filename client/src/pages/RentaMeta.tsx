@@ -3,6 +3,7 @@ import { useLeads } from "@/lib/crmStore";
 import { crmFirestore } from "@/lib/crmDb";
 import { statusInfo, type Lead } from "@/lib/crm";
 import { useColumnsConfig } from "@/lib/crmColumnsConfig";
+import { lireExportMeta, idMetaJour, type MetaJour } from "@/lib/metaExport";
 import { MARGE_MIN, num, ceeIp5, mprOf, poseOf, fraisOf, mprRecue, ceeSeule, margeOf, isSigne, moisSigne } from "@/lib/chantiers";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -90,6 +91,50 @@ export default function RentaMeta({ email }: { email: string }) {
     return () => unsub?.();
   }, []);
   const [form, setForm] = useState({ du: "", au: "", canal: "site" as Canal, campagne: "", montant: "", leadsMeta: "" });
+  // Export Meta jour par jour (crm_meta_jours) : prioritaire sur les dépenses saisies à la main.
+  const [jours, setJours] = useState<MetaJour[]>([]);
+  const [importMsg, setImportMsg] = useState("");
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    (async () => {
+      try {
+        const { m, db } = await crmFirestore();
+        unsub = m.onSnapshot(
+          m.collection(db, "crm_meta_jours"),
+          (snap: any) => setJours(snap.docs.map((d: any) => d.data() as MetaJour)),
+          () => {},
+        );
+      } catch {
+        /* pas encore d'export importé */
+      }
+    })();
+    return () => unsub?.();
+  }, []);
+  const dernierJour = jours.reduce((x, j) => (j.jour > x ? j.jour : x), "");
+  // Dépense pub entre deux instants : export Meta jusqu'au dernier jour importé, saisies à la main après.
+  const pubEntre = (a: number, b: number, canal?: Canal) => {
+    const exp = jours.filter((j) => j.canal !== "autre" && (!canal || j.canal === canal) && dayMs(j.jour) >= a && dayMs(j.jour) < b).reduce((x, j) => x + j.depense, 0);
+    const apres = dernierJour ? Math.max(a, dayMs(dernierJour) + DAY) : a;
+    const main = apres < b ? depenses.filter((d) => !canal || d.canal === canal).reduce((x, d) => x + partDans(d, apres, b), 0) : 0;
+    return exp + main;
+  };
+  const importer = async (f: File) => {
+    setImportMsg("Lecture du fichier…");
+    try {
+      const lignes = lireExportMeta(await f.text());
+      if (!lignes.length) return setImportMsg("Aucune ligne jour par jour trouvée. Dans Meta : Exporter avec la répartition « Jour ».");
+      const { m, db } = await crmFirestore();
+      for (let i = 0; i < lignes.length; i += 400) {
+        const b = m.writeBatch(db);
+        for (const l of lignes.slice(i, i + 400)) b.set(m.doc(db, "crm_meta_jours", idMetaJour(l)), { ...l, importePar: email, importeLe: m.serverTimestamp() });
+        await b.commit();
+      }
+      const fin = lignes.reduce((x, l) => (l.jour > x ? l.jour : x), "");
+      setImportMsg(`✅ ${lignes.length} lignes importées, jusqu'au ${new Date(`${fin}T12:00:00`).toLocaleDateString("fr-FR")}.`);
+    } catch (e: any) {
+      setImportMsg(`❌ ${e?.message || "Import impossible."}`);
+    }
+  };
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -116,7 +161,7 @@ export default function RentaMeta({ email }: { email: string }) {
   const parCanal = (c: Canal) => {
     const ls = leads.filter((l) => canalOf(l) === c);
     const signes = ls.filter(isSigne);
-    const depense = depenses.filter((d) => d.canal === c).reduce((s, d) => s + partDans(d, from, to), 0);
+    const depense = pubEntre(from, to, c);
     const marges = signes.map(margeOf);
     const marge = marges.reduce((s, x) => s + (x.marge ?? 0), 0);
     return { ls, signes, depense, marge, aCompleter: marges.filter((x) => x.marge === null).length };
@@ -226,15 +271,55 @@ export default function RentaMeta({ email }: { email: string }) {
       out.push({
         key: `${y}-${m}`,
         label: new Date(y, m, 1).toLocaleDateString("fr-FR", { month: "long", year: "numeric" }),
-        pub: depenses.reduce((x, d) => x + partDans(d, a, b), 0),
-        leadsMeta: depenses.filter((d) => inM(dayMs(d.du))).reduce((x, d) => x + (d.leadsMeta ?? 0), 0),
+        pub: pubEntre(a, b),
+        leadsMeta: jours.length ? jours.filter((j) => j.canal !== "autre" && inM(dayMs(j.jour))).reduce((x, j) => x + j.leads, 0) : depenses.filter((d) => inM(dayMs(d.du))).reduce((x, d) => x + (d.leadsMeta ?? 0), 0),
         leadsCrm: (allLeads ?? []).filter((l) => (l.board || "leads") === "leads" && canalOf(l) && inM(Date.parse(l.createdAt))).length,
         signes: sg.length,
         marge: sg.reduce((x, l) => x + (margeOf(l).marge ?? 0), 0),
       });
     }
     return out.reverse();
-  }, [allLeads, depenses, from, to, colsVersion]);
+  }, [allLeads, depenses, jours, from, to, colsVersion]);
+
+  // Semaine par semaine (export Meta) : dépensé, leads comptés par Meta, coût par lead, leads arrivés dans le CRM.
+  const semaines = useMemo(() => {
+    const lundi = (t: number) => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return d.getTime(); };
+    const m = new Map<number, { dep: number; leads: number; imp: number; crm: number; signes: number }>();
+    const get = (k: number) => m.get(k) ?? (m.set(k, { dep: 0, leads: 0, imp: 0, crm: 0, signes: 0 }), m.get(k)!);
+    for (const j of jours) if (j.canal !== "autre") { const e = get(lundi(dayMs(j.jour))); e.dep += j.depense; e.leads += j.leads; e.imp += j.impressions; }
+    if (!m.size) return [];
+    const debut = Math.min(...Array.from(m.keys()));
+    for (const l of allLeads ?? []) {
+      if ((l.board || "leads") !== "leads" || !canalOf(l)) continue;
+      const t = Date.parse(l.createdAt);
+      if (t < debut) continue;
+      const e = get(lundi(t)); e.crm++; if (isSigne(l)) e.signes++;
+    }
+    return Array.from(m.entries()).sort((a, b) => b[0] - a[0]).slice(0, 12).map(([k, e]) => ({ k, ...e, cpl: e.leads ? e.dep / e.leads : null }));
+  }, [jours, allLeads, colsVersion]);
+  // Alerte : coût par lead de la dernière semaine complète comparé aux 4 semaines d'avant.
+  const alerte = (() => {
+    const pleines = semaines.filter((w) => w.k + 7 * DAY <= Date.now() && w.dep > 0);
+    const [der, ...avant] = pleines;
+    const ref = avant.slice(0, 4);
+    if (!der || ref.length < 2) return null;
+    const refCpl = ref.reduce((x, w) => x + w.dep, 0) / Math.max(1, ref.reduce((x, w) => x + w.leads, 0));
+    const cpl = der.leads ? der.dep / der.leads : Infinity;
+    return cpl >= refCpl * 1.5 ? { cpl, refCpl, der } : null;
+  })();
+  const parCampagne = useMemo(() => {
+    const m = new Map<string, { dep: number; leads: number; imp: number; dernier: string; budget: number }>();
+    for (const j of jours) {
+      if (dayMs(j.jour) < from || dayMs(j.jour) >= to) continue;
+      const e = m.get(j.campagne) ?? { dep: 0, leads: 0, imp: 0, dernier: "", budget: 0 };
+      e.dep += j.depense; e.leads += j.leads; e.imp += j.impressions;
+      if (j.jour > e.dernier) { e.dernier = j.jour; e.budget = j.budget; }
+      m.set(j.campagne, e);
+    }
+    return Array.from(m.entries()).sort((a, b) => b[1].dep - a[1].dep);
+  }, [jours, from, to]);
+  const couleurCpl = (c: number | null) => (c === null ? "text-red-600" : c <= 22 ? "text-emerald-700" : c <= 35 ? "text-amber-600" : "text-red-600");
+  const jourFr = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 
   const [voirDepenses, setVoirDepenses] = useState(false);
   const champ = "rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5 text-sm";
@@ -352,6 +437,89 @@ export default function RentaMeta({ email }: { email: string }) {
           ⚠️ {tot.aCompleter} signé{tot.aCompleter > 1 ? "s" : ""} sans montant : pas compté{tot.aCompleter > 1 ? "s" : ""}. Remplis « 🔗 Réf Praimy » ou « 💵 Marge nette » sur la fiche.
         </p>
       )}
+
+      {/* Export Meta : semaine par semaine, alerte, campagnes, import */}
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
+        <div className="flex flex-wrap items-start gap-3 mb-3">
+          <div className="mr-auto">
+            <h2 className="text-lg font-black text-gray-900">Ce que dit Meta, semaine par semaine</h2>
+            <p className="text-sm text-gray-600">
+              {dernierJour ? `Export Meta importé jusqu'au ${jourFr(dernierJour)}` : "Aucun export Meta importé pour l'instant"} · Renvoyez l'export depuis le début : tout est remplacé, rien n'est compté deux fois.
+            </p>
+          </div>
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-extrabold text-white shadow-md hover:brightness-110" style={{ background: "linear-gradient(120deg,#173a5e,#2b5a8f)" }}>
+            📥 Importer l'export Meta
+            <input type="file" accept=".xls,.xml,.csv,text/csv,application/vnd.ms-excel" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) importer(f); e.target.value = ""; }} />
+          </label>
+        </div>
+        {importMsg && <p className="mb-3 rounded-lg bg-[#edf2f8] px-3 py-2 text-sm font-semibold text-[#1f4b7f]">{importMsg}</p>}
+        {alerte && (
+          <div className="mb-3 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+            <b>🚨 Le coût par lead a explosé :</b> {alerte.cpl === Infinity ? "aucun lead" : eur(alerte.cpl)} la semaine du {new Date(alerte.der.k).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}, contre {eur(alerte.refCpl)} les semaines d'avant.
+            <span className="block mt-0.5 text-red-700">Pistes : changer les pubs (les mêmes depuis longtemps fatiguent), baisser le budget de la campagne en cause, relancer le formulaire Facebook.</span>
+          </div>
+        )}
+        {semaines.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className={`w-full text-sm ${lignesCol}`}>
+              <thead className="bg-gray-50 text-[12px] font-bold text-gray-700">
+                <tr>
+                  <th className="text-left py-2 px-3">Semaine du</th>
+                  <th className="text-right px-3">Dépensé</th>
+                  <th className="text-right px-3">Leads selon Meta</th>
+                  <th className="text-right px-3">Coût par lead</th>
+                  <th className="text-right px-3">Leads arrivés dans le CRM</th>
+                  <th className="text-right px-3">Signés</th>
+                  <th className="text-right px-3">Affichages de la pub</th>
+                </tr>
+              </thead>
+              <tbody>
+                {semaines.map((w) => (
+                  <tr key={w.k} className="border-t border-gray-100">
+                    <td className="py-1.5 px-3 font-semibold text-gray-800">{new Date(w.k).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}{w.k + 7 * DAY > Date.now() ? " (en cours)" : ""}</td>
+                    <td className="text-right px-3">{eur(w.dep)}</td>
+                    <td className="text-right px-3">{w.leads}</td>
+                    <td className={`text-right px-3 font-black ${couleurCpl(w.cpl)}`}>{w.cpl === null ? "aucun" : eur(w.cpl)}</td>
+                    <td className="text-right px-3">{w.crm}</td>
+                    <td className={`text-right px-3 ${w.signes ? "font-bold text-emerald-700" : "text-gray-400"}`}>{w.signes || "—"}</td>
+                    <td className="text-right px-3 text-gray-500">{Math.round(w.imp).toLocaleString("fr-FR")}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-1.5 text-xs text-gray-500">Coût par lead : vert jusqu'à 22 €, orange jusqu'à 35 €, rouge au-delà.</p>
+          </div>
+        )}
+        {parCampagne.length > 0 && (
+          <div className="mt-4 overflow-x-auto">
+            <p className="mb-1 text-sm font-black text-gray-900">Par campagne, sur la période choisie</p>
+            <table className={`w-full text-sm ${lignesCol}`}>
+              <thead className="bg-gray-50 text-[12px] font-bold text-gray-700">
+                <tr>
+                  <th className="text-left py-2 px-3">Campagne</th>
+                  <th className="text-right px-3">Dépensé</th>
+                  <th className="text-right px-3">Leads selon Meta</th>
+                  <th className="text-right px-3">Coût par lead</th>
+                  <th className="text-right px-3">Budget / jour</th>
+                  <th className="text-right px-3">Dernier jour actif</th>
+                </tr>
+              </thead>
+              <tbody>
+                {parCampagne.map(([c, e]) => (
+                  <tr key={c} className="border-t border-gray-100">
+                    <td className="py-1.5 px-3 font-semibold text-gray-800">{c}</td>
+                    <td className="text-right px-3">{eur(e.dep)}</td>
+                    <td className="text-right px-3">{e.leads}</td>
+                    <td className={`text-right px-3 font-black ${couleurCpl(e.leads ? e.dep / e.leads : null)}`}>{e.leads ? eur(e.dep / e.leads) : "aucun"}</td>
+                    <td className="text-right px-3 text-gray-600">{e.budget ? eur(e.budget) : "—"}</td>
+                    <td className="text-right px-3 text-gray-600">{e.dernier ? jourFr(e.dernier) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
         <h2 className="text-lg font-black text-gray-900">Quelle pub marche ?</h2>

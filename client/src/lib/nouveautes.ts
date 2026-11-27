@@ -19,6 +19,18 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-meta-semaines",
+    date: "2026-11-27",
+    emoji: "📥",
+    titre: "Pub Meta : l'export Meta jour par jour",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com"],
+    points: [
+      "Bouton « Importer l'export Meta » : déposez l'Excel de Meta (depuis le début, répartition par jour). Tout est remplacé, rien n'est compté deux fois.",
+      "Nouveau tableau semaine par semaine : dépensé, leads selon Meta, coût par lead en couleur, leads vraiment arrivés dans le CRM et signés. Une alerte rouge s'affiche quand le coût par lead explose.",
+      "L'export jusqu'au 27 novembre est déjà importé.",
+    ],
+  },
+  {
     id: "2026-11-27-bareme-ecran",
     date: "2026-11-27",
     emoji: "📊",
