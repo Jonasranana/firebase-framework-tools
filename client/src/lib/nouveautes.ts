@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-loan-clair",
+    date: "2026-11-27",
+    emoji: "🚐",
+    titre: "Tournées Loan plus claires",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "contact@ip5energie.com"],
+    points: [
+      "4 chiffres en haut, le conseil sur une ligne, puis chaque semaine en tableau : une ligne par jour (Pose ou Route, client et ville, où dormir) et ce qu'il faut réserver.",
+      "La carte reste à droite pendant qu'on descend ; les règles de la tournée et le détail des coûts sont repliés.",
+    ],
+  },
+  {
     id: "2026-11-27-planning-jour",
     date: "2026-11-27",
     emoji: "🗓️",
