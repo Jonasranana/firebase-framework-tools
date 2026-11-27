@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Car, FileUp, Hotel, RotateCcw, Truck, Wrench } from "lucide-react";
+import { Car, FileUp, Home, Hotel, RotateCcw, Truck, Wrench } from "lucide-react";
 import { crmFirestore } from "@/lib/crmDb";
 import {
   PARAMS_DEFAUT,
@@ -198,7 +198,7 @@ export default function TourneesLoan({ email }: { email: string }) {
       {/* En-tête */}
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex-1 min-w-[260px]">
-          <h1 className="text-2xl font-bold text-gray-900">🚐 Tournées Loan</h1>
+          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Tournées Loan</h1>
           <p className="text-sm text-gray-500 mt-0.5">Qui on pose, quel jour, où dormir, et ce qu'il nous reste.</p>
         </div>
         <input
@@ -228,54 +228,201 @@ export default function TourneesLoan({ email }: { email: string }) {
         <p className="text-sm text-gray-500 py-10 text-center">Calcul…</p>
       ) : (
         <>
-          {/* Les 3 chiffres qui comptent */}
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="rounded-2xl bg-white border border-gray-200 p-5">
-              <p className="text-sm text-gray-500">Installations prévues</p>
-              <p className="text-4xl font-extrabold text-gray-900 mt-1">{res.total.poses}</p>
-              <p className="text-sm text-gray-500 mt-1">
-                en {res.tournees.length} semaines · du {jourFr(res.tournees[0]?.debut ?? params.debut)} au {jourFr(res.total.fin)}
+          {/* Les 4 chiffres qui comptent, compacts */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <div className="rounded-2xl bg-white border border-[#e6eaf2] px-4 py-2.5 shadow-sm">
+              <p className="text-xs text-gray-500">Installations prévues</p>
+              <p className="text-2xl font-extrabold text-gray-900 leading-tight">{res.total.poses}</p>
+            </div>
+            <div className="rounded-2xl bg-white border border-[#e6eaf2] px-4 py-2.5 shadow-sm">
+              <p className="text-xs text-gray-500">Période</p>
+              <p className="text-base font-extrabold text-gray-900 leading-tight mt-1">
+                {res.tournees.length} semaines · {jourFr(res.tournees[0]?.debut ?? params.debut)} → {jourFr(res.total.fin)}
               </p>
             </div>
-            <div className="rounded-2xl bg-white border border-gray-200 p-5">
-              <p className="text-sm text-gray-500">Ce que ça nous coûte</p>
-              <p className="text-4xl font-extrabold text-gray-900 mt-1">{eur(res.total.cout)}</p>
-              <p className="text-sm text-gray-500 mt-1">soit {eur(res.total.poses ? res.total.cout / res.total.poses : 0)} par installation, tout compris</p>
+            <div className="rounded-2xl bg-white border border-[#e6eaf2] px-4 py-2.5 shadow-sm">
+              <p className="text-xs text-gray-500">Coût des tournées</p>
+              <p className="text-2xl font-extrabold text-gray-900 leading-tight">
+                {eur(res.total.cout)} <span className="text-xs font-semibold text-gray-500">· {eur(res.total.poses ? res.total.cout / res.total.poses : 0)} / pose</span>
+              </p>
             </div>
-            <div className={`rounded-2xl border p-5 ${res.total.net >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200"}`}>
-              <p className="text-sm text-gray-600">Ce qu'il nous reste</p>
-              <p className={`text-4xl font-extrabold mt-1 ${res.total.net >= 0 ? "text-emerald-700" : "text-red-600"}`}>{eur(res.total.net)}</p>
-              <p className="text-sm text-gray-600 mt-1">marge des dossiers {eur(res.total.marge)} moins le coût</p>
+            <div className="rounded-2xl px-4 py-2.5 shadow-sm text-white" style={{ background: res.total.net >= 0 ? "linear-gradient(120deg,#047857,#059669)" : "linear-gradient(120deg,#b91c1c,#dc2626)" }}>
+              <p className="text-xs text-white/80">Ce qu'il nous reste</p>
+              <p className="text-2xl font-extrabold leading-tight">{eur(res.total.net)}</p>
             </div>
           </div>
 
-          {/* Le conseil */}
+          {/* Le conseil, sur une ligne */}
           {meilleur && (
-            <div className="rounded-2xl bg-blue-50 border border-blue-200 p-4 flex flex-wrap items-center gap-3">
-              <span className="text-2xl">💡</span>
-              <p className="flex-1 min-w-[260px] text-sm text-blue-900">
+            <div className="rounded-xl bg-[#edf2f8] px-3 py-2 flex flex-wrap items-center gap-2 text-sm text-[#173a5e]">
+              <b>Conseil :</b>
+              <span className="flex-1 min-w-[220px]">
                 {meilleur.r.total.cout < res.total.cout - 50 ? (
                   <>
-                    <b>Notre conseil :</b> {meilleur.label}. On économiserait <b>{eur(res.total.cout - meilleur.r.total.cout)}</b> et on finirait le{" "}
-                    {jourFr(meilleur.r.total.fin)}.
+                    {meilleur.label} : <b>{eur(res.total.cout - meilleur.r.total.cout)}</b> d'économie, fin le {jourFr(meilleur.r.total.fin)}.
                   </>
                 ) : (
-                  <>
-                    <b>C'est déjà l'organisation la moins chère</b> parmi celles qu'on a comparées.
-                  </>
+                  "c'est déjà l'organisation la moins chère."
                 )}
-              </p>
-              <select value={params.retourWeekend ? "1" : "0"} onChange={(e) => setP("retourWeekend", e.target.value === "1")} className="max-w-full border border-blue-300 bg-white rounded-lg px-3 py-1.5 text-sm font-semibold text-blue-900">
-                <option value="1">Ils rentrent à {params.depart} chaque week-end</option>
-                <option value="0">Ils restent sur place le week-end</option>
+              </span>
+              <select value={params.retourWeekend ? "1" : "0"} onChange={(e) => setP("retourWeekend", e.target.value === "1")} className="max-w-full border border-[#c5d4e6] bg-white rounded-lg px-2 py-1 text-sm font-semibold text-[#173a5e]">
+                <option value="1">Retour à {params.depart} chaque week-end</option>
+                <option value="0">Restent sur place le week-end</option>
               </select>
             </div>
           )}
 
-          {/* Les chiffres en détail + carte */}
-          <div className="grid xl:grid-cols-[1.1fr_1fr] gap-4 [&>*]:min-w-0">
-            <div className="bg-white border border-gray-200 rounded-2xl p-5">
-              <h2 className="text-xl font-extrabold text-gray-900 mb-4">Les chiffres en détail</h2>
+          <div className="grid xl:grid-cols-[minmax(0,1fr)_420px] gap-4 items-start">
+            {/* Gauche : le planning semaine par semaine */}
+            <div className="space-y-3 min-w-0">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="text-lg font-extrabold text-gray-900">Le planning</h2>
+                <label className="text-sm text-gray-600 flex items-center gap-2 ml-auto">
+                  Départ
+                  <select
+                    value={params.depart}
+                    onChange={(e) => {
+                      const v = DEPARTS.find((x) => x.nom === e.target.value)!;
+                      enregistrer({ params: { ...params, depart: v.nom, departLat: v.lat, departLng: v.lng } });
+                    }}
+                    className="border border-gray-200 rounded-lg px-2 py-1 text-sm"
+                  >
+                    {DEPARTS.map((x) => (
+                      <option key={x.nom}>{x.nom}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="text-sm text-gray-600 flex items-center gap-2">
+                  Premier jour
+                  <input type="date" value={params.debut} onChange={(e) => setP("debut", e.target.value)} className="border border-gray-200 rounded-lg px-2 py-1 text-sm" />
+                </label>
+              </div>
+              <details className="rounded-xl bg-white border border-[#e6eaf2]">
+                <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold text-[#1f4b7f]">
+                  Règles de la tournée : jusqu'à {params.rayonMax} km de {params.depart}, plus loin seulement en groupe
+                </summary>
+            <div className="px-3 pb-3 text-sm text-gray-700 flex flex-wrap items-center gap-2">
+              <span>📍 On va jusqu'à</span>
+              <input type="number" value={params.rayonMax} onChange={(e) => setP("rayonMax", Number(e.target.value) || 0)} className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>km de {params.depart}. Plus loin, seulement s'il y a au moins</span>
+              <input type="number" value={params.groupeMin} onChange={(e) => setP("groupeMin", Number(e.target.value) || 1)} className="w-14 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>poses à moins de</span>
+              <input type="number" value={params.groupeRayon} onChange={(e) => setP("groupeRayon", Number(e.target.value) || 0)} className="w-16 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>km les unes des autres, et au moins</span>
+              <input type="number" value={params.groupeMinLoin} onChange={(e) => setP("groupeMinLoin", Number(e.target.value) || 1)} className="w-14 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>au-delà de</span>
+              <input type="number" value={params.rayonLoin} onChange={(e) => setP("rayonLoin", Number(e.target.value) || 0)} className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right" />
+              <span>km.</span>
+            </div>
+              </details>
+              {res.lignes.some((l) => l.tropLoin) && (
+                <details className="rounded-xl bg-amber-50 border border-amber-200">
+                  <summary className="cursor-pointer select-none px-3 py-2 text-sm font-semibold text-amber-900">
+                    {res.lignes.filter((l) => l.tropLoin).length} client(s) trop loin pour l'instant (en attente d'autres poses dans leur coin)
+                  </summary>
+                  <p className="px-3 pb-3 text-sm text-amber-900">
+                    {res.lignes
+                      .filter((l) => l.tropLoin)
+                      .sort((a, b) => a.kmDepart - b.kmDepart)
+                      .map((l) => `${l.d.client} (${l.d.ville}, ${km(l.kmDepart)})`)
+                      .join(" · ")}
+                  </p>
+                </details>
+              )}
+              {res.nonPlaces.length > 0 && <p className="text-sm text-amber-700">Pas placés (ville introuvable) : {res.nonPlaces.map((l) => `${l.d.client} (${l.d.ville})`).join(", ")}.</p>}
+              {res.tournees.map((t) => {
+                const c = COULEURS[(t.n - 1) % COULEURS.length];
+                const netT = t.marge - t.cout.total;
+                const dormir = t.sejours.filter((s) => s.ville !== "Étape sur la route");
+                const etape = t.sejours.some((s) => s.ville === "Étape sur la route");
+                return (
+                  <div key={t.n} className="bg-white border border-[#e6eaf2] rounded-2xl overflow-hidden shadow-sm" style={{ boxShadow: `inset 4px 0 0 ${c}` }}>
+                    <div className="px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-gray-100">
+                      <span className="text-base font-extrabold text-gray-900">Semaine {t.n}</span>
+                      <span className="text-sm text-gray-500">
+                        {jourFr(t.debut)} → {jourFr(t.fin)}
+                      </span>
+                      <span className="ml-auto inline-flex items-center gap-2 text-xs">
+                        <span className="rounded-full bg-[#edf2f8] px-2 py-0.5 font-bold text-[#1f4b7f]">
+                          {t.refs.length} pose{t.refs.length > 1 ? "s" : ""}
+                        </span>
+                        <span className="text-gray-500">coût {eur(t.cout.total)}</span>
+                        <span className={`rounded-full px-2 py-0.5 font-bold ${netT >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"}`}>reste {eur(netT)}</span>
+                      </span>
+                    </div>
+                    <table className="w-full text-sm">
+                      <tbody>
+                        {t.jours.map((j, i) => {
+                          const lig = j.ref ? res.lignes.find((l) => l.d.ref === j.ref) : undefined;
+                          const sej = t.sejours.find((s) => j.nuit && s.ville === j.nuit && s.debut <= j.date);
+                          const badge =
+                            j.type === "pose"
+                              ? { t: "Pose", cls: "bg-[#1f4b7f] text-white", I: Wrench }
+                              : j.type === "route"
+                                ? { t: "Route", cls: "bg-gray-200 text-gray-700", I: Truck }
+                                : { t: "Repos", cls: "bg-gray-100 text-gray-400", I: Truck };
+                          return (
+                            <tr key={i} className="border-t border-gray-50 first:border-t-0 [&>td]:px-3 [&>td]:py-1.5 align-top">
+                              <td className="w-[92px] whitespace-nowrap text-xs font-semibold text-gray-500 capitalize">{jourFr(j.date)}</td>
+                              <td className="w-[78px]">
+                                <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold ${badge.cls}`}>
+                                  <badge.I size={11} /> {badge.t}
+                                </span>
+                              </td>
+                              <td className="min-w-0">
+                                {j.type === "pose" ? (
+                                  <>
+                                    <span className="font-bold text-gray-900">{lig?.d.client ?? ""}</span>
+                                    <span className="text-gray-500"> · {lig?.d.ville}</span>
+                                    {lig && lig.jours > 1 && <span className="text-gray-400"> · {j.texte.includes("jour 2") ? "2e jour" : "1er jour"}</span>}
+                                    {j.km > 150 && (
+                                      <span className="block text-[11px] text-[#d97706]">
+                                        puis {Math.round(j.heures)} h de route le soir{j.texte.includes("retour à") ? ` (retour à ${params.depart})` : ""}
+                                      </span>
+                                    )}
+                                  </>
+                                ) : j.type === "route" ? (
+                                  <span className="text-gray-700">
+                                    {j.texte.replace(/^Route |^Retour /, "")} <span className="text-gray-400">· {j.heures.toFixed(0)} h</span>
+                                  </span>
+                                ) : (
+                                  <span className="text-gray-400">—</span>
+                                )}
+                              </td>
+                              <td className="w-[170px] whitespace-nowrap text-xs text-gray-500">
+                                <span className="inline-flex items-center gap-1">
+                                  {j.nuit ? <Hotel size={12} className="text-gray-400" /> : <Home size={12} className="text-gray-400" />}
+                                  {j.nuit ? (j.nuit === "Étape sur la route" ? "Hôtel d'étape" : `${sej?.type === "airbnb" ? "Airbnb" : "Hôtel"} · ${j.nuit}`) : "Maison"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                    <div className="px-4 py-2 border-t border-gray-100 bg-[#f7f9fc] text-xs text-gray-600">
+                      <b className="text-gray-800">À réserver :</b>{" "}
+                      {dormir.length
+                        ? dormir.map((s) => `${s.type === "airbnb" ? "Airbnb" : "hôtel"} à ${s.ville} (${s.nuits} nuit${s.nuits > 1 ? "s" : ""})`).join(" · ")
+                        : "rien"}
+                      {etape ? " · un hôtel d'étape sur l'autoroute" : ""}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Droite : la carte et le détail des coûts */}
+            <aside className="space-y-3 xl:sticky xl:top-16">
+              <div className="bg-white border border-[#e6eaf2] rounded-2xl p-3 shadow-sm">
+                <h2 className="text-sm font-extrabold text-gray-900">La carte</h2>
+                <p className="text-[11px] text-gray-500 mb-1">Une couleur par semaine · orange : trop loin · gris : pas dans le plan · noir : déjà posé</p>
+                <Carte res={res} params={params} ouverte={null} />
+              </div>
+              <details className="bg-white border border-[#e6eaf2] rounded-2xl shadow-sm">
+                <summary className="cursor-pointer select-none px-4 py-3 text-sm font-extrabold text-gray-900">Les chiffres en détail</summary>
+                <div className="px-4 pb-4">
+              
               <div className="space-y-6">
                 <div>
                   <h3 className="text-sm font-extrabold text-gray-800 mb-2">D'où vient le coût</h3>
@@ -337,130 +484,9 @@ export default function TourneesLoan({ email }: { email: string }) {
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="bg-white border border-gray-200 rounded-2xl p-5">
-              <h2 className="text-xl font-extrabold text-gray-900 mb-1">La carte</h2>
-              <p className="text-sm text-gray-500 mb-3">Une couleur par semaine. Orange : trop loin pour l'instant. Gris : pas dans le plan. Noir : déjà posé.</p>
-              <Carte res={res} params={params} ouverte={null} />
-            </div>
-          </div>
-
-          {/* Le planning semaine par semaine */}
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <h2 className="text-xl font-extrabold text-gray-900">Le planning</h2>
-              <label className="text-sm text-gray-600 flex items-center gap-2 ml-auto">
-                Départ
-                <select
-                  value={params.depart}
-                  onChange={(e) => {
-                    const v = DEPARTS.find((x) => x.nom === e.target.value)!;
-                    enregistrer({ params: { ...params, depart: v.nom, departLat: v.lat, departLng: v.lng } });
-                  }}
-                  className="border border-gray-300 rounded-lg px-2 py-1 text-sm"
-                >
-                  {DEPARTS.map((x) => (
-                    <option key={x.nom}>{x.nom}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="text-sm text-gray-600 flex items-center gap-2">
-                Premier jour
-                <input type="date" value={params.debut} onChange={(e) => setP("debut", e.target.value)} className="border border-gray-300 rounded-lg px-2 py-1 text-sm" />
-              </label>
-            </div>
-            <div className="rounded-xl bg-white border border-gray-200 px-4 py-3 text-sm text-gray-700 flex flex-wrap items-center gap-2">
-              <span>📍 On va jusqu'à</span>
-              <input type="number" value={params.rayonMax} onChange={(e) => setP("rayonMax", Number(e.target.value) || 0)} className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right" />
-              <span>km de {params.depart}. Plus loin, seulement s'il y a au moins</span>
-              <input type="number" value={params.groupeMin} onChange={(e) => setP("groupeMin", Number(e.target.value) || 1)} className="w-14 border border-gray-300 rounded-md px-2 py-1 text-right" />
-              <span>poses à moins de</span>
-              <input type="number" value={params.groupeRayon} onChange={(e) => setP("groupeRayon", Number(e.target.value) || 0)} className="w-16 border border-gray-300 rounded-md px-2 py-1 text-right" />
-              <span>km les unes des autres, et au moins</span>
-              <input type="number" value={params.groupeMinLoin} onChange={(e) => setP("groupeMinLoin", Number(e.target.value) || 1)} className="w-14 border border-gray-300 rounded-md px-2 py-1 text-right" />
-              <span>au-delà de</span>
-              <input type="number" value={params.rayonLoin} onChange={(e) => setP("rayonLoin", Number(e.target.value) || 0)} className="w-20 border border-gray-300 rounded-md px-2 py-1 text-right" />
-              <span>km.</span>
-            </div>
-            {res.lignes.some((l) => l.tropLoin) && (
-              <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-900">
-                <b>Trop loin pour l'instant ({res.lignes.filter((l) => l.tropLoin).length}) :</b>{" "}
-                {res.lignes
-                  .filter((l) => l.tropLoin)
-                  .sort((a, b) => a.kmDepart - b.kmDepart)
-                  .map((l) => `${l.d.client} (${l.d.ville}, ${km(l.kmDepart)})`)
-                  .join(" · ")}
-                . Ils entreront dans le planning dès qu'il y aura assez de poses dans leur coin.
-              </div>
-            )}
-            {res.nonPlaces.length > 0 && <p className="text-sm text-amber-700">Pas placés (ville introuvable) : {res.nonPlaces.map((l) => `${l.d.client} (${l.d.ville})`).join(", ")}.</p>}
-            {res.tournees.map((t) => {
-              const c = COULEURS[(t.n - 1) % COULEURS.length];
-              const netT = t.marge - t.cout.total;
-              const dormir = t.sejours.filter((s) => s.ville !== "Étape sur la route");
-              const etape = t.sejours.some((s) => s.ville === "Étape sur la route");
-              return (
-                <div key={t.n} className="bg-white border border-gray-200 rounded-2xl overflow-hidden">
-                  <div className="px-5 py-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-gray-100">
-                    <span className="w-3 h-3 rounded-full" style={{ background: c }} />
-                    <span className="text-lg font-extrabold text-gray-900">Semaine {t.n}</span>
-                    <span className="text-sm text-gray-500">
-                      {jourFr(t.debut)} → {jourFr(t.fin)}
-                    </span>
-                    <span className="ml-auto text-sm text-gray-500">
-                      {t.refs.length} pose{t.refs.length > 1 ? "s" : ""} · coût {eur(t.cout.total)} ·{" "}
-                      <b className={netT >= 0 ? "text-emerald-700" : "text-red-600"}>reste {eur(netT)}</b>
-                    </span>
-                  </div>
-                  <div className="p-3 sm:p-4 grid gap-2" style={mobile ? undefined : { gridTemplateColumns: `repeat(${Math.min(t.jours.length, 7)}, minmax(0, 1fr))` }}>
-                    {t.jours.map((j, i) => {
-                      const lig = j.ref ? res.lignes.find((l) => l.d.ref === j.ref) : undefined;
-                      const sej = t.sejours.find((s) => j.nuit && s.ville === j.nuit && s.debut <= j.date);
-                      const style =
-                        j.type === "pose" ? "bg-emerald-50 border-emerald-200" : j.type === "route" ? "bg-amber-50 border-amber-200" : "bg-gray-50 border-gray-200";
-                      return (
-                        <div key={i} className={`rounded-xl border p-3 flex flex-col ${mobile ? "" : "min-h-[132px]"} ${style}`}>
-                          <p className="text-xs font-bold text-gray-500 uppercase">{jourFr(j.date)}</p>
-                          {j.type === "pose" ? (
-                            <>
-                              <p className="mt-1.5 text-sm font-extrabold text-gray-900 leading-tight">🔧 {lig?.d.client ?? ""}</p>
-                              <p className="text-xs text-gray-600 mt-0.5">
-                                {lig?.d.ville}
-                                {lig && lig.jours > 1 ? ` · ${j.texte.includes("jour 2") ? "2e jour" : "1er jour"}` : ""}
-                              </p>
-                            </>
-                          ) : j.type === "route" ? (
-                            <>
-                              <p className="mt-1.5 text-sm font-extrabold text-gray-900 leading-tight">🚐 Route</p>
-                              <p className="text-xs text-gray-600 mt-0.5">
-                                {j.texte.replace(/^Route |^Retour /, "")} · {j.heures.toFixed(0)} h
-                              </p>
-                            </>
-                          ) : (
-                            <p className="mt-1.5 text-sm font-bold text-gray-500">🛌 Repos</p>
-                          )}
-                          {j.type === "pose" && j.km > 150 && (
-                            <p className="text-[11px] text-amber-700 mt-1">
-                              + {Math.round(j.heures)} h de route le soir{j.texte.includes("retour à") ? ` (retour à ${params.depart})` : ""}
-                            </p>
-                          )}
-                          <p className="mt-auto pt-2 text-[11px] text-gray-500">
-                            {j.nuit ? (j.nuit === "Étape sur la route" ? "🛏️ Hôtel d'étape" : `${sej?.type === "airbnb" ? "🏠 Airbnb" : "🏨 Hôtel"} · ${j.nuit}`) : "🏡 Maison"}
-                          </p>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="px-5 pb-4 text-sm text-gray-600">
-                    <b className="text-gray-800">À réserver :</b>{" "}
-                    {dormir.length
-                      ? dormir.map((s) => `${s.type === "airbnb" ? "Airbnb" : "hôtel"} à ${s.ville} (${s.nuits} nuit${s.nuits > 1 ? "s" : ""})`).join(" · ")
-                      : "rien"}
-                    {etape ? " · un hôtel d'étape sur l'autoroute" : ""}
-                  </div>
                 </div>
-              );
-            })}
+              </details>
+            </aside>
           </div>
 
           {/* Les dossiers */}
