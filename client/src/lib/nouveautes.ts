@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-bareme-ecran",
+    date: "2026-11-27",
+    emoji: "📊",
+    titre: "Barème : tout sur un seul écran",
+    points: [
+      "Un seul tableau à la fois : choisissez « En Île-de-France » ou « Hors Île-de-France » avec le gros bouton en haut à droite.",
+      "Le nombre de personnes se choisit en un clic (1 à 8), et le profil du client s'affiche dès que vous tapez son revenu fiscal.",
+    ],
+  },
+  {
     id: "2026-11-27-praimy-a-faire",
     date: "2026-11-27",
     emoji: "📋",
