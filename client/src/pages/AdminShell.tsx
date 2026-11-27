@@ -72,7 +72,8 @@ export type AdminPage =
   | "planning"
   | "bets"
   | "loan"
-  | "pacarchive";
+  | "pacarchive"
+  | "activite";
 
 export const PAGE_TITLES: Record<AdminPage, string> = {
   leads: "Pac Pac",
@@ -94,6 +95,7 @@ export const PAGE_TITLES: Record<AdminPage, string> = {
   bets: "Dossiers BETS",
   loan: "Tournées Loan",
   pacarchive: "Les archives de Pac Pac",
+  activite: "Activité de l'équipe",
 };
 
 const PAGES = Object.keys(PAGE_TITLES) as AdminPage[];
@@ -208,7 +210,7 @@ const SidebarBody = ({
 }) => (
   <div className="flex flex-col h-full">
     <div className="flex-1 min-h-0">
-      <AdminSidebar config={config} save={save} activeId={activeId} onSelect={onSelect} onOverlay={onOverlay} compact={compact} onManage={onManage} hiddenPages={[...(TOTALS_VIEWERS.includes(email.toLowerCase()) ? [] : ["marges", "loan"]), ...(NEWS_VIEWERS.includes(email.toLowerCase()) ? [] : ["actus", "planning"]), ...(RENTA_VIEWERS.includes(email.toLowerCase()) ? [] : ["renta"]), ...(STATS_VIEWERS.includes(email.toLowerCase()) ? [] : ["stats"])]} />
+      <AdminSidebar config={config} save={save} activeId={activeId} onSelect={onSelect} onOverlay={onOverlay} compact={compact} onManage={onManage} hiddenPages={[...(TOTALS_VIEWERS.includes(email.toLowerCase()) ? [] : ["marges", "loan"]), ...(NEWS_VIEWERS.includes(email.toLowerCase()) ? [] : ["actus", "planning"]), ...(RENTA_VIEWERS.includes(email.toLowerCase()) ? [] : ["renta"]), ...(STATS_VIEWERS.includes(email.toLowerCase()) ? [] : ["stats"]), ...(email.toLowerCase() === "jonassitbon8@gmail.com" ? [] : ["activite"])]} />
     </div>
     {error && !compact && <p className="px-3 py-1 text-[11px] text-red-600">{error}</p>}
     <div className="border-t border-gray-100 p-2 space-y-0.5">
@@ -303,6 +305,10 @@ export default function AdminShell({
     return () => document.documentElement.classList.remove("crm-v2");
   }, []);
   const [drawer, setDrawer] = useState(false);
+  // Activité de l'équipe : on note la page affichée (temps passé par page).
+  useEffect(() => {
+    import("@/lib/activite").then(({ activitePage }) => activitePage(activeItem?.kind === "view" ? "tableau" : page)).catch(() => {});
+  }, [page, activeItem?.id]);
   // La bulle « menu » devient plus transparente dès qu'on descend dans la page.
   const [defile, setDefile] = useState(false);
   useEffect(() => {

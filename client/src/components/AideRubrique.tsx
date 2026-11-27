@@ -75,6 +75,10 @@ const TEXTES: Record<string, { titre: string; lignes: string[] }> = {
     titre: "Clients (copie Monday)",
     lignes: ["La copie des clients de Monday, en lecture seule."],
   },
+  activite: {
+    titre: "Activité de l'équipe",
+    lignes: ["Qui se connecte au CRM, combien de temps, sur ordinateur ou téléphone, sur quelles pages, et combien d'actions sur les fiches.", "Visible seulement par Jonas."],
+  },
   equipe: {
     titre: "Équipe",
     lignes: ["Qui a accès au CRM, et ce que chacun voit et peut faire."],

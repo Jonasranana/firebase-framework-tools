@@ -43,6 +43,7 @@ const DossiersBets = lazy(() => import("./DossiersBets"));
 const TourneesLoan = lazy(() => import("./TourneesLoan"));
 const SimulateurMarge = lazy(() => import("./SimulateurMarge"));
 const PacPacArchive = lazy(() => import("./PacPacArchive"));
+const ActiviteEquipe = lazy(() => import("./ActiviteEquipe"));
 const ActusCRM = lazy(() => import("./ActusCRM"));
 import Nouveautes from "@/components/Nouveautes";
 
@@ -909,6 +910,7 @@ export default function OutilDevis() {
           // Prépare tout de suite la base du CRM (cache local) pour que les
           // tableaux s'affichent sans attendre.
           import("@/lib/crmDb").then((m) => m.crmFirestore()).catch(() => {});
+          import("@/lib/activite").then(({ demarrerActivite }) => demarrerActivite(mail)).catch(() => {});
           import("@/lib/chrono").then(({ chrono }) => {
             chrono.utilisateur(mail);
             chrono.depuisOuverture("connexion");
@@ -1016,6 +1018,12 @@ export default function OutilDevis() {
             <TourneesLoan email={email} />
           ) : (
             <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>
+          ))}
+        {p === "activite" &&
+          (email.toLowerCase() === "jonassitbon8@gmail.com" ? (
+            <ActiviteEquipe />
+          ) : (
+            <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée à Jonas.</p>
           ))}
         {p === "pacarchive" && (
           <PacPacArchive

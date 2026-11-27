@@ -27,7 +27,8 @@ export type AdminPageKey =
   | "planning"
   | "bets"
   | "loan"
-  | "pacarchive";
+  | "pacarchive"
+  | "activite";
 
 // Définition d'un tableau « vue » : un tableau de leads avec ses propres
 // filtres, tri, groupement et colonnes (enregistrés dans le tableau).
@@ -81,7 +82,7 @@ export const DEFAULT_SIDEBAR: SideConfig = {
       id: "f_tableau",
       title: "Tableau IP5",
       color: "#579bfc",
-      items: [item("leads", "Pac Pac"), item("pacarchive", "Les archives de Pac Pac"), item("artisans", "Artisans")],
+      items: [item("leads", "Pac Pac"), item("pacarchive", "Les archives de Pac Pac"), item("artisans", "Artisans"), item("activite", "Activité de l'équipe")],
     },
     {
       id: "f_crm",

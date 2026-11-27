@@ -12,6 +12,8 @@ type Mesure = { n: string; ms: number; x?: string | number };
 let file: Mesure[] = [];
 let email = "";
 let gels = { nb: 0, ms: 0 };
+// L'onglet a-t-il été caché depuis l'ouverture ? (Chrome ralentit les onglets en arrière-plan : mesure à part.)
+let ongletCache = typeof document !== "undefined" && document.visibilityState === "hidden";
 const debuts = new Map<string, number>();
 const dejaFait = new Set<string>();
 
@@ -23,7 +25,7 @@ export const chrono = {
   depuisOuverture(n: string, x?: string | number) {
     if (!ACTIF || dejaFait.has(n)) return;
     dejaFait.add(n);
-    chrono.noter(n, performance.now(), x);
+    chrono.noter(ongletCache ? `${n} (onglet caché)` : n, performance.now(), x);
   },
   debut(n: string) {
     if (ACTIF) debuts.set(n, performance.now());
@@ -123,5 +125,10 @@ if (ACTIF && typeof window !== "undefined") {
     { capture: true, passive: true },
   );
   setInterval(envoyer, 90_000);
-  addEventListener("visibilitychange", () => document.visibilityState === "hidden" && envoyer());
+  addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") {
+      ongletCache = true;
+      envoyer();
+    }
+  });
 }

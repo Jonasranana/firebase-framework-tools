@@ -12,6 +12,7 @@ let dbPromise: Promise<{ m: typeof import("firebase/firestore"); db: any }> | nu
 export function crmFirestore() {
   if (!dbPromise) {
     dbPromise = (async () => {
+      const t0 = performance.now();
       const app = await getEspaceProApp();
       const m = await import("firebase/firestore");
       let db: any;
@@ -25,6 +26,9 @@ export function crmFirestore() {
         // Déjà initialisé ailleurs (ou cache indisponible) : instance existante.
         db = m.getFirestore(app);
       }
+      // Chronomètre invisible : temps pour préparer l'accès à la base (chargé à part pour éviter une boucle d'imports).
+      const ms = performance.now() - t0;
+      import("@/lib/chrono").then(({ chrono }) => chrono.noter("base-prete", ms)).catch(() => {});
       return { m, db };
     })();
   }
