@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-recherche-bets",
+    date: "2026-11-27",
+    emoji: "🔎",
+    titre: "Recherche toujours visible + groupe BETS",
+    points: [
+      "Dans Pac Pac, la barre de recherche est toujours ouverte et bien visible en haut. Astuce : la touche « / » vous met directement dedans.",
+      "Les boutons « Réduire tous les groupes » et « Développer tout » sont retirés.",
+      "Dans le menu de gauche, « Dossiers BETS » a son propre groupe « BETS ».",
+    ],
+  },
+  {
     id: "2026-11-27-praimy-simple",
     date: "2026-11-27",
     emoji: "🧹",

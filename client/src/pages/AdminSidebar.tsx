@@ -27,7 +27,7 @@ import { allItems, newId, type AdminPageKey, type SideConfig, type SideFolder, t
 
 // ─────────────────────────────────────────────────────────────────────────
 // Menu de gauche, pensé pour la PAC : des groupes fixes, rangés selon l'usage
-// (Tableau, PRAIMY, Loan · Chantiers, Pub & aides, LED), et en bas « Paramètres »
+// (Tableau, BETS, PRAIMY, Loan · Chantiers, Rentabilité, LED), et en bas « Paramètres »
 // (documents, corbeille, archives…). On ne crée plus de tableaux partout :
 // seul le bouton du haut « Nouveau groupe » crée un groupe avec son tableau
 // (comme Pac Pac). La configuration reste partagée (crm_boards/sidebar) :
@@ -58,7 +58,8 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
 
 // Groupes fixes du menu, dans l'ordre d'usage.
 const GROUPES: { id: string; titre: string; couleur: string; pages: AdminPageKey[] }[] = [
-  { id: "g_tableau", titre: "Tableau", couleur: "#1f4b7f", pages: ["leads", "bets"] },
+  { id: "g_tableau", titre: "Tableau", couleur: "#1f4b7f", pages: ["leads"] },
+  { id: "g_bets", titre: "BETS", couleur: "#4f46e5", pages: ["bets"] },
   { id: "g_praimy", titre: "PRAIMY", couleur: "#7c3aed", pages: ["praimy", "marges", "bareme"] },
   { id: "g_loan", titre: "Loan · Chantiers", couleur: "#0891b2", pages: ["planning", "loan"] },
   { id: "g_renta", titre: "Rentabilité", couleur: "#db2777", pages: ["renta", "stats"] },
