@@ -19,6 +19,14 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-marge-un-ecran",
+    date: "2026-11-27",
+    emoji: "🧮",
+    titre: "Simulateur de marge sur un seul écran",
+    pour: ["jonassitbon8@gmail.com", "alexis.sitbon@gmail.com", "contact@ip5energie.com"],
+    points: ["Réglages à gauche, chiffres clés et tableau à droite : tout se voit sans descendre. Les profils sont en couleur et chaque marge est dans une pastille verte (rouge si négative)."],
+  },
+  {
     id: "2026-11-27-praimy-tableau",
     date: "2026-11-27",
     emoji: "🏗️",
