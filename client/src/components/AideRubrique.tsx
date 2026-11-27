@@ -23,8 +23,8 @@ const TEXTES: Record<string, { titre: string; lignes: string[] }> = {
     lignes: ["Les clients envoyés chez BETS, notre installateur partenaire : de l'envoi du dossier jusqu'à la pose."],
   },
   stats: {
-    titre: "Statistiques",
-    lignes: ["Combien de leads arrivent, d'où ils viennent, combien on rappelle et combien signent.", "Choisissez la période en haut de la page."],
+    titre: "Équipe & leads",
+    lignes: ["Combien de leads arrivent, à quelle vitesse on les rappelle, combien avancent, et qui a quoi dans son portefeuille.", "Le reste (profil des leads, horaires…) est dans « Voir plus de détails », en bas."],
   },
   praimy: {
     titre: "Dossiers PRAIMY",
@@ -47,8 +47,8 @@ const TEXTES: Record<string, { titre: string; lignes: string[] }> = {
     lignes: ["Importez le fichier Excel des dossiers : le CRM organise les poses semaine par semaine, avec la route, les nuits et ce qu'il nous reste."],
   },
   renta: {
-    titre: "Rentabilité Meta",
-    lignes: ["Ce que rapporte la pub Facebook / Instagram : argent dépensé, leads reçus, clients signés et bénéfice."],
+    titre: "Pub Meta",
+    lignes: ["Ce que rapporte la pub Facebook / Instagram : argent dépensé, clients signés et bénéfice.", "Plus bas : quelle annonce marche, et où les visiteurs quittent le formulaire du site."],
   },
   actus: {
     titre: "Actualités des aides",

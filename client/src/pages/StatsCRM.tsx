@@ -808,7 +808,13 @@ export default function StatsCRM({ email = "" }: { email?: string }) {
         )}
       </Card>
 
-      {/* Qui sont les leads */}
+      {/* Le reste (profil des leads, horaires, chiffre attendu, artisans) : rangé dans « Voir plus de détails ». */}
+      <details className="group rounded-2xl border border-gray-200 bg-white/60 [&_summary::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer select-none list-none flex items-center justify-between gap-2 px-4 py-3 text-sm font-bold text-[#1f4b7f]">
+          <span>Voir plus de détails <span className="font-normal text-gray-500">· profil des leads, horaires, chiffre attendu, artisans</span></span>
+          <span className="transition-transform group-open:rotate-180">⌄</span>
+        </summary>
+        <div className="space-y-4 p-4 pt-0">
       <div className="grid lg:grid-cols-2 gap-4 [&>*]:min-w-0">
         <Card title="Tranche de revenus" hint={`${profile.renseignes} sur ${f.recus} renseignées`}>
           <BarList rows={profile.tranche} total={profile.renseignes} empty="Tranche non renseignée sur la période." />
@@ -857,6 +863,8 @@ export default function StatsCRM({ email = "" }: { email?: string }) {
       <Card title="Artisans par étape">
         <BarList rows={artisanStats.byStatus} empty="Aucun artisan dans le CRM." />
       </Card>
+        </div>
+      </details>
 
       <p className="text-xs text-gray-400">
         Les étapes sont celles d'aujourd'hui : le CRM ne conserve pas la date de chaque changement de statut. Les pourcentages « vs avant » comparent à la période
