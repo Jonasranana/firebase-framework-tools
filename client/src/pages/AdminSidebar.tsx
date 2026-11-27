@@ -1,5 +1,6 @@
 import { useState } from "react";
 import {
+  Activity,
   Archive,
   BarChart3,
   CalendarDays,
@@ -52,6 +53,7 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
   bets: FileCheck2,
   loan: Truck,
   pacarchive: Archive,
+  activite: Activity,
 };
 
 // Groupes fixes du menu, dans l'ordre d'usage.
@@ -64,7 +66,7 @@ const GROUPES: { id: string; titre: string; couleur: string; pages: AdminPageKey
   { id: "g_led", titre: "LED", couleur: "#eab308", pages: [] },
 ];
 // Rangé dans « Paramètres » (en bas à gauche).
-const PARAMETRES: AdminPageKey[] = ["actus", "documents", "corbeille", "pacarchive", "archives", "clients", "gonflage", "artisans"];
+const PARAMETRES: AdminPageKey[] = ["activite", "actus", "documents", "corbeille", "pacarchive", "archives", "clients", "gonflage", "artisans"];
 const COULEURS_GROUPES = ["#0ea5e9", "#6366f1", "#c026d3", "#0e7490", "#475569"]; // jamais vert, ambre ni rouge (réservés aux statuts)
 
 const POP = "bg-white text-gray-900 border border-gray-200 shadow-xl";

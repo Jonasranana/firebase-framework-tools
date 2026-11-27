@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-activite-equipe",
+    date: "2026-11-27",
+    emoji: "👀",
+    titre: "Activité de l'équipe (pour vous seulement)",
+    pour: ["jonassitbon8@gmail.com"],
+    points: [
+      "Dans Paramètres → « Activité de l'équipe » : qui se connecte, combien de temps, sur ordinateur ou téléphone, sur quelles pages, et combien d'actions sur les fiches.",
+      "Le temps et les connexions comptent à partir d'aujourd'hui ; personne d'autre ne voit cette page.",
+    ],
+  },
+  {
     id: "2026-11-27-equipe-chiffres",
     date: "2026-11-27",
     emoji: "📞",

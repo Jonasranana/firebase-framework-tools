@@ -35,6 +35,8 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
     try {
       const { m, db } = await crmFirestore();
       if (!listeners.size) return; // plus personne n'écoute entre-temps
+      const tEcoute = performance.now();
+      let premiereReponse = true;
       // Affichage tout de suite : si la liste complète tarde (téléphone sans cache), on montre d'abord
       // les « premiers » documents les plus récents, puis tout le reste dès qu'il arrive.
       let complet = false;
@@ -64,6 +66,11 @@ function createStore<T>(collectionName: string, map: (id: string, d: Record<stri
             return item;
           });
           cache = next;
+          if (premiereReponse && collectionName === CRM_LEADS_COLLECTION) {
+            // Chronomètre : temps entre le début de l'écoute et la 1re réponse (depuis la mémoire de l'appareil ou le serveur).
+            premiereReponse = false;
+            chrono.noter("ecoute-reponse", performance.now() - tEcoute, snap.metadata.fromCache ? "memoire" : "serveur");
+          }
           if (!complet) {
             complet = true;
             stopPartiel?.();
