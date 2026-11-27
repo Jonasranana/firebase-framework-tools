@@ -27,9 +27,10 @@ const TEXTES: Record<string, { titre: string; lignes: string[] }> = {
     lignes: ["Combien de leads arrivent, à quelle vitesse on les rappelle, combien avancent, et qui a quoi dans son portefeuille.", "Le reste (profil des leads, horaires…) est dans « Voir plus de détails », en bas."],
   },
   praimy: {
-    titre: "Dossiers PRAIMY",
-    lignes: ["Les dossiers chez PRAIMY, à jour avec leur plateforme : étape, reste à charge du client, et ce qu'ils attendent de nous (en rouge)."],
+    titre: "Nos clients PRAIMY",
+    lignes: ["Les clients signés chez PRAIMY. Pour chacun : où on en est (les 8 points d'avancement, cliquez quand une étape est faite), la prochaine action, les dates.", "En rouge : ce que PRAIMY attend de nous."],
   },
+
   marges: {
     titre: "Simulateur de marge",
     lignes: ["Choisissez la zone et le profil du client : le simulateur calcule ce qu'il nous reste après le matériel, la pose et les primes."],

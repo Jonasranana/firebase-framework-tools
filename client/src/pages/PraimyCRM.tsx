@@ -7,7 +7,6 @@ import {
   FileCheck2,
   Calendar,
   Euro,
-  User,
   MapPin,
   Clock,
   ShieldAlert,
@@ -18,7 +17,6 @@ import {
 } from "lucide-react";
 import { getEspaceProApp } from "@/lib/espacePro";
 import BrandLoader from "@/components/BrandLoader";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLeads } from "@/lib/crmStore";
 import { crmFirestore } from "@/lib/crmDb";
 import type { Lead } from "@/lib/crm";
@@ -97,22 +95,23 @@ const relance = (iso: string) => {
 
 const frCourt = (iso: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }) : "");
 
-// « Notre suivi » : plusieurs étiquettes possibles en même temps, cochées / décochées dans la liste.
-function SuiviCell({ lead, email }: { lead: Lead | null; email: string }) {
-  const [busy, setBusy] = useState(false);
-  const [err, setErr] = useState("");
+// « Avancement » : nos 8 étapes en points reliés. Un clic coche / décoche l'étape (enregistré sur la fiche + trace dans la discussion).
+const COURT = ["Propal", "Signée", "MPR à faire", "MPR faite", "VT à caler", "VT calée", "Pose calée", "Installé"];
+function Avancement({ lead, email }: { lead: Lead | null; email: string }) {
+  const [busy, setBusy] = useState("");
   if (!lead)
     return (
-      <span className="text-[11px] text-gray-400" title="Renseignez la colonne « Réf Praimy » de ce client dans Pac Pac pour le relier">
+      <span className="text-[11px] text-gray-400" title="Renseignez « Réf Praimy » sur la fiche de ce client dans Pac Pac pour le relier">
         Fiche CRM non reliée
       </span>
     );
   const tags = suiviOf(lead);
+  const fait = SUIVI.map((o) => tags.includes(o.key));
+  const dernier = fait.lastIndexOf(true);
   const toggle = async (key: string) => {
     const on = tags.includes(key);
     const next = SUIVI.map((o) => o.key).filter((k) => (k === key ? !on : tags.includes(k)));
-    setBusy(true);
-    setErr("");
+    setBusy(key);
     try {
       const { m, db } = await crmFirestore();
       await m.updateDoc(m.doc(db, "crm_leads", lead.id), {
@@ -122,7 +121,7 @@ function SuiviCell({ lead, email }: { lead: Lead | null; email: string }) {
         updatedBy: email,
         notes: m.arrayUnion({
           id: Math.random().toString(36).slice(2, 12),
-          text: `Suivi Praimy : ${on ? "retiré" : "ajouté"} « ${suiviLabel(key)} »`,
+          text: `Suivi Praimy : ${on ? "retiré" : "fait"} « ${suiviLabel(key)} »`,
           by: email,
           at: new Date().toISOString(),
           kind: "statut",
@@ -130,43 +129,34 @@ function SuiviCell({ lead, email }: { lead: Lead | null; email: string }) {
       });
     } catch (e) {
       console.error(e);
-      setErr("Échec de l'enregistrement, réessayez.");
     } finally {
-      setBusy(false);
+      setBusy("");
     }
   };
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button className="flex flex-wrap gap-1 min-w-[150px] max-w-[230px] text-left rounded-md p-1 -m-1 hover:bg-gray-100" title="Cliquer pour cocher / décocher nos étapes">
-          {tags.length === 0 && <span className="text-[11px] text-gray-400 border border-dashed border-gray-300 rounded-full px-2 py-0.5">+ Ajouter</span>}
-          {tags.map((k) => {
-            const o = SUIVI.find((x) => x.key === k)!;
-            return (
-              <span key={k} className="text-[11px] font-semibold text-white rounded-full px-2 py-0.5 whitespace-nowrap" style={{ background: o.hex }}>
-                {o.label}
-              </span>
-            );
-          })}
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="start" className="w-64 p-1.5 bg-white text-gray-900 border border-gray-200 shadow-xl">
-        <p className="text-[11px] font-bold text-gray-500 px-2 py-1">Notre suivi · {lead.name}</p>
-        {SUIVI.map((o) => {
-          const on = tags.includes(o.key);
-          return (
-            <button key={o.key} disabled={busy} onClick={() => toggle(o.key)} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-gray-100 disabled:opacity-50">
-              <span className={`h-4 w-4 rounded border flex items-center justify-center ${on ? "border-transparent" : "border-gray-300"}`} style={on ? { background: o.hex } : {}}>
-                {on && <Check size={12} className="text-white" />}
-              </span>
-              <span className="h-2.5 w-2.5 rounded-full" style={{ background: o.hex }} />
-              {o.label}
+    <div className="min-w-[230px]">
+      <div className="flex items-center">
+        {SUIVI.map((o, i) => (
+          <Fragment key={o.key}>
+            {i > 0 && <span className={`h-[3px] flex-1 min-w-[6px] ${fait[i] && fait[i - 1] ? "bg-[#1f4b7f]" : "bg-gray-200"}`} />}
+            <button
+              onClick={() => toggle(o.key)}
+              disabled={!!busy}
+              title={`${o.label} : ${fait[i] ? "fait (cliquer pour annuler)" : "cliquer quand c'est fait"}`}
+              className={`h-[22px] w-[22px] shrink-0 rounded-full text-[10px] font-bold flex items-center justify-center transition hover:scale-110 disabled:opacity-60 ${
+                fait[i] ? "text-white shadow-sm" : "bg-white text-gray-400 border-2 border-gray-200 hover:border-[#1f4b7f] hover:text-[#1f4b7f]"
+              } ${busy === o.key ? "animate-pulse" : ""}`}
+              style={fait[i] ? { background: i === SUIVI.length - 1 ? "#059669" : "linear-gradient(135deg,#2b5a8f,#173a5e)" } : undefined}
+            >
+              {fait[i] ? <Check size={12} strokeWidth={3} /> : i + 1}
             </button>
-          );
-        })}
-        {err && <p className="text-xs text-red-600 px-2 pt-1">{err}</p>}
-      </PopoverContent>
-    </Popover>
+          </Fragment>
+        ))}
+      </div>
+      <p className="mt-1 text-[11px] text-gray-500 truncate">
+        {dernier < 0 ? "Rien de coché pour l'instant" : `Dernière étape : ${COURT[dernier]}`}
+      </p>
+    </div>
   );
 }
 
@@ -259,329 +249,247 @@ export default function PraimyCRM({ email }: { email: string }) {
     return { total, signes, signatures, devis, urgents, bySteps, autres };
   }, [dossiers]);
 
+  const attente = dossiers.filter((d) => d.awaiting_me).length;
+  const liste = filterStatut === "__attente" ? filtered.filter((d) => d.awaiting_me) : filtered;
+
   return (
-    <div className="p-6 max-w-[1900px] mx-auto space-y-6">
-      {/* En-tête */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-200">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Dossiers PRAIMY</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-[#0f2b4a] border border-blue-200">
-              API Directe Live
-            </span>
-          </div>
-          <p className="text-sm text-gray-500 mt-1">
-            Synchronisation en direct avec la plateforme PRAIMY pour IP5 Conseils.
-          </p>
+    <div className="max-w-[1900px] mx-auto space-y-3">
+      {/* En-tête compact : titre, recherche, actions */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="mr-auto">
+          <h1 className="text-xl font-extrabold text-gray-900 tracking-tight">Nos clients PRAIMY</h1>
+          <p className="text-xs text-gray-500">Les clients signés chez PRAIMY : on fait avancer chaque projet jusqu'à l'installation.</p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={syncToPacPac}
-            disabled={syncing || loading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold text-emerald-800 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 shadow-sm transition disabled:opacity-50"
-          >
-            <RefreshCw size={15} className={syncing ? "animate-spin text-emerald-700" : ""} />
-            {syncResult ? syncResult : "Synchroniser avec Pac Pac"}
-          </button>
-          <button
-            onClick={() => loadDossiers(true)}
-            disabled={loading || refreshing}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 shadow-sm transition disabled:opacity-50"
-          >
-            <RefreshCw size={15} className={refreshing ? "animate-spin text-[#0073ea]" : ""} />
-            Actualiser
-          </button>
-          <a
-            href="https://portail.praimy.fr"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-white bg-[#0f2b4a] rounded-lg hover:bg-[#1a3d66] shadow-sm transition"
-          >
-            Ouvrir Portail Praimy
-            <ExternalLink size={14} />
-          </a>
-        </div>
-      </div>
-
-      {/* Parcours : les étapes Praimy dans l'ordre, de gauche (début) à droite (fin). Clic = filtrer. */}
-      <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
-        <div className="flex items-center justify-between mb-2">
-          <p className="text-sm font-extrabold text-gray-800">
-            🚀 Parcours des dossiers <span className="font-semibold text-gray-400">· {stats.total} au total</span>
-          </p>
-          {stats.urgents > 0 && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold text-rose-600">
-              <Flame size={13} /> {stats.urgents} urgent{stats.urgents > 1 ? "s" : ""}
-            </span>
-          )}
-        </div>
-        <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${STEPS.length}, minmax(0, 1fr))` }}>
-          {stats.bySteps.map((st, i) => {
-            const active = filterStatut === st.key;
-            const last = i === STEPS.length - 1;
-            return (
-              <button
-                key={st.key}
-                onClick={() => setFilterStatut(active ? "all" : st.key)}
-                title={active ? "Voir tous les dossiers" : `Voir seulement « ${formatStatus(st.key).label} »`}
-                className={`text-left text-white py-2 transition ${active ? "ring-2 ring-offset-1 ring-gray-800" : "hover:brightness-110"} ${st.count ? "" : "opacity-50"}`}
-                style={{
-                  background: st.color,
-                  paddingLeft: i === 0 ? 12 : 20,
-                  paddingRight: 16,
-                  borderRadius: i === 0 ? "10px 0 0 10px" : last ? "0 10px 10px 0" : 0,
-                  clipPath: last
-                    ? "polygon(0 0,100% 0,100% 100%,0 100%,10px 50%)"
-                    : i === 0
-                      ? "polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)"
-                      : "polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%,10px 50%)",
-                }}
-              >
-                <span className="block text-[11px] font-bold truncate">
-                  {i + 1}. {formatStatus(st.key).label}
-                </span>
-                <span className="block text-lg font-black leading-tight">{st.count}</span>
-              </button>
-            );
-          })}
-        </div>
-        {stats.autres > 0 && <p className="mt-2 text-xs text-gray-500">+ {stats.autres} dossier(s) avec un autre statut (affichés en fin de liste).</p>}
-      </div>
-
-      {/* Barre de recherche et filtres */}
-      <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
-        <div className="relative flex-1 max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+        <div className="relative w-full sm:w-64">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
             type="text"
-            placeholder="Rechercher par client, ville ou référence..."
+            placeholder="Client, ville ou référence…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0073ea] focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-gray-200 rounded-xl focus:outline-none focus:border-[#1f4b7f]"
           />
         </div>
-
-        <div className="flex items-center gap-2">
-          <select
-            value={filterStatut}
-            onChange={(e) => setFilterStatut(e.target.value)}
-            className="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0073ea]"
-          >
-            <option value="all">Tous les statuts</option>
-            {STEPS.map((st, i) => (
-              <option key={st.key} value={st.key}>
-                {i + 1}. {formatStatus(st.key).label}
-              </option>
-            ))}
-          </select>
-        </div>
+        <button
+          onClick={syncToPacPac}
+          disabled={syncing || loading}
+          title="Recopier les étapes PRAIMY dans Pac Pac"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-[#1f4b7f] bg-[#edf2f8] rounded-xl hover:bg-[#dde6f1] transition disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
+          {syncResult ? syncResult : "Synchro Pac Pac"}
+        </button>
+        <button
+          onClick={() => loadDossiers(true)}
+          disabled={loading || refreshing}
+          title="Recharger depuis PRAIMY"
+          className="inline-flex items-center justify-center w-9 h-9 text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
+        >
+          <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+        </button>
+        <a
+          href="https://portail.praimy.fr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-white rounded-xl shadow-sm transition hover:brightness-110"
+          style={{ background: "var(--brand-grad-120)" }}
+        >
+          Portail PRAIMY <ExternalLink size={13} />
+        </a>
       </div>
 
-      {/* Affichage état de chargement ou erreur */}
+      {/* Parcours compact : une pastille par étape PRAIMY (clic = filtrer) + ce que PRAIMY attend de nous */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+        <button
+          onClick={() => setFilterStatut("all")}
+          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${filterStatut === "all" ? "text-white shadow-sm" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
+          style={filterStatut === "all" ? { background: "var(--brand-grad-120)" } : undefined}
+        >
+          Tous · {stats.total}
+        </button>
+        {attente > 0 && (
+          <button
+            onClick={() => setFilterStatut(filterStatut === "__attente" ? "all" : "__attente")}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold border transition ${filterStatut === "__attente" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-red-50 text-[#b91c1c] border-red-200 hover:bg-red-100"}`}
+            title="Dossiers où PRAIMY attend une action de notre part"
+          >
+            ⚠️ PRAIMY attend de nous · {attente}
+          </button>
+        )}
+        <span className="shrink-0 w-px h-5 bg-gray-200 mx-1" />
+        {stats.bySteps.map((st, i) => {
+          const active = filterStatut === st.key;
+          return (
+            <button
+              key={st.key}
+              onClick={() => setFilterStatut(active ? "all" : st.key)}
+              disabled={!st.count && !active}
+              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition disabled:opacity-40 ${active ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
+            >
+              <span className="w-2 h-2 rounded-full" style={{ background: st.color }} />
+              {i + 1}. {formatStatus(st.key).label}
+              <span className={`font-extrabold ${active ? "text-white" : "text-gray-900"}`}>{st.count}</span>
+            </button>
+          );
+        })}
+        {stats.urgents > 0 && (
+          <span className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-[#dc2626] ml-1">
+            <Flame size={13} /> {stats.urgents} urgent{stats.urgents > 1 ? "s" : ""}
+          </span>
+        )}
+      </div>
+
+      <p className="text-[11px] text-gray-500">
+        <b className="text-gray-700">Avancement :</b> cliquez sur un point quand l'étape est faite —{" "}
+        {COURT.map((c, i) => `${i + 1} ${c}`).join(" · ")}
+      </p>
+
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center">
           <BrandLoader />
-          <p className="text-sm text-gray-500 mt-4">Connexion à Praimy en cours...</p>
+          <p className="text-sm text-gray-500 mt-4">Connexion à PRAIMY…</p>
         </div>
       ) : error ? (
         <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 flex items-start gap-3">
           <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
           <div>
-            <p className="font-semibold text-sm">Erreur lors de la synchronisation Praimy</p>
+            <p className="font-semibold text-sm">Erreur avec PRAIMY</p>
             <p className="text-xs mt-1 text-red-600">{error}</p>
-            <button
-              onClick={() => loadDossiers()}
-              className="mt-2 text-xs font-semibold text-red-800 underline hover:no-underline"
-            >
+            <button onClick={() => loadDossiers()} className="mt-2 text-xs font-semibold text-red-800 underline hover:no-underline">
               Réessayer
             </button>
           </div>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-300 rounded-xl p-12 text-center text-gray-500">
+      ) : liste.length === 0 ? (
+        <div className="bg-white border border-dashed border-gray-300 rounded-2xl p-12 text-center text-gray-500">
           <FileCheck2 size={32} className="mx-auto mb-2 text-gray-400" />
-          <p className="font-medium text-sm">Aucun dossier trouvé</p>
-          <p className="text-xs text-gray-400 mt-1">Modifiez vos critères de recherche ou vos filtres.</p>
+          <p className="font-medium text-sm">Aucun dossier</p>
         </div>
       ) : (
-        /* Tableau des dossiers */
-        <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
-              <thead>
-                <tr className="bg-gray-50/80 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  <th className="py-3 px-4">Client</th>
-                  <th className="py-3 px-4">Téléphone</th>
-                  <th className="py-3 px-4">Étape Praimy</th>
-                  <th className="py-3 px-4">À faire chez Praimy</th>
-                  <th className="py-3 px-4">Notre suivi</th>
-                  <th className="py-3 px-4">Prochaine étape (nous)</th>
-                  <th className="py-3 px-4">Pré-visite</th>
-                  <th className="py-3 px-4">Installation</th>
-                  <th className="py-3 px-4">Reste à charge</th>
-                  <th className="py-3 px-4">Ville</th>
-                  <th className="py-3 px-4" title="Vert : moins de 6 jours · orange : 6 à 14 jours · rouge : 15 jours et plus">Dernière action</th>
-                  <th className="py-3 px-4">Référence</th>
-                  <th className="py-3 px-4 text-right">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {filtered.map((d, idx) => {
-                  const badge = formatStatus(d.statut, d.global_status);
-                  const isBlocked = d.is_blocked;
-                  const si = stepIndex(d.statut);
-                  const newStep = idx === 0 || stepIndex(filtered[idx - 1].statut) !== si;
-                  const color = STEPS[si]?.color ?? "#9ca3af";
-                  const lead = matchLead(d.reference, d.client_nom);
-                  const etapes = prochainesEtapes(lead);
-                  const vt = dateVtOf(lead);
-                  const pose = datePoseOf(lead);
-                  return (
-                    <Fragment key={d.id}>
-                      {newStep && (
-                        <tr className="bg-gray-50">
-                          <td colSpan={13} className="py-1.5 px-4">
-                            <span className="inline-flex items-center gap-2 text-xs font-extrabold text-gray-700">
-                              <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
-                              {si < STEPS.length ? `${si + 1}. ${badge.label}` : "Autres statuts"}
-                              <span className="font-semibold text-gray-400">
-                                · {filtered.filter((x) => stepIndex(x.statut) === si).length} dossier(s)
-                              </span>
-                            </span>
-                          </td>
-                        </tr>
-                      )}
-                      <tr className="hover:bg-gray-50/60 transition">
-                        <td className="py-3 px-4">
-                          <div className="font-medium text-gray-900 flex items-center gap-1.5">
-                            {d.is_urgent && (
-                              <span title="Dossier urgent">
-                                <Flame size={14} className="text-rose-500 fill-rose-500" />
-                              </span>
-                            )}
-                            <User size={14} className="text-gray-400" />
-                            {d.client_nom || "Client sans nom"}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-4 text-xs whitespace-nowrap">
-                          {lead?.phone ? (
-                            <a href={`tel:${lead.phone.replace(/\s/g, "")}`} className="inline-flex items-center gap-1 font-semibold text-[#0073ea] hover:underline">
-                              <Phone size={12} /> {lead.phone}
-                            </a>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4">
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${badge.bg} ${badge.text}`}>
-                            {badge.label}
+        /* Tableau des dossiers : prend toute la hauteur, en-tête collé en haut */
+        <div className="bg-white border border-[#e6eaf2] rounded-2xl shadow-sm overflow-auto max-h-[calc(100vh-190px)]">
+          <table className="w-full text-left border-separate border-spacing-0 text-sm">
+            <thead>
+              <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wide [&>th]:sticky [&>th]:top-0 [&>th]:z-10 [&>th]:bg-[#f7f9fc] [&>th]:border-b [&>th]:border-[#e6eaf2] [&>th]:py-2.5 [&>th]:px-3">
+                <th>Client</th>
+                <th>Avancement (nous)</th>
+                <th>Prochaine action</th>
+                <th>Pré-visite</th>
+                <th>Pose</th>
+                <th className="text-right">Reste à charge</th>
+                <th title="Vert : moins de 6 jours · orange : 6 à 14 jours · rouge : 15 jours et plus">Dernière action</th>
+                <th>Étape PRAIMY</th>
+              </tr>
+            </thead>
+            <tbody>
+              {liste.map((d, idx) => {
+                const badge = formatStatus(d.statut, d.global_status);
+                const si = stepIndex(d.statut);
+                const newStep = idx === 0 || stepIndex(liste[idx - 1].statut) !== si;
+                const color = STEPS[si]?.color ?? "#9ca3af";
+                const lead = matchLead(d.reference, d.client_nom);
+                const etapes = prochainesEtapes(lead);
+                const vt = dateVtOf(lead);
+                const pose = datePoseOf(lead);
+                const r = relance(derniereAction(d.updated_at, lead));
+                return (
+                  <Fragment key={d.id}>
+                    {newStep && (
+                      <tr>
+                        <td colSpan={8} className="pt-4 pb-1.5 px-3 border-b border-[#e6eaf2]">
+                          <span className="inline-flex items-center gap-2 text-[13px] font-extrabold" style={{ color }}>
+                            <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+                            {si < STEPS.length ? `${si + 1}. ${badge.label}` : "Autres statuts"}
+                            <span className="font-semibold text-gray-400 text-xs">{liste.filter((x) => stepIndex(x.statut) === si).length} dossier(s)</span>
                           </span>
-                          {isBlocked && (
-                            <span className="ml-1.5 inline-flex items-center text-xs text-rose-600 font-semibold" title="Dossier bloqué">
-                              <ShieldAlert size={13} />
-                            </span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4 text-xs min-w-[150px]">
-                          {d.next_action_label ? (
-                            <span className={`font-medium ${d.awaiting_me ? "text-rose-700" : "text-gray-700"}`} title={d.awaiting_me ? "Praimy attend une action de notre part" : undefined}>
-                              {d.awaiting_me ? "⚠️ " : ""}
-                              {d.next_action_label}
-                            </span>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4">
-                          <SuiviCell lead={lead} email={email} />
-                        </td>
-
-                        <td className="py-3 px-4 text-xs min-w-[170px]">
-                          {etapes.length ? (
-                            <ul className="space-y-0.5">
-                              {etapes.map((e) => (
-                                <li key={e} className={`font-semibold ${e.startsWith("✅") ? "text-emerald-700" : e.startsWith("Attendre") ? "text-amber-700" : "text-gray-800"}`}>
-                                  {e.startsWith("✅") ? e : `➡️ ${e}`}
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4 text-xs whitespace-nowrap">
-                          {vt ? (
-                            <span className="font-semibold text-sky-700">
-                              🔍 {frCourt(vt)}
-                              {lead?.fields.heureVt ? ` · ${lead.fields.heureVt}` : ""}
-                            </span>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4 text-xs whitespace-nowrap">
-                          {pose ? (
-                            <span className="font-semibold text-emerald-700">
-                              🔧 {frCourt(pose)}
-                              {lead?.fields.heurePose ? ` · ${lead.fields.heurePose}` : ""}
-                            </span>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
-                        </td>
-
-                        <td className="py-3 px-4 font-medium text-gray-900 text-xs">
-                          {typeof d.reste_a_charge_ttc === "number" ? `${d.reste_a_charge_ttc.toLocaleString("fr-FR")} € TTC` : "—"}
-                        </td>
-
-                        <td className="py-3 px-4 text-gray-600">
-                          <div className="flex items-center gap-1.5 text-xs">
-                            <MapPin size={13} className="text-gray-400" />
-                            {d.client_ville || d.ville || "—"}
-                          </div>
-                        </td>
-
-                        <td className="py-3 px-4 text-xs whitespace-nowrap">
-                          {(() => {
-                            const iso = derniereAction(d.updated_at, lead);
-                            const r = relance(iso);
-                            return r.jours === null ? (
-                              <span className="text-gray-300">—</span>
-                            ) : (
-                              <span className={`inline-block rounded-full px-2 py-0.5 font-semibold ${r.cls}`} title={new Date(iso).toLocaleString("fr-FR")}>
-                                {r.jours === 0 ? "aujourd'hui" : `il y a ${r.jours} j`}
-                              </span>
-                            );
-                          })()}
-                        </td>
-
-                        <td className="py-3 px-4 font-mono text-xs font-semibold text-[#0f2b4a]">{d.reference || d.id.slice(0, 8)}</td>
-
-                        <td className="py-3 px-4 text-right">
-                          <a
-                            href={`https://portail.praimy.fr/dossiers/${d.id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 text-xs font-semibold text-[#0073ea] hover:text-[#005bb5] bg-blue-50/60 hover:bg-blue-100/60 px-2.5 py-1.5 rounded-md transition"
-                          >
-                            Ouvrir
-                            <ExternalLink size={12} />
-                          </a>
                         </td>
                       </tr>
-                    </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                    )}
+                    <tr className="group hover:bg-[#f7f9fc] [&>td]:border-b [&>td]:border-gray-100 [&>td]:py-2.5 [&>td]:px-3 align-middle">
+                      <td className="whitespace-nowrap" style={{ boxShadow: `inset 4px 0 0 ${color}` }}>
+                        <div className="flex items-center gap-1.5 font-bold text-gray-900">
+                          {d.is_urgent && <Flame size={14} className="text-[#dc2626] fill-[#dc2626]" />}
+                          {d.client_nom || "Client sans nom"}
+                          {lead?.phone && (
+                            <a href={`tel:${lead.phone.replace(/\s/g, "")}`} title={`Appeler ${lead.phone}`} className="ml-1 inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#edf2f8] text-[#1f4b7f] hover:bg-[#dde6f1]">
+                              <Phone size={12} />
+                            </a>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-gray-500 flex items-center gap-1">
+                          <MapPin size={11} /> {d.client_ville || d.ville || "—"}
+                        </div>
+                      </td>
+                      <td>
+                        <Avancement lead={lead} email={email} />
+                      </td>
+                      <td className="min-w-[200px] text-xs">
+                        {etapes[0] && (
+                          <p className={`font-bold ${etapes[0].startsWith("✅") ? "text-[#059669]" : etapes[0].startsWith("Attendre") ? "text-[#d97706]" : "text-[#1f4b7f]"}`}>
+                            {etapes[0].startsWith("✅") ? etapes[0] : `➜ ${etapes[0]}`}
+                          </p>
+                        )}
+                        {etapes.slice(1).map((e) => (
+                          <p key={e} className="text-gray-600">➜ {e}</p>
+                        ))}
+                        {d.next_action_label && (
+                          <p className={`mt-0.5 ${d.awaiting_me ? "font-semibold text-[#dc2626]" : "text-gray-400"}`}>
+                            {d.awaiting_me ? "⚠️ PRAIMY attend : " : "PRAIMY : "}
+                            {d.next_action_label}
+                          </p>
+                        )}
+                      </td>
+                      <td className="text-xs whitespace-nowrap">
+                        {vt ? (
+                          <span className="font-semibold text-gray-800">
+                            {frCourt(vt)}
+                            {lead?.fields.heureVt ? ` · ${lead.fields.heureVt}` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      <td className="text-xs whitespace-nowrap">
+                        {pose ? (
+                          <span className="font-semibold text-gray-800">
+                            {frCourt(pose)}
+                            {lead?.fields.heurePose ? ` · ${lead.fields.heurePose}` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      <td className="text-right text-xs font-semibold text-gray-900 whitespace-nowrap">
+                        {typeof d.reste_a_charge_ttc === "number" ? `${d.reste_a_charge_ttc.toLocaleString("fr-FR")} €` : "—"}
+                      </td>
+                      <td className="text-xs whitespace-nowrap">
+                        {r.jours === null ? (
+                          <span className="text-gray-300">—</span>
+                        ) : (
+                          <span className={`inline-block rounded-full px-2 py-0.5 font-semibold ${r.cls}`}>{r.jours === 0 ? "aujourd'hui" : `il y a ${r.jours} j`}</span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap">
+                        <a
+                          href={`https://portail.praimy.fr/dossiers/${d.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title={`Ouvrir le dossier ${d.reference || ""} chez PRAIMY`}
+                          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200"
+                        >
+                          <span className="w-2 h-2 rounded-full" style={{ background: color }} />
+                          {badge.label}
+                          {d.is_blocked && <ShieldAlert size={12} className="text-[#dc2626]" />}
+                          <ExternalLink size={11} className="text-gray-400" />
+                        </a>
+                        <div className="mt-0.5 font-mono text-[10px] text-gray-400">{d.reference || d.id.slice(0, 8)}</div>
+                      </td>
+                    </tr>
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       )}
     </div>
