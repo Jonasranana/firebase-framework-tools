@@ -65,6 +65,117 @@ function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?
   );
 }
 
+// Réglages de l'API Conversions de Meta (Jonas seulement) : jeton, pixels, mode test, journal des envois.
+function MetaCapiReglages() {
+  const [cfg, setCfg] = useState<{ actif?: boolean; token?: string; pixels?: string; testCode?: string } | null>(null);
+  const [jeton, setJeton] = useState("");
+  const [pixels, setPixels] = useState("");
+  const [test, setTest] = useState("");
+  const [msg, setMsg] = useState("");
+  const [log, setLog] = useState<{ id: string; at?: { toDate?: () => Date }; nom?: string; etape?: string; evenement?: string; pixel?: string; ok?: boolean; reponse?: string; test?: boolean }[]>([]);
+  useEffect(() => {
+    const uns: (() => void)[] = [];
+    (async () => {
+      try {
+        const { m, db } = await crmFirestore();
+        uns.push(m.onSnapshot(m.doc(db, "crm_meta_capi_config", "reglages"), (d: any) => {
+          const c = d.data() ?? {};
+          setCfg(c);
+          setPixels((p) => p || c.pixels || "1241790268079116,2258957188215331");
+          setTest((t) => t || c.testCode || "");
+        }, () => setMsg("Lecture refusée.")));
+        uns.push(m.onSnapshot(m.query(m.collection(db, "crm_meta_capi_log"), m.orderBy("at", "desc"), m.limit(15)), (q: any) => setLog(q.docs.map((d: any) => ({ id: d.id, ...d.data() }))), () => {}));
+      } catch {
+        setMsg("Lecture impossible.");
+      }
+    })();
+    return () => uns.forEach((u) => u());
+  }, []);
+  const enregistrer = async (patch: Record<string, unknown>) => {
+    try {
+      const { m, db } = await crmFirestore();
+      await m.setDoc(m.doc(db, "crm_meta_capi_config", "reglages"), { ...patch, majLe: m.serverTimestamp() }, { merge: true });
+      setMsg("✅ Enregistré.");
+      setJeton("");
+    } catch {
+      setMsg("❌ Enregistrement refusé.");
+    }
+  };
+  const actif = cfg?.actif === true && !!cfg?.token;
+  const champ = "rounded-lg border border-gray-300 bg-white text-gray-900 px-2.5 py-1.5 text-sm";
+  return (
+    <div className="rounded-2xl border-2 border-[#dde6f1] bg-white p-4 md:p-5">
+      <div className="flex flex-wrap items-start gap-3">
+        <div className="mr-auto">
+          <h2 className="text-lg font-black text-gray-900">🎯 Dire à Meta qui sont les bons clients</h2>
+          <p className="text-sm text-gray-600 max-w-3xl">
+            Quand un lead venu des pubs devient intéressé (propal, RDV…) puis signé, le CRM le dit à Meta. Meta apprend à chercher des gens qui ressemblent aux clients qui signent, pas aux NRP. Les données partent chiffrées. Visible seulement par vous.
+          </p>
+        </div>
+        <span className={`rounded-full px-3 py-1 text-sm font-extrabold ${actif ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-600"}`}>{actif ? (cfg?.testCode ? "Activé · mode test" : "Activé") : "Pas activé"}</span>
+      </div>
+      <div className="mt-3 grid gap-2 md:grid-cols-[1fr_1fr_160px_auto] items-end">
+        <label className="text-xs font-bold text-gray-600">
+          Jeton d'accès Meta {cfg?.token ? <span className="font-normal text-gray-400">(enregistré, se termine par …{cfg.token.slice(-4)})</span> : null}
+          <input type="password" autoComplete="off" value={jeton} onChange={(e) => setJeton(e.target.value)} placeholder={cfg?.token ? "Coller un nouveau jeton pour le remplacer" : "Coller le jeton ici"} className={`${champ} mt-1 w-full`} />
+        </label>
+        <label className="text-xs font-bold text-gray-600">
+          Pixels (séparés par une virgule)
+          <input value={pixels} onChange={(e) => setPixels(e.target.value)} className={`${champ} mt-1 w-full`} />
+        </label>
+        <label className="text-xs font-bold text-gray-600">
+          Code de test (facultatif)
+          <input value={test} onChange={(e) => setTest(e.target.value)} placeholder="ex. TEST12345" className={`${champ} mt-1 w-full`} />
+        </label>
+        <button
+          onClick={() => enregistrer({ ...(jeton.trim() ? { token: jeton.trim() } : {}), pixels: pixels.trim(), testCode: test.trim() })}
+          className="rounded-lg px-4 py-2 text-sm font-extrabold text-white"
+          style={{ background: "linear-gradient(120deg,#173a5e,#2b5a8f)" }}
+        >
+          Enregistrer
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <button
+          disabled={!cfg?.token}
+          onClick={() => enregistrer({ actif: !actif })}
+          className={`rounded-lg px-4 py-2 text-sm font-extrabold disabled:opacity-40 ${actif ? "bg-gray-100 text-gray-700" : "bg-emerald-600 text-white"}`}
+        >
+          {actif ? "Mettre en pause" : "Activer l'envoi à Meta"}
+        </button>
+        {msg && <span className="text-sm font-semibold text-[#1f4b7f]">{msg}</span>}
+      </div>
+      <details className="mt-3 text-sm text-gray-600">
+        <summary className="cursor-pointer font-bold text-[#1f4b7f]">Comment obtenir le jeton (2 minutes)</summary>
+        <ol className="mt-1 list-decimal pl-5 space-y-0.5">
+          <li>Meta Business → Gestionnaire d'événements → choisir le pixel du site.</li>
+          <li>Onglet « Paramètres » → « API Conversions » → « Générer un jeton d'accès ».</li>
+          <li>Copier le jeton et le coller ici, puis « Enregistrer ».</li>
+          <li>Pour vérifier : onglet « Tester les événements » → copier le code (ex. TEST12345) dans « Code de test », activer, passer un lead des pubs en « Propal envoyée ». Il apparaît dans Meta. Ensuite, vider le code de test.</li>
+        </ol>
+      </details>
+      {log.length > 0 && (
+        <div className="mt-3 overflow-x-auto">
+          <p className="mb-1 text-sm font-black text-gray-900">Derniers envois</p>
+          <table className="w-full text-xs">
+            <tbody>
+              {log.map((l) => (
+                <tr key={l.id} className="border-t border-gray-100">
+                  <td className="py-1 pr-2 text-gray-500 whitespace-nowrap">{l.at?.toDate?.().toLocaleString("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) ?? ""}</td>
+                  <td className="pr-2 font-semibold">{l.nom}</td>
+                  <td className="pr-2">{l.etape === "signe" ? "Signé" : "Lead qualifié"}{l.test ? " (test)" : ""}</td>
+                  <td className="pr-2 text-gray-400">pixel …{String(l.pixel ?? "").slice(-4)}</td>
+                  <td className={l.ok ? "text-emerald-700 font-bold" : "text-red-600 font-bold"} title={l.reponse}>{l.ok ? "✓ reçu par Meta" : "✗ refusé"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RentaMeta({ email }: { email: string }) {
   const { data: allLeads } = useLeads();
   // Charge les étiquettes du tableau Pac Pac (noms des statuts ajoutés, ex. « Signé en novembre »).
@@ -520,6 +631,8 @@ export default function RentaMeta({ email }: { email: string }) {
           </div>
         )}
       </div>
+
+      {email.toLowerCase() === "jonassitbon8@gmail.com" && <MetaCapiReglages />}
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
         <h2 className="text-lg font-black text-gray-900">Quelle pub marche ?</h2>

@@ -3210,6 +3210,18 @@ Object.assign(
   require("./relanceIA")({ db, onCall, HttpsError, defineSecret, FieldValue: require("firebase-admin/firestore").FieldValue, logger }),
 );
 
+// ── API Conversions de Meta : dire à Meta quels leads des pubs avancent et signent ──
+// Inactif tant que Jonas n'a pas saisi le jeton (crm_meta_capi_config/reglages). Voir functions/metaCapi.js.
+Object.assign(
+  exports,
+  require("./metaCapi")({
+    db,
+    logger,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+    onDocumentUpdated: require("firebase-functions/v2/firestore").onDocumentUpdated,
+  }),
+);
+
 // ── Boîte mail contact@ ↔ CRM ────────────────────────────────────────────
 // Range les mails reçus/envoyés (et leurs pièces jointes) dans la fiche du
 // lead ou de l'artisan correspondant. Voir functions/crmMail.js.

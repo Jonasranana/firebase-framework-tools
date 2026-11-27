@@ -19,6 +19,21 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-appels-meta-capi",
+    date: "2026-11-27",
+    emoji: "📞",
+    titre: "Pac Pac : les leads pas encore appelés en rouge",
+    points: ["En haut de Pac Pac, une pastille rouge indique combien de nouveaux leads (moins de 3 jours) personne n'a encore appelés, et depuis combien de temps attend le plus ancien. Un clic ouvre sa fiche. Plus on rappelle vite, moins il y a de NRP."],
+  },
+  {
+    id: "2026-11-27-meta-capi",
+    date: "2026-11-27",
+    emoji: "🎯",
+    titre: "Pub Meta : dire à Meta qui sont les bons clients",
+    pour: ["jonassitbon8@gmail.com"],
+    points: ["Nouveau bloc dans Pub Meta : collez le jeton Meta (API Conversions), activez, et le CRM dira à Meta quels leads des pubs deviennent intéressés puis signés. Meta apprend à trouver des gens qui leur ressemblent."],
+  },
+  {
     id: "2026-11-27-visites-pac",
     date: "2026-11-27",
     emoji: "👣",

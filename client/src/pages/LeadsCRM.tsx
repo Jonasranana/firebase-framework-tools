@@ -865,6 +865,30 @@ const LeadSheet = ({
   );
 };
 
+// Pastille rouge « pas encore appelés » : sa propre minuterie (mise à jour chaque minute) pour ne pas redessiner tout Pac Pac.
+const depuisQuand = (iso: string) => {
+  const min = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 60000));
+  return min < 60 ? `${min} min` : min < 1440 ? `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")}` : `${Math.floor(min / 1440)} j`;
+};
+function AlerteAppels({ leads, onOpen }: { leads: Lead[]; onOpen: (id: string) => void }) {
+  const [, setTic] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTic((x) => x + 1), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  if (!leads.length) return null;
+  return (
+    <button
+      onClick={() => onOpen(leads[0].id)}
+      title={`Pas encore appelés : ${leads.map((l) => `${l.name} (${depuisQuand(l.createdAt)})`).join(", ")}. Cliquez pour ouvrir le plus ancien.`}
+      className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-red-300 bg-red-50 px-2.5 py-0.5 font-bold text-[#b91c1c] hover:bg-red-100"
+    >
+      <span className="relative flex h-2 w-2"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" /><span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" /></span>
+      📞 {leads.length} pas encore appelé{leads.length > 1 ? "s" : ""} · le plus ancien depuis {depuisQuand(leads[0].createdAt)}
+    </button>
+  );
+}
+
 // Barre d'outils flottante en bas façon Monday mobile app
 const MobileBottomBar = ({
   query,
@@ -1406,6 +1430,16 @@ export default function LeadsCRM({
     return { aAppeler, interesses, nouveaux };
   }, [leads]);
   const openLead = leads?.find((l) => l.id === openId) ?? null;
+  // Leads arrivés depuis moins de 3 jours que personne de l'équipe n'a encore touchés (aucune note, aucun changement) :
+  // plus on rappelle vite, moins il y a de « NRP ». Le plus ancien d'abord.
+  const enAttente = useMemo(() => {
+    if (boardId !== LEADS_BOARD_ID) return [];
+    const depuis = Date.now() - 3 * 86400000;
+    return (leads ?? [])
+      .filter((l) => Date.parse(l.createdAt) >= depuis && (!l.status || l.status === "nouveau_lead" || l.status === "a_appeler") && !(l.notes ?? []).some((n) => /@/.test(n.by ?? "")))
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  }, [leads, boardId]);
+
   // Ouvrir le chat = lire le mail reçu : le repère « Réponse » disparaît du tableau.
   const chatLead = leads?.find((l) => l.id === chatId) ?? null;
   useEffect(() => {
@@ -1927,6 +1961,7 @@ export default function LeadsCRM({
               </button>
             ))}
           </div>
+          <AlerteAppels leads={enAttente} onOpen={setOpenId} />
           {boardId === LEADS_BOARD_ID &&
             [
               { t: "À appeler", v: kpis.aAppeler, c: "#1f2430", on: statusFilter === "a_appeler", f: () => setStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler") },
