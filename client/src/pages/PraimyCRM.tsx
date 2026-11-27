@@ -16,6 +16,8 @@ import {
   Check,
 } from "lucide-react";
 import { getEspaceProApp } from "@/lib/espacePro";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Link2 } from "lucide-react";
 import BrandLoader from "@/components/BrandLoader";
 import { useLeads } from "@/lib/crmStore";
 import { crmFirestore } from "@/lib/crmDb";
@@ -97,14 +99,62 @@ const frCourt = (iso: string) => (iso ? new Date(`${iso}T12:00:00`).toLocaleDate
 
 // « Avancement » : nos 8 étapes en points reliés. Un clic coche / décoche l'étape (enregistré sur la fiche + trace dans la discussion).
 const COURT = ["Propal", "Signée", "MPR à faire", "MPR faite", "VT à caler", "VT calée", "Pose calée", "Installé"];
-function Avancement({ lead, email }: { lead: Lead | null; email: string }) {
+// Dossier PRAIMY sans fiche Pac Pac trouvée : on choisit la fiche du client dans une petite liste.
+function Relier({ d, leads, email }: { d: PraimyDossier; leads: Lead[]; email: string }) {
+  const [q, setQ] = useState((d.client_nom || "").split(/\s+/).filter((w) => w.length > 2).slice(-1)[0] ?? "");
+  const [busy, setBusy] = useState(false);
+  const norm = (v?: string) => String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  const choix = useMemo(() => {
+    const t = norm(q).trim();
+    if (t.length < 2) return [];
+    return leads.filter((l) => !l.deletedAt && (l.board || "leads") === "leads" && (norm(l.name).includes(t) || String(l.phone ?? "").replace(/\s/g, "").includes(t.replace(/\s/g, "")))).slice(0, 8);
+  }, [q, leads]);
+  const relier = async (l: Lead) => {
+    setBusy(true);
+    try {
+      const { m, db } = await crmFirestore();
+      await m.updateDoc(m.doc(db, "crm_leads", l.id), {
+        "fields.refPraimy": String(d.reference || ""),
+        crmOwned: true,
+        updatedAt: m.serverTimestamp(),
+        updatedBy: email,
+        notes: m.arrayUnion({ id: Math.random().toString(36).slice(2, 12), text: `Relié au dossier PRAIMY ${d.reference || ""}`, by: email, at: new Date().toISOString(), kind: "statut" }),
+      });
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-[#9fb4cf] px-2.5 py-1 text-[11px] font-semibold text-[#1f4b7f] hover:bg-[#edf2f8]" title="Ce dossier PRAIMY n'est rattaché à aucun client de Pac Pac : choisissez le bon client pour suivre son avancement ici">
+          <Link2 size={12} /> Choisir le client dans Pac Pac
+        </button>
+      </PopoverTrigger>
+      <PopoverContent dir="ltr" align="start" className="w-72 p-2 bg-white shadow-xl border border-[#e6eaf2]">
+        <p className="px-1 pb-1.5 text-xs text-gray-600">
+          Quel client de Pac Pac correspond à <b>{d.client_nom || "ce dossier"}</b> ?
+        </p>
+        <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nom ou téléphone…" className="w-full rounded-lg border border-gray-200 px-2.5 py-1.5 text-sm focus:outline-none focus:border-[#1f4b7f]" />
+        <div className="mt-1 max-h-60 overflow-auto">
+          {choix.map((l) => (
+            <button key={l.id} disabled={busy} onClick={() => relier(l)} className="w-full rounded-lg px-2 py-1.5 text-left hover:bg-[#edf2f8] disabled:opacity-50">
+              <p className="text-sm font-semibold text-gray-900">{l.name}</p>
+              <p className="text-[11px] text-gray-500">{[l.phone, l.fields?.ville || l.fields?.city].filter(Boolean).join(" · ") || "—"}</p>
+            </button>
+          ))}
+          {q.trim().length >= 2 && !choix.length && <p className="px-2 py-2 text-xs text-gray-400">Aucun client trouvé.</p>}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function Avancement({ lead, email, dossier, leads }: { lead: Lead | null; email: string; dossier: PraimyDossier; leads: Lead[] }) {
   const [busy, setBusy] = useState("");
-  if (!lead)
-    return (
-      <span className="text-[11px] text-gray-400" title="Renseignez « Réf Praimy » sur la fiche de ce client dans Pac Pac pour le relier">
-        Fiche CRM non reliée
-      </span>
-    );
+  if (!lead) return <Relier d={dossier} leads={leads} email={email} />;
   const tags = suiviOf(lead);
   const fait = SUIVI.map((o) => tags.includes(o.key));
   const dernier = fait.lastIndexOf(true);
@@ -169,13 +219,12 @@ export default function PraimyCRM({ email }: { email: string }) {
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [filterStatut, setFilterStatut] = useState<string>("all");
-  const [syncing, setSyncing] = useState(false);
-  const [syncResult, setSyncResult] = useState<string | null>(null);
-
+  // « Mettre à jour » : recharge les dossiers PRAIMY et recopie leurs étapes dans Pac Pac, en un seul bouton.
+  const mettreAJour = () => {
+    loadDossiers(true);
+    syncToPacPac();
+  };
   const syncToPacPac = async () => {
-    setSyncing(true);
-    setSyncResult(null);
-    setError(null);
     try {
       const app = await getEspaceProApp();
       const { getFunctions, httpsCallable } = await import("firebase/functions");
@@ -184,14 +233,9 @@ export default function PraimyCRM({ email }: { email: string }) {
         functions,
         "syncPraimyToPacPac"
       );
-      const res = await syncFn();
-      setSyncResult(`✓ ${res.data.updatedCount} synchro`);
-      setTimeout(() => setSyncResult(null), 4000);
+      await syncFn();
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || "Erreur de synchronisation avec Pac Pac.");
-    } finally {
-      setSyncing(false);
     }
   };
 
@@ -231,6 +275,7 @@ export default function PraimyCRM({ email }: { email: string }) {
 
       const matchStatut =
         filterStatut === "all" ||
+        filterStatut.startsWith("__") ||
         d.statut?.toLowerCase() === filterStatut.toLowerCase() ||
         d.global_status?.toLowerCase() === filterStatut.toLowerCase();
 
@@ -250,7 +295,8 @@ export default function PraimyCRM({ email }: { email: string }) {
   }, [dossiers]);
 
   const attente = dossiers.filter((d) => d.awaiting_me).length;
-  const liste = filterStatut === "__attente" ? filtered.filter((d) => d.awaiting_me) : filtered;
+  const aRelier = dossiers.filter((d) => !matchLead(d.reference, d.client_nom)).length;
+  const liste = filterStatut === "__attente" ? filtered.filter((d) => d.awaiting_me) : filterStatut === "__relier" ? filtered.filter((d) => !matchLead(d.reference, d.client_nom)) : filtered;
 
   return (
     <div className="max-w-[1900px] mx-auto space-y-3">
@@ -271,21 +317,13 @@ export default function PraimyCRM({ email }: { email: string }) {
           />
         </div>
         <button
-          onClick={syncToPacPac}
-          disabled={syncing || loading}
-          title="Recopier les étapes PRAIMY dans Pac Pac"
+          onClick={mettreAJour}
+          disabled={loading || refreshing}
+          title="Recharger les dossiers depuis PRAIMY et recopier leurs étapes dans Pac Pac"
           className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-[#1f4b7f] bg-[#edf2f8] rounded-xl hover:bg-[#dde6f1] transition disabled:opacity-50"
         >
-          <RefreshCw size={14} className={syncing ? "animate-spin" : ""} />
-          {syncResult ? syncResult : "Synchro Pac Pac"}
-        </button>
-        <button
-          onClick={() => loadDossiers(true)}
-          disabled={loading || refreshing}
-          title="Recharger depuis PRAIMY"
-          className="inline-flex items-center justify-center w-9 h-9 text-gray-600 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition disabled:opacity-50"
-        >
           <RefreshCw size={14} className={refreshing ? "animate-spin" : ""} />
+          Mettre à jour
         </button>
         <a
           href="https://portail.praimy.fr"
@@ -298,51 +336,33 @@ export default function PraimyCRM({ email }: { email: string }) {
         </a>
       </div>
 
-      {/* Parcours compact : une pastille par étape PRAIMY (clic = filtrer) + ce que PRAIMY attend de nous */}
+      {/* 3 filtres simples ; les étapes PRAIMY sont les titres de groupes dans le tableau */}
       <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-        <button
-          onClick={() => setFilterStatut("all")}
-          className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${filterStatut === "all" ? "text-white shadow-sm" : "bg-white text-gray-600 border border-gray-200 hover:bg-gray-50"}`}
-          style={filterStatut === "all" ? { background: "var(--brand-grad-120)" } : undefined}
-        >
-          Tous · {stats.total}
-        </button>
-        {attente > 0 && (
-          <button
-            onClick={() => setFilterStatut(filterStatut === "__attente" ? "all" : "__attente")}
-            className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold border transition ${filterStatut === "__attente" ? "bg-[#dc2626] text-white border-[#dc2626]" : "bg-red-50 text-[#b91c1c] border-red-200 hover:bg-red-100"}`}
-            title="Dossiers où PRAIMY attend une action de notre part"
-          >
-            ⚠️ PRAIMY attend de nous · {attente}
-          </button>
-        )}
-        <span className="shrink-0 w-px h-5 bg-gray-200 mx-1" />
-        {stats.bySteps.map((st, i) => {
-          const active = filterStatut === st.key;
-          return (
-            <button
-              key={st.key}
-              onClick={() => setFilterStatut(active ? "all" : st.key)}
-              disabled={!st.count && !active}
-              className={`shrink-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition disabled:opacity-40 ${active ? "bg-gray-900 text-white border-gray-900" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"}`}
-            >
-              <span className="w-2 h-2 rounded-full" style={{ background: st.color }} />
-              {i + 1}. {formatStatus(st.key).label}
-              <span className={`font-extrabold ${active ? "text-white" : "text-gray-900"}`}>{st.count}</span>
-            </button>
-          );
-        })}
-        {stats.urgents > 0 && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-xs font-bold text-[#dc2626] ml-1">
-            <Flame size={13} /> {stats.urgents} urgent{stats.urgents > 1 ? "s" : ""}
-          </span>
-        )}
+        {(
+          [
+            ["all", `Tous les dossiers · ${stats.total}`, true],
+            ["__attente", `⚠️ PRAIMY attend de nous · ${attente}`, attente > 0],
+            ["__relier", `🔗 Client à choisir · ${aRelier}`, aRelier > 0],
+          ] as [string, string, boolean][]
+        )
+          .filter(([, , voir]) => voir || false)
+          .map(([k, l]) => {
+            const on = filterStatut === k;
+            const rouge = k === "__attente";
+            return (
+              <button
+                key={k}
+                onClick={() => setFilterStatut(on && k !== "all" ? "all" : k)}
+                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold border transition ${
+                  on ? (rouge ? "bg-[#dc2626] text-white border-[#dc2626]" : "text-white border-transparent shadow-sm") : rouge ? "bg-red-50 text-[#b91c1c] border-red-200 hover:bg-red-100" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                }`}
+                style={on && !rouge ? { background: "var(--brand-grad-120)" } : undefined}
+              >
+                {l}
+              </button>
+            );
+          })}
       </div>
-
-      <p className="text-[11px] text-gray-500">
-        <b className="text-gray-700">Avancement :</b> cliquez sur un point quand l'étape est faite —{" "}
-        {COURT.map((c, i) => `${i + 1} ${c}`).join(" · ")}
-      </p>
 
       {loading ? (
         <div className="py-20 flex flex-col items-center justify-center">
@@ -372,7 +392,7 @@ export default function PraimyCRM({ email }: { email: string }) {
             <thead>
               <tr className="text-[11px] font-bold text-gray-500 uppercase tracking-wide [&>th]:sticky [&>th]:top-0 [&>th]:z-10 [&>th]:bg-[#f7f9fc] [&>th]:border-b [&>th]:border-[#e6eaf2] [&>th]:py-2.5 [&>th]:px-3">
                 <th>Client</th>
-                <th>Avancement (nous)</th>
+                <th title={COURT.map((c, i) => `${i + 1} ${c}`).join(" · ")}>Avancement (cliquer quand c'est fait)</th>
                 <th>Prochaine action</th>
                 <th>Pré-visite</th>
                 <th>Pose</th>
@@ -421,7 +441,7 @@ export default function PraimyCRM({ email }: { email: string }) {
                         </div>
                       </td>
                       <td>
-                        <Avancement lead={lead} email={email} />
+                        <Avancement lead={lead} email={email} dossier={d} leads={allLeads ?? []} />
                       </td>
                       <td className="min-w-[200px] text-xs">
                         {etapes[0] && (
