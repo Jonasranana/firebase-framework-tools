@@ -56,9 +56,9 @@ const PERIODES: [string, () => [string, string]][] = [
 
 function Kpi({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: "good" | "bad" }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4">
+    <div className="rounded-2xl border border-[#e6eaf2] bg-white px-4 py-3 shadow-sm">
       <p className="text-xs font-semibold text-gray-500">{label}</p>
-      <p className={`mt-1 text-2xl font-black ${tone === "good" ? "text-emerald-600" : tone === "bad" ? "text-red-600" : "text-gray-900"}`}>{value}</p>
+      <p className={`mt-0.5 text-2xl font-black ${tone === "good" ? "text-emerald-600" : tone === "bad" ? "text-red-600" : "text-gray-900"}`}>{value}</p>
       {hint && <p className="mt-0.5 text-xs text-gray-400">{hint}</p>}
     </div>
   );
@@ -305,33 +305,47 @@ export default function RentaMeta({ email }: { email: string }) {
   return (
     <div className="w-full space-y-4 pb-10">
       {/* Période */}
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl bg-gray-900 px-4 py-3.5 shadow-md">
-        <span className="text-base font-black text-white mr-2">📆 Période</span>
+      <div className="flex flex-wrap items-center gap-2 rounded-2xl px-4 py-3 shadow-md" style={{ background: "linear-gradient(120deg,#173a5e,#2b5a8f)" }}>
+        <span className="text-base font-black text-white mr-2">Période</span>
         {PERIODES.map(([label, f]) => {
           const [a, b] = f();
           return (
-            <button key={label} onClick={() => setPeriode([a, b])} className={`rounded-full border px-3.5 py-1.5 text-sm font-bold transition ${a === du && b === au ? "bg-orange-500 text-white border-orange-500 shadow" : "bg-white/10 text-white border-white/25 hover:bg-white/20"}`}>
+            <button key={label} onClick={() => setPeriode([a, b])} className={`rounded-full border px-3.5 py-1.5 text-sm font-bold transition ${a === du && b === au ? "bg-white text-[#173a5e] border-white shadow" : "bg-white/10 text-white border-white/25 hover:bg-white/20"}`}>
               {label}
             </button>
           );
         })}
-        <span className="ml-auto flex items-center gap-2 text-sm font-semibold text-gray-300">
+        <span className="ml-auto flex items-center gap-2 text-sm font-semibold text-white/80">
           du <input type="date" value={du} onChange={(e) => e.target.value && setPeriode([e.target.value, au])} className={champ} />
           au <input type="date" value={au} onChange={(e) => e.target.value && setPeriode([du, e.target.value])} className={champ} />
         </span>
       </div>
 
-      {/* Résultat + chiffres clés sur une ligne */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-        <div className={`col-span-2 rounded-2xl p-5 text-white ${benef >= 0 ? "bg-gradient-to-br from-emerald-600 to-emerald-700" : "bg-gradient-to-br from-red-600 to-red-700"}`}>
-          <p className="text-sm font-semibold opacity-90">Bénéfice net après pub</p>
-          <p className="text-4xl font-black mt-1">{eur(benef)}</p>
-          <p className="text-xs mt-2 opacity-90">{eur(tot.marge)} touchés − {eur(tot.depense)} de pub</p>
+      {/* Les chiffres qui comptent : l'argent, puis l'efficacité de la pub */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="rounded-2xl border border-[#e6eaf2] bg-white px-5 py-4 shadow-sm">
+          <p className="text-sm font-semibold text-gray-500">Pub dépensée</p>
+          <p className="text-3xl font-black text-gray-900 mt-0.5">{eur(tot.depense)}</p>
         </div>
-        <Kpi label="💸 Pub dépensée" value={eur(tot.depense)} />
-        <Kpi label="📥 Leads Meta" value={String(tot.leads)} hint={tot.leads ? `${eur(tot.depense / tot.leads)} par lead` : undefined} />
-        <Kpi label="✅ Clients signés" value={String(tot.signes)} hint={tot.leads ? `${Math.round((tot.signes / tot.leads) * 100)} % des leads` : undefined} />
-        <Kpi label="💶 On touche" value={eur(tot.marge)} hint={`dont ${eur(tot.ceeSeule)} vite (CEE seule)`} tone="good" />
+        <div className="rounded-2xl border border-[#e6eaf2] bg-white px-5 py-4 shadow-sm">
+          <p className="text-sm font-semibold text-gray-500">On touche sur ces clients</p>
+          <p className="text-3xl font-black text-[#1f4b7f] mt-0.5">{eur(tot.marge)}</p>
+          <p className="text-xs text-gray-500">dont {eur(tot.ceeSeule)} vite (CEE), le reste avec MaPrimeRénov'</p>
+        </div>
+        <div className={`rounded-2xl px-5 py-4 text-white shadow-md ${benef >= 0 ? "bg-gradient-to-br from-emerald-600 to-emerald-700" : "bg-gradient-to-br from-red-600 to-red-700"}`}>
+          <p className="text-sm font-semibold text-white/90">Bénéfice net après pub</p>
+          <p className="text-4xl font-black mt-0.5">{eur(benef)}</p>
+          <p className="text-xs text-white/85">
+            {tot.depense > 0 ? `1 € de pub rapporte ${(tot.marge / tot.depense).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} €` : "aucune pub enregistrée sur la période"}
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <Kpi label="Leads Meta" value={String(tot.leads)} />
+        <Kpi label="Coût par lead" value={tot.leads ? eur(tot.depense / tot.leads) : "—"} />
+        <Kpi label="Clients signés" value={String(tot.signes)} tone={tot.signes ? "good" : undefined} />
+        <Kpi label="Taux de signature" value={tot.leads ? `${((tot.signes / tot.leads) * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %` : "—"} hint="clients signés / leads" />
+        <Kpi label="Coût par client signé" value={tot.signes ? eur(tot.depense / tot.signes) : "—"} hint="pub dépensée / clients signés" />
       </div>
       {tot.aCompleter > 0 && (
         <p className="rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
@@ -340,34 +354,7 @@ export default function RentaMeta({ email }: { email: string }) {
       )}
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
-        <h2 className="text-lg font-black text-gray-900">🔎 Où les visiteurs quittent le formulaire</h2>
-        <p className="text-sm text-gray-600 mb-3">Nombre de visiteurs qui voient chaque étape du simulateur du site (compteur anonyme, une fois par visite).</p>
-        {!vus.arrivee ? (
-          <p className="text-sm text-gray-500">Pas encore de chiffres sur cette période (le compteur démarre avec cette mise à jour).</p>
-        ) : (
-          <div className="space-y-1.5">
-            {ETAPES_FORM.map(([k, label], i) => {
-              const n = vus[k] ?? 0;
-              const pct = Math.round((n / vus.arrivee) * 100);
-              const avant = i > 0 ? vus[ETAPES_FORM[i - 1][0]] ?? 0 : n;
-              const perte = avant > 0 && i > 0 ? Math.round(((avant - n) / avant) * 100) : 0;
-              return (
-                <div key={k} className="flex items-center gap-2 text-sm">
-                  <span className="w-44 shrink-0 truncate text-gray-700">{label}</span>
-                  <span className="flex-1 h-5 rounded-md bg-gray-100 overflow-hidden">
-                    <span className="block h-full rounded-md" style={{ width: `${Math.max(pct, 2)}%`, background: "linear-gradient(90deg,#173a5e,#2b5a8f)" }} />
-                  </span>
-                  <span className="w-12 text-right font-bold text-gray-900">{n}</span>
-                  <span className={`w-14 text-right text-xs font-semibold ${perte >= 25 ? "text-[#dc2626]" : perte >= 10 ? "text-[#d97706]" : "text-gray-400"}`}>{i > 0 ? `−${perte} %` : ""}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
-        <h2 className="text-lg font-black text-gray-900">📊 Quelle pub marche ?</h2>
+        <h2 className="text-lg font-black text-gray-900">Quelle pub marche ?</h2>
         <p className="text-sm text-gray-600 mb-3">Les demandes du site sur la période, rangées par annonce Meta : combien de leads, combien avancent, combien signent.</p>
         {parPub.length === 0 ? (
           <p className="text-sm text-gray-500">Aucune demande du site sur cette période.</p>
@@ -416,7 +403,7 @@ export default function RentaMeta({ email }: { email: string }) {
         {/* Gauche : 1) clients venus de la pub (comptés), 2) les autres signés (pas comptés) */}
         <div className="lg:col-span-2 space-y-4">
           <div className="rounded-2xl border-2 border-emerald-300 bg-white p-4 md:p-5">
-            <h2 className="text-lg font-black text-emerald-800">📣 Clients venus des pubs Meta</h2>
+            <h2 className="text-lg font-black text-emerald-800">Clients venus des pubs Meta</h2>
             <p className="text-sm text-gray-600 mb-3">Ces clients sont arrivés grâce à la pub : <b>ils comptent dans le bénéfice</b>.</p>
             {signesMeta.length === 0 ? (
               <p className="text-sm text-gray-500">Aucun client venu de la pub sur cette période.</p>
@@ -544,6 +531,33 @@ export default function RentaMeta({ email }: { email: string }) {
       </div>
         </div>
       </div>
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
+        <h2 className="text-base font-black text-gray-900">Où les visiteurs quittent le formulaire du site</h2>
+        <p className="text-sm text-gray-600 mb-3">Nombre de visiteurs qui voient chaque étape du simulateur du site (compteur anonyme, une fois par visite).</p>
+        {!vus.arrivee ? (
+          <p className="text-sm text-gray-500">Pas encore de chiffres sur cette période (le compteur démarre avec cette mise à jour).</p>
+        ) : (
+          <div className="space-y-1.5">
+            {ETAPES_FORM.map(([k, label], i) => {
+              const n = vus[k] ?? 0;
+              const pct = Math.round((n / vus.arrivee) * 100);
+              const avant = i > 0 ? vus[ETAPES_FORM[i - 1][0]] ?? 0 : n;
+              const perte = avant > 0 && i > 0 ? Math.round(((avant - n) / avant) * 100) : 0;
+              return (
+                <div key={k} className="flex items-center gap-2 text-sm">
+                  <span className="w-44 shrink-0 truncate text-gray-700">{label}</span>
+                  <span className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                    <span className="block h-full rounded-full" style={{ width: `${Math.max(pct, 2)}%`, background: "linear-gradient(90deg,#173a5e,#2b5a8f)" }} />
+                  </span>
+                  <span className="w-12 text-right font-bold text-gray-900">{n}</span>
+                  <span className={`w-14 text-right text-xs font-semibold ${perte >= 25 ? "text-[#dc2626]" : perte >= 10 ? "text-[#d97706]" : "text-gray-400"}`}>{i > 0 ? `−${perte} %` : ""}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
     </div>
   );
 }
