@@ -469,7 +469,7 @@ exports.compterEtape = onRequest({ region: "europe-west9", cors: true, maxInstan
     else if (Buffer.isBuffer(b)) b = JSON.parse(b.toString("utf8") || "{}");
     const src = String(b?.src ?? "").replace(/[^a-z0-9_-]/gi, "").slice(0, 40) || "site";
     const etape = String(b?.etape ?? "");
-    if (!/^(arrivee|q[1-9]|q1[0-2]|coordonnees|resultat)$/.test(etape)) {
+    if (!/^(page|chauffage|choix_rappel|choix_simulation|rappel_envoye|appel|arrivee|q[1-9]|q1[0-2]|coordonnees|resultat)$/.test(etape)) {
       res.status(204).send("");
       return;
     }
@@ -3208,6 +3208,18 @@ Object.assign(
 Object.assign(
   exports,
   require("./relanceIA")({ db, onCall, HttpsError, defineSecret, FieldValue: require("firebase-admin/firestore").FieldValue, logger }),
+);
+
+// ── API Conversions de Meta : dire à Meta quels leads des pubs avancent et signent ──
+// Inactif tant que Jonas n'a pas saisi le jeton (crm_meta_capi_config/reglages). Voir functions/metaCapi.js.
+Object.assign(
+  exports,
+  require("./metaCapi")({
+    db,
+    logger,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+    onDocumentUpdated: require("firebase-functions/v2/firestore").onDocumentUpdated,
+  }),
 );
 
 // ── Boîte mail contact@ ↔ CRM ────────────────────────────────────────────

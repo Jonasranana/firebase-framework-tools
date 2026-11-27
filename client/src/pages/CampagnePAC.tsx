@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   ShieldCheck,
   CheckCircle2,
@@ -30,6 +30,7 @@ import {
   submitCallbackRequest,
   trackStep,
   horsPub,
+  compterEtape,
   type CallbackRequest,
 } from "./ip5-sections";
 
@@ -189,12 +190,25 @@ const QuickStart = ({ source }: { source: string }) => {
   const [done, setDone] = useState(false);
   // Maison ou appartement : la pompe à chaleur air/eau ne concerne que les maisons.
   const [housing, setHousing] = useState<"" | "Maison" | "Appartement">("");
+  // Compteur anonyme des visites de /pac (aucune donnée personnelle) : arrivée sur la page, chauffage choisi,
+  // choix rappel ou simulation, demande de rappel envoyée, appel. Lu dans le CRM (page Pub Meta).
+  useEffect(() => compterEtape(source, "page"), [source]);
+  useEffect(() => {
+    if (heating) compterEtape(source, "chauffage");
+  }, [heating, source]);
+  useEffect(() => {
+    if (mode) compterEtape(source, mode === "rappel" ? "choix_rappel" : "choix_simulation");
+  }, [mode, source]);
+  useEffect(() => {
+    if (done) compterEtape(source, "rappel_envoye");
+  }, [done, source]);
 
   if (mode === "simulation") {
     return <Simulator source={source} tone="pro" initialHeating={heating} glass />;
   }
 
   const trackCall = () => {
+    compterEtape(source, "appel");
     try {
       if (!horsPub(source))
         (window as any).fbq?.("track", "Contact", { content_category: source });
