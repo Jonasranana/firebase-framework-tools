@@ -19,6 +19,28 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-27-recherche-bets",
+    date: "2026-11-27",
+    emoji: "🔎",
+    titre: "Recherche toujours visible + groupe BETS",
+    points: [
+      "Dans Pac Pac, la barre de recherche est toujours ouverte et bien visible en haut. Astuce : la touche « / » vous met directement dedans.",
+      "Les boutons « Réduire tous les groupes » et « Développer tout » sont retirés.",
+      "Dans le menu de gauche, « Dossiers BETS » a son propre groupe « BETS ».",
+    ],
+  },
+  {
+    id: "2026-11-27-praimy-simple",
+    date: "2026-11-27",
+    emoji: "🧹",
+    titre: "PRAIMY : un haut de page plus simple",
+    points: [
+      "En haut, plus que 2 boutons : « Mettre à jour » (recharge PRAIMY et recopie les étapes dans Pac Pac) et « Portail PRAIMY ».",
+      "3 filtres seulement : Tous, « PRAIMY attend de nous » et « Client à choisir ».",
+      "Quand un dossier n'est pas rattaché à un client, cliquez « Choisir le client dans Pac Pac » et choisissez-le dans la liste : son avancement s'affiche alors.",
+    ],
+  },
+  {
     id: "2026-11-27-activite-equipe",
     date: "2026-11-27",
     emoji: "👀",

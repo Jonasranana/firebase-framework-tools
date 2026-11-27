@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDownUp,
   Check,
@@ -66,30 +66,40 @@ export function AddSplit({ onAddLead, onAddGroup }: { onAddLead: () => void; onA
 }
 
 // ── Rechercher ─────────────────────────────────────────────────────────────
+// Toujours visible et mise en avant : c'est l'outil le plus utilisé de Pac Pac.
+// Raccourci : touche « / » (hors saisie) pour aller directement dans la recherche.
 export function SearchToggle({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(!!value);
-  if (!open && !value) {
-    return (
-      <button onClick={() => setOpen(true)} className={btn}>
-        <Search size={15} /> Rechercher
-      </button>
-    );
-  }
+  const ref = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      ref.current?.focus();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   return (
-    <div className="relative">
-      <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+    <div className="relative shrink-0">
+      <Search size={16} strokeWidth={2.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#1f4b7f] pointer-events-none" />
       <input
-        autoFocus
+        ref={ref}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        onBlur={() => !value && setOpen(false)}
-        placeholder="Nom, téléphone, e-mail, ville…"
-        className="w-64 text-sm bg-white border border-gray-300 rounded-md pl-8 pr-7 py-1.5 outline-none focus:border-[#0073ea]"
+        onKeyDown={(e) => e.key === "Escape" && (onChange(""), (e.target as HTMLInputElement).blur())}
+        placeholder="Rechercher : nom, téléphone, ville…"
+        className={`w-72 lg:w-96 text-sm font-medium rounded-full border-2 pl-9 pr-8 py-1.5 outline-none transition placeholder:text-gray-500 ${
+          value ? "bg-white border-[#1f4b7f]" : "bg-[#edf2f8] border-[#cddaea] hover:border-[#9fb4cf] focus:bg-white focus:border-[#1f4b7f]"
+        }`}
       />
-      {value && (
-        <button onClick={() => onChange("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400" aria-label="Effacer">
-          <X size={14} />
+      {value ? (
+        <button onClick={() => onChange("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800" aria-label="Effacer">
+          <X size={15} />
         </button>
+      ) : (
+        <kbd className="hidden lg:block absolute right-3 top-1/2 -translate-y-1/2 rounded border border-[#cddaea] bg-white px-1.5 text-[10px] font-bold text-gray-400">/</kbd>
       )}
     </div>
   );

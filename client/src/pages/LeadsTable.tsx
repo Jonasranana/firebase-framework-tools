@@ -1722,18 +1722,6 @@ export default function LeadsTable({
       >
       <div style={{ minWidth: totalWidth }} className="space-y-6">
         <div className="sticky left-0 flex flex-wrap items-center gap-1.5 -mb-3">
-          <button
-            onClick={() => setCollapsed(Object.fromEntries(groups.map((g) => [g.id, true])))}
-            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-white text-gray-600 border-gray-200"
-          >
-            <ChevronsDownUp size={13} /> Réduire tous les groupes
-          </button>
-          <button
-            onClick={() => setCollapsed({})}
-            className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-0.5 rounded-full border bg-white text-gray-600 border-gray-200"
-          >
-            <ChevronsUpDown size={13} /> Développer tout
-          </button>
           {archived.length > 0 && (
             <Popover>
               <PopoverTrigger asChild>

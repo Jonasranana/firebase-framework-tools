@@ -62,20 +62,27 @@ const normName = (s?: string) =>
     .filter(Boolean)
     .sort()
     .join(" ");
+const normRef = (v?: string) => String(v ?? "").replace(/[#\s]/g, "").toUpperCase();
+const mots = (s?: string) => normName(s).split(" ").filter((w) => w.length > 1 && !["mr", "mme", "m", "madame", "monsieur", "mlle"].includes(w));
 export function makeMatcher(leads: Lead[]) {
   const actifs = leads.filter((l) => !l.deletedAt && (l.board || "leads") === "leads");
   const byRef = new Map<string, Lead>();
   const byName = new Map<string, Lead[]>();
   for (const l of actifs) {
-    const ref = f(l, "refPraimy");
+    const ref = normRef(f(l, "refPraimy"));
     if (ref) byRef.set(ref, l);
     const k = normName(l.name);
     if (k) byName.set(k, [...(byName.get(k) ?? []), l]);
   }
   return (reference?: string, clientNom?: string): Lead | null => {
-    const r = reference ? byRef.get(String(reference)) : undefined;
+    const r = reference ? byRef.get(normRef(reference)) : undefined;
     if (r) return r;
     const c = byName.get(normName(clientNom)) ?? [];
-    return c.length === 1 ? c[0] : null;
+    if (c.length === 1) return c[0];
+    // Sinon : au moins 2 mots du nom en commun (prénom + nom), s'il n'y a qu'une seule fiche possible.
+    const m = new Set(mots(clientNom));
+    if (m.size < 2) return null;
+    const deux = actifs.filter((l) => mots(l.name).filter((w) => m.has(w)).length >= 2);
+    return deux.length === 1 ? deux[0] : null;
   };
 }
