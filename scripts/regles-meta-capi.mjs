@@ -16,7 +16,13 @@ const files = rs.data.source.files;
 const file = files.find((f) => f.content.includes("match /databases/")) ?? files[0];
 const larges = file.content.split("\n").filter((l) => /match\s+\/\{[^}]+\}/.test(l) || /\{document=\*\*\}/.test(l));
 console.log("Règles générales trouvées :", larges.length ? larges.map((l) => l.trim()) : "aucune");
-if (larges.some((l) => !/match \/databases\/\{database\}\/documents/.test(l))) {
+{
+  const L = file.content.split("\n");
+  L.forEach((l, i) => { if (/\{document=\*\*\}/.test(l)) console.log("--- contexte ---\n" + L.slice(Math.max(0, i - 3), i + 10).join("\n")); });
+}
+const ouvert = /match\s+\/\{document=\*\*\}\s*\{\s*allow\s+read,\s*write:\s*if\s+false;?\s*\}/.test(file.content.replace(/\/\/.*$/gm, ""));
+console.log("Règle générale = tout refuser (if false) :", ouvert);
+if (!ouvert && larges.some((l) => !/match \/databases\/\{database\}\/documents/.test(l))) {
   console.error("Une règle générale pourrait ouvrir le jeton à d'autres : arrêt sans rien changer.");
   process.exit(1);
 }
