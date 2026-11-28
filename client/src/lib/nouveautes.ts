@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-28-relances",
+    date: "2026-11-28",
+    emoji: "🔁",
+    titre: "Pac Pac : les relances à faire",
+    points: [
+      "Nouvelle pastille orange « 🔁 relances à faire » en haut de Pac Pac : les NRP à rappeler (4 h après, 24 h pour un NRP 2) et les propositions envoyées sans nouvelles depuis 3 jours.",
+      "Pour chaque client : « Appeler » ou un SMS de relance déjà écrit (sur téléphone il s'ouvre dans Messages, sur ordinateur il se copie). Rien n'est envoyé sans vous.",
+      "Le client sort de la liste dès que vous notez quelque chose ou changez son statut. « Mes relances » montre d'abord les vôtres.",
+    ],
+  },
+  {
     id: "2026-11-28-mode-leger",
     date: "2026-11-28",
     emoji: "🪶",
