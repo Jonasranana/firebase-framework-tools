@@ -37,6 +37,8 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import NouveauLeadDialog, { type NouveauLead } from "@/components/NouveauLeadDialog";
 import { chrono } from "@/lib/chrono";
 import { appareilLeger } from "@/lib/appareil";
+import { lienSms, prenomEquipe, relancesAFaire, smsRelance, type Relance } from "@/lib/relances";
+import { Popover as PopRelances, PopoverContent as PopRelancesContent, PopoverTrigger as PopRelancesTrigger } from "@/components/ui/popover";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
@@ -865,6 +867,86 @@ const LeadSheet = ({
     </Sheet>
   );
 };
+
+// « Relances à faire » : NRP à rappeler et propositions sans nouvelles (voir lib/relances.ts).
+// Appeler, ou préparer le SMS dans l'application Messages (rien n'est envoyé sans vous) ; une trace est laissée sur la fiche.
+function RelancesBouton({ leads, email, onOpen }: { leads: Lead[]; email: string; onOpen: (id: string) => void }) {
+  const [tic, setTic] = useState(0);
+  const [copie, setCopie] = useState("");
+  useEffect(() => {
+    const t = setInterval(() => setTic((x) => x + 1), 300_000);
+    return () => clearInterval(t);
+  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const toutes = useMemo(() => relancesAFaire(leads), [leads, tic]);
+  const moi = prenomEquipe(memberName(email, email));
+  // « Mes relances » : les fiches attribuées à soi (colonne Attribué à), s'il y en a.
+  const miennes = toutes.filter((r) => moi && String(r.lead.fields?.attribue ?? "").toLowerCase() === moi.toLowerCase());
+  const [voirToutes, setVoirToutes] = useState(false);
+  const liste = miennes.length && !voirToutes ? miennes : toutes;
+  if (!toutes.length) return null;
+  const trace = (r: Relance, comment: string) =>
+    addLeadNote(r.lead.id, email, { id: Math.random().toString(36).slice(2, 12), text: `🔁 Relance (${r.type === "nrp" ? "NRP" : "proposition"}) : ${comment}`, by: email, at: new Date().toISOString(), kind: "note" } as LeadNote).catch(() => {});
+  const propal = liste.filter((r) => r.type === "propal").length;
+  return (
+    <PopRelances>
+      <PopRelancesTrigger asChild>
+        <button className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 font-bold text-[#b45309] hover:bg-amber-100">
+          🔁 {liste.length} relance{liste.length > 1 ? "s" : ""} à faire{propal ? ` · dont ${propal} propal${propal > 1 ? "s" : ""}` : ""}
+        </button>
+      </PopRelancesTrigger>
+      <PopRelancesContent dir="ltr" align="start" className="w-[440px] max-w-[94vw] p-0 bg-white shadow-xl border border-[#e6eaf2]">
+        <div className="px-3 py-2 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <p className="mr-auto text-sm font-black text-gray-900">Relances à faire</p>
+            {miennes.length > 0 && (
+              <button onClick={() => setVoirToutes((v) => !v)} className="rounded-full border border-gray-200 px-2 py-0.5 text-[11px] font-bold text-[#1f4b7f] hover:bg-[#edf2f8]">
+                {voirToutes ? `Mes relances (${miennes.length})` : `Voir toutes (${toutes.length})`}
+              </button>
+            )}
+          </div>
+          <p className="text-[11px] text-gray-500">NRP : 4 h après (24 h pour un NRP 2). Proposition : 3 jours sans nouvelles. La fiche sort de la liste dès qu'on note quelque chose ou change son statut.</p>
+        </div>
+        <div className="max-h-[60vh] overflow-auto divide-y divide-gray-100">
+          {liste.slice(0, 40).map((r) => {
+            const texte = smsRelance(r, moi);
+            return (
+              <div key={r.lead.id} className="px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <button onClick={() => onOpen(r.lead.id)} className="mr-auto text-left min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate hover:text-[#1f4b7f]">{r.lead.name || "Sans nom"}</p>
+                    <p className={`text-[11px] font-semibold truncate ${r.type === "propal" ? "text-[#1f4b7f]" : "text-[#b45309]"}`}>{r.motif}</p>
+                  </button>
+                  {r.lead.phone && (
+                    <a href={`tel:${r.lead.phone.replace(/\s/g, "")}`} onClick={() => trace(r, "appel")} className="shrink-0 whitespace-nowrap rounded-lg bg-[#edf2f8] px-2 py-1 text-xs font-bold text-[#1f4b7f] hover:bg-[#dde6f1]" title={`Appeler ${r.lead.phone}`}>
+                      📞 Appeler
+                    </a>
+                  )}
+                  {r.lead.phone && (
+                    <a href={lienSms(r.lead.phone, texte)} onClick={() => trace(r, "SMS préparé")} className="shrink-0 whitespace-nowrap rounded-lg bg-[#edf2f8] px-2 py-1 text-xs font-bold text-[#1f4b7f] hover:bg-[#dde6f1] md:hidden">
+                      💬 SMS
+                    </a>
+                  )}
+                  <button
+                    onClick={() => {
+                      navigator.clipboard?.writeText(texte).catch(() => {});
+                      setCopie(r.lead.id);
+                      trace(r, "SMS copié");
+                    }}
+                    className="hidden md:inline shrink-0 whitespace-nowrap rounded-lg bg-[#edf2f8] px-2 py-1 text-xs font-bold text-[#1f4b7f] hover:bg-[#dde6f1]"
+                    title={texte}
+                  >
+                    {copie === r.lead.id ? "✓ Copié" : "💬 Copier le SMS"}
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </PopRelancesContent>
+    </PopRelances>
+  );
+}
 
 // Pastille rouge « pas encore appelés » : sa propre minuterie (mise à jour chaque minute) pour ne pas redessiner tout Pac Pac.
 const depuisQuand = (iso: string) => {
@@ -1981,6 +2063,7 @@ export default function LeadsCRM({
             ))}
           </div>
           <AlerteAppels leads={enAttente} onOpen={setOpenId} />
+          {boardId === LEADS_BOARD_ID && <RelancesBouton leads={leads ?? []} email={email} onOpen={setOpenId} />}
           {boardId === LEADS_BOARD_ID &&
             [
               { t: "À appeler", v: kpis.aAppeler, c: "#1f2430", on: statusFilter === "a_appeler", f: () => setStatusFilter(statusFilter === "a_appeler" ? "" : "a_appeler") },
