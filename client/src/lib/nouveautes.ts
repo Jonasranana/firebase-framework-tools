@@ -19,6 +19,17 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-28-mode-leger",
+    date: "2026-11-28",
+    emoji: "🪶",
+    titre: "Pac Pac plus rapide sur votre ordinateur",
+    pour: ["mebarouk2012@gmail.com"],
+    points: [
+      "Pac Pac s'ouvre sur vos leads et les « Nouveaux leads » ; les autres groupes sont fermés (cliquez sur leur flèche pour les ouvrir).",
+      "Les lignes s'affichent par petits paquets : le CRM reste fluide. Astuce : fermez les onglets Chrome que vous n'utilisez pas.",
+    ],
+  },
+  {
     id: "2026-11-27-appels-meta-capi",
     date: "2026-11-27",
     emoji: "📞",

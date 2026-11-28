@@ -173,8 +173,17 @@ export const allItems = (c: SideConfig) => c.folders.flatMap((f) => f.items);
 
 // ── Hook : lecture en direct + enregistrement partagé ──────────────────────
 export function useSidebar(email: string) {
-  const [config, setConfig] = useState<SideConfig>(DEFAULT_SIDEBAR);
-  const [loaded, setLoaded] = useState(false);
+  // Copie locale du menu : les tableaux (ex. « Tableau pour Dépôt ») s'ouvrent sans attendre le serveur.
+  const [copie] = useState<SideConfig | null>(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem("crm-menu") ?? "null");
+      return c ? normalizeConfig(c) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [config, setConfig] = useState<SideConfig>(copie ?? DEFAULT_SIDEBAR);
+  const [loaded, setLoaded] = useState(!!copie);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -189,6 +198,11 @@ export function useSidebar(email: string) {
             if (cancelled) return;
             setConfig(normalizeConfig(snap.data()?.config as SideConfig | undefined));
             setLoaded(true);
+            try {
+              if (snap.data()?.config) localStorage.setItem("crm-menu", JSON.stringify(snap.data()?.config));
+            } catch {
+              /* stockage plein ou bloqué */
+            }
           },
           () => !cancelled && setLoaded(true),
         );

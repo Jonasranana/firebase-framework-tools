@@ -71,17 +71,30 @@ export const purgeColumn = (cfg: ColumnsConfig, key: string): ColumnsConfig => (
 export const expiredColumns = (cfg: ColumnsConfig) => (cfg.colTrash ?? []).filter((e) => e.kind === "delete" && colDaysLeft(e) <= 0);
 
 export function useColumnsConfig(email: string, boardId = "leads") {
-  const [config, setConfig] = useState<ColumnsConfig>({});
-  const [version, setVersion] = useState(0);
-  const [error, setError] = useState("");
-  // Vrai dès que la configuration des colonnes de ce tableau est lue (ou illisible) : évite d'afficher le tableau
-  // avec les colonnes d'origine puis de le redessiner une seconde plus tard.
-  const [ready, setReady] = useState(false);
-  const ref = useRef<ColumnsConfig>({});
-  ref.current = config;
   // Les colonnes d'argent ne sont montrées qu'aux administrateurs ; un autre compte qui enregistre l'ordre des colonnes
   // ne doit pas les faire sortir de leur place pour les administrateurs.
   const canSeeMoney = TOTALS_VIEWERS.includes(email.toLowerCase());
+  // Copie locale lue dès le premier affichage (pas d'attente, pas de second dessin) ; la vraie version arrive ensuite.
+  const [copieInit] = useState<ColumnsConfig | null>(() => {
+    try {
+      const s = localStorage.getItem(`crm-colonnes-${boardId}`);
+      if (!s) return null;
+      const c = JSON.parse(s) as ColumnsConfig;
+      applyColumnsConfig(c, boardId, canSeeMoney);
+      return c;
+    } catch {
+      return null;
+    }
+  });
+  const initBoard = useRef<string | null>(copieInit ? boardId : null);
+  const [config, setConfig] = useState<ColumnsConfig>(copieInit ?? {});
+  const [version, setVersion] = useState(copieInit ? 1 : 0);
+  const [error, setError] = useState("");
+  // Vrai dès que la configuration des colonnes de ce tableau est lue (ou illisible) : évite d'afficher le tableau
+  // avec les colonnes d'origine puis de le redessiner une seconde plus tard.
+  const [ready, setReady] = useState(!!copieInit);
+  const ref = useRef<ColumnsConfig>({});
+  ref.current = config;
 
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -90,7 +103,11 @@ export function useColumnsConfig(email: string, boardId = "leads") {
     // que le serveur réponde (sa réponse passe derrière les 2 500 fiches) ; la vraie arrive ensuite.
     const cleLocale = `crm-colonnes-${boardId}`;
     try {
-      const copie = localStorage.getItem(cleLocale);
+      const copie = initBoard.current === boardId ? null : localStorage.getItem(cleLocale);
+      if (initBoard.current === boardId) {
+        initBoard.current = null;
+        if (boardId === "leads") import("@/lib/chrono").then(({ chrono }) => chrono.depuisOuverture("colonnes-pretes", "copie"));
+      }
       if (copie) {
         const c = JSON.parse(copie) as ColumnsConfig;
         applyColumnsConfig(c, boardId, canSeeMoney);

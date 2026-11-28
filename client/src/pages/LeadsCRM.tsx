@@ -36,6 +36,7 @@ import { buildClientView } from "@/lib/clientSpace";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import NouveauLeadDialog, { type NouveauLead } from "@/components/NouveauLeadDialog";
 import { chrono } from "@/lib/chrono";
+import { appareilLeger } from "@/lib/appareil";
 import { crmFirestore } from "@/lib/crmDb";
 import { getEspaceProApp } from "@/lib/espacePro";
 import { useLeads } from "@/lib/crmStore";
@@ -1498,9 +1499,18 @@ export default function LeadsCRM({
 
   // Groupes du tableau : lus en direct dans crm_boards/leads ; valeurs par
   // défaut tant que la liste n'a jamais été modifiée (ou illisible).
-  const [groupsReady, setGroupsReady] = useState(false);
+  // Copie locale des groupes lue dès le premier affichage (le serveur confirme ensuite).
+  const [groupesCopie] = useState<LeadGroup[] | null>(() => {
+    try {
+      const c = JSON.parse(localStorage.getItem(`crm-groupes-${boardId}`) ?? "null");
+      return Array.isArray(c) && c.length ? (c as LeadGroup[]) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [groupsReady, setGroupsReady] = useState(!!groupesCopie);
   const [groups, setGroups] = useState<LeadGroup[]>(
-    boardId === LEADS_BOARD_ID ? DEFAULT_LEAD_GROUPS : [{ id: "nouveaux", title: "Nouveau groupe", color: "#579bfc" }],
+    groupesCopie ?? (boardId === LEADS_BOARD_ID ? DEFAULT_LEAD_GROUPS : [{ id: "nouveaux", title: "Nouveau groupe", color: "#579bfc" }]),
   );
   useEffect(() => {
     let unsub: (() => void) | undefined;
@@ -1792,6 +1802,15 @@ export default function LeadsCRM({
     }
   };
 
+  // Mode léger (petit ordinateur) : au départ, seuls « Nouveaux leads » et les groupes à son nom sont ouverts.
+  const groupesOuvertsLeger = useMemo(() => {
+    if (!appareilLeger || grouping) return undefined;
+    const sans = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+    // 4 premières lettres du prénom (ou de l'adresse : « mebarouk2012 » → « meba » retrouve « 1/Leads Mebarek »).
+    const racine = sans(memberName(email, email.split("@")[0]).split(/\s+/)[0] ?? "").replace(/[^a-z]/g, "").slice(0, 4);
+    return groups.filter((g) => g.id === "nouveaux" || (racine.length === 4 && (sans(g.title).includes(racine) || sans(g.id).includes(racine)))).map((g) => g.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [groupsReady]);
   // Chaque modification d'une cellule laisse une petite ligne dans la bulle de commentaires.
   // Chronomètre invisible : tableau affiché, recherche, ouverture d'une fiche.
   const pret = !!leads && columnsReady && groupsReady;
@@ -2103,6 +2122,7 @@ export default function LeadsCRM({
         <div ref={zoomWrapRef} style={{ zoom: Number.isFinite(zoom) && zoom >= 0.45 && zoom <= 1.5 ? zoom : 1 }}>
         <LeadsTable
           showTotals={TOTALS_VIEWERS.includes(email.toLowerCase())}
+          ouverts={groupesOuvertsLeger}
           leads={filtered}
           groups={grouping ? grouping.groups : groups}
           groupKeyOf={grouping?.keyOf}

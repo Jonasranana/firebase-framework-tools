@@ -1162,6 +1162,7 @@ const GroupPager = ({
   color,
   onPage,
   compact = false,
+  parPage = PAGE_ROWS,
 }: {
   page: number;
   pages: number;
@@ -1169,9 +1170,10 @@ const GroupPager = ({
   color: string;
   onPage: (p: number) => void;
   compact?: boolean;
+  parPage?: number;
 }) => {
-  const from = page * PAGE_ROWS + 1;
-  const to = Math.min(total, (page + 1) * PAGE_ROWS);
+  const from = page * parPage + 1;
+  const to = Math.min(total, (page + 1) * parPage);
   const arrow = "w-7 h-7 inline-flex items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 hover:bg-orange-50 hover:text-[#c2410c] disabled:opacity-30 disabled:hover:bg-white disabled:hover:text-gray-600";
   return (
     <span
@@ -1380,10 +1382,13 @@ export default function LeadsTable({
   onRenameColumn,
   onResizeColumn,
   showTotals,
+  ouverts,
   onExportGroup,
 }: {
   // Ligne « Total » en bas de chaque groupe (administrateurs seulement).
   showTotals?: boolean;
+  // Mode léger (petit ordinateur) : seuls ces groupes sont ouverts au départ, et moins de lignes par groupe.
+  ouverts?: string[];
   // Glisser-déposer d'une colonne et renommage en cliquant sur son titre.
   onMoveColumn?: (key: string, targetKey: string) => void;
   onRenameColumn?: (key: string, title: string) => void;
@@ -1423,8 +1428,12 @@ export default function LeadsTable({
   onChangeZoom?: (z: number) => void;
   onZoomLive?: (z: number) => void;
 }) {
-  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() =>
+    ouverts ? Object.fromEntries(groups.filter((g) => !ouverts.includes(g.id)).map((g) => [g.id, true])) : {},
+  );
   const [limits, setLimits] = useState<Record<string, number>>({});
+  const parGroupe = ouverts ? 15 : GROUP_PAGE;
+  const parPage = ouverts ? 25 : PAGE_ROWS;
   const [pageOf, setPageOf] = useState<Record<string, number>>({});
   const [dropOver, setDropOver] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -1749,11 +1758,11 @@ export default function LeadsTable({
         {visibleGroups.map((st, gi) => {
           const rows = leads.filter((l) => (groupKeyOf ? groupKeyOf(l) : groupOf(l, groups).id) === st.id);
           const isCollapsed = collapsed[st.id];
-          const limit = limits[st.id] ?? GROUP_PAGE;
+          const limit = limits[st.id] ?? parGroupe;
           const paged = rows.length > PAGED_MIN;
-          const pages = Math.max(1, Math.ceil(rows.length / PAGE_ROWS));
+          const pages = Math.max(1, Math.ceil(rows.length / parPage));
           const page = Math.min(pageOf[st.id] ?? 0, pages - 1);
-          const shownRows = paged ? rows.slice(page * PAGE_ROWS, (page + 1) * PAGE_ROWS) : rows.slice(0, limit);
+          const shownRows = paged ? rows.slice(page * parPage, (page + 1) * parPage) : rows.slice(0, limit);
           const goPage = (p: number) => setPageOf((m) => ({ ...m, [st.id]: Math.max(0, Math.min(pages - 1, p)) }));
           return (
             <section
@@ -1791,7 +1800,7 @@ export default function LeadsTable({
                     {rows.length} lead{rows.length > 1 ? "s" : ""}
                   </span>
                 </button>
-                {paged && !isCollapsed && <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} />}
+                {paged && !isCollapsed && <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} parPage={parPage} />}
                 {!readOnlyGroups && (
                 <GroupMenu
                   group={st}
@@ -1962,8 +1971,8 @@ export default function LeadsTable({
                   {paged && (
                     <div className="h-10 border-b border-[#d0d4e4]" style={{ background: `${st.color}10` }}>
                       <div className="sticky left-0 w-max max-w-[100vw] h-10 flex items-center gap-3 px-3">
-                        <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} compact />
-                        <span className="text-xs text-gray-500">Page {page + 1} sur {pages} · il reste {Math.max(0, rows.length - (page + 1) * PAGE_ROWS)} clients après cette page</span>
+                        <GroupPager page={page} pages={pages} total={rows.length} color={st.color} onPage={goPage} parPage={parPage} compact />
+                        <span className="text-xs text-gray-500">Page {page + 1} sur {pages} · il reste {Math.max(0, rows.length - (page + 1) * parPage)} clients après cette page</span>
                       </div>
                     </div>
                   )}
