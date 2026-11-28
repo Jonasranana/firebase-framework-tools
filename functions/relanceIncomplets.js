@@ -6,9 +6,9 @@
 //    (au plus 6 h après la demande : au-delà, on laisse l'équipe rappeler).
 //  - Une seule fois par fiche (repère lead_relance_incomplet/<id>), trace dans la fiche.
 //  - Jamais pour les campagnes de réactivation ou WhatsApp, ni si la fiche a été traitée.
-// ACTIF = false : rien n'est envoyé tant que Jonas n'a pas validé le texte.
+// Activé le 28/11/2026 avec l'accord de Jonas (texte validé). ACTIF = false pour couper.
 // ─────────────────────────────────────────────────────────────────────────
-const ACTIF = false;
+const ACTIF = true;
 
 module.exports = ({ db, logger, FieldValue, onSchedule, toE164French, sendTwilioSms, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN }) => {
   const texte = (prenom) =>

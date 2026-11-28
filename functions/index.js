@@ -3210,7 +3210,7 @@ Object.assign(
   require("./relanceIA")({ db, onCall, HttpsError, defineSecret, FieldValue: require("firebase-admin/firestore").FieldValue, logger }),
 );
 
-// ── Relance SMS des demandes incomplètes du site (éteinte tant que ACTIF = false) ──
+// ── Relance SMS des demandes incomplètes du site (texte validé par Jonas le 28/11/2026) ──
 // Voir functions/relanceIncomplets.js.
 Object.assign(
   exports,

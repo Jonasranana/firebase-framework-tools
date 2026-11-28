@@ -19,6 +19,13 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-28-relance-incomplets",
+    date: "2026-11-28",
+    emoji: "💬",
+    titre: "Demandes incomplètes : SMS de relance automatique",
+    points: ["Quand quelqu'un laisse son numéro sur le site sans finir la simulation, il reçoit un SMS 1 h après (entre 9 h et 20 h) pour terminer, si personne ne l'a encore appelé. Le SMS envoyé est noté dans sa fiche."],
+  },
+  {
     id: "2026-11-28-relances",
     date: "2026-11-28",
     emoji: "🔁",
