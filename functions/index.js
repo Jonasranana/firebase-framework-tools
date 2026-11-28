@@ -581,17 +581,20 @@ exports.notifyNewLead = onDocumentCreated(
     const gmail = google.gmail({ version: "v1", auth: oauth2Client });
 
     const contactEmail = GMAIL_SENDER_EMAIL.value();
+    const sujet = data.requestType
+      ? `📞 Rappel demandé — ${data.name || "sans nom"}`
+      : `🔔 Nouveau lead — ${data.name || "sans nom"}${data.projectType ? ` (${data.projectType})` : ""}`;
     const raw = buildRawMessage({
       to: contactEmail,
       from: contactEmail,
-      subject: data.requestType
-        ? `📞 Rappel demandé — ${data.name || "sans nom"}`
-        : `🔔 Nouveau lead — ${data.name || "sans nom"}${data.projectType ? ` (${data.projectType})` : ""}`,
+      subject: sujet,
       html: buildLeadNotificationEmailHtml(data),
     });
 
     try {
-      await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+      const envoye = await gmail.users.messages.send({ userId: "me", requestBody: { raw } });
+      // Fil Gmail gardé : le créneau d'appel choisi ensuite par le client arrive dans la même conversation.
+      if (envoye?.data?.threadId) await event.data.ref.update({ notifThreadId: envoye.data.threadId, notifSujet: sujet }).catch(() => {});
       logger.info("Notification interne nouveau lead envoyée", { leadId, to: contactEmail });
     } catch (err) {
       logger.error("Échec de l'envoi de la notification interne nouveau lead", { leadId, error: err.message });
@@ -3208,6 +3211,21 @@ Object.assign(
 Object.assign(
   exports,
   require("./relanceIA")({ db, onCall, HttpsError, defineSecret, FieldValue: require("firebase-admin/firestore").FieldValue, logger }),
+);
+
+// ── Créneau d'appel choisi par le client sur l'écran « Merci » de /pac ──
+// Voir functions/creneauAppel.js.
+Object.assign(
+  exports,
+  require("./creneauAppel")({
+    db,
+    logger,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+    onRequest,
+    google,
+    buildRawMessage,
+    secrets: { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL },
+  }),
 );
 
 // ── Demande d'avis Google automatique après la pose (activée avec l'accord de Jonas le 28/11/2026) ──

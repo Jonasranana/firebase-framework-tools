@@ -662,7 +662,8 @@ async function submitLead(
     : appMod.initializeApp(FIREBASE_CONFIG);
   const db = fsMod.getFirestore(app);
   const { company, firstName, lastName, ...lead } = data;
-  await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
+  dernierLeadId = "";
+  const nouveau = await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
     // Pub d'origine (paramètres utm du lien Meta), pour savoir quelle annonce amène des clients.
     ...(pubOrigine() ? { pub: pubOrigine() } : {}),
     ...lead,
@@ -681,6 +682,7 @@ async function submitLead(
     // Monday (voir scripts/sync-leads-to-monday.mjs).
     mondaySynced: false,
   });
+  dernierLeadId = nouveau?.id ?? "";
 
   // Conversion Meta Pixel : signale à Facebook/Instagram qu'un lead a été
   // capté, pour l'optimisation et la mesure des campagnes. Ne fait rien si le
@@ -729,7 +731,8 @@ export async function submitCallbackRequest(
     ? appMod.getApp()
     : appMod.initializeApp(FIREBASE_CONFIG);
   const db = fsMod.getFirestore(app);
-  await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
+  dernierLeadId = "";
+  const nouveau = await fsMod.addDoc(fsMod.collection(db, "ip5_leads"), {
     // Pub d'origine (paramètres utm du lien Meta), pour savoir quelle annonce amène des clients.
     ...(pubOrigine() ? { pub: pubOrigine() } : {}),
     name: `${data.firstName.trim()} ${data.lastName.trim()}`.trim(),
@@ -747,6 +750,7 @@ export async function submitCallbackRequest(
     createdAt: fsMod.serverTimestamp(),
     mondaySynced: false,
   });
+  dernierLeadId = nouveau?.id ?? "";
   try {
     if (!horsPub(source))
       (window as any).fbq?.("track", "Lead", { content_category: source });
@@ -801,6 +805,71 @@ export function trackStep(source: string, step: number, answers: Record<string, 
   } catch {
     /* le suivi ne doit jamais gêner le visiteur */
   }
+}
+
+// ─── Créneau d'appel (écran « Merci ») ───────────────────────────────────
+// Facultatif, après l'envoi : la demande est déjà enregistrée. Le client choisit quand
+// il préfère être appelé ; le créneau arrive dans Pac Pac (colonne Rappel) et dans le
+// mail « Nouveau lead » (réponse dans la même conversation Gmail).
+let dernierLeadId = "";
+const CRENEAU_URL = "https://europe-west9-kachoto-7554c.cloudfunctions.net/choisirCreneau";
+// Libellés selon l'heure (le serveur fait le même calcul : pas d'appel le dimanche).
+function creneaux(): [string, string, string][] {
+  const n = new Date();
+  const h = n.getHours() + n.getMinutes() / 60;
+  const dim = n.getDay() === 0;
+  const lendemain = n.getDay() === 6 || dim ? (dim ? "Demain" : "Lundi") : "Demain";
+  return [
+    ["asap", "Dès que possible", ""],
+    ["midi", !dim && h < 12.5 ? "Ce midi" : `${lendemain} midi`, "12 h – 14 h"],
+    ["soir", !dim && h < 17.5 ? "Ce soir" : `${lendemain} soir`, "17 h – 19 h"],
+    ["demain", `${lendemain} matin`, "9 h – 12 h"],
+  ];
+}
+export function CreneauAppel() {
+  const [choisi, setChoisi] = useState("");
+  const [libelle, setLibelle] = useState("");
+  const [envoi, setEnvoi] = useState(false);
+  if (!dernierLeadId) return null;
+  const choisir = async (k: string, label: string) => {
+    setEnvoi(true);
+    setChoisi(k);
+    try {
+      const r = await fetch(CRENEAU_URL, { method: "POST", headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ leadId: dernierLeadId, creneau: k }) });
+      const j = await r.json().catch(() => ({}));
+      setLibelle(j?.libelle || label);
+    } catch {
+      setLibelle(label);
+    } finally {
+      setEnvoi(false);
+    }
+  };
+  if (choisi && !envoi)
+    return (
+      <div className="mb-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center">
+        <p className="font-bold text-emerald-800">📅 C'est noté : votre conseiller vous appelle {libelle.toLowerCase()}.</p>
+        <p className="mt-0.5 text-xs text-emerald-700">Pensez à décrocher : l'appel peut venir d'un numéro inconnu.</p>
+      </div>
+    );
+  return (
+    <div className="mb-4 rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <p className="text-center font-bold text-[#0f2a47]">Quand préférez-vous être appelé ?</p>
+      <div className="mt-2.5 grid grid-cols-2 gap-2">
+        {creneaux().map(([k, label, heures]) => (
+          <button
+            key={k}
+            type="button"
+            disabled={envoi}
+            onClick={() => choisir(k, heures ? `${label} (${heures})` : label)}
+            className="rounded-xl border-2 border-slate-300 bg-slate-100 px-2 py-2.5 text-sm font-bold text-[#173a5e] hover:border-amber-300 active:scale-[0.98] transition"
+          >
+            {label}
+            {heures && <span className="block text-[11px] font-semibold text-slate-500">{heures}</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // --- Habillage du simulateur ---
@@ -1895,6 +1964,7 @@ export const Simulator = ({
               Demande envoyée
             </p>
             {content}
+            {result.kind !== "h3" && <CreneauAppel />}
             <Button variant="outline" className="w-full" onClick={restart}>
               Faire une nouvelle simulation
             </Button>
