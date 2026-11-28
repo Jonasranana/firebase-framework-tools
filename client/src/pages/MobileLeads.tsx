@@ -63,7 +63,24 @@ const readCallApp = (): CallApp => {
     return "phone";
   }
 };
-const CallCtx = createContext<{ app: CallApp; copy: (phone: string, name: string) => void }>({ app: "phone", copy: () => {} });
+const CallCtx = createContext<{ app: CallApp; copy: (phone: string, name: string) => void; setApp: (a: CallApp) => void }>({ app: "phone", copy: () => {}, setApp: () => {} });
+
+// Choix « Appeler avec » : dans la fiche du client, sous les boutons (mémorisé sur l'appareil).
+const ChoixAppel = () => {
+  const { app, setApp } = useContext(CallCtx);
+  return (
+    <div className="flex items-center justify-center gap-2">
+      <span className="text-[11px] font-semibold text-gray-500">Appeler avec</span>
+      <div className="flex rounded-full bg-gray-200/70 p-0.5">
+        {([["phone", "📞 Téléphone"], ["onoff", "🟣 OnOff Business"]] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setApp(k)} className={`text-[12px] font-bold px-3 py-1 rounded-full ${app === k ? "bg-white text-[#1f4b7f] shadow-sm" : "text-gray-500"}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 const nationalPhone = (raw: string) => {
   let d = String(raw ?? "").replace(/\D/g, "");
   if (d.startsWith("33") && d.length === 11) d = "0" + d.slice(2);
@@ -309,6 +326,7 @@ const LeadScreen = ({ lead, email, etapeCol, onMoveEtape, groups, groupId, onGro
             Mail / SMS
           </button>
         </div>
+        {tel && <ChoixAppel />}
 
         {lead.rappelLe && (
           <div className={`rounded-2xl px-4 py-3 flex items-center gap-2 text-sm font-semibold ${late ? "bg-red-50 text-red-700" : "bg-orange-50 text-orange-800"}`}>
@@ -734,7 +752,7 @@ export default function MobileLeads(props: Props) {
   }, [leads, groups, groupIdOf]);
 
   return (
-    <CallCtx.Provider value={{ app: callApp, copy: copyNumber }}>
+    <CallCtx.Provider value={{ app: callApp, copy: copyNumber, setApp: setCallApp }}>
     <div ref={topRef} className="pb-28" style={{ touchAction: "pan-x pan-y" }}>
       <div className="pt-1 pb-2">
         {tab === "liste" && (
@@ -760,16 +778,6 @@ export default function MobileLeads(props: Props) {
               <button onClick={props.onToTable} className="text-[11px] font-semibold text-gray-500 underline">
                 Voir en tableau
               </button>
-            </div>
-            <div className="flex items-center gap-2 mt-1.5">
-              <span className="text-[11px] font-semibold text-gray-500">Appeler avec</span>
-              <div className="flex rounded-full bg-gray-200/70 p-0.5">
-                {([["phone", "📞 Téléphone"], ["onoff", "🟣 OnOff Business"]] as const).map(([k, label]) => (
-                  <button key={k} onClick={() => setCallApp(k)} className={`text-[12px] font-bold px-3 py-1 rounded-full ${callApp === k ? "bg-white text-[#c2410c] shadow-sm" : "text-gray-500"}`}>
-                    {label}
-                  </button>
-                ))}
-              </div>
             </div>
           </>
         )}

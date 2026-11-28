@@ -23,7 +23,7 @@ export const NOUVEAUTES: Nouveaute[] = [
     date: "2026-11-28",
     emoji: "📱",
     titre: "Pac Pac sur téléphone : rangé par groupe",
-    points: ["Sur téléphone, la liste est rangée par groupe : le nom du groupe en titre, ses 10 premiers clients, puis « Voir les autres ». En descendant, on voit tous les groupes. La recherche prend toute la largeur."],
+    points: ["Sur téléphone, la liste est rangée par groupe : le nom du groupe en titre, ses 10 premiers clients, puis « Voir les autres ». En descendant, on voit tous les groupes. La recherche prend toute la largeur. Le choix « Appeler avec Téléphone / OnOff » est maintenant dans la fiche du client, sous les boutons."],
   },
   {
     id: "2026-11-28-creneau-appel",
