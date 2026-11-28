@@ -3210,6 +3210,22 @@ Object.assign(
   require("./relanceIA")({ db, onCall, HttpsError, defineSecret, FieldValue: require("firebase-admin/firestore").FieldValue, logger }),
 );
 
+// ── Relance SMS des demandes incomplètes du site (éteinte tant que ACTIF = false) ──
+// Voir functions/relanceIncomplets.js.
+Object.assign(
+  exports,
+  require("./relanceIncomplets")({
+    db,
+    logger,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+    onSchedule: require("firebase-functions/v2/scheduler").onSchedule,
+    toE164French,
+    sendTwilioSms,
+    TWILIO_ACCOUNT_SID,
+    TWILIO_AUTH_TOKEN,
+  }),
+);
+
 // ── API Conversions de Meta : dire à Meta quels leads des pubs avancent et signent ──
 // Inactif tant que Jonas n'a pas saisi le jeton (crm_meta_capi_config/reglages). Voir functions/metaCapi.js.
 Object.assign(
