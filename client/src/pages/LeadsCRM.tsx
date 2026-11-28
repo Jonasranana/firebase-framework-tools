@@ -37,6 +37,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import NouveauLeadDialog, { type NouveauLead } from "@/components/NouveauLeadDialog";
 import { chrono } from "@/lib/chrono";
 import { appareilLeger } from "@/lib/appareil";
+import { RAISONS, RAISON_KEY, aExpliquer } from "@/lib/raisonPerte";
 import { lienSms, prenomEquipe, relancesAFaire, smsRelance, type Relance } from "@/lib/relances";
 import { Popover as PopRelances, PopoverContent as PopRelancesContent, PopoverTrigger as PopRelancesTrigger } from "@/components/ui/popover";
 import { crmFirestore } from "@/lib/crmDb";
@@ -945,6 +946,67 @@ function RelancesBouton({ leads, email, onOpen }: { leads: Lead[]; email: string
         </div>
       </PopRelancesContent>
     </PopRelances>
+  );
+}
+
+// « Pourquoi ce lead est perdu ? » : s'ouvre pour la personne qui vient de passer un lead en « perdu »
+// (tableau, fiche ou téléphone). Un clic suffit ; « Plus tard » le laisse de côté pour cette session.
+function RaisonPerteFenetre({ leads, email }: { leads: Lead[]; email: string }) {
+  const [plusTard, setPlusTard] = useState<string[]>([]);
+  const [autre, setAutre] = useState("");
+  const [saisieAutre, setSaisieAutre] = useState(false);
+  const file = useMemo(() => aExpliquer(leads, email).filter((l) => !plusTard.includes(l.id)), [leads, email, plusTard]);
+  const l = file[0];
+  if (!l) return null;
+  const choisir = async (label: string) => {
+    setSaisieAutre(false);
+    setAutre("");
+    try {
+      const { m } = await fs();
+      await patchLead(l.id, email, {
+        [`fields.${RAISON_KEY}`]: label,
+        notes: m.arrayUnion({ id: newId(), text: `❌ Raison de la perte : ${label}`, by: email, at: new Date().toISOString(), kind: "statut" } satisfies LeadNote),
+      });
+    } catch {
+      setPlusTard((x) => [...x, l.id]);
+    }
+  };
+  return (
+    <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-3">
+      <div className="w-full max-w-md rounded-2xl bg-white p-4 shadow-2xl">
+        <p className="text-xs font-semibold text-gray-500">{file.length > 1 ? `1 sur ${file.length} · ` : ""}{statusInfo(l.status).label}</p>
+        <p className="mt-0.5 text-lg font-extrabold text-gray-900">Pourquoi {l.name || "ce lead"} est perdu ?</p>
+        <p className="text-xs text-gray-500">Un clic suffit : ça nous dit quoi corriger dans les pubs et le formulaire.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {RAISONS.map((r) =>
+            r.k === "autre" ? (
+              <button key={r.k} onClick={() => setSaisieAutre(true)} className="rounded-xl border-2 border-gray-200 bg-gray-50 px-2 py-2.5 text-sm font-bold text-gray-800 hover:border-[#1f4b7f] active:scale-[0.98]">
+                {r.emoji} {r.label}
+              </button>
+            ) : (
+              <button key={r.k} onClick={() => choisir(r.label)} className="rounded-xl border-2 border-gray-200 bg-gray-50 px-2 py-2.5 text-sm font-bold text-gray-800 hover:border-[#1f4b7f] active:scale-[0.98]">
+                {r.emoji} {r.label}
+              </button>
+            ),
+          )}
+        </div>
+        {saisieAutre && (
+          <form
+            className="mt-2 flex gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (autre.trim()) choisir(`Autre : ${autre.trim().slice(0, 80)}`);
+            }}
+          >
+            <input autoFocus value={autre} onChange={(e) => setAutre(e.target.value)} placeholder="Quelle raison ?" className="flex-1 rounded-xl border-2 border-gray-200 px-3 py-2 text-base outline-none focus:border-[#1f4b7f]" />
+            <button className="rounded-xl px-3 text-sm font-bold text-white" style={{ background: "var(--brand-grad-120)" }}>OK</button>
+          </form>
+        )}
+        <button onClick={() => setPlusTard((x) => [...x, l.id])} className="mt-3 w-full text-xs font-semibold text-gray-400">
+          Plus tard
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -2093,6 +2155,8 @@ export default function LeadsCRM({
           </span>
         </div>
       )}
+      {/* Raison de perte : fenêtre affichée partout (tableau, fiche, téléphone). */}
+      {boardId === LEADS_BOARD_ID && <RaisonPerteFenetre leads={leads ?? []} email={email} />}
       {/* Barre d'outils façon Monday */}
       <div className={`${view === "mobile" ? "hidden" : "flex"} items-center gap-1.5 mb-2 overflow-x-auto no-scrollbar sm:flex-wrap sm:overflow-visible rounded-xl border border-gray-200 bg-white shadow-sm px-2 py-1`}>
         {isMobile && (
