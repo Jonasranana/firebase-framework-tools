@@ -3210,6 +3210,25 @@ Object.assign(
   require("./relanceIA")({ db, onCall, HttpsError, defineSecret, FieldValue: require("firebase-admin/firestore").FieldValue, logger }),
 );
 
+// ── Demande d'avis Google automatique après la pose (activée avec l'accord de Jonas le 28/11/2026) ──
+// Voir functions/avisApresPose.js.
+Object.assign(
+  exports,
+  require("./avisApresPose")({
+    db,
+    logger,
+    FieldValue: require("firebase-admin/firestore").FieldValue,
+    onSchedule: require("firebase-functions/v2/scheduler").onSchedule,
+    google,
+    toE164French,
+    sendTwilioSms,
+    buildRawMessageWithAttachment,
+    EMAIL_RE,
+    MONDAY_EMAIL_TEMPLATES,
+    secrets: { GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN, GMAIL_SENDER_EMAIL, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN },
+  }),
+);
+
 // ── Relance SMS des demandes incomplètes du site (texte validé par Jonas le 28/11/2026) ──
 // Voir functions/relanceIncomplets.js.
 Object.assign(
