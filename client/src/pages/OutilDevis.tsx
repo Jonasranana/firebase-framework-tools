@@ -44,6 +44,7 @@ const TourneesLoan = lazy(() => import("./TourneesLoan"));
 const SimulateurMarge = lazy(() => import("./SimulateurMarge"));
 const PacPacArchive = lazy(() => import("./PacPacArchive"));
 const ActiviteEquipe = lazy(() => import("./ActiviteEquipe"));
+const ParrainageCRM = lazy(() => import("./ParrainageCRM"));
 const ActusCRM = lazy(() => import("./ActusCRM"));
 import Nouveautes from "@/components/Nouveautes";
 
@@ -1019,6 +1020,7 @@ export default function OutilDevis() {
           ) : (
             <p className="text-sm text-gray-500 py-10 text-center">Cette page est réservée aux administrateurs.</p>
           ))}
+        {p === "parrainage" && <ParrainageCRM email={email} />}
         {p === "activite" &&
           (email.toLowerCase() === "jonassitbon8@gmail.com" ? (
             <ActiviteEquipe />

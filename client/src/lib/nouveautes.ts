@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-28-parrainage",
+    date: "2026-11-28",
+    emoji: "🤝",
+    titre: "Nouvelle page : Parrainage",
+    points: [
+      "Dans le menu (groupe Tableau) : la liste des clients signés et installés, avec pour chacun un SMS de parrainage prêt (son lien personnel). Le bon moment : juste après la pose.",
+      "Les proches qui demandent une étude via ce lien arrivent dans Pac Pac et apparaissent sur la page, avec le nom du client qui les a envoyés. La prime de 100 € est due quand le proche est installé : on coche « payée » une fois versée.",
+    ],
+  },
+  {
     id: "2026-11-28-relance-incomplets",
     date: "2026-11-28",
     emoji: "💬",

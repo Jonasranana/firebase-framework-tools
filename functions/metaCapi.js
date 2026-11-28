@@ -52,6 +52,7 @@ module.exports = ({ db, logger, FieldValue, onDocumentUpdated }) => {
   const vientDeMeta = (x) => {
     if (x.fields?.vientDeMeta === "oui") return true;
     if (x.fields?.vientDeMeta === "non") return false;
+    if (String(x.fields?.pubSource ?? "").toLowerCase() === "parrainage") return false;
     const src = String(x.source ?? "");
     return /^(landing-pac-meta|simulateur-landing|formulaire-facebook)/.test(src) || (/^site \(incomplet\)/i.test(src) && !/whatsapp|reactivation/i.test(src));
   };

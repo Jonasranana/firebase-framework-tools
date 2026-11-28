@@ -75,6 +75,10 @@ const TEXTES: Record<string, { titre: string; lignes: string[] }> = {
     titre: "Clients (copie Monday)",
     lignes: ["La copie des clients de Monday, en lecture seule."],
   },
+  parrainage: {
+    titre: "Parrainage",
+    lignes: ["Chaque client signé a son lien personnel à envoyer à un proche. Si ce proche installe sa pompe à chaleur avec nous, le client touche sa prime.", "Les demandes arrivent dans Pac Pac ; ici on voit qui a parrainé qui, et les primes à verser."],
+  },
   activite: {
     titre: "Activité de l'équipe",
     lignes: ["Qui se connecte au CRM, combien de temps, sur ordinateur ou téléphone, sur quelles pages, et combien d'actions sur les fiches.", "Visible seulement par Jonas."],
