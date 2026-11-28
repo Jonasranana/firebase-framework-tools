@@ -19,6 +19,16 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-28-raison-perte",
+    date: "2026-11-28",
+    emoji: "❌",
+    titre: "Pourquoi un lead est perdu ?",
+    points: [
+      "Quand vous passez un lead en « Pas intéressé », « Pas bon », « Pas éligible »… une petite fenêtre demande la raison : locataire, appartement, revenus trop élevés, pas de projet, trop cher, ne répond plus… Un clic suffit.",
+      "Ça nous dit exactement quoi corriger dans les pubs et le formulaire du site.",
+    ],
+  },
+  {
     id: "2026-11-28-mobile-groupes",
     date: "2026-11-28",
     emoji: "📱",

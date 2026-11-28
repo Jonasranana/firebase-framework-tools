@@ -4,6 +4,7 @@ import { crmFirestore } from "@/lib/crmDb";
 import { statusInfo, type Lead } from "@/lib/crm";
 import { useColumnsConfig } from "@/lib/crmColumnsConfig";
 import { lireExportMeta, idMetaJour, type MetaJour } from "@/lib/metaExport";
+import { RAISONS, RAISON_KEY, estPerdu } from "@/lib/raisonPerte";
 import { MARGE_MIN, num, ceeIp5, mprOf, poseOf, fraisOf, mprRecue, ceeSeule, margeOf, isSigne, moisSigne } from "@/lib/chantiers";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -433,6 +434,23 @@ export default function RentaMeta({ email }: { email: string }) {
   const couleurCpl = (c: number | null) => (c === null ? "text-red-600" : c <= 22 ? "text-emerald-700" : c <= 35 ? "text-amber-600" : "text-red-600");
   const jourFr = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
 
+  // Pourquoi on perd des leads : raisons notées (fenêtre « Pourquoi ce lead est perdu ? ») sur la période.
+  const pertes = useMemo(() => {
+    const dans = (allLeads ?? []).filter((l) => (l.board || "leads") === "leads" && !l.deletedAt && estPerdu(l.status) && Date.parse(l.createdAt) >= from && Date.parse(l.createdAt) < to);
+    const compte = (ls: Lead[]) => {
+      const m = new Map<string, number>();
+      for (const l of ls) {
+        const r = String(l.fields?.[RAISON_KEY] ?? "").trim();
+        if (!r) continue;
+        const k = r.startsWith("Autre") ? "Autre" : r;
+        m.set(k, (m.get(k) ?? 0) + 1);
+      }
+      return m;
+    };
+    const meta = dans.filter((l) => canalOf(l));
+    return { tous: dans.length, meta: meta.length, sansRaison: dans.filter((l) => !String(l.fields?.[RAISON_KEY] ?? "").trim()).length, cTous: compte(dans), cMeta: compte(meta) };
+  }, [allLeads, from, to, colsVersion]);
+
   const [voirDepenses, setVoirDepenses] = useState(false);
   const champ = "rounded-lg border border-gray-300 bg-white text-gray-900 placeholder:text-gray-400 [color-scheme:light] px-2 py-1.5 text-sm";
   const carte = "rounded-2xl border border-gray-200 bg-white p-4 md:p-5";
@@ -634,6 +652,42 @@ export default function RentaMeta({ email }: { email: string }) {
       </div>
 
       {email.toLowerCase() === "jonassitbon8@gmail.com" && <MetaCapiReglages />}
+
+      <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
+        <h2 className="text-lg font-black text-gray-900">Pourquoi on perd des leads</h2>
+        <p className="text-sm text-gray-600 mb-3">
+          Raison choisie quand un lead passe en « perdu » (leads arrivés sur la période). {pertes.sansRaison > 0 && `${pertes.sansRaison} lead${pertes.sansRaison > 1 ? "s" : ""} perdu${pertes.sansRaison > 1 ? "s" : ""} sans raison (avant la mise en place, ou « plus tard »).`}
+        </p>
+        {pertes.cTous.size === 0 ? (
+          <p className="text-sm text-gray-500">Pas encore de raison notée sur cette période : les chiffres arrivent au fil des appels.</p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4">
+            {([["Leads des pubs Meta", pertes.cMeta], ["Tous les leads", pertes.cTous]] as [string, Map<string, number>][]).map(([t, c]) => {
+              const total = Array.from(c.values()).reduce((x, n) => x + n, 0);
+              return (
+                <div key={t}>
+                  <p className="mb-1.5 text-sm font-bold text-gray-800">{t} <span className="font-normal text-gray-400">· {total}</span></p>
+                  {total === 0 ? (
+                    <p className="text-sm text-gray-400">—</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {Array.from(c.entries()).sort((a, b) => b[1] - a[1]).map(([r, n]) => (
+                        <div key={r} className="flex items-center gap-2 text-sm">
+                          <span className="w-52 shrink-0 truncate text-gray-700">{RAISONS.find((x) => x.label === r)?.emoji ?? "✏️"} {r}</span>
+                          <span className="flex-1 h-2 rounded-full bg-gray-100 overflow-hidden">
+                            <span className="block h-full rounded-full" style={{ width: `${Math.max(4, (n / total) * 100)}%`, background: "linear-gradient(90deg,#173a5e,#2b5a8f)" }} />
+                          </span>
+                          <span className="w-16 text-right font-bold text-gray-900">{n} <span className="text-xs font-semibold text-gray-400">{Math.round((n / total) * 100)} %</span></span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
       <div className="rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
         <h2 className="text-lg font-black text-gray-900">Quelle pub marche ?</h2>
