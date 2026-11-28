@@ -5,9 +5,9 @@
 // portable, e-mail s'il y a une adresse. Jamais deux fois (repère avis_demande/<id>),
 // ni si la demande a déjà été envoyée à la main depuis la fiche. Trace dans la fiche.
 // Seulement les poses à partir de DEPUIS (les anciens clients ne sont pas relancés d'un coup).
-// Activé le 28/11/2026 avec l'accord de Jonas. ACTIF = false pour couper.
+// COUPÉ le 28/11/2026 à la demande de Jonas : ne rien envoyer tant qu'il ne dit pas d'activer.
 // ─────────────────────────────────────────────────────────────────────────
-const ACTIF = true;
+const ACTIF = false;
 const DEPUIS = "2026-11-28";
 
 module.exports = ({ db, logger, FieldValue, onSchedule, google, toE164French, sendTwilioSms, buildRawMessageWithAttachment, EMAIL_RE, MONDAY_EMAIL_TEMPLATES, secrets }) => {
