@@ -3210,7 +3210,7 @@ Object.assign(
   require("./relanceIA")({ db, onCall, HttpsError, defineSecret, FieldValue: require("firebase-admin/firestore").FieldValue, logger }),
 );
 
-// ── Demande d'avis Google automatique après la pose (éteinte tant que ACTIF = false) ──
+// ── Demande d'avis Google automatique après la pose (activée avec l'accord de Jonas le 28/11/2026) ──
 // Voir functions/avisApresPose.js.
 Object.assign(
   exports,

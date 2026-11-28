@@ -19,6 +19,13 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-28-avis-google",
+    date: "2026-11-28",
+    emoji: "⭐",
+    titre: "Avis Google demandés automatiquement après la pose",
+    points: ["Le lendemain de la pose (client passé en « Installé »), le CRM envoie une seule fois la demande d'avis Google, par SMS et par e-mail. C'est noté dans la fiche. Si vous l'avez déjà envoyée à la main, rien ne repart."],
+  },
+  {
     id: "2026-11-28-parrainage",
     date: "2026-11-28",
     emoji: "🤝",
