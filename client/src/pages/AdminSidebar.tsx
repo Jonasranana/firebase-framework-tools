@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   Activity,
+  Handshake,
   Archive,
   BarChart3,
   CalendarDays,
@@ -54,11 +55,12 @@ const ICONS: Record<AdminPageKey, typeof BoardIcon> = {
   loan: Truck,
   pacarchive: Archive,
   activite: Activity,
+  parrainage: Handshake,
 };
 
 // Groupes fixes du menu, dans l'ordre d'usage.
 const GROUPES: { id: string; titre: string; couleur: string; pages: AdminPageKey[] }[] = [
-  { id: "g_tableau", titre: "Tableau", couleur: "#1f4b7f", pages: ["leads"] },
+  { id: "g_tableau", titre: "Tableau", couleur: "#1f4b7f", pages: ["leads", "parrainage"] },
   { id: "g_bets", titre: "BETS", couleur: "#4f46e5", pages: ["bets"] },
   { id: "g_praimy", titre: "PRAIMY", couleur: "#7c3aed", pages: ["praimy", "marges", "bareme"] },
   { id: "g_loan", titre: "Loan · Chantiers", couleur: "#0891b2", pages: ["planning", "loan"] },

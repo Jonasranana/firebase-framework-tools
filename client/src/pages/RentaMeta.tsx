@@ -20,6 +20,7 @@ const CANAUX = {
 type Canal = keyof typeof CANAUX;
 // « Site (incomplet) : … » = demande commencée sur la landing des pubs Meta.
 const canalOf = (l: Lead): Canal | null =>
+  String(l.fields?.pubSource ?? "").toLowerCase() === "parrainage" ? null :
   /^site \(incomplet\)/i.test(l.source ?? "") && !/whatsapp|reactivation/i.test(l.source ?? "") ? "site" : (Object.keys(CANAUX) as Canal[]).find((c) => (CANAUX[c].sources as readonly string[]).includes(l.source)) ?? null;
 
 // Fines lignes verticales entre les colonnes des tableaux (pas avant la 1re colonne).
