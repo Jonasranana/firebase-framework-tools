@@ -31,6 +31,7 @@ import {
   trackStep,
   horsPub,
   compterEtape,
+  CreneauAppel,
   type CallbackRequest,
 } from "./ip5-sections";
 
@@ -255,6 +256,9 @@ const QuickStart = ({ source }: { source: string }) => {
           <p className="text-slate-600 dark:text-slate-300 mt-2">
             Votre demande est bien reçue. Un conseiller IP5 Énergie vous rappelle très rapidement.
           </p>
+          <div className="mt-4 text-left">
+            <CreneauAppel />
+          </div>
         </div>
       </QuickShell>
     );

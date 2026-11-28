@@ -19,6 +19,23 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-28-mobile-groupes",
+    date: "2026-11-28",
+    emoji: "📱",
+    titre: "Pac Pac sur téléphone : rangé par groupe",
+    points: ["Sur téléphone, la liste est rangée par groupe : le nom du groupe en titre, ses 10 premiers clients, puis « Voir les autres ». En descendant, on voit tous les groupes. La recherche prend toute la largeur. Le choix « Appeler avec Téléphone / OnOff » est maintenant dans la fiche du client, sous les boutons."],
+  },
+  {
+    id: "2026-11-28-creneau-appel",
+    date: "2026-11-28",
+    emoji: "📅",
+    titre: "Le client choisit quand être appelé",
+    points: [
+      "Après sa demande sur le site, le client peut choisir : dès que possible, ce midi, ce soir ou demain matin.",
+      "Le créneau arrive dans Pac Pac (colonne Rappel, avec une note dans la fiche) et dans le mail « Nouveau lead » (réponse dans la même conversation). Appelez-le à l'heure choisie : il attend l'appel, il décroche.",
+    ],
+  },
+  {
     id: "2026-11-28-parrainage",
     date: "2026-11-28",
     emoji: "🤝",
