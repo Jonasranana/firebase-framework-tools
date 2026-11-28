@@ -667,13 +667,13 @@ export default function MobileLeads(props: Props) {
   useLockZoom();
   const { leads, all, total, query, onQuery, rappelsOnly, onRappelsOnly, lateCount } = props;
   const [openId, setOpenId] = useState<string | null>(null);
-  const [limit, setLimit] = useState(30);
   const [tab, setTab] = useState<"liste" | "agenda" | "notifs" | "actus">("liste");
   const { unread: unreadNotifs } = useNotifs();
   // Onglet « Actus » (veille aides) : seulement pour la famille et le compte contact.
   const canNews = NEWS_VIEWERS.includes(props.email.toLowerCase());
   const unreadNews = useUnreadNews(canNews);
-  const [groupFilter, setGroupFilter] = useState("");
+  // Liste rangée par groupe : 10 clients par groupe au départ, « Voir les autres » en ajoute 20.
+  const [parGroupe, setParGroupe] = useState<Record<string, number>>({});
   const [callApp, setCallAppState] = useState<CallApp>(readCallApp);
   const [toast, setToast] = useState("");
   const setCallApp = (a: CallApp) => {
@@ -709,7 +709,7 @@ export default function MobileLeads(props: Props) {
   };
   const topRef = useRef<HTMLDivElement>(null);
   const openLead = useMemo(() => (openId ? all.find((l) => l.id === openId) ?? null : null), [all, openId]);
-  useEffect(() => setLimit(30), [query, rappelsOnly, groupFilter]);
+  useEffect(() => setParGroupe({}), [query]);
   // Les rappels ont leur propre onglet « À rappeler » : la liste Clients n'est plus filtrée par rappel.
   useEffect(() => {
     if (rappelsOnly) onRappelsOnly(false);
@@ -721,21 +721,25 @@ export default function MobileLeads(props: Props) {
     for (const l of leads) m.set(groupIdOf(l), (m.get(groupIdOf(l)) ?? 0) + 1);
     return m;
   }, [leads, groupIdOf]);
-  const shown = useMemo(() => (groupFilter ? leads.filter((l) => groupIdOf(l) === groupFilter) : leads), [leads, groupFilter, groupIdOf]);
-
-  // Pastilles sobres : la pastille choisie est pleine (couleur du groupe), les autres sont blanches.
-  const chip = (active: boolean) =>
-    `shrink-0 whitespace-nowrap text-[13px] font-semibold px-3.5 py-1.5 rounded-full border transition-all ${active ? "text-white border-transparent shadow-md" : "bg-white/90 text-gray-700 border-[#e6eaf2] shadow-[0_1px_2px_rgba(16,24,40,0.05)]"}`;
-  const noFilter = !rappelsOnly && groupFilter === "";
+  const shown = leads;
+  // Clients de chaque groupe, dans l'ordre des groupes du tableau (groupes vides masqués).
+  const parGroupeListe = useMemo(() => {
+    const m = new Map<string, Lead[]>();
+    for (const l of leads) {
+      const g = groupIdOf(l);
+      if (!m.has(g)) m.set(g, []);
+      m.get(g)!.push(l);
+    }
+    return groups.filter((g) => (m.get(g.id)?.length ?? 0) > 0).map((g) => ({ g, rows: m.get(g.id)! }));
+  }, [leads, groups, groupIdOf]);
 
   return (
     <CallCtx.Provider value={{ app: callApp, copy: copyNumber }}>
     <div ref={topRef} className="pb-28" style={{ touchAction: "pan-x pan-y" }}>
-      <div className="sticky top-0 z-20 -mx-2 px-2 sm:-mx-4 sm:px-4 pt-1 pb-2 bg-gray-50/95 backdrop-blur">
+      <div className="pt-1 pb-2">
         {tab === "liste" && (
           <>
-            {/* Décalée à droite : la bulle « menu » reste en haut à gauche quand on descend. */}
-            <div className="relative ml-11">
+            <div className="relative">
               <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 value={query}
@@ -749,24 +753,6 @@ export default function MobileLeads(props: Props) {
                 </button>
               )}
             </div>
-            {tab === "liste" && (
-              <div className="flex gap-2 mt-2 overflow-x-auto no-scrollbar -mx-2 px-2 sm:-mx-4 sm:px-4">
-                <button onClick={() => { onRappelsOnly(false); setGroupFilter(""); }} className={chip(noFilter)} style={noFilter ? { background: "var(--brand-grad-120)" } : undefined}>
-                  Tous
-                </button>
-                {groups.map((g) => {
-                  const n = groupCounts.get(g.id) ?? 0;
-                  if (!n && groupFilter !== g.id) return null;
-                  const on = groupFilter === g.id;
-                  return (
-                    <button key={g.id} onClick={() => setGroupFilter(on ? "" : g.id)} className={chip(on)} style={on ? { background: g.color } : undefined}>
-                      {!on && <span className="inline-block w-2.5 h-2.5 rounded-full mr-1.5 align-middle" style={{ background: g.color }} />}
-                      {g.title} ({n})
-                    </button>
-                  );
-                })}
-              </div>
-            )}
             <div className="flex items-center justify-between mt-1.5">
               <p className="text-[11px] text-gray-400">
                 {tab === "liste" ? shown.length : leads.length} sur {total} client{total > 1 ? "s" : ""}
@@ -813,41 +799,53 @@ export default function MobileLeads(props: Props) {
 
       {tab === "liste" && (
       <>
-      <div className="mt-1 bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden">
-        {shown.slice(0, limit).map((l) => {
+      {parGroupeListe.map(({ g, rows }) => {
+        const n = parGroupe[g.id] ?? 10;
+        return (
+          <section key={g.id} className="mt-4 first:mt-1">
+            <h2 className="mb-1.5 flex items-center gap-2 px-1">
+              <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: g.color }} />
+              <span className="text-[15px] font-extrabold text-gray-900 truncate">{g.title}</span>
+              <span className="ml-auto shrink-0 rounded-full bg-gray-200/70 px-2 py-0.5 text-[12px] font-bold text-gray-600">{rows.length}</span>
+            </h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm divide-y divide-gray-100 overflow-hidden" style={{ borderLeft: `4px solid ${g.color}` }}>
+              {rows.slice(0, n).map((l) => {
           const tel = telHref(l.phone);
-          const time = l.fields[RAPPEL_HEURE_KEY] ?? "";
-          const late = !!l.rappelLe && rappelEnRetard(l.rappelLe, time);
-          return (
-            <div key={l.id} className="flex items-center gap-2.5 pl-3 pr-2 py-2">
-              <button onClick={() => setOpenId(l.id)} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70">
-                <span className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-[#2b5a8f] to-[#173a5e] text-white text-[13px] font-bold flex items-center justify-center">
-                  {initiales(l.name)}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block font-bold text-[15px] leading-tight text-gray-900 truncate">{l.name || "Sans nom"}</span>
-                  <span className="mt-1 flex items-center gap-1.5">
-                    <StatusPill status={l.status} />
-                    {l.rappelLe && <BellRing size={13} className={late ? "text-[#dc2626]" : "text-[#d97706]"} />}
-                  </span>
-                </span>
-              </button>
-              {tel && (
-                <CallAction phone={l.phone} name={l.name} className="w-10 h-10 shrink-0 rounded-full bg-[#edf2f8] text-[#1f4b7f] inline-flex items-center justify-center active:scale-95 transition">
-                  <Phone size={18} />
-                </CallAction>
-              )}
+              const time = l.fields[RAPPEL_HEURE_KEY] ?? "";
+              const late = !!l.rappelLe && rappelEnRetard(l.rappelLe, time);
+              return (
+                <div key={l.id} className="flex items-center gap-2.5 pl-3 pr-2 py-2">
+                  <button onClick={() => setOpenId(l.id)} className="flex-1 min-w-0 flex items-center gap-3 text-left active:opacity-70">
+                    <span className="w-9 h-9 shrink-0 rounded-full bg-gradient-to-br from-[#2b5a8f] to-[#173a5e] text-white text-[13px] font-bold flex items-center justify-center">
+                      {initiales(l.name)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-bold text-[15px] leading-tight text-gray-900 truncate">{l.name || "Sans nom"}</span>
+                      <span className="mt-1 flex items-center gap-1.5">
+                        <StatusPill status={l.status} />
+                        {l.rappelLe && <BellRing size={13} className={late ? "text-[#dc2626]" : "text-[#d97706]"} />}
+                      </span>
+                    </span>
+                  </button>
+                  {tel && (
+                    <CallAction phone={l.phone} name={l.name} className="w-10 h-10 shrink-0 rounded-full bg-[#edf2f8] text-[#1f4b7f] inline-flex items-center justify-center active:scale-95 transition">
+                      <Phone size={18} />
+                    </CallAction>
+                  )}
+                </div>
+              );
+              })}
             </div>
-          );
-        })}
-      </div>
+            {rows.length > n && (
+              <button onClick={() => setParGroupe((m) => ({ ...m, [g.id]: n + 20 }))} className="mt-1 w-full text-sm font-bold text-[#1f4b7f] py-2">
+                Voir les {rows.length - n} autres de « {g.title} »
+              </button>
+            )}
+          </section>
+        );
+      })}
       <div>
         {shown.length === 0 && <p className="text-center text-gray-400 text-sm py-10">Aucun client ne correspond.</p>}
-        {shown.length > limit && (
-          <button onClick={() => setLimit((n) => n + 30)} className="w-full text-sm font-bold text-[#1f4b7f] py-3">
-            Afficher plus ({shown.length - limit} restants)
-          </button>
-        )}
       </div>
       </>
       )}

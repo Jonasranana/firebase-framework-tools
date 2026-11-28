@@ -19,6 +19,13 @@ export type Nouveaute = {
 
 export const NOUVEAUTES: Nouveaute[] = [
   {
+    id: "2026-11-28-mobile-groupes",
+    date: "2026-11-28",
+    emoji: "📱",
+    titre: "Pac Pac sur téléphone : rangé par groupe",
+    points: ["Sur téléphone, la liste est rangée par groupe : le nom du groupe en titre, ses 10 premiers clients, puis « Voir les autres ». En descendant, on voit tous les groupes. La recherche prend toute la largeur."],
+  },
+  {
     id: "2026-11-28-creneau-appel",
     date: "2026-11-28",
     emoji: "📅",
